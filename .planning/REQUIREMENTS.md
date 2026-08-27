@@ -147,13 +147,70 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (pendiente de asignar durante la creación del roadmap) | — | Pending |
+| SEL-01 | Phase 1 | Pending |
+| SEL-02 | Phase 1 | Pending |
+| SEL-03 | Phase 1 | Pending |
+| SEL-04 | Phase 1 | Pending |
+| SETUP-01 | Phase 1 | Pending |
+| SETUP-02 | Phase 1 | Pending |
+| SETUP-03 | Phase 1 | Pending |
+| SETUP-04 | Phase 1 | Pending |
+| SETUP-05 | Phase 1 | Pending |
+| FLOW-01 | Phase 1 | Pending |
+| FLOW-02 | Phase 1 | Pending |
+| FLOW-03 | Phase 2 | Pending |
+| FLOW-04 | Phase 2 | Pending |
+| FLOW-05 | Phase 1 | Pending |
+| FLOW-06 | Phase 1 | Pending |
+| FLOW-07 | Phase 2 | Pending |
+| FLOW-08 | Phase 2 | Pending |
+| CONT-01 | Phase 1 | Pending |
+| CONT-02 | Phase 2 | Pending |
+| CONT-03 | Phase 2 | Pending |
+| CONT-04 | Phase 2 | Pending |
+| CONT-05 | Phase 2 | Pending |
+| CONT-06 | Phase 2 | Pending |
+| CONT-07 | Phase 2 | Pending |
+| CONT-08 | Phase 1 | Pending |
+| CONT-09 | Phase 2 | Pending |
+| CONT-10 | Phase 1 | Pending |
+| CONT-11 | Phase 1 | Pending |
+| ADAPT-01 | Phase 1 | Pending |
+| ADAPT-02 | Phase 1 | Pending |
+| ADAPT-03 | Phase 1 | Pending |
+| ADAPT-04 | Phase 2 | Pending |
+| VOZ-01 | Phase 3 | Pending |
+| VOZ-02 | Phase 3 | Pending |
+| VOZ-03 | Phase 3 | Pending |
+| VOZ-04 | Phase 3 | Pending |
+| VOZ-05 | Phase 3 | Pending |
+| VOZ-06 | Phase 3 | Pending |
+| UI-01 | Phase 1 | Pending |
+| UI-02 | Phase 1 | Pending |
+| UI-03 | Phase 1 | Pending |
+| UI-04 | Phase 1 | Pending |
+| UI-05 | Phase 1 | Pending |
+| UI-06 | Phase 3 | Pending |
+| UI-07 | Phase 3 | Pending |
+| UI-08 | Phase 3 | Pending |
+| PERS-01 | Phase 1 | Pending |
+| PERS-02 | Phase 1 | Pending |
+| PERS-03 | Phase 1 | Pending |
+| OFF-01 | Phase 4 | Pending |
+| OFF-02 | Phase 4 | Pending |
+| OFF-03 | Phase 4 | Pending |
+| OFF-04 | Phase 4 | Pending |
+| TECH-01 | Phase 1 | Pending |
+| TECH-02 | Phase 1 | Pending |
+| TECH-03 | Phase 1 | Pending |
+| TECH-04 | Phase 1 | Pending |
+| TECH-05 | Phase 1 | Pending |
 
 **Coverage:**
 - v1 requirements: 58 total
-- Mapped to phases: 0
-- Unmapped: 58 ⚠️
+- Mapped to phases: 58
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-08-28*
-*Last updated: 2026-08-28 after initialization*
+*Last updated: 2026-08-28 after roadmap creation*
