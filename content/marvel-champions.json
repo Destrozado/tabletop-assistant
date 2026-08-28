@@ -2,7 +2,7 @@
   "gameId": "marvel-champions",
   "title": "Marvel Champions: El Juego de Cartas",
   "locale": "es",
-  "contentVersion": 5,
+  "contentVersion": 6,
   "sections": [
     {
       "id": "setup",
@@ -172,10 +172,10 @@
               "id": "setup.escenario.02",
               "title": "Ajustar dial de vida del villano",
               "kind": "step",
-              "text": "Ajustad el dial de vida del villano a su vida impresa por el número de jugadores.",
+              "text": "Ajustad el dial de vida del villano al valor indicado en la carta de villano.",
               "citation": {
                 "source": "rules-reference",
-                "section": "Apéndice II, paso 9; ver también \"Per Player Icon\" (p.31)",
+                "section": "Apéndice II, paso 9; ver también anatomía de carta de Villano (p.52, punto 5)",
                 "page": 49
               }
             },
@@ -213,6 +213,28 @@
             },
             {
               "id": "setup.escenario.05",
+              "title": "Poner en juego cartas de Preparación",
+              "kind": "step",
+              "text": "Buscad en mazos y zona apartada cartas con palabra clave Preparación y ponedlas en juego.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 11",
+                "page": 49
+              }
+            },
+            {
+              "id": "setup.escenario.06",
+              "title": "Resolver Preparación del escenario (cara 1A)",
+              "kind": "step",
+              "text": "Resolved cualquier habilidad de Preparación en la carta de escenario, cara 1A.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 12a",
+                "page": 49
+              }
+            },
+            {
+              "id": "setup.escenario.07",
               "title": "Voltear a cara B y colocar amenaza",
               "kind": "step",
               "text": "Voltead el escenario a su cara B y colocad la amenaza inicial indicada.",
@@ -223,7 +245,7 @@
               }
             },
             {
-              "id": "setup.escenario.06",
+              "id": "setup.escenario.08",
               "title": "Resolver Cuando se revela del escenario",
               "kind": "step",
               "text": "Resolved cualquier habilidad de Cuando se revela en esa cara del escenario.",
@@ -234,13 +256,13 @@
               }
             },
             {
-              "id": "setup.escenario.07",
-              "title": "Poner en juego cartas de Preparación",
+              "id": "setup.escenario.09",
+              "title": "Resolver Preparación y Cuando se revela del villano",
               "kind": "step",
-              "text": "Buscad en mazos y zona apartada cartas con palabra clave Preparación y ponedlas en juego.",
+              "text": "Resolved cualquier habilidad de Preparación y de Cuando se revela en la carta de villano.",
               "citation": {
                 "source": "rules-reference",
-                "section": "Apéndice II, paso 11",
+                "section": "Apéndice II, paso 12c",
                 "page": 49
               }
             }

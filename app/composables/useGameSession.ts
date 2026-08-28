@@ -54,7 +54,7 @@ export function useGameSession() {
   })
 
   // Solo cuenta nodos kind === 'step'. null cuando el nodo actual es
-  // kind === 'summary' (D-03: la pantalla de repaso no es "el paso 22 de 22").
+  // kind === 'summary' (D-03: la pantalla de repaso no es "el paso 24 de 24").
   const position = computed<{ current: number, total: number } | null>(() => {
     if (!session.value || !currentNode.value) return null
     if (currentNode.value.step.kind === 'summary') return null

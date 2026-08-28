@@ -126,7 +126,7 @@ const checklist = computed<string[]>(() => {
   )
 })
 
-// Resumen "PREPARACIÓN · 8 de 21 · 3 jug · Normal" compuesto SIEMPRE con las
+// Resumen "PREPARACIÓN · 8 de 23 · 3 jug · Normal" compuesto SIEMPRE con las
 // computeds del composable (sectionLabel/position/sessionContextLabel),
 // nunca con cadenas tecleadas a mano — vale tanto para el ResumePrompt como
 // para el cuerpo del ConfirmDialog de descarte.

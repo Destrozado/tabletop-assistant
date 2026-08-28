@@ -34,10 +34,10 @@ describe('content/marvel-champions.json', () => {
     expect(() => validateGameDefinition(rawMarvelChampions)).not.toThrow()
   })
 
-  it('la sección setup aplanada produce exactamente 22 nodos: 21 kind step y 1 kind summary', () => {
+  it('la sección setup aplanada produce exactamente 24 nodos: 23 kind step y 1 kind summary', () => {
     const steps = allSteps(marvelChampions)
-    expect(steps.length).toBe(22)
-    expect(steps.filter(s => (s.kind ?? 'step') === 'step').length).toBe(21)
+    expect(steps.length).toBe(24)
+    expect(steps.filter(s => (s.kind ?? 'step') === 'step').length).toBe(23)
     expect(steps.filter(s => s.kind === 'summary').length).toBe(1)
   })
 
@@ -85,11 +85,12 @@ describe('content/marvel-champions.json', () => {
     }
   })
 
-  it('la fórmula genérica del dial de vida del villano pasa el patrón de recuento de jugadores (sin dígito ni numeral escrito)', () => {
+  it('el dial de vida del villano usa el valor de la carta de villano, sin mencionar jugadores (corrección de reglas confirmada)', () => {
     const step = allSteps(marvelChampions).find(s => s.id === 'setup.escenario.02')
     expect(step).toBeDefined()
-    expect(step!.text).toMatch(/número de jugadores/i)
+    expect(step!.text).toMatch(/valor indicado en la carta de villano/i)
     expect(step!.text).not.toMatch(PLAYER_COUNT_PATTERN)
+    expect(step!.text).not.toMatch(/jugadores?/i)
   })
 
   it('exactamente 3 pasos declaran warning (D-05)', () => {
@@ -160,7 +161,7 @@ describe('content/marvel-champions.json', () => {
     const normalSession = expand(marvelChampions, { playerCount: 3, difficulty: 'normal' })
     const expertSession = expand(marvelChampions, { playerCount: 3, difficulty: 'expert' })
     expect(normalSession.sequence.length).toBe(expertSession.sequence.length)
-    expect(normalSession.sequence.length).toBe(22)
+    expect(normalSession.sequence.length).toBe(24)
   })
 
   it('toda fase con al menos un paso kind step declara summaryLabel no vacío', () => {
