@@ -93,7 +93,7 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 - [x] **TECH-02**: Un fichero de contenido mal formado o incompleto hace fallar la validación en CI, nunca llega a la tablet
 - [x] **TECH-03**: La lógica del motor de flujo está cubierta por tests automáticos, incluidos el cierre del bucle, el salto entre pasos y la reanudación con contenido desactualizado
 - [x] **TECH-04**: Añadir un juego nuevo consiste en añadir un fichero de contenido conforme al esquema, sin tocar el motor
-- [ ] **TECH-05**: La app está publicada en una URL accesible desde la tablet
+- [x] **TECH-05**: La app está publicada en una URL accesible desde la tablet — https://tabletop-assistant.vercel.app/
 
 ## v2 Requirements
 
@@ -204,7 +204,7 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | TECH-02 | Phase 1 | Complete |
 | TECH-03 | Phase 1 | Complete |
 | TECH-04 | Phase 1 | Complete |
-| TECH-05 | Phase 1 | Pending |
+| TECH-05 | Phase 1 | Complete |
 
 **Coverage:**
 - v1 requirements: 58 total

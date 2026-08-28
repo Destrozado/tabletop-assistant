@@ -74,10 +74,16 @@ Una web-asistente para juegos de mesa complejos, pensada para usarse en una tabl
 ## State Management: composable, not Pinia
 ## Content: plain typed JSON + Zod, not `@nuxt/content`
 ## Testing
-## Hosting: Netlify
-- **Netlify** — first-class, effectively zero-config Nuxt/Nitro static preset; atomic immutable deploys (no window where an old HTML references a since-deleted hashed JS chunk); a simple `netlify.toml` `_headers`-equivalent lets us set `Cache-Control: no-cache` on `/sw.js` and `/manifest.webmanifest` — directly closing the stale-SW trap above.
+## Hosting: Vercel (in use)
+**Live at https://tabletop-assistant.vercel.app/ — deployed from `Destrozado/tabletop-assistant`, auto-deploy on push to `main`.**
+
+Netlify was the original recommendation; the project deployed to Vercel instead and the decision was updated to match reality rather than the other way round. The one property that actually drove the original choice — being able to force `Cache-Control: no-cache` on `/sw.js` and `/manifest.webmanifest`, closing the stale-SW trap — is fully satisfied on Vercel.
+
+**Cache headers live in `nitro.routeRules` in `nuxt.config.ts`, NOT in host config.** Nitro compiles them into whatever preset is targeted (verified: a `NITRO_PRESET=vercel` build emits all four rules into `.vercel/output/config.json`). This keeps one source of truth and leaves the app portable — moving hosts requires no header rewrite. Do not reintroduce `netlify.toml` or add a `vercel.json` for headers; a hand-written `vercel.json` can be bypassed by the generated Build Output config anyway.
+
+- **Netlify** — still a perfectly good fit (zero-config Nuxt/Nitro preset, atomic immutable deploys). Not in use; nothing about it was found wanting.
 - **Cloudflare Pages** — comparable header control via a `_headers` file and excellent edge performance, but per 2026 sources Cloudflare is actively steering *new* projects toward Workers+Static Assets, with Pages left in maintenance mode — not worth adopting fresh for a new project right now.
-- **Vercel** — auto-detects Nuxt fine, but its free tier and workflow are oriented around commercial/Next.js-style usage patterns that are heavier than this project needs.
+- **Vercel** — *this is what the project uses.* Auto-detects Nuxt, builds with Nitro's `vercel` preset, honours `routeRules` headers. The earlier reservation (free tier oriented around heavier commercial usage) has not been a problem in practice for a hobby project of this size.
 - **GitHub Pages** — free and simplest to set up for a public repo, but **cannot set custom response headers at all**, so there is no way to force `Cache-Control: no-cache` on the service-worker file — exactly the mechanism this project needs to avoid the stale-SW trap — and project-page URLs are served under a `/reponame/` subpath, complicating `base`/PWA-scope config for no real benefit here.
 ## Alternatives Considered
 | Recommended | Alternative | When to Use Alternative |
@@ -87,7 +93,7 @@ Una web-asistente para juegos de mesa complejos, pensada para usarse en una tabl
 | Tailwind CSS v4 | UnoCSS (66.8.1) | If build-speed at a much larger scale becomes a real bottleneck — Tailwind v4's native Vite engine already closed most of the historical speed gap that used to justify UnoCSS. |
 | Composable + `useLocalStorage` | Pinia (4.0.3 / `@pinia/nuxt` 1.0.2) | If the app grows multiple independent, simultaneously-active "engines" (e.g. running two games' state at once) or needs devtools time-travel debugging across many stores — not needed for a single linear/looping step machine. |
 | Zod (4.4.3) | Valibot (1.4.2) | If content validation ever needs to run in the browser at runtime (shipped to the client bundle) — then Valibot's much smaller footprint would matter. Here validation is Node/test-time only, so bundle size is moot. |
-| Netlify | Cloudflare Pages | If global edge latency for a much larger/public audience becomes a real concern — irrelevant for a friend-group hobby app. |
+| Vercel (in use) | Netlify / Cloudflare Pages | If Vercel's hobby-tier limits ever bite, or global edge latency for a much larger audience becomes a real concern — irrelevant for a friend-group hobby app. Migration cost is low: cache headers live in `routeRules`, not host config. |
 | VueUse `useSpeechSynthesis`/`useWakeLock` | Raw browser APIs, hand-rolled | If a dependency-minimal build is a hard requirement — the composables are thin enough that hand-rolling saves little, but it's a legitimate simplification if avoiding @vueuse/core entirely is desired. |
 ## What NOT to Use
 | Avoid | Why | Use Instead |
@@ -96,7 +102,7 @@ Una web-asistente para juegos de mesa complejos, pensada para usarse en una tabl
 | `@nuxt/content` (3.16.0) for this project's game data | Designed for prose/markdown collections, not a programmatically-traversed step-machine graph; its content validation explicitly skips in CI/non-interactive environments per its own docs — the opposite of "fail loudly at build." | Plain typed JSON/TS imports + a Zod schema exercised by a Vitest test that runs in CI. |
 | IndexedDB for progress persistence | Massive complexity (async transactions, versioned object stores) for a payload of a few dozen bytes to a few KB — solving a problem this app doesn't have. | `localStorage` via VueUse's `useLocalStorage`. |
 | `registerType: 'autoUpdate'` in `@vite-pwa/nuxt` for this app | Silently force-reloads every open tab the instant a new build is detected — would interrupt an in-progress step/round at the table. | `registerType: 'prompt'` with a dismissible "update available" banner. |
-| GitHub Pages for this deployment | No custom response-header support at all, so `Cache-Control: no-cache` cannot be forced on `/sw.js` — directly reintroducing the stale-service-worker trap this stack is built to avoid. | Netlify (or Cloudflare Pages as a close second). |
+| GitHub Pages for this deployment | No custom response-header support at all, so `Cache-Control: no-cache` cannot be forced on `/sw.js` — directly reintroducing the stale-service-worker trap this stack is built to avoid. | Vercel (in use); Netlify or Cloudflare Pages as alternatives. |
 | A voice-picker UI for TTS | `getVoices()` behavior is inconsistent across Safari/Android (empty lists, non-functional voice switching, language-pack gaps) — building UI around it invites visible breakage. | Set `utterance.lang = 'es-ES'` only and let the OS pick its default. |
 ## Stack Patterns by Variant
 - Reconsider Pinia at that point.
