@@ -64,6 +64,10 @@ Exactly 4 sizes, exactly 2 weights, as required.
 
 **Weight usage rule:** 700 always signals "the thing to read/act on first" (hero sentence, buttons, headings, current position). 400 always signals supporting information (warning body, list rows, secondary copy). Never invent a third weight for emphasis — use the accent/warning color instead.
 
+### Why Body and Label sit only 2px apart (deliberate, not a violation)
+
+Body (20px/400) and Label (18px/700) are the closest two tokens in the scale — only 2px (~11%) apart. This is intentional, not an oversight: the two tokens are differentiated primarily by **weight**, not size. Label is compact, high-density chrome text that must sit inside fixed-height bands (the 64px header, the 96px nav band) without crowding — including the Siguiente/Atrás button labels, the app's single most-repeated tap target — so it stays bold (700) and slightly smaller to read as an unmistakable label rather than a sentence. Body is glanced-at supporting prose (the warning line, index rows, checklist items) that needs the more relaxed regular weight and a touch more size for comfortable reading, but has no reason to approach Heading (28px) territory. With the type scale capped at exactly 4 sizes (per the design contract), the remaining headroom between Heading (28) and a legible button-label floor is naturally narrow — the weight contrast (400 vs 700) is what keeps the two tokens visually distinct at a glance, not the size gap.
+
 ### Action-sentence character budget (content authoring contract)
 
 The Display-size hero sentence never shrinks-to-fit and never scrolls. At 40px/700 in a ~900–960px content column (see Layout below), a line holds roughly 30–35 characters, so:
@@ -109,8 +113,14 @@ All values computed against WCAG 2.1 relative-luminance contrast ratios (formula
 | Primary text `#F2F3F5` on surface `#1E212B` | 14.5:1 | AAA |
 | Warning `#FFB020` text on background `#14161C` | 9.9:1 | AAA |
 | Destructive `#FF5C5C` text/icon on background `#14161C` | 6.0:1 | AA |
-| Dark navy `#0B1220` label on Accent `#2F81F7` button fill | 7.0:1 | AA (large/bold text) |
-| Dark navy `#0B1220` label on Destructive `#FF5C5C` fill | 6.6:1 | AA |
+| Dark navy `#0B1220` label on Accent `#2F81F7` button fill | 5.00:1 | AA (normal text, needs 4.5:1) |
+| Dark navy `#0B1220` label on Destructive `#FF5C5C` fill | 6.19:1 | AA (normal text, needs 4.5:1) |
+| Accent `#2F81F7` glyph (`●` current-mark / `✓` done-mark) on background `#14161C` | 4.83:1 | Passes WCAG SC 1.4.11 Non-text Contrast (needs 3:1 for graphical objects) |
+| Accent `#2F81F7` glyph (`●` current-mark / `✓` done-mark) on surface `#1E212B` | 4.29:1 | Passes WCAG SC 1.4.11 Non-text Contrast (needs 3:1 for graphical objects) |
+
+**Text-size conformance note (button labels):** the two button-label rows use the Label token (18px/700). WCAG's large-text 3:1 bar only applies at ≥18.66px bold (or ≥24px regular) — Label sits just under that bold cutoff, so the stricter **4.5:1 normal-text bar** governs both, not the 3:1 large-text bar. Both pairings clear 4.5:1 regardless (5.00:1 and 6.19:1), so the AA verdict stands unchanged — only the cited bar in an earlier draft of this table was wrong, not the pass/fail outcome.
+
+**Non-text contrast note (accent-as-glyph rows):** the last two rows cover the accent color used as a bare graphical mark (the index overlay's `●` and `✓`), not as text. The governing rule there is **WCAG SC 1.4.11 Non-text Contrast** (3:1 floor for graphical objects and UI component states), not the 4.5:1 text-contrast rule used above — both pairings clear it comfortably.
 
 **Button label color rule:** any solid-fill button (Siguiente, the resume prompt's "Empezar nueva" / "Continuar") uses `#0B1220` (dark navy) label text on its accent/destructive fill, not white — computed above as the higher-contrast pairing for a saturated fill.
 
@@ -144,6 +154,60 @@ Formalizes the CONTEXT.md step-screen mockup with real measurements.
 
 ---
 
+## Orientation & Rotation Behavior (UI-04)
+
+UI-04 requires: "La interfaz se presenta en horizontal y no se reorganiza al rotar el dispositivo." This is a web app running in a normal (or, later, installed) browser tab, not a native app, so the enforcement mechanism has to be honest about what a browser tab can actually guarantee.
+
+**Why this can't be a hard OS-level lock in Phase 1:** the Screen Orientation API's `screen.orientation.lock('landscape')` is the only way to truly *prevent* the OS from rotating the viewport, but per spec it only works reliably inside a **fullscreen** context and/or an **installed PWA** on most mobile browsers — a plain tab silently ignores or rejects the call. PWA installability (manifest, service worker, install prompt) is explicitly Phase 4 scope (`01-CONTEXT.md`'s phase-boundary note: "La instalación PWA... se prepara aquí pero se ejecuta conjuntamente cuando el usuario tenga las cuentas creadas" refers to deploy; install itself is Phase 4 per `FEATURES.md`/`REQUIREMENTS.md` phase mapping). Phase 1 cannot depend on a mechanism that only works post-install. Calling `screen.orientation.lock()` here would silently no-op on most devices and give a false sense of enforcement.
+
+**Decision: a portrait-blocking overlay, not a letterboxed/scaled landscape layout.** When the viewport is in portrait, the app shell is fully hidden and replaced by a full-screen blocking overlay instructing the user to rotate back — nothing reflows, nothing partially resizes. Rejected alternative: keeping the landscape layout rendered at a fixed aspect ratio and letterboxing/scaling it to fit inside a portrait viewport. Rejected because (a) it requires nontrivial CSS transform/scale math to keep touch targets at real tap size inside a shrunk, letterboxed canvas — directly risking the UI-02 44/48pt tap floor; (b) it's harder to verify correctly under Chrome device-emulation rotation, which is this phase's only available test method (D-18); (c) the tablet is already assumed **propped beside the table**, not held (D-18) — portrait is an accidental/rare state to recover from, not a state worth preserving a usable reading experience in. A blocking overlay makes "no se reorganiza" literally true (the app shell simply is not rendered while in portrait) with the least implementation risk.
+
+**Overlay content and copy (Spanish, vosotros voice — consistent with the rest of the app):**
+
+```
+┌────────────────────────────┐
+│                              │
+│                              │
+│        Girad la tablet       │  ← Heading 28/700, primary text,
+│                              │     centered
+│  Esta aplicación se usa      │  ← Body 20/400, secondary text,
+│  en horizontal.              │     centered, max ~400px column
+│                              │
+│                              │
+└────────────────────────────┘
+```
+
+- Background: `#14161C` (Dominant) — same as the rest of the app, no new surface color introduced.
+- No new icon: deliberately text-only, consistent with the "exactly 5 fixed glyphs" icon rationale above — a rotate glyph would be a 6th one-off icon for a state that (per D-18) should rarely occur once the tablet is propped in place.
+- The overlay has no dismiss control and no interaction — it clears itself automatically the instant the device is back in landscape (pure CSS, no JS timer/listener needed for the visual state).
+
+**Viewport meta (executor must add to the document `<head>`):**
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+```
+
+`maximum-scale=1, user-scalable=no` prevents accidental pinch-zoom from a mis-tap during play (this app is not a document meant to be zoomed); it does **not** and cannot enforce orientation — no viewport meta value controls orientation in current browsers. Orientation is handled entirely by the CSS below, not the meta tag.
+
+**CSS / Tailwind contract (orientation media query):**
+
+```css
+/* App shell: hidden in portrait, shown in landscape */
+@media (orientation: portrait) {
+  #app-root { display: none; }
+  #orientation-guard { display: flex; }
+}
+@media (orientation: landscape) {
+  #orientation-guard { display: none; }
+}
+```
+
+Equivalent Tailwind v4 utility classes (this project's actual styling approach): `#app-root` gets `portrait:hidden`, `#orientation-guard` gets `hidden portrait:flex`. Both elements are always mounted in the DOM; only their visibility toggles with orientation, so there is no layout thrash or remount cost on rotation, and the guard is trivially testable via Chrome's device-emulation rotate control (D-18).
+
+**Forward-compatibility (Phase 4, not built here):** once the app is installable as a PWA, its manifest can declare `"orientation": "landscape"`, which most mobile browsers honor for the *installed, standalone* launch context without needing `screen.orientation.lock()` or fullscreen at all. That gives Phase 4 a real, OS-respected lock for users who install the app — Phase 1's CSS-overlay guard remains as the fallback for anyone still running it as a plain browser tab.
+
+---
+
 ## Component Inventory
 
 Dumb/presentational components per `ARCHITECTURE.md`'s pattern — none of these own state beyond what's passed in as props.
@@ -160,6 +224,13 @@ Dumb/presentational components per `ARCHITECTURE.md`'s pattern — none of these
 | `ContentChangedNotice` | `sessionContext: string` (preserved player count/difficulty), `onAcknowledge: () => void` | modal, single acknowledgment CTA (not a two-choice prompt — see Copywriting Contract) |
 | `MesaListaScreen` | `checklist: string[]`, `sessionContext: string`, `onBack: () => void`, `onStart: () => void` | static |
 | `ConfirmDialog` | `title: string`, `body: string`, `confirmLabel: string`, `cancelLabel: string`, `onConfirm: () => void`, `onCancel: () => void`, `destructive: boolean` | generic — reused by `ResumePrompt`'s "Empezar nueva" path |
+| `OrientationGuardOverlay` | none — purely CSS-driven, see Orientation & Rotation Behavior (UI-04) above | shown / hidden via `(orientation: portrait)` / `(orientation: landscape)` media queries only, no JS state |
+
+**Accessible names (icon-only controls):** two controls in this phase render as a bare glyph with no visible text label, so each needs an explicit, fixed accessible name — not a prop, always this exact string:
+- `AppHeader`'s `≡` (open index) button: `aria-label="Abrir índice"`.
+- `IndexOverlay`'s `✕` (close overlay) button: `aria-label="Cerrar índice"`.
+
+Both buttons are otherwise plain, surface-colored icon buttons (no fill) at the 48×48dp tap floor defined in the Spacing Scale exceptions above.
 
 Data note: `IndexOverlay`'s `blocks` grouping must be **derived from the game JSON's own block/section structure** (per CONTEXT.md's discretion note), never hardcoded to Marvel Champions' six named blocks in component code — that hardcoding would break TECH-04 ("añadir un juego nuevo... sin tocar el motor").
 
@@ -315,6 +386,8 @@ Not a new visual shape — reuses the `ConfirmDialog`/`ResumePrompt` layout but 
 | Content-changed notice CTA | `ENTENDIDO ›` (single acknowledgment, not a choice) |
 | Mesa lista heading | "✓ Mesa lista" |
 | Mesa lista intro line | "Repasad antes de empezar:" |
+| Orientation guard title | "Girad la tablet" |
+| Orientation guard body | "Esta aplicación se usa en horizontal." |
 | Step voice/copy rule (D-07, D-08, D-10) | Imperative, plural, short, ≤90 chars; formulas shown unresolved ("vida impresa × nº de jugadores"); never mentions the real player count — that lives only in the header's `sessionContext` |
 
 Destructive actions in this phase: **one** — discarding a saved game to start a new one (SETUP-05). Confirmation approach: two-step (tap "Empezar nueva" → `ConfirmDialog` with an explicit "no se puede deshacer" warning → destructive-red confirm button) per the Color contract's Destructive reservation.
@@ -337,7 +410,7 @@ No shadcn/registry tooling was initialized (see Design System rationale above), 
 - **Header (D-11):** the header's three-zone contract (left: section+position, right: session context, far edge: `≡`) must survive Phase 2's `RONDA 4 · Villano · 3 de 6` swap with only the left zone's *content* changing — the `AppHeader` component's props (`sectionLabel`, `position`) are already generic enough for that; do not name them `setupSection`/`setupPosition`.
 - **Mute icon (Phase 3, VOZ-02):** reserve a 44×44dp icon slot between `sessionContext` and `≡` in the header's right zone. Not built in this phase, but the header's flex layout should not assume exactly two children on the right.
 - **Wake lock battery notice (Phase 3, UI-07):** no UI surface needed in this phase; note only so the mini-setup or mesa-lista screen isn't accidentally treated as the final screen before gameplay in a way that would make a later notice awkward to insert.
-- **PWA install prompt / offline indicator / update banner (Phase 4):** no UI surface needed in this phase; the header and nav bands should not be assumed to be the only persistent chrome — a future top-of-screen banner (update available) must be able to appear without pushing the 64px header band's own layout math.
+- **PWA install prompt / offline indicator / update banner (Phase 4):** no UI surface needed in this phase; the header and nav bands should not be assumed to be the only persistent chrome — a future top-of-screen banner (update available) must be able to appear without pushing the 64px header band's own layout math. Also see **Orientation & Rotation Behavior (UI-04)** above — Phase 4's manifest can add a real `orientation: landscape` lock once install exists, on top of (not instead of) the CSS overlay guard built in this phase.
 
 ---
 
@@ -351,3 +424,4 @@ No shadcn/registry tooling was initialized (see Design System rationale above), 
 - [ ] Dimension 6 Registry Safety: PASS
 
 **Approval:** pending
+</content>
