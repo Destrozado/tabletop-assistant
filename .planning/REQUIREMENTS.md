@@ -19,8 +19,8 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 - [x] **SETUP-01**: En una sola pantalla, el usuario indica cuántos jugadores hay
 - [x] **SETUP-02**: En la misma pantalla, el usuario elige dificultad Normal o Experto
 - [x] **SETUP-03**: Al confirmar, el usuario pasa directamente al primer paso de la preparación de mesa
-- [ ] **SETUP-04**: Si existe una partida guardada, el usuario elige explícitamente entre continuarla o empezar una nueva; la app nunca reanuda en silencio
-- [ ] **SETUP-05**: Al empezar una partida nueva, el progreso guardado anterior se descarta
+- [x] **SETUP-04**: Si existe una partida guardada, el usuario elige explícitamente entre continuarla o empezar una nueva; la app nunca reanuda en silencio
+- [x] **SETUP-05**: Al empezar una partida nueva, el progreso guardado anterior se descarta
 
 ### Motor de flujo y navegación
 
@@ -76,9 +76,9 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 
 ### Persistencia
 
-- [ ] **PERS-01**: La posición actual (juego, jugadores, dificultad, paso y ronda) se guarda en el navegador al cambiar de paso
-- [ ] **PERS-02**: Al recargar la página o desbloquear la tablet, el usuario recupera exactamente el mismo paso y la misma ronda
-- [ ] **PERS-03**: Si el contenido del juego ha cambiado desde que se guardó la partida, la app no reanuda en un paso incorrecto: informa y vuelve al inicio de la sección conservando jugadores y dificultad
+- [x] **PERS-01**: La posición actual (juego, jugadores, dificultad, paso y ronda) se guarda en el navegador al cambiar de paso
+- [x] **PERS-02**: Al recargar la página o desbloquear la tablet, el usuario recupera exactamente el mismo paso y la misma ronda
+- [x] **PERS-03**: Si el contenido del juego ha cambiado desde que se guardó la partida, la app no reanuda en un paso incorrecto: informa y vuelve al inicio de la sección conservando jugadores y dificultad
 
 ### Instalación y funcionamiento offline
 
@@ -154,8 +154,8 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | SETUP-01 | Phase 1 | Complete |
 | SETUP-02 | Phase 1 | Complete |
 | SETUP-03 | Phase 1 | Complete |
-| SETUP-04 | Phase 1 | Pending |
-| SETUP-05 | Phase 1 | Pending |
+| SETUP-04 | Phase 1 | Complete |
+| SETUP-05 | Phase 1 | Complete |
 | FLOW-01 | Phase 1 | Complete |
 | FLOW-02 | Phase 1 | Complete |
 | FLOW-03 | Phase 2 | Pending |
@@ -193,9 +193,9 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | UI-06 | Phase 3 | Pending |
 | UI-07 | Phase 3 | Pending |
 | UI-08 | Phase 3 | Pending |
-| PERS-01 | Phase 1 | Pending |
-| PERS-02 | Phase 1 | Pending |
-| PERS-03 | Phase 1 | Pending |
+| PERS-01 | Phase 1 | Complete |
+| PERS-02 | Phase 1 | Complete |
+| PERS-03 | Phase 1 | Complete |
 | OFF-01 | Phase 4 | Pending |
 | OFF-02 | Phase 4 | Pending |
 | OFF-03 | Phase 4 | Pending |
