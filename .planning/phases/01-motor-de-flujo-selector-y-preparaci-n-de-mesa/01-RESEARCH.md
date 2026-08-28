@@ -691,17 +691,21 @@ export const GameDefinitionSchema = z.object({
 
 **Todas las demás afirmaciones de este documento están `[VERIFIED]` (npm registry, extracción directa del PDF oficial) o `[CITED]` (documentación oficial de Nuxt/Tailwind/Nitro consultada hoy).**
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> Ambas preguntas quedaron cerradas durante la planificación de la Fase 1. Se conservan íntegras abajo como registro de la investigación; las líneas `**RESOLVED:**` son la única adición.
 
 1. **¿La cifra de cartas del conjunto de Archienemigo se verifica antes de fijar el contenido, o se deja genérica indefinidamente?**
    - What we know: el Rules Reference no da una cifra universal; probablemente cada héroe imprime su propio conjunto con un número distinto de cartas.
    - What's unclear: si el equipo de autoría de contenido quiere invertir tiempo en verificar caja por caja (fuera del alcance del Rules Reference, que no lista card lists) o prefiere el texto genérico permanentemente.
    - Recommendation: dejar el texto genérico (paso 5 de la tabla) salvo que surja una razón concreta para necesitar la cifra exacta en pantalla.
+   - **RESOLVED:** se adopta la recomendación del investigador. `01-03-PLAN.md` (tarea 1, fila 5 de la tabla de 21 pasos) autora el texto en forma genérica, sin cifra; la asunción A2 queda cerrada por decisión, no por verificación. Si algún día se quiere la cifra exacta, es una edición de contenido con incremento de `contentVersion`, no un cambio de diseño.
 
 2. **¿El orden "Mazo de encuentros antes que Escenario del villano" sobrevive al playtest de D-04?**
    - What we know: es seguro en términos de reglas (ninguna dependencia física violada, según esta investigación).
    - What's unclear: si es la secuencia más natural de jugar en la mesa real — el bloque "Mazo de encuentros" pide reunir cartas de un escenario cuyo mazo de villano físico todavía no se ha sacado de la caja/apartado.
    - Recommendation: es exactamente el tipo de ajuste que D-04 (revisión de granularidad tras el primer playtest) ya contempla — no bloquear la Fase 1 por esto, solo anotarlo como candidato a revisar.
+   - **RESOLVED:** se difiere explícitamente al usuario, no se decide en planificación. `01-06-PLAN.md` (tarea 2) es un `checkpoint:human-verify` bloqueante en el que el grupo recorre la preparación entera y juzga granularidad y orden de bloques (D-04); el orden «Mazo de encuentros antes que Escenario del villano» y la asunción A3 se ponen ahí a prueba de forma expresa.
 
 ## Environment Availability
 

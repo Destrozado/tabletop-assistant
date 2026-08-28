@@ -7,6 +7,20 @@
 
 Un usuario abre `/marvel-champions` en un navegador con emulación de tablet en horizontal, ve el primer paso real de la preparación de mesa —leído del JSON de contenido versionado a través del cargador tipado y del motor puro— y avanza con SIGUIENTE, con la posición guardada en el navegador; la misma app se compila a estático desplegable con `npm run generate`.
 
+### El esqueleto es la composición de tres planes, no un plan único
+
+El Esqueleto Andante se entrega en **tres planes secuenciales**. Ninguno de los tres cierra el esqueleto por sí solo; los tres juntos sí, y antes de que empiece ninguna rebanada de anchura:
+
+| Orden | Plan | Ola | Qué aporta al esqueleto |
+|---|---|---|---|
+| 1.º | `01-01-PLAN.md` | 1 | Scaffold de Nuxt 4 con SSG, tokens de diseño, guardia de orientación, gates de CI y `netlify.toml` preparado |
+| 2.º | `01-07-PLAN.md` | 2 | Motor de flujo puro con sus tests, esquema Zod validado en CI y el primer contenido real (bloque HÉROES, 3 pasos citados) |
+| 3.º | `01-08-PLAN.md` | 3 | Composables, las tres bandas de la UI y la página runner: el paso real en pantalla con SIGUIENTE/Atrás, prerenderizado a estático |
+
+Se separaron así porque el motor es la pieza más crítica en corrección de todo el proyecto (TECH-03) y no debe ejecutarse arrastrada dentro de un plan de casi treinta ficheros: el riesgo no era el alcance sino el volumen. La escritura y lectura reales de `localStorage` —la otra mitad del elemento «datos» del esqueleto clásico— llega en el plan 01-04.
+
+Los números 07 y 08 son **posteriores en numeración pero anteriores en ejecución** a 01-02..01-06: se eligieron para no renumerar planes ya verificados. La verdad de la ejecución son `wave` y `depends_on`, nunca el número de fichero.
+
 > Esta app no tiene base de datos. El elemento «lectura y escritura reales de datos» del esqueleto andante clásico se corresponde aquí con dos cosas: la lectura real del contenido JSON a través del esquema Zod validado en CI, y la escritura y lectura reales del estado de sesión en `localStorage`.
 
 ## Architectural Decisions
@@ -27,10 +41,12 @@ Un usuario abre `/marvel-champions` en un navegador con emulación de tablet en 
 
 ## Stack Touched in Phase 1
 
-- [ ] Scaffold del proyecto (framework, build, runner de tests, workflow de CI) — plan 01-01, tarea 1
-- [ ] Rutas — `/` (selector) y `/[game]` (runner), ambas prerenderizadas — planes 01-01 y 01-02
-- [ ] Datos — lectura real de `content/marvel-champions.json` a través del esquema validado, y escritura y lectura reales de `localStorage` — planes 01-01 y 01-04
-- [ ] UI — pantalla de paso con SIGUIENTE/Atrás cableados al motor — plan 01-01, tarea 3
+- [ ] Scaffold del proyecto (framework, build, runner de tests, workflow de CI) — plan 01-01
+- [ ] Estilos y orientación — tokens de `01-UI-SPEC.md` en `@theme` y guardia de orientación por CSS — plan 01-01
+- [ ] Motor puro y validación de contenido — `engine/` con tests y esquema Zod en CI — plan 01-07
+- [ ] Rutas — `/[game]` (runner) en el plan 01-08 y `/` (selector) en el plan 01-02, ambas prerenderizadas
+- [ ] Datos — lectura real de `content/marvel-champions.json` a través del esquema validado (planes 01-07 y 01-08); escritura y lectura reales de `localStorage` (plan 01-04)
+- [ ] UI — pantalla de paso con SIGUIENTE/Atrás cableados al motor — plan 01-08
 - [ ] Despliegue — `netlify.toml` y comandos locales documentados en el plan 01-01; publicación efectiva en el plan 01-06 (paso conjunto, D-16/D-17)
 
 ## Out of Scope (Deferred to Later Slices)
@@ -39,7 +55,7 @@ Explícitamente fuera del esqueleto y de la Fase 1 entera, para que ninguna fase
 
 - Bucle de ronda: fase de jugadores, fase del villano y fin de ronda (Fase 2). Ni siquiera una sección `round` vacía «para que el esquema no falle»: la invariante Zod queda relajada a «cero o una» sección repetible en esta fase, con un TODO para endurecerla en la Fase 2
 - Ramas condicionales Héroe/Alter-Ego mostradas simultáneamente (ADAPT-04, Fase 2): el esquema de esta fase no lleva campo `branches`
-- Locución por voz y bloqueo de pantalla (Fase 3). El campo `speech` **sí** existe ya en el esquema desde el primer commit, para no retro-adaptar el contenido después, pero no se autora ni se consume en esta fase
+- Locución por voz y bloqueo de pantalla (Fase 3). El campo `speech` **sí** existe ya en el esquema desde el primer commit (plan 01-07), para no retro-adaptar el contenido después, pero no se autora ni se consume en esta fase
 - Instalación como PWA, service worker y funcionamiento offline (Fase 4). `@vite-pwa/nuxt` no se instala aquí; el `netlify.toml` sí deja preparadas las cabeceras de caché que ese módulo necesitará
 - Bloqueo real de orientación por API o manifest: en esta fase la orientación se resuelve con un overlay bloqueante puramente CSS, porque `screen.orientation.lock()` solo funciona de forma fiable en contexto instalado o a pantalla completa
 - Expansión por jugador (`perPlayer`) y sustitución de tokens numéricos: las decisiones D-02 y D-08 las dejan sin ningún caso de uso; el motor no las implementa

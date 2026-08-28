@@ -30,14 +30,16 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. El usuario avanza y retrocede por todos los pasos de la preparación de mesa con «Siguiente»/«Atrás» (el más prominente de la pantalla), ve en todo momento una cabecera con fase y posición actuales, y puede abrir un índice y saltar directamente a cualquier paso.
   4. El texto de cada paso se adapta al nº real de jugadores y a la dificultad elegida, muestra tal cual las fórmulas de cantidades (sin resolver la aritmética), es legible a un brazo de distancia en tema oscuro con controles de tamaño táctil adecuado, y cada paso que enuncia una regla cita su origen en el Rules Reference v1.7 con una redacción propia, breve e imperativa (sin copiar texto del reglamento).
   5. Al recargar la página o desbloquear la tablet, el usuario recupera exactamente el mismo paso; si el contenido cambió desde que se guardó, la app no reanuda en un paso incorrecto. La lógica del motor (incluido el cierre del bucle, el salto entre pasos y la reanudación con contenido desactualizado) está cubierta por tests automáticos, un fichero de contenido mal formado hace fallar la validación en CI, y la app está publicada en una URL accesible desde la tablet.
-**Plans**: 6 plans
-Plans:
-- [ ] 01-01-PLAN.md — Esqueleto andante: scaffold Nuxt 4 SSG, tokens tablet-first, motor puro con tests y primer paso navegable
-- [ ] 01-02-PLAN.md — Selector de juego y mini-setup de una pantalla, con el contexto de partida en la cabecera
-- [ ] 01-03-PLAN.md — Contenido verificado de la preparación: 21 pasos citados, avisos, variantes de dificultad y gate de CI
-- [ ] 01-04-PLAN.md — Persistencia y reanudación explícita: nunca en silencio, nunca en un paso incorrecto
-- [ ] 01-05-PLAN.md — Índice de salto agrupado por bloques y pantalla «Mesa lista»
-- [ ] 01-06-PLAN.md — Reverificación del contenido, prueba de flujo completo (D-04) y despliegue conjunto a Netlify
+**Plans**: 8 plans
+Plans (en orden de ejecución; los planes 01-07 y 01-08 son posteriores en numeración pero anteriores en ejecución — la verdad es `wave`/`depends_on`, no el número de fichero):
+- [ ] 01-01-PLAN.md — (ola 1) Esqueleto 1/3: scaffold Nuxt 4 SSG, tokens tablet-first, guardia de orientación y gates de CI/despliegue
+- [ ] 01-07-PLAN.md — (ola 2) Esqueleto 2/3: motor de flujo puro con tests, esquema Zod en CI y primer contenido real citado
+- [ ] 01-08-PLAN.md — (ola 3) Esqueleto 3/3: composables, las tres bandas de la UI y el primer paso navegable con SIGUIENTE/Atrás
+- [ ] 01-02-PLAN.md — (ola 4) Selector de juego y mini-setup de una pantalla, con el contexto de partida en la cabecera
+- [ ] 01-03-PLAN.md — (ola 4) Contenido verificado de la preparación: 21 pasos citados, avisos, variantes de dificultad y gate de CI
+- [ ] 01-04-PLAN.md — (ola 5) Persistencia y reanudación explícita: nunca en silencio, nunca en un paso incorrecto
+- [ ] 01-05-PLAN.md — (ola 6) Índice de salto agrupado por bloques y pantalla «Mesa lista»
+- [ ] 01-06-PLAN.md — (ola 7) Reverificación del contenido, prueba de flujo completo (D-04) y despliegue conjunto a Netlify
 **UI hint**: yes
 
 ### Phase 2: Bucle de ronda y reglas verificadas
