@@ -36,6 +36,18 @@ export function toPersistedPosition(session: EngineSession): PersistedPosition {
   }
 }
 
+// Válido en el sentido mínimo que este fallback necesita: un objeto con las
+// dos claves que `SessionContext` exige. No es una revalidación completa del
+// esquema (eso es responsabilidad de `engine/schema.ts`) — es la última
+// línea de defensa del motor ante un `persisted` cuya forma no se puede dar
+// por buena (CR-01: la capa de storage debería filtrar esto, pero el motor
+// no puede asumir ciegamente que su entrada tiene la forma correcta).
+function isValidContext(value: unknown): value is SessionContext {
+  return !!value && typeof value === 'object'
+    && typeof (value as SessionContext).playerCount === 'number'
+    && typeof (value as SessionContext).difficulty === 'string'
+}
+
 // Fallback conservador ante versión desajustada o runtimeId ausente: inicio de
 // sesión (round 1, cursor 0 — el punto en que `expand()` deja toda sesión
 // fresca), conservando SOLO el `context` persistido para no repetir el
@@ -43,8 +55,13 @@ export function toPersistedPosition(session: EngineSession): PersistedPosition {
 // haya cambiado de forma). Nunca se intenta resolver `runtimeId` aquí —
 // Anti-Patrón 4 de ARCHITECTURE.md: una coincidencia casual de id tras una
 // reestructuración es peor que un reinicio honesto.
+//
+// Si `persisted.context` no tiene forma de `SessionContext` (dato parcial o
+// corrupto que sobrevivió a la validación de la capa de storage), se cae al
+// `context` de la sesión fresca en vez de propagar `undefined` (CR-01).
 function contentChangedFallback(persisted: PersistedPosition, fresh: EngineSession): EngineSession {
-  return { ...fresh, cursor: 0, round: 1, context: persisted.context }
+  const context = isValidContext(persisted.context) ? persisted.context : fresh.context
+  return { ...fresh, cursor: 0, round: 1, context }
 }
 
 export function resume(persisted: PersistedPosition | null, fresh: EngineSession): ResumeResult {
