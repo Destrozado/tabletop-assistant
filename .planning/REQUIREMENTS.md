@@ -50,7 +50,7 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 ### Adaptación del texto
 
 - [x] **ADAPT-01**: Los pasos con diferencias por dificultad muestran el texto correspondiente a Normal o Experto según lo elegido
-- [x] **ADAPT-02**: Los pasos que dependen del número de jugadores lo enuncian con el número real de la partida, sin resolver aritmética
+- [x] **ADAPT-02**: El número de jugadores se expone en la cabecera permanente de la sesión, no sustituido dentro del texto de los pasos (redacción de D-10; la anterior contradecía D-08/D-09)
 - [x] **ADAPT-03**: Las fórmulas de cantidades (vida del villano, amenaza inicial) se muestran tal cual para que el grupo las resuelva en la mesa
 - [ ] **ADAPT-04**: Los pasos con ramas condicionales muestran todas las ramas como texto simultáneamente, sin requerir ningún toque para elegir
 
