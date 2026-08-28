@@ -36,7 +36,7 @@ const StepSchema = TextBlockSchema.extend({
 
 const PhaseSchema = z.object({
   id: z.string().regex(idPattern),
-  title: z.string().min(1), // "HÉROES", "ARCHIENEMIGOS"... — fuente del índice de salto
+  title: z.string().min(1), // rótulo de bloque autorado — fuente del índice de salto
   summaryLabel: z.string().optional(),
   steps: z.array(StepSchema).min(1),
 })
