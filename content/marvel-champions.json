@@ -2,7 +2,7 @@
   "gameId": "marvel-champions",
   "title": "Marvel Champions: El Juego de Cartas",
   "locale": "es",
-  "contentVersion": 2,
+  "contentVersion": 3,
   "sections": [
     {
       "id": "setup",
@@ -203,22 +203,22 @@
             },
             {
               "id": "setup.escenario.04",
-              "title": "Escenario según dificultad",
+              "title": "Etapa del villano según dificultad",
               "kind": "step",
-              "text": "Usad la cara del escenario del villano que corresponda a la dificultad elegida.",
+              "text": "Usad la etapa del villano que corresponda a la dificultad elegida.",
               "variants": {
                 "difficulty": {
                   "normal": {
-                    "text": "Usad el escenario del villano en su cara estándar."
+                    "text": "Usad las etapas de villano estándar, tal como vienen en el escenario."
                   },
                   "expert": {
-                    "text": "Usad la cara del escenario del villano indicada para el modo Experto."
+                    "text": "Sustituidlas por las etapas de villano indicadas para el modo Experto."
                   }
                 }
               },
               "citation": {
                 "source": "rules-reference",
-                "section": "Modes of Play — Expert Mode",
+                "section": "Modes of Play — Expert Mode (p.28); ver también Appendix I: Deck Customization, \"Encounter Decks\" (p.48)",
                 "page": 28
               }
             },
