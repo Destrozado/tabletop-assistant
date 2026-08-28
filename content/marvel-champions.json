@@ -2,7 +2,7 @@
   "gameId": "marvel-champions",
   "title": "Marvel Champions: El Juego de Cartas",
   "locale": "es",
-  "contentVersion": 4,
+  "contentVersion": 5,
   "sections": [
     {
       "id": "setup",
@@ -215,10 +215,10 @@
               "id": "setup.escenario.05",
               "title": "Voltear a cara B y colocar amenaza",
               "kind": "step",
-              "text": "Voltead el escenario a su cara B y colocad la amenaza inicial por el número de jugadores.",
+              "text": "Voltead el escenario a su cara B y colocad la amenaza inicial indicada.",
               "citation": {
                 "source": "rules-reference",
-                "section": "Apéndice II, paso 12b (colocar amenaza inicial al voltear); ver también \"Main Scheme\" (p.27) y \"Per Player Icon\" (p.31)",
+                "section": "Apéndice II, paso 12b (voltear a cara 1B); ver también \"Main Scheme\" (p.27) para la colocación de la amenaza inicial",
                 "page": 49
               }
             },
