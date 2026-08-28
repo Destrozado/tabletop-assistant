@@ -25,6 +25,7 @@ const {
   next,
   prev,
   jumpTo,
+  currentNode,
   currentText,
   sectionLabel,
   position,
@@ -112,6 +113,19 @@ function onIndexJumpTo(runtimeId: string) {
   jumpTo(runtimeId)
 }
 
+// D-03: la lista de repaso se deriva de los summaryLabel de las fases con al
+// menos un paso kind:step (la fase "mesa lista" queda excluida por no tener
+// ninguno) — nunca tecleada dos veces.
+const checklist = computed<string[]>(() => {
+  if (!game) return []
+  return game.sections.flatMap(section =>
+    section.phases
+      .filter(phase => phase.steps.some(step => (step.kind ?? 'step') === 'step'))
+      .map(phase => phase.summaryLabel)
+      .filter((label): label is string => Boolean(label)),
+  )
+})
+
 // Resumen "PREPARACIÓN · 8 de 21 · 3 jug · Normal" compuesto SIEMPRE con las
 // computeds del composable (sectionLabel/position/sessionContextLabel),
 // nunca con cadenas tecleadas a mano — vale tanto para el ResumePrompt como
@@ -151,6 +165,14 @@ function onDiscardConfirm() {
 function onContentChangedAcknowledge() {
   awaitingContentChangedAck.value = false
 }
+
+// NO-OP INTENCIONAL (documentado para la Fase 2, ver 01-05-SUMMARY.md):
+// "EMPEZAR A JUGAR" en la pantalla "mesa lista" llama al mismo next() que el
+// resto de la app. Como esta fase no autora ninguna sección con repeats:true,
+// next() deja el cursor clampeado en el mismo índice (último de la
+// secuencia) — no navega a ningún sitio. Esto NO es un bug: es el punto de
+// enganche reservado para el bucle de ronda que la Fase 2 añadirá autorando
+// la sección "round". No añadir lógica especial aquí para "arreglarlo".
 </script>
 
 <template>
@@ -214,6 +236,19 @@ function onContentChangedAcknowledge() {
       @update:difficulty="difficulty = $event"
       @confirm="onConfirm"
       @back="navigateTo('/')"
+    />
+
+    <!--
+      D-03: "mesa lista" es un paso autorado más (kind:summary), nunca un
+      centinela de posición — el despacho de pantalla mira SIEMPRE
+      currentNode.step.kind, jamás compara el cursor con sequence.length.
+    -->
+    <MesaListaScreen
+      v-else-if="currentNode?.step.kind === 'summary'"
+      :checklist="checklist"
+      :session-context="sessionContextLabel"
+      @back="prev"
+      @start="next"
     />
 
     <div v-else class="h-dvh flex flex-col">
