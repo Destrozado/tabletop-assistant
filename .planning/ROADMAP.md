@@ -12,7 +12,7 @@ Cuatro fases, cada una entregando algo jugable de verdad, no una capa técnica a
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Motor de flujo, selector y preparación de mesa** - El grupo elige Marvel Champions, configura la partida y recorre toda la preparación de mesa en una tablet real, con contenido verificado y la app desplegada en una URL.
+- [x] **Phase 1: Motor de flujo, selector y preparación de mesa** - El grupo elige Marvel Champions, configura la partida y recorre toda la preparación de mesa en una tablet real, con contenido verificado y la app desplegada en una URL. (completed 2026-08-28)
 - [ ] **Phase 2: Bucle de ronda y reglas verificadas** - El grupo juega ronda tras ronda —fase de jugadores, fase del villano (6 pasos oficiales), fin de ronda— con el contenido corregido contra el Rules Reference v1.7.
 - [ ] **Phase 3: Locución por voz y pantalla siempre encendida** - El grupo escucha cada paso en voz alta en español y la tablet no se apaga durante la partida, sin que ninguna de las dos cosas bloquee el flujo si falla.
 - [ ] **Phase 4: Instalación y funcionamiento offline** - El grupo instala la app en la tablet y juega una partida completa aunque se caiga la wifi a mitad de partida.
@@ -39,7 +39,7 @@ Plans (en orden de ejecución; los planes 01-07 y 01-08 son posteriores en numer
 - [x] 01-03-PLAN.md — (ola 4) Contenido verificado de la preparación: 21 pasos citados, avisos, variantes de dificultad y gate de CI
 - [x] 01-04-PLAN.md — (ola 5) Persistencia y reanudación explícita: nunca en silencio, nunca en un paso incorrecto
 - [x] 01-05-PLAN.md — (ola 6) Índice de salto agrupado por bloques y pantalla «Mesa lista»
-- [ ] 01-06-PLAN.md — (ola 7) Reverificación del contenido, prueba de flujo completo (D-04) y despliegue conjunto a Netlify
+- [x] 01-06-PLAN.md — (ola 7) Reverificación del contenido, prueba de flujo completo (D-04) y despliegue conjunto a Netlify
 **UI hint**: yes
 
 ### Phase 2: Bucle de ronda y reglas verificadas
@@ -87,7 +87,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Motor de flujo, selector y preparación de mesa | 7/8 | In Progress|  |
+| 1. Motor de flujo, selector y preparación de mesa | 8/8 | Complete   | 2026-08-28 |
 | 2. Bucle de ronda y reglas verificadas | 0/TBD | Not started | - |
 | 3. Locución por voz y pantalla siempre encendida | 0/TBD | Not started | - |
 | 4. Instalación y funcionamiento offline | 0/TBD | Not started | - |

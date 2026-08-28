@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: milestone
-status: executing
-stopped_at: Completado 01-05-PLAN.md
-last_updated: "2026-08-28T13:05:37.493Z"
+status: verifying
+stopped_at: Completado 01-06-PLAN.md — Fase 01 completa (8/8 planes)
+last_updated: "2026-08-28T21:41:05.336Z"
 last_activity: 2026-08-28
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 8
-  completed_plans: 7
-  percent: 0
+  completed_plans: 8
+  percent: 25
 ---
 
 # Project State
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 
 Phase: 01 (motor-de-flujo-selector-y-preparaci-n-de-mesa) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-28
 
-Progress: [█████████░] 88%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [█████████░] 88%
 | Phase 01 P03 | 35min | 2 tasks | 2 files |
 | Phase 01 P04 | 25min | 3 tasks | 7 files |
 | Phase 01 P05 | 25min | 3 tasks | 4 files |
+| Phase 01 P06 | 55min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-04: session.value se asigna en cuanto onMounted resuelve resumed/content-changed; lo que se pospone hasta la eleccion del usuario es que se pinta, no el calculo de la sesion candidata
 - [Phase 01]: 01-05: MesaListaScreen implementa su propia cabecera de 64px en vez de reutilizar AppHeader, porque el mockup exige heading Mesa lista en Heading 28/700 distinto del sectionLabel en Label 18/700
 - [Phase 01]: 01-05: tableOfContents() agrupa por phaseId consecutivo (posicion en el array), nunca por mapa/clave, para no romper si una fase apareciera dos veces
+- [Phase 01]: 01-06: D-04 (granularidad) y la Open Question 2 (orden de bloques) aprobadas sin cambios por el usuario tras el playtest completo
+- [Phase 01]: 01-06: tres correcciones de fidelidad de reglas detectadas por revision humana del usuario, no por la reverificacion automatica: reescritura de 'etapas de villano' (paso 15), division del paso 16 por omitir la multiplicacion por jugadores y el 'Cuando se revela', y eliminacion de una regla fantasma (setup.archienemigos.02, 'contar las cartas') sin respaldo en el Rules Reference
+- [Phase 01]: 01-06: TECH-05 completado como 'preparado, no desplegado' por decision explicita del usuario; netlify.toml reverificado contra una build real, publicacion diferida
 
 ### Pending Todos
 
@@ -107,6 +111,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T13:05:37.485Z
-Stopped at: Completado 01-05-PLAN.md
+Last session: 2026-08-28T21:41:05.329Z
+Stopped at: Completado 01-06-PLAN.md — Fase 01 completa (8/8 planes)
 Resume file: None
