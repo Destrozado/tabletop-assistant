@@ -29,7 +29,7 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 - [ ] **FLOW-03**: Al avanzar desde el último paso de la ronda, el usuario vuelve al primer paso de la ronda, no al de la preparación
 - [ ] **FLOW-04**: Al cerrar el ciclo de la ronda, el contador de ronda se incrementa
 - [x] **FLOW-05**: El usuario ve en todo momento una cabecera de orientación con ronda actual, fase actual y posición dentro de la fase
-- [ ] **FLOW-06**: El usuario puede abrir un índice del flujo completo y tocar cualquier paso para saltar directamente a él
+- [x] **FLOW-06**: El usuario puede abrir un índice del flujo completo y tocar cualquier paso para saltar directamente a él
 - [ ] **FLOW-07**: Tras saltar a un paso del bucle de ronda, seguir avanzando continúa correctamente por el bucle desde ese punto
 - [ ] **FLOW-08**: Un salto a un paso de la preparación no rompe ni reinicia el contador de ronda
 
@@ -161,7 +161,7 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | FLOW-03 | Phase 2 | Pending |
 | FLOW-04 | Phase 2 | Pending |
 | FLOW-05 | Phase 1 | Complete |
-| FLOW-06 | Phase 1 | Pending |
+| FLOW-06 | Phase 1 | Complete |
 | FLOW-07 | Phase 2 | Pending |
 | FLOW-08 | Phase 2 | Pending |
 | CONT-01 | Phase 1 | Complete |

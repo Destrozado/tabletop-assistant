@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: milestone
 status: executing
-stopped_at: Completado 01-04-PLAN.md
-last_updated: "2026-08-28T12:51:25.965Z"
+stopped_at: Completado 01-05-PLAN.md
+last_updated: "2026-08-28T13:05:37.493Z"
 last_activity: 2026-08-28
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 0
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 01 (motor-de-flujo-selector-y-preparaci-n-de-mesa) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
 Last activity: 2026-08-28
 
-Progress: [████████░░] 75%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [████████░░] 75%
 | Phase 01 P02 | 25min | 2 tasks | 5 files |
 | Phase 01 P03 | 35min | 2 tasks | 2 files |
 | Phase 01 P04 | 25min | 3 tasks | 7 files |
+| Phase 01 P05 | 25min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,8 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-04: resume() nunca resuelve runtimeId ante desajuste de formatVersion/contentVersion, aunque el id siga existiendo (Anti-Patron 4)
 - [Phase 01]: 01-04: usePersistedSession.ts es la unica costura de localStorage de toda la app; clear() asigna null (no cadena vacia) para que useLocalStorage dispare removeItem real
 - [Phase 01]: 01-04: session.value se asigna en cuanto onMounted resuelve resumed/content-changed; lo que se pospone hasta la eleccion del usuario es que se pinta, no el calculo de la sesion candidata
+- [Phase 01]: 01-05: MesaListaScreen implementa su propia cabecera de 64px en vez de reutilizar AppHeader, porque el mockup exige heading Mesa lista en Heading 28/700 distinto del sectionLabel en Label 18/700
+- [Phase 01]: 01-05: tableOfContents() agrupa por phaseId consecutivo (posicion en el array), nunca por mapa/clave, para no romper si una fase apareciera dos veces
 
 ### Pending Todos
 
@@ -104,6 +107,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T12:51:25.961Z
-Stopped at: Completado 01-04-PLAN.md
+Last session: 2026-08-28T13:05:37.485Z
+Stopped at: Completado 01-05-PLAN.md
 Resume file: None
