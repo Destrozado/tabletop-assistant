@@ -9,6 +9,12 @@ const props = defineProps<{
   playerCount: number | null
   difficulty: 'normal' | 'expert' | null
   gameTitle: string
+  // WR-06: rango de nº de jugadores derivado de la ficha del juego
+  // (GameDefinition.minPlayers/maxPlayers), no tecleado en la plantilla —
+  // así este componente sigue siendo reutilizable para un juego con un
+  // rango distinto (p. ej. Warhammer 40.000) sin tocarlo.
+  minPlayers: number
+  maxPlayers: number
 }>()
 
 const emit = defineEmits<{
@@ -19,6 +25,12 @@ const emit = defineEmits<{
 }>()
 
 const canConfirm = computed(() => props.playerCount !== null && props.difficulty !== null)
+
+const playerCountOptions = computed(() => {
+  const options: number[] = []
+  for (let n = props.minPlayers; n <= props.maxPlayers; n++) options.push(n)
+  return options
+})
 
 const ctaPressed = ref(false)
 
@@ -51,7 +63,7 @@ function onConfirmClick() {
           <span class="text-label font-bold text-primary-text">Nº de jugadores</span>
           <div class="flex gap-md">
             <button
-              v-for="n in [1, 2, 3, 4]"
+              v-for="n in playerCountOptions"
               :key="n"
               type="button"
               class="flex-1 min-h-12 min-w-12 flex items-center justify-center text-label font-bold"

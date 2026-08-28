@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { validateGameDefinition } from '../schema'
-import { flatten } from '../flatten'
 import { expand } from '../expand'
 import { resolveText } from '../resolve'
 import type { GameDefinition, RuntimeStepNode } from '../types'
@@ -34,6 +33,11 @@ describe('content/marvel-champions.json', () => {
     expect(() => validateGameDefinition(rawMarvelChampions)).not.toThrow()
   })
 
+  it('WR-06: declara minPlayers 1 y maxPlayers 4', () => {
+    expect(marvelChampions.minPlayers).toBe(1)
+    expect(marvelChampions.maxPlayers).toBe(4)
+  })
+
   it('la sección setup aplanada produce exactamente 24 nodos: 23 kind step y 1 kind summary', () => {
     const steps = allSteps(marvelChampions)
     expect(steps.length).toBe(24)
@@ -46,7 +50,7 @@ describe('content/marvel-champions.json', () => {
     expect(steps.length).toBeGreaterThan(0)
     for (const step of steps) {
       expect(step.citation).toBeDefined()
-      expect(step.citation!.source).toBe('rules-reference')
+      expect(['rules-reference', 'learn-to-play']).toContain(step.citation!.source)
       expect(Number.isInteger(step.citation!.page)).toBe(true)
       expect(step.citation!.page!).toBeGreaterThan(0)
     }

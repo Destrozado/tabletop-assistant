@@ -18,6 +18,24 @@ function storageKey(gameId: string): string {
   return `${KEY_PREFIX}${gameId}`
 }
 
+// Valida la FORMA completa de `PersistedPosition`, no solo la presencia de
+// `formatVersion` (CR-01): un objeto parcial (residuo de una build anterior
+// con otra forma de dato, edición manual en DevTools, o una escritura a
+// medias) debe tratarse como ausencia de dato, nunca como una sesión
+// resumible a medio construir. `context` en concreto debe ser un objeto —
+// es justo el campo cuya ausencia hacía crashear la pantalla "El contenido
+// ha cambiado" en `useGameSession.ts`.
+function isPersistedPosition(value: unknown): value is PersistedPosition {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  return 'formatVersion' in candidate
+    && 'contentVersion' in candidate
+    && 'runtimeId' in candidate
+    && 'round' in candidate
+    && 'context' in candidate
+    && typeof candidate.context === 'object' && candidate.context !== null
+}
+
 export function usePersistedSession() {
   function load(gameId: string): PersistedPosition | null {
     const raw = useLocalStorage<string>(storageKey(gameId), '', { writeDefaults: false }).value
@@ -25,10 +43,7 @@ export function usePersistedSession() {
 
     try {
       const parsed = JSON.parse(raw)
-      if (parsed && typeof parsed === 'object' && 'formatVersion' in parsed) {
-        return parsed as PersistedPosition
-      }
-      return null
+      return isPersistedPosition(parsed) ? parsed : null
     }
     catch {
       // JSON corrupto (edición manual, cuota parcial, etc.): ausencia de dato.

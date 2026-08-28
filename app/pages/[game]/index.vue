@@ -115,15 +115,19 @@ function onIndexJumpTo(runtimeId: string) {
 
 // D-03: la lista de repaso se deriva de los summaryLabel de las fases con al
 // menos un paso kind:step (la fase "mesa lista" queda excluida por no tener
-// ninguno) — nunca tecleada dos veces.
+// ninguno) — nunca tecleada dos veces. WR-03: acotada a la SECCIÓN del nodo
+// summary actual (currentNode.value.sectionId), no a game.sections completo
+// — en cuanto la Fase 2 añada la sección "round" con sus propias fases y
+// summaryLabel, "mesa lista" (que se muestra antes de jugar ninguna ronda)
+// no debe listar resúmenes de fases que el jugador todavía no ha recorrido.
 const checklist = computed<string[]>(() => {
-  if (!game) return []
-  return game.sections.flatMap(section =>
-    section.phases
-      .filter(phase => phase.steps.some(step => (step.kind ?? 'step') === 'step'))
-      .map(phase => phase.summaryLabel)
-      .filter((label): label is string => Boolean(label)),
-  )
+  if (!game || !currentNode.value) return []
+  const section = game.sections.find(s => s.id === currentNode.value!.sectionId)
+  if (!section) return []
+  return section.phases
+    .filter(phase => phase.steps.some(step => (step.kind ?? 'step') === 'step'))
+    .map(phase => phase.summaryLabel)
+    .filter((label): label is string => Boolean(label))
 })
 
 // Resumen "PREPARACIÓN · 8 de 23 · 3 jug · Normal" compuesto SIEMPRE con las
@@ -232,6 +236,8 @@ function onContentChangedAcknowledge() {
       :player-count="playerCount"
       :difficulty="difficulty"
       :game-title="game.title"
+      :min-players="game.minPlayers ?? 1"
+      :max-players="game.maxPlayers ?? 4"
       @update:player-count="playerCount = $event"
       @update:difficulty="difficulty = $event"
       @confirm="onConfirm"

@@ -83,7 +83,7 @@ function onRowClick(row: { id: string, mark: 'done' | 'current' | null }) {
           v-for="row in block.steps"
           :key="row.id"
           type="button"
-          class="w-full min-h-11 flex items-center gap-md px-sm text-left transition-transform duration-75 active:brightness-95"
+          class="w-full min-h-12 flex items-center gap-md px-sm text-left transition-transform duration-75 active:brightness-95"
           :class="row.mark === 'current' ? 'text-primary-text' : row.mark === 'done' ? 'text-primary-text' : 'text-secondary-text'"
           @click="onRowClick(row)"
         >

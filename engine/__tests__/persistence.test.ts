@@ -83,6 +83,20 @@ describe('resume', () => {
     expect(result.session.cursor).toBeLessThan(result.session.sequence.length)
   })
 
+  it('CR-01: con persisted parcial (context ausente, p.ej. residuo de una build antigua) nunca deja session.context indefinido', () => {
+    const fresh = expand(tinyGame, context)
+    // Simula lo que hoy puede sobrevivir a la validación insuficiente de
+    // usePersistedSession.load() (solo comprueba 'formatVersion' in parsed):
+    // un objeto que solo tiene formatVersion, sin contentVersion/runtimeId/round/context.
+    const partial = { formatVersion: 1 } as unknown as PersistedPosition
+    expect(() => resume(partial, fresh)).not.toThrow()
+    const result = resume(partial, fresh)
+    expect(result.outcome).toBe('content-changed')
+    expect(result.session.context).toBeDefined()
+    expect(result.session.context.playerCount).toBeTypeOf('number')
+    expect(result.session.context.difficulty).toBeTypeOf('string')
+  })
+
   it('sobre el tramo repetible: reanuda en round 4 en el cierre del bucle y un next() posterior cierra correctamente', () => {
     const fresh = expand(tinyGame, context)
     // loop.turno.03 es el loopEndIndex (5) del fixture.

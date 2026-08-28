@@ -46,6 +46,12 @@ export interface GameDefinition {
   title: string
   locale: 'es'
   contentVersion: number
+  // Opcionales (WR-06 review): rango de nº de jugadores válido para este
+  // juego. `MiniSetupScreen` deriva su rango de botones de estos valores en
+  // vez de tener un rango tecleado a mano — así añadir un juego con un rango
+  // distinto (p. ej. Warhammer 40.000) no exige tocar el componente.
+  minPlayers?: number
+  maxPlayers?: number
   sections: SectionDefinition[]
 }
 

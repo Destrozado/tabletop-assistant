@@ -55,11 +55,16 @@ export function useGameSession() {
 
   // Solo cuenta nodos kind === 'step'. null cuando el nodo actual es
   // kind === 'summary' (D-03: la pantalla de repaso no es "el paso 24 de 24").
+  // Fallback ?? 'step' (WR-01): el `.default('step')` de GameDefinitionSchema
+  // solo se aplica en Vitest/CI (validateGameDefinition); el contenido real
+  // llega al navegador como JSON crudo sin pasar por Zod, así que un paso que
+  // omita `kind` confiando en ese default llegaría aquí con `kind: undefined`
+  // si no se replica el mismo fallback en tiempo de ejecución.
   const position = computed<{ current: number, total: number } | null>(() => {
     if (!session.value || !currentNode.value) return null
     if (currentNode.value.step.kind === 'summary') return null
 
-    const stepNodes = session.value.sequence.filter(node => node.step.kind === 'step')
+    const stepNodes = session.value.sequence.filter(node => (node.step.kind ?? 'step') === 'step')
     const index = stepNodes.findIndex(node => node.runtimeId === currentNode.value!.runtimeId)
     if (index === -1) return null
 
