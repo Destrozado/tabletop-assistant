@@ -68,8 +68,8 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 - [ ] **UI-01**: El texto del paso actual es legible a un brazo de distancia en una tablet apoyada junto a la mesa
 - [ ] **UI-02**: Los controles táctiles tienen un tamaño mínimo de 44-48 pt/dp
 - [ ] **UI-03**: Los controles principales (Siguiente, Atrás) están al alcance del pulgar sin levantar la tablet
-- [ ] **UI-04**: La interfaz se presenta en horizontal y no se reorganiza al rotar el dispositivo
-- [ ] **UI-05**: La interfaz usa un tema oscuro de alto contraste, apto para jugar con luz tenue
+- [x] **UI-04**: La interfaz se presenta en horizontal y no se reorganiza al rotar el dispositivo
+- [x] **UI-05**: La interfaz usa un tema oscuro de alto contraste, apto para jugar con luz tenue
 - [ ] **UI-06**: La pantalla no se apaga mientras hay una partida en curso
 - [ ] **UI-07**: El usuario sabe que la pantalla permanecerá encendida y que eso consume batería
 - [ ] **UI-08**: Si el bloqueo de pantalla no está disponible en el dispositivo, la app sigue funcionando con normalidad
@@ -89,8 +89,8 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 
 ### Base técnica
 
-- [ ] **TECH-01**: El contenido de cada juego vive en un fichero de datos versionado en el repositorio, sin backend ni base de datos
-- [ ] **TECH-02**: Un fichero de contenido mal formado o incompleto hace fallar la validación en CI, nunca llega a la tablet
+- [x] **TECH-01**: El contenido de cada juego vive en un fichero de datos versionado en el repositorio, sin backend ni base de datos
+- [x] **TECH-02**: Un fichero de contenido mal formado o incompleto hace fallar la validación en CI, nunca llega a la tablet
 - [ ] **TECH-03**: La lógica del motor de flujo está cubierta por tests automáticos, incluidos el cierre del bucle, el salto entre pasos y la reanudación con contenido desactualizado
 - [ ] **TECH-04**: Añadir un juego nuevo consiste en añadir un fichero de contenido conforme al esquema, sin tocar el motor
 - [ ] **TECH-05**: La app está publicada en una URL accesible desde la tablet
@@ -188,8 +188,8 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | UI-01 | Phase 1 | Pending |
 | UI-02 | Phase 1 | Pending |
 | UI-03 | Phase 1 | Pending |
-| UI-04 | Phase 1 | Pending |
-| UI-05 | Phase 1 | Pending |
+| UI-04 | Phase 1 | Complete |
+| UI-05 | Phase 1 | Complete |
 | UI-06 | Phase 3 | Pending |
 | UI-07 | Phase 3 | Pending |
 | UI-08 | Phase 3 | Pending |
@@ -200,8 +200,8 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | OFF-02 | Phase 4 | Pending |
 | OFF-03 | Phase 4 | Pending |
 | OFF-04 | Phase 4 | Pending |
-| TECH-01 | Phase 1 | Pending |
-| TECH-02 | Phase 1 | Pending |
+| TECH-01 | Phase 1 | Complete |
+| TECH-02 | Phase 1 | Complete |
 | TECH-03 | Phase 1 | Pending |
 | TECH-04 | Phase 1 | Pending |
 | TECH-05 | Phase 1 | Pending |
