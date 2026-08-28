@@ -4,7 +4,7 @@
 // romperia si una fase apareciera dos veces) y deriva las marcas `done`/
 // `current`/null a partir de `cursor`, sin ningún estado adicional (D-14).
 // Puro: misma entrada -> misma salida, nunca muta `sequence`. Cero imports
-// de Vue/Nuxt/DOM y cero conocimiento de los bloques de Marvel Champions
+// de Vue/Nuxt/DOM y cero conocimiento de los bloques de un juego concreto
 // (TECH-04): las etiquetas de grupo salen siempre de `phaseTitle`.
 import type { RuntimeStepNode } from './types'
 
