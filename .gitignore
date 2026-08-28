@@ -1,24 +1,79 @@
-# Nuxt dev/build outputs
-.output/
-.data/
-.nuxt/
-.nitro/
-.cache/
-dist
-
-# Node dependencies
-node_modules/
-
-# Logs
-logs
-*.log
-
-# Misc
-.DS_Store
-.fleet
-.idea
-
-# Local env files
+# ─── Secretos y credenciales ─────────────────────────────────────────
+# El repositorio es PÚBLICO: nada de esto debe salir nunca.
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+*.credentials
+.netrc
+
+# ─── Dependencias ────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/versions
+
+# ─── Salidas de build de Nuxt/Nitro ──────────────────────────────────
+.output/
+.nuxt/
+.nitro/
+.data/
+.cache/
+dist
+
+# ─── Despliegue ──────────────────────────────────────────────────────
+.netlify/
+.vercel/
+
+# ─── Tests y cobertura ───────────────────────────────────────────────
+coverage/
+.vitest/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# ─── Logs ────────────────────────────────────────────────────────────
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ─── Editores y herramientas locales ─────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.fleet/
+.direnv/
+*.swp
+*.swo
+*~
+
+# ─── Ajustes locales de Claude Code ──────────────────────────────────
+# La configuración compartida (.claude/settings.json) sí se versiona;
+# los ajustes locales de cada máquina no.
+.claude/settings.local.json
+.claude/*.local.json
+
+# ─── Sistema operativo ───────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
+
+# ─── Artefactos temporales de GSD ────────────────────────────────────
+.planning/**/.review-fix-recovery-pending.json
+.planning/**/.continue-here.md

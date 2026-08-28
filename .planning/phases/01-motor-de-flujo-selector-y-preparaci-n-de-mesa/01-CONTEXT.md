@@ -74,8 +74,8 @@ El usuario no delegó explícitamente ninguna decisión, pero estas quedan sin f
 - `.planning/research/FEATURES.md` — Table stakes de la UI en tablet con la evidencia que los respalda, y anti-features a no construir
 
 ### Reglamento oficial (fuente de verdad del contenido)
-- `/Users/vcompanyb/Downloads/mc_rulesreference_v17-compressed.pdf` — **Rules Reference v1.7. Fuente de verdad para CONT-08 y CONT-09.** Extraíble con `pdftotext` (ya validado durante la investigación)
-- `/Users/vcompanyb/Downloads/Marvel-Champions_aprende_a_jugar.pdf` — «Aprende a jugar». Útil para el orden narrativo de la preparación; el Rules Reference manda en caso de conflicto
+- `~/Downloads/mc_rulesreference_v17-compressed.pdf` — **Rules Reference v1.7. Fuente de verdad para CONT-08 y CONT-09.** Extraíble con `pdftotext` (ya validado durante la investigación)
+- `~/Downloads/Marvel-Champions_aprende_a_jugar.pdf` — «Aprende a jugar». Útil para el orden narrativo de la preparación; el Rules Reference manda en caso de conflicto
 
 ### Errores confirmados del borrador (a no reproducir)
 Verificados contra el Rules Reference v1.7 durante la investigación. Los cuatro afectan sobre todo a la Fase 2, pero **uno toca el setup de esta fase**:

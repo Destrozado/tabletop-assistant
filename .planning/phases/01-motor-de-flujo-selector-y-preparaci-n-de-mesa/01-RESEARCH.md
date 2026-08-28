@@ -120,7 +120,7 @@ Consecuencia directa de FLOW-05/D-11: la cabecera muestra `PREPARACIÓN · 8 de 
 
 ## Preparación de mesa de Marvel Champions verificada (CONT-01, CONT-08, CONT-10, CONT-11)
 
-Fuente primaria: `/Users/vcompanyb/Downloads/mc_rulesreference_v17-compressed.pdf` (Rules Reference v1.7), extraído con `pdftotext -layout` en esta misma sesión de investigación y confirmado página por página con extracción `-f/-l` individual (no solo el volcado corrido, que desplaza los números de página en algunos tramos — ver nota de discrepancia abajo).
+Fuente primaria: `~/Downloads/mc_rulesreference_v17-compressed.pdf` (Rules Reference v1.7), extraído con `pdftotext -layout` en esta misma sesión de investigación y confirmado página por página con extracción `-f/-l` individual (no solo el volcado corrido, que desplaza los números de página en algunos tramos — ver nota de discrepancia abajo).
 
 ### El Apéndice II: Setup oficial tiene 16 pasos — confirmado en PDF página 49 (`[VERIFIED: PDF oficial]`)
 
@@ -767,7 +767,7 @@ Sin backend, sin autenticación, sin cuentas, sin llamadas de red en runtime (el
 ## Sources
 
 ### Primary (HIGH confidence)
-- `/Users/vcompanyb/Downloads/mc_rulesreference_v17-compressed.pdf` (Rules Reference v1.7) — extraído con `pdftotext -layout` y verificación página-por-página (`-f/-l`) en esta sesión; todas las citas de la tabla de 21 pasos remiten a esta extracción directa.
+- `~/Downloads/mc_rulesreference_v17-compressed.pdf` (Rules Reference v1.7) — extraído con `pdftotext -layout` y verificación página-por-página (`-f/-l`) en esta sesión; todas las citas de la tabla de 21 pasos remiten a esta extracción directa.
 - npm registry (`npm view <pkg> version`, `npm view <pkg> scripts.postinstall`, `npm view <pkg> repository.url`), verificado en vivo 2026-08-28.
 - `slopcheck 0.6.1` (instalado y ejecutado en esta sesión) — audit de los 9 paquetes de esta fase.
 - api.npmjs.org/downloads/point/last-week — descargas semanales verificadas en vivo para el Package Legitimacy Audit.

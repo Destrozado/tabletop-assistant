@@ -49,8 +49,8 @@ Que un grupo pueda jugar una partida completa de Marvel Champions de principio a
 - **Marvel Champions es el primer juego** porque es el que el grupo está jugando actualmente. El motor debe ser genérico para admitir Warhammer 40.000 después sin reescribirlo.
 - **Existe un resumen de partida previo** de Marvel Champions (elaborado con otra IA), con la estructura: 1) Preparación, 2) Fase de los jugadores, 3) Fase del villano, 4) Fin de ronda y reglas clave. Sirve como **borrador** de contenido, no como mapa validado del flujo: **el propio usuario sospechaba errores y la investigación ya ha confirmado varios** al contrastarlo con el Rules Reference v1.7 oficial — la fase del villano son 6 pasos oficiales y no 4; las obligaciones son «una o más por identidad» y no exactamente una por jugador; solo el villano y los esbirros con la palabra clave Villano roban cartas de aumento; y el Modo Experto no altera la estructura de la fase del villano (eso es el Modo Heroico, un eje de dificultad aparte y combinable). El borrador debe corregirse antes de tratarse como fuente de verdad.
 - **Fuentes oficiales disponibles en local** para verificar ese resumen:
-  - `/Users/vcompanyb/Downloads/mc_rulesreference_v17-compressed.pdf` (Rules Reference v17 — fuente de verdad)
-  - `/Users/vcompanyb/Downloads/Marvel-Champions_aprende_a_jugar.pdf` (Aprende a jugar)
+  - `~/Downloads/mc_rulesreference_v17-compressed.pdf` (Rules Reference v17 — fuente de verdad)
+  - `~/Downloads/Marvel-Champions_aprende_a_jugar.pdf` (Aprende a jugar)
 - **La estructura del flujo tiene dos tramos distintos:** el setup es lineal y se recorre una vez; la ronda es un ciclo que se repite indefinidamente. El motor de pasos debe modelar ambos, y el "Siguiente" al final del ciclo debe volver al inicio de la ronda, no al setup.
 - **Entorno de uso hostil al ratón:** tablet, manos ocupadas con cartas, mirada a distancia. De ahí el texto grande y el flujo de un solo botón.
 

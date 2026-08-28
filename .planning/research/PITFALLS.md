@@ -346,8 +346,8 @@ This is a working checklist for the rules-verification phase. Each row states **
 
 ## Sources
 
-- `mc_rulesreference_v17-compressed.pdf` (Marvel Champions Rules Reference, Version 1.7) — local copy at `/Users/vcompanyb/Downloads/mc_rulesreference_v17-compressed.pdf`, read directly via `pdftotext`; all rules-fidelity citations above reference specific pages/sections of this document (HIGH confidence, primary official source).
-- `Marvel-Champions_aprende_a_jugar.pdf` (Aprende a jugar / Learn to Play) — local copy at `/Users/vcompanyb/Downloads/Marvel-Champions_aprende_a_jugar.pdf`, available as a secondary official source (not deeply excerpted here since the Rules Reference is authoritative for edge cases).
+- `mc_rulesreference_v17-compressed.pdf` (Marvel Champions Rules Reference, Version 1.7) — local copy at `~/Downloads/mc_rulesreference_v17-compressed.pdf`, read directly via `pdftotext`; all rules-fidelity citations above reference specific pages/sections of this document (HIGH confidence, primary official source).
+- `Marvel-Champions_aprende_a_jugar.pdf` (Aprende a jugar / Learn to Play) — local copy at `~/Downloads/Marvel-Champions_aprende_a_jugar.pdf`, available as a secondary official source (not deeply excerpted here since the Rules Reference is authoritative for edge cases).
 - MDN, `SpeechSynthesis: voiceschanged event` — https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis/voiceschanged_event
 - WebKit developer forum, "Web Speech Synthesis API: not all voices installed listed" — https://developer.apple.com/forums/thread/723503
 - weboutloud.io, "The State of Speech Synthesis in Safari" — https://weboutloud.io/bulletin/speech_synthesis_in_safari/
