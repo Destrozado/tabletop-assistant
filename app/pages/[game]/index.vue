@@ -1,9 +1,9 @@
 <script setup lang="ts">
-// Runner: compone las tres bandas y cablea la navegación. Lee el parámetro de
+// Runner: compone las bandas y cablea la navegación. Lee el parámetro de
 // ruta, obtiene el GameDefinition real y conecta next/back al motor a través
 // de useGameSession (la única costura). Este componente sigue siendo "tonto"
 // respecto al motor: no importa nada de ~~/engine, solo el composable.
-import { onMounted } from 'vue'
+import { ref } from 'vue'
 import { useGameContent } from '~/composables/useGameContent'
 import { useGameSession } from '~/composables/useGameSession'
 
@@ -14,6 +14,7 @@ const { getGame } = useGameContent()
 const game = getGame(gameId)
 
 const {
+  session,
   start,
   next,
   prev,
@@ -23,11 +24,14 @@ const {
   sessionContextLabel,
 } = useGameSession()
 
-onMounted(() => {
-  if (!game) return
-  // STUB: sustituido por el mini-setup en el plan 01-02 (SETUP-01/02/03).
-  start(gameId, { playerCount: 2, difficulty: 'normal' })
-})
+// Estado local del mini-setup (SETUP-01/02), previo a iniciar la sesión real.
+const playerCount = ref<number | null>(null)
+const difficulty = ref<'normal' | 'expert' | null>(null)
+
+function onConfirm() {
+  if (playerCount.value === null || difficulty.value === null) return
+  start(gameId, { playerCount: playerCount.value, difficulty: difficulty.value })
+}
 
 function onIndexOpen() {
   // El índice de salto llega en el plan 01-05; sin handler todavía.
@@ -43,10 +47,8 @@ function onIndexOpen() {
   </div>
 
   <!--
-    Guard de cliente (Pitfall 7): estructura lista para que los planes 01-02 y
-    01-04 aporten estado de navegador (localStorage) sin reorganizar la página.
-    Aún no hay localStorage en esta tarea; el contexto de sesión es el STUB de
-    arriba, calculado siempre igual en servidor y cliente.
+    Guard de cliente (Pitfall 7): estructura lista para que el plan 01-04
+    aporte estado de navegador (localStorage) sin reorganizar la página.
   -->
   <ClientOnly v-else>
     <template #fallback>
@@ -54,7 +56,19 @@ function onIndexOpen() {
         <p class="text-body font-normal text-secondary-text">Cargando…</p>
       </div>
     </template>
-    <div class="h-dvh flex flex-col">
+
+    <MiniSetupScreen
+      v-if="!session"
+      :player-count="playerCount"
+      :difficulty="difficulty"
+      :game-title="game.title"
+      @update:player-count="playerCount = $event"
+      @update:difficulty="difficulty = $event"
+      @confirm="onConfirm"
+      @back="navigateTo('/')"
+    />
+
+    <div v-else class="h-dvh flex flex-col">
       <AppHeader
         :section-label="sectionLabel"
         :position="position"
