@@ -35,7 +35,7 @@ Plans (en orden de ejecución; los planes 01-07 y 01-08 son posteriores en numer
 - [x] 01-01-PLAN.md — (ola 1) Esqueleto 1/3: scaffold Nuxt 4 SSG, tokens tablet-first, guardia de orientación y gates de CI/despliegue
 - [x] 01-07-PLAN.md — (ola 2) Esqueleto 2/3: motor de flujo puro con tests, esquema Zod en CI y primer contenido real citado
 - [x] 01-08-PLAN.md — (ola 3) Esqueleto 3/3: composables, las tres bandas de la UI y el primer paso navegable con SIGUIENTE/Atrás
-- [ ] 01-02-PLAN.md — (ola 4) Selector de juego y mini-setup de una pantalla, con el contexto de partida en la cabecera
+- [x] 01-02-PLAN.md — (ola 4) Selector de juego y mini-setup de una pantalla, con el contexto de partida en la cabecera
 - [ ] 01-03-PLAN.md — (ola 4) Contenido verificado de la preparación: 21 pasos citados, avisos, variantes de dificultad y gate de CI
 - [ ] 01-04-PLAN.md — (ola 5) Persistencia y reanudación explícita: nunca en silencio, nunca en un paso incorrecto
 - [ ] 01-05-PLAN.md — (ola 6) Índice de salto agrupado por bloques y pantalla «Mesa lista»
@@ -87,7 +87,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Motor de flujo, selector y preparación de mesa | 3/8 | In Progress|  |
+| 1. Motor de flujo, selector y preparación de mesa | 4/8 | In Progress|  |
 | 2. Bucle de ronda y reglas verificadas | 0/TBD | Not started | - |
 | 3. Locución por voz y pantalla siempre encendida | 0/TBD | Not started | - |
 | 4. Instalación y funcionamiento offline | 0/TBD | Not started | - |

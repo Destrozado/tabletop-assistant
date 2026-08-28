@@ -9,16 +9,16 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 
 ### Selector de juego
 
-- [ ] **SEL-01**: Al abrir la web, el usuario ve una pantalla que pregunta a qué juego va a jugar y lista los juegos disponibles
-- [ ] **SEL-02**: El usuario puede elegir Marvel Champions y entrar en su flujo guiado
-- [ ] **SEL-03**: El usuario ve Warhammer 40.000 en el selector marcado como «Próximamente» y no puede entrar en él
-- [ ] **SEL-04**: El usuario entiende, desde la primera pantalla, que esto es una guía de flujo y no un buscador de reglas ni un contador de vida
+- [x] **SEL-01**: Al abrir la web, el usuario ve una pantalla que pregunta a qué juego va a jugar y lista los juegos disponibles
+- [x] **SEL-02**: El usuario puede elegir Marvel Champions y entrar en su flujo guiado
+- [x] **SEL-03**: El usuario ve Warhammer 40.000 en el selector marcado como «Próximamente» y no puede entrar en él
+- [x] **SEL-04**: El usuario entiende, desde la primera pantalla, que esto es una guía de flujo y no un buscador de reglas ni un contador de vida
 
 ### Configuración de partida (mini-setup)
 
-- [ ] **SETUP-01**: En una sola pantalla, el usuario indica cuántos jugadores hay
-- [ ] **SETUP-02**: En la misma pantalla, el usuario elige dificultad Normal o Experto
-- [ ] **SETUP-03**: Al confirmar, el usuario pasa directamente al primer paso de la preparación de mesa
+- [x] **SETUP-01**: En una sola pantalla, el usuario indica cuántos jugadores hay
+- [x] **SETUP-02**: En la misma pantalla, el usuario elige dificultad Normal o Experto
+- [x] **SETUP-03**: Al confirmar, el usuario pasa directamente al primer paso de la preparación de mesa
 - [ ] **SETUP-04**: Si existe una partida guardada, el usuario elige explícitamente entre continuarla o empezar una nueva; la app nunca reanuda en silencio
 - [ ] **SETUP-05**: Al empezar una partida nueva, el progreso guardado anterior se descarta
 
@@ -50,7 +50,7 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 ### Adaptación del texto
 
 - [ ] **ADAPT-01**: Los pasos con diferencias por dificultad muestran el texto correspondiente a Normal o Experto según lo elegido
-- [ ] **ADAPT-02**: Los pasos que dependen del número de jugadores lo enuncian con el número real de la partida, sin resolver aritmética
+- [x] **ADAPT-02**: Los pasos que dependen del número de jugadores lo enuncian con el número real de la partida, sin resolver aritmética
 - [ ] **ADAPT-03**: Las fórmulas de cantidades (vida del villano, amenaza inicial) se muestran tal cual para que el grupo las resuelva en la mesa
 - [ ] **ADAPT-04**: Los pasos con ramas condicionales muestran todas las ramas como texto simultáneamente, sin requerir ningún toque para elegir
 
@@ -147,13 +147,13 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEL-01 | Phase 1 | Pending |
-| SEL-02 | Phase 1 | Pending |
-| SEL-03 | Phase 1 | Pending |
-| SEL-04 | Phase 1 | Pending |
-| SETUP-01 | Phase 1 | Pending |
-| SETUP-02 | Phase 1 | Pending |
-| SETUP-03 | Phase 1 | Pending |
+| SEL-01 | Phase 1 | Complete |
+| SEL-02 | Phase 1 | Complete |
+| SEL-03 | Phase 1 | Complete |
+| SEL-04 | Phase 1 | Complete |
+| SETUP-01 | Phase 1 | Complete |
+| SETUP-02 | Phase 1 | Complete |
+| SETUP-03 | Phase 1 | Complete |
 | SETUP-04 | Phase 1 | Pending |
 | SETUP-05 | Phase 1 | Pending |
 | FLOW-01 | Phase 1 | Complete |
@@ -176,7 +176,7 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | CONT-10 | Phase 1 | Pending |
 | CONT-11 | Phase 1 | Pending |
 | ADAPT-01 | Phase 1 | Pending |
-| ADAPT-02 | Phase 1 | Pending |
+| ADAPT-02 | Phase 1 | Complete |
 | ADAPT-03 | Phase 1 | Pending |
 | ADAPT-04 | Phase 2 | Pending |
 | VOZ-01 | Phase 3 | Pending |
