@@ -5,7 +5,7 @@
 // esta página necesita para decidir con qué sesión arrancar antes de que
 // exista una — el resto de la navegación sigue pasando siempre por
 // useGameSession (la única costura reactiva).
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { expand } from '~~/engine/expand'
 import { resume } from '~~/engine/persistence'
 import { useGameContent } from '~/composables/useGameContent'
@@ -93,6 +93,46 @@ function onConfirm() {
 function onIndexOpen() {
   // El índice de salto llega en el plan 01-05; sin handler todavía.
 }
+
+// Resumen "PREPARACIÓN · 8 de 21 · 3 jug · Normal" compuesto SIEMPRE con las
+// computeds del composable (sectionLabel/position/sessionContextLabel),
+// nunca con cadenas tecleadas a mano — vale tanto para el ResumePrompt como
+// para el cuerpo del ConfirmDialog de descarte.
+const savedSummary = computed(() => {
+  const parts = [sectionLabel.value]
+  if (position.value) {
+    parts.push(`${position.value.current} de ${position.value.total}`)
+  }
+  parts.push(sessionContextLabel.value)
+  return parts.join(' · ')
+})
+
+const discardBody = computed(() =>
+  `Se borrará el progreso guardado de la partida en curso (${savedSummary.value}). Esta acción no se puede deshacer.`,
+)
+
+function onResumeContinue() {
+  awaitingResumeChoice.value = false
+}
+
+function onResumeNewGame() {
+  awaitingDiscardConfirm.value = true
+}
+
+function onDiscardCancel() {
+  awaitingDiscardConfirm.value = false
+}
+
+function onDiscardConfirm() {
+  clear(gameId)
+  session.value = null
+  awaitingResumeChoice.value = false
+  awaitingDiscardConfirm.value = false
+}
+
+function onContentChangedAcknowledge() {
+  awaitingContentChangedAck.value = false
+}
 </script>
 
 <template>
@@ -120,15 +160,32 @@ function onIndexOpen() {
       <p class="text-body font-normal text-secondary-text">Cargando…</p>
     </div>
 
-    <!-- Placeholder de la Tarea 3 (ResumePrompt real, con ConfirmDialog de descarte). -->
-    <div v-else-if="awaitingResumeChoice" class="h-dvh bg-background flex items-center justify-center">
-      <p class="text-body font-normal text-secondary-text">Resolviendo partida guardada…</p>
+    <!-- SETUP-04: nunca se reanuda en silencio. ConfirmDialog se apila encima al pedir "Empezar nueva" (SETUP-05). -->
+    <div v-else-if="awaitingResumeChoice" class="h-dvh">
+      <ResumePrompt
+        :saved-summary="savedSummary"
+        @resume="onResumeContinue"
+        @new-game="onResumeNewGame"
+      />
+      <ConfirmDialog
+        v-if="awaitingDiscardConfirm"
+        title="¿Empezar una partida nueva?"
+        :body="discardBody"
+        confirm-label="Sí, empezar nueva"
+        cancel-label="Cancelar"
+        :destructive="true"
+        @confirm="onDiscardConfirm"
+        @cancel="onDiscardCancel"
+      />
     </div>
 
-    <!-- Placeholder de la Tarea 3 (ContentChangedNotice real). -->
-    <div v-else-if="awaitingContentChangedAck" class="h-dvh bg-background flex items-center justify-center">
-      <p class="text-body font-normal text-secondary-text">El contenido ha cambiado…</p>
-    </div>
+    <!-- PERS-03: el desenlace ya está decidido, un único CTA de reconocimiento. -->
+    <ContentChangedNotice
+      v-else-if="awaitingContentChangedAck"
+      :session-context="sessionContextLabel"
+      :section-label="sectionLabel"
+      @acknowledge="onContentChangedAcknowledge"
+    />
 
     <MiniSetupScreen
       v-else-if="!session"
