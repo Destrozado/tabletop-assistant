@@ -17,12 +17,13 @@ export default defineNuxtConfig({
 
   nitro: {
     prerender: {
-      // Nitro semilla el crawler en '/' por defecto incluso cuando `routes`
-      // no la incluye; `crawlLinks: false` evita ese 404 mientras no exista
-      // app/pages/index.vue (el selector de juego llega en el plan 01-02,
-      // que puede volver a activar crawlLinks o añadir '/' explícitamente).
+      // '/' ya existe (selector de juego, plan 01-02): se declara explícita
+      // junto a la ruta de juego. Se mantiene crawlLinks:false porque la
+      // navegación entre pantallas usa navigateTo() en un manejador de click,
+      // no un <NuxtLink> con href real en el HTML — el crawler no lo
+      // descubriría solo, así que cada ruta prerenderizable se enumera aquí.
       crawlLinks: false,
-      routes: ['/marvel-champions'],
+      routes: ['/', '/marvel-champions'],
     },
   },
 
