@@ -2,7 +2,7 @@
   "gameId": "marvel-champions",
   "title": "Marvel Champions: El Juego de Cartas",
   "locale": "es",
-  "contentVersion": 1,
+  "contentVersion": 2,
   "sections": [
     {
       "id": "setup",
@@ -46,6 +46,274 @@
                 "section": "Apéndice II, paso 2",
                 "page": 49
               }
+            }
+          ]
+        },
+        {
+          "id": "setup.archienemigos",
+          "title": "ARCHIENEMIGOS",
+          "summaryLabel": "Archienemigos apartados",
+          "steps": [
+            {
+              "id": "setup.archienemigos.01",
+              "title": "Localizar Archienemigo",
+              "kind": "step",
+              "text": "Localizad el conjunto de Archienemigo (Nemesis) de vuestra identidad.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Nemesis Encounter Set",
+                "page": 29
+              }
+            },
+            {
+              "id": "setup.archienemigos.02",
+              "title": "Contar las cartas",
+              "kind": "step",
+              "text": "Contad las cartas de vuestro conjunto de Archienemigo.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Nemesis Encounter Set",
+                "page": 29
+              }
+            },
+            {
+              "id": "setup.archienemigos.03",
+              "title": "Apartar fuera de la partida",
+              "kind": "step",
+              "text": "Apartadlas fuera de la partida.",
+              "warning": "No se barajan en el mazo de encuentros",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 5",
+                "page": 49
+              }
+            }
+          ]
+        },
+        {
+          "id": "setup.encuentros",
+          "title": "MAZO DE ENCUENTROS",
+          "summaryLabel": "Mazo de encuentros construido",
+          "steps": [
+            {
+              "id": "setup.encuentros.01",
+              "title": "Reunir conjuntos del escenario",
+              "kind": "step",
+              "text": "Reunid los conjuntos de encuentro indicados en la carta de escenario.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 10",
+                "page": 49
+              }
+            },
+            {
+              "id": "setup.encuentros.02",
+              "title": "Añadir conjunto Estándar",
+              "kind": "step",
+              "text": "Añadid el conjunto de encuentro Estándar.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Standard Set",
+                "page": 39
+              }
+            },
+            {
+              "id": "setup.encuentros.03",
+              "title": "Conjunto adicional según dificultad",
+              "kind": "step",
+              "text": "Añadid el conjunto de encuentro adicional que corresponda a la dificultad elegida.",
+              "variants": {
+                "difficulty": {
+                  "normal": {
+                    "text": "No añadáis ningún conjunto adicional en este paso."
+                  },
+                  "expert": {
+                    "text": "Añadid también el conjunto de encuentro Experto."
+                  }
+                }
+              },
+              "citation": {
+                "source": "rules-reference",
+                "section": "Modes of Play — Expert Mode",
+                "page": 28
+              }
+            },
+            {
+              "id": "setup.encuentros.04",
+              "title": "Añadir Obligaciones",
+              "kind": "step",
+              "text": "Añadid las cartas de Obligación: una o más por identidad en juego.",
+              "warning": "Puede haber más de una Obligación por identidad",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Obligation",
+                "page": 29
+              }
+            },
+            {
+              "id": "setup.encuentros.05",
+              "title": "Formar el mazo de encuentros",
+              "kind": "step",
+              "text": "Barajad todos los conjuntos reunidos junto con las Obligaciones para formar el mazo.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 10",
+                "page": 49
+              }
+            }
+          ]
+        },
+        {
+          "id": "setup.escenario",
+          "title": "ESCENARIO DEL VILLANO",
+          "summaryLabel": "Escenario del villano preparado",
+          "steps": [
+            {
+              "id": "setup.escenario.01",
+              "title": "Colocar mazos de villano y escenario",
+              "kind": "step",
+              "text": "Colocad el mazo de villano y el mazo de escenario principal en el centro de la mesa.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 8",
+                "page": 49
+              }
+            },
+            {
+              "id": "setup.escenario.02",
+              "title": "Ajustar dial de vida del villano",
+              "kind": "step",
+              "text": "Ajustad el dial de vida del villano a su vida impresa por el número de jugadores.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 9; ver también \"Per Player Icon\" (p.31)",
+                "page": 49
+              }
+            },
+            {
+              "id": "setup.escenario.03",
+              "title": "Preparar reserva de fichas y estados",
+              "kind": "step",
+              "text": "Preparad la reserva común de fichas de daño, amenaza, aceleración y cartas de estado.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 7",
+                "page": 49
+              }
+            },
+            {
+              "id": "setup.escenario.04",
+              "title": "Escenario según dificultad",
+              "kind": "step",
+              "text": "Usad la cara del escenario del villano que corresponda a la dificultad elegida.",
+              "variants": {
+                "difficulty": {
+                  "normal": {
+                    "text": "Usad el escenario del villano en su cara estándar."
+                  },
+                  "expert": {
+                    "text": "Usad la cara del escenario del villano indicada para el modo Experto."
+                  }
+                }
+              },
+              "citation": {
+                "source": "rules-reference",
+                "section": "Modes of Play — Expert Mode",
+                "page": 28
+              }
+            },
+            {
+              "id": "setup.escenario.05",
+              "title": "Voltear a cara B y colocar amenaza",
+              "kind": "step",
+              "text": "Voltead el escenario a su cara B y colocad la amenaza inicial indicada.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 12b; ver también \"Main Scheme\" (p.27)",
+                "page": 49
+              }
+            },
+            {
+              "id": "setup.escenario.06",
+              "title": "Poner en juego cartas de Preparación",
+              "kind": "step",
+              "text": "Buscad en mazos y zona apartada cartas con palabra clave Preparación y ponedlas en juego.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 11",
+                "page": 49
+              }
+            }
+          ]
+        },
+        {
+          "id": "setup.manos",
+          "title": "MANOS INICIALES",
+          "summaryLabel": "Manos iniciales repartidas",
+          "steps": [
+            {
+              "id": "setup.manos.01",
+              "title": "Barajar mazo de jugador",
+              "kind": "step",
+              "text": "Barajad vuestro mazo de jugador.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 6",
+                "page": 49
+              }
+            },
+            {
+              "id": "setup.manos.02",
+              "title": "Robar mano inicial",
+              "kind": "step",
+              "text": "Robad cartas hasta completar vuestra mano inicial.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 14",
+                "page": 49
+              }
+            },
+            {
+              "id": "setup.manos.03",
+              "title": "Mulligan",
+              "kind": "step",
+              "text": "Podéis descartar cartas de vuestra mano y robar de nuevo hasta vuestra mano inicial.",
+              "warning": "No barajéis las descartadas de vuelta al mazo todavía",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 15",
+                "page": 49
+              }
+            }
+          ]
+        },
+        {
+          "id": "setup.jugador-inicial",
+          "title": "JUGADOR INICIAL",
+          "summaryLabel": "Jugador inicial decidido",
+          "steps": [
+            {
+              "id": "setup.jugador-inicial.01",
+              "title": "Decidir jugador inicial",
+              "kind": "step",
+              "text": "Resolved habilidades de Preparación en juego y decidid quién es el jugador inicial.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, pasos 16 y 3 (jugador inicial, reordenado)",
+                "page": 49
+              }
+            }
+          ]
+        },
+        {
+          "id": "setup.mesa-lista",
+          "title": "MESA LISTA",
+          "steps": [
+            {
+              "id": "setup.mesa-lista.01",
+              "title": "Mesa lista",
+              "kind": "summary",
+              "text": "Repasad antes de empezar"
             }
           ]
         }

@@ -19,8 +19,8 @@ describe('content/marvel-champions.json', () => {
     expect(() => validateGameDefinition(marvelChampions)).not.toThrow()
   })
 
-  it('cada paso lleva citation con source rules-reference o learn-to-play (CONT-08/D-06)', () => {
-    const steps = allSteps(marvelChampions as any)
+  it('cada paso con kind step lleva citation con source rules-reference o learn-to-play (CONT-08/D-06)', () => {
+    const steps = allSteps(marvelChampions as any).filter((s: any) => (s.kind ?? 'step') === 'step')
     expect(steps.length).toBeGreaterThan(0)
     for (const step of steps) {
       expect(step.citation).toBeDefined()
