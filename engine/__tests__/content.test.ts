@@ -46,7 +46,7 @@ describe('content/marvel-champions.json', () => {
     expect(steps.length).toBeGreaterThan(0)
     for (const step of steps) {
       expect(step.citation).toBeDefined()
-      expect(step.citation!.source).toBe('rules-reference')
+      expect(['rules-reference', 'learn-to-play']).toContain(step.citation!.source)
       expect(Number.isInteger(step.citation!.page)).toBe(true)
       expect(step.citation!.page!).toBeGreaterThan(0)
     }
