@@ -3,6 +3,8 @@
   "title": "Marvel Champions: El Juego de Cartas",
   "locale": "es",
   "contentVersion": 6,
+  "minPlayers": 1,
+  "maxPlayers": 4,
   "sections": [
     {
       "id": "setup",

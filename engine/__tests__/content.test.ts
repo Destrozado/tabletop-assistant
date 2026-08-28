@@ -34,6 +34,11 @@ describe('content/marvel-champions.json', () => {
     expect(() => validateGameDefinition(rawMarvelChampions)).not.toThrow()
   })
 
+  it('WR-06: declara minPlayers 1 y maxPlayers 4', () => {
+    expect(marvelChampions.minPlayers).toBe(1)
+    expect(marvelChampions.maxPlayers).toBe(4)
+  })
+
   it('la sección setup aplanada produce exactamente 24 nodos: 23 kind step y 1 kind summary', () => {
     const steps = allSteps(marvelChampions)
     expect(steps.length).toBe(24)

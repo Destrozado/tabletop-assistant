@@ -53,6 +53,13 @@ export const GameDefinitionSchema = z.object({
   title: z.string().min(1),
   locale: z.literal('es'),
   contentVersion: z.number().int().positive(),
+  // Opcionales (WR-06): rango de nº de jugadores válido para este juego.
+  // Sin valor por defecto a propósito — a diferencia de `kind` (WR-01), no
+  // hay ningún sitio en tiempo de ejecución que necesite un fallback
+  // silencioso; MiniSetupScreen.vue recibe minPlayers/maxPlayers ya
+  // resueltos desde la página que lo invoca.
+  minPlayers: z.number().int().positive().optional(),
+  maxPlayers: z.number().int().positive().optional(),
   sections: z.array(SectionSchema).min(1),
 }).superRefine((game, ctx) => {
   const repeating = game.sections.filter(s => s.repeats)
@@ -71,6 +78,13 @@ export const GameDefinitionSchema = z.object({
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: `Duplicate ids: ${[...new Set(dupes)].join(', ')}`,
+    })
+  }
+
+  if (game.minPlayers !== undefined && game.maxPlayers !== undefined && game.minPlayers > game.maxPlayers) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `minPlayers (${game.minPlayers}) must be <= maxPlayers (${game.maxPlayers})`,
     })
   }
 })

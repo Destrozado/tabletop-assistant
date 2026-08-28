@@ -99,4 +99,21 @@ describe('GameDefinitionSchema', () => {
     const parsed = GameDefinitionSchema.parse(game)
     expect(parsed.sections[0].phases[0].steps[0].kind).toBe('step')
   })
+
+  it('WR-06: minPlayers/maxPlayers son opcionales; sin ellos no lanza', () => {
+    const game = baseGame()
+    expect(() => GameDefinitionSchema.parse(game)).not.toThrow()
+  })
+
+  it('WR-06: acepta minPlayers/maxPlayers válidos', () => {
+    const game = { ...baseGame(), minPlayers: 1, maxPlayers: 4 }
+    const parsed = GameDefinitionSchema.parse(game)
+    expect(parsed.minPlayers).toBe(1)
+    expect(parsed.maxPlayers).toBe(4)
+  })
+
+  it('WR-06: lanza ZodError si minPlayers > maxPlayers', () => {
+    const game = { ...baseGame(), minPlayers: 5, maxPlayers: 4 }
+    expect(() => GameDefinitionSchema.parse(game)).toThrow()
+  })
 })

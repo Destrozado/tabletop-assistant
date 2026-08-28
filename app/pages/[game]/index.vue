@@ -236,6 +236,8 @@ function onContentChangedAcknowledge() {
       :player-count="playerCount"
       :difficulty="difficulty"
       :game-title="game.title"
+      :min-players="game.minPlayers ?? 1"
+      :max-players="game.maxPlayers ?? 4"
       @update:player-count="playerCount = $event"
       @update:difficulty="difficulty = $event"
       @confirm="onConfirm"
