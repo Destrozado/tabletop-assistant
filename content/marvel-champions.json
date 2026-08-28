@@ -2,7 +2,7 @@
   "gameId": "marvel-champions",
   "title": "Marvel Champions: El Juego de Cartas",
   "locale": "es",
-  "contentVersion": 3,
+  "contentVersion": 4,
   "sections": [
     {
       "id": "setup",
@@ -67,17 +67,6 @@
             },
             {
               "id": "setup.archienemigos.02",
-              "title": "Contar las cartas",
-              "kind": "step",
-              "text": "Contad las cartas de vuestro conjunto de Archienemigo.",
-              "citation": {
-                "source": "rules-reference",
-                "section": "Nemesis Encounter Set",
-                "page": 29
-              }
-            },
-            {
-              "id": "setup.archienemigos.03",
               "title": "Apartar fuera de la partida",
               "kind": "step",
               "text": "Apartadlas fuera de la partida.",
@@ -203,22 +192,22 @@
             },
             {
               "id": "setup.escenario.04",
-              "title": "Etapa del villano según dificultad",
+              "title": "Cartas de villano según dificultad",
               "kind": "step",
-              "text": "Usad la etapa del villano que corresponda a la dificultad elegida.",
+              "text": "Comprobad qué cartas de villano numeradas (etapas) exige la dificultad elegida.",
               "variants": {
                 "difficulty": {
                   "normal": {
-                    "text": "Usad las etapas de villano estándar, tal como vienen en el escenario."
+                    "text": "Dejad las cartas de villano numeradas (etapas) tal como vienen con el escenario."
                   },
                   "expert": {
-                    "text": "Sustituidlas por las etapas de villano indicadas para el modo Experto."
+                    "text": "Sustituid las cartas de villano numeradas por las del modo Experto de este escenario."
                   }
                 }
               },
               "citation": {
                 "source": "rules-reference",
-                "section": "Modes of Play — Expert Mode (p.28); ver también Appendix I: Deck Customization, \"Encounter Decks\" (p.48)",
+                "section": "Modes of Play — Expert Mode (p.28); ver también Appendix I: Deck Customization, \"Encounter Decks\" (p.48) y \"Villain, Villain Deck\" (p.45, mazo secuencial de cartas de etapa)",
                 "page": 28
               }
             },
@@ -226,15 +215,26 @@
               "id": "setup.escenario.05",
               "title": "Voltear a cara B y colocar amenaza",
               "kind": "step",
-              "text": "Voltead el escenario a su cara B y colocad la amenaza inicial indicada.",
+              "text": "Voltead el escenario a su cara B y colocad la amenaza inicial por el número de jugadores.",
               "citation": {
                 "source": "rules-reference",
-                "section": "Apéndice II, paso 12b; ver también \"Main Scheme\" (p.27)",
+                "section": "Apéndice II, paso 12b (colocar amenaza inicial al voltear); ver también \"Main Scheme\" (p.27) y \"Per Player Icon\" (p.31)",
                 "page": 49
               }
             },
             {
               "id": "setup.escenario.06",
+              "title": "Resolver Cuando se revela del escenario",
+              "kind": "step",
+              "text": "Resolved cualquier habilidad de Cuando se revela en esa cara del escenario.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 12b (resolver \"When Revealed\" al voltear); ver también \"Main Scheme\" (p.27)",
+                "page": 49
+              }
+            },
+            {
+              "id": "setup.escenario.07",
               "title": "Poner en juego cartas de Preparación",
               "kind": "step",
               "text": "Buscad en mazos y zona apartada cartas con palabra clave Preparación y ponedlas en juego.",

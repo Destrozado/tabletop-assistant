@@ -96,7 +96,7 @@ describe('content/marvel-champions.json', () => {
     const steps = allSteps(marvelChampions)
     const warned = steps.filter(s => s.warning)
     expect(warned.map(s => s.id).sort()).toEqual([
-      'setup.archienemigos.03',
+      'setup.archienemigos.02',
       'setup.encuentros.04',
       'setup.manos.03',
     ])
