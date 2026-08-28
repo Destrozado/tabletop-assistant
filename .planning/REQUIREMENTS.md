@@ -24,11 +24,11 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 
 ### Motor de flujo y navegación
 
-- [ ] **FLOW-01**: El usuario avanza al paso siguiente con un único botón «Siguiente», el elemento más prominente de la pantalla
-- [ ] **FLOW-02**: El usuario puede volver al paso anterior
+- [x] **FLOW-01**: El usuario avanza al paso siguiente con un único botón «Siguiente», el elemento más prominente de la pantalla
+- [x] **FLOW-02**: El usuario puede volver al paso anterior
 - [ ] **FLOW-03**: Al avanzar desde el último paso de la ronda, el usuario vuelve al primer paso de la ronda, no al de la preparación
 - [ ] **FLOW-04**: Al cerrar el ciclo de la ronda, el contador de ronda se incrementa
-- [ ] **FLOW-05**: El usuario ve en todo momento una cabecera de orientación con ronda actual, fase actual y posición dentro de la fase
+- [x] **FLOW-05**: El usuario ve en todo momento una cabecera de orientación con ronda actual, fase actual y posición dentro de la fase
 - [ ] **FLOW-06**: El usuario puede abrir un índice del flujo completo y tocar cualquier paso para saltar directamente a él
 - [ ] **FLOW-07**: Tras saltar a un paso del bucle de ronda, seguir avanzando continúa correctamente por el bucle desde ese punto
 - [ ] **FLOW-08**: Un salto a un paso de la preparación no rompe ni reinicia el contador de ronda
@@ -65,9 +65,9 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 
 ### Interfaz en tablet
 
-- [ ] **UI-01**: El texto del paso actual es legible a un brazo de distancia en una tablet apoyada junto a la mesa
-- [ ] **UI-02**: Los controles táctiles tienen un tamaño mínimo de 44-48 pt/dp
-- [ ] **UI-03**: Los controles principales (Siguiente, Atrás) están al alcance del pulgar sin levantar la tablet
+- [x] **UI-01**: El texto del paso actual es legible a un brazo de distancia en una tablet apoyada junto a la mesa
+- [x] **UI-02**: Los controles táctiles tienen un tamaño mínimo de 44-48 pt/dp
+- [x] **UI-03**: Los controles principales (Siguiente, Atrás) están al alcance del pulgar sin levantar la tablet
 - [x] **UI-04**: La interfaz se presenta en horizontal y no se reorganiza al rotar el dispositivo
 - [x] **UI-05**: La interfaz usa un tema oscuro de alto contraste, apto para jugar con luz tenue
 - [ ] **UI-06**: La pantalla no se apaga mientras hay una partida en curso
@@ -156,11 +156,11 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | SETUP-03 | Phase 1 | Pending |
 | SETUP-04 | Phase 1 | Pending |
 | SETUP-05 | Phase 1 | Pending |
-| FLOW-01 | Phase 1 | Pending |
-| FLOW-02 | Phase 1 | Pending |
+| FLOW-01 | Phase 1 | Complete |
+| FLOW-02 | Phase 1 | Complete |
 | FLOW-03 | Phase 2 | Pending |
 | FLOW-04 | Phase 2 | Pending |
-| FLOW-05 | Phase 1 | Pending |
+| FLOW-05 | Phase 1 | Complete |
 | FLOW-06 | Phase 1 | Pending |
 | FLOW-07 | Phase 2 | Pending |
 | FLOW-08 | Phase 2 | Pending |
@@ -185,9 +185,9 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | VOZ-04 | Phase 3 | Pending |
 | VOZ-05 | Phase 3 | Pending |
 | VOZ-06 | Phase 3 | Pending |
-| UI-01 | Phase 1 | Pending |
-| UI-02 | Phase 1 | Pending |
-| UI-03 | Phase 1 | Pending |
+| UI-01 | Phase 1 | Complete |
+| UI-02 | Phase 1 | Complete |
+| UI-03 | Phase 1 | Complete |
 | UI-04 | Phase 1 | Complete |
 | UI-05 | Phase 1 | Complete |
 | UI-06 | Phase 3 | Pending |

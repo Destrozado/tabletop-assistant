@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: milestone
 status: executing
-stopped_at: Completado 01-07-PLAN.md
-last_updated: "2026-08-28T11:56:18.370Z"
+stopped_at: Completado 01-08-PLAN.md
+last_updated: "2026-08-28T12:09:41.304Z"
 last_activity: 2026-08-28
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 8
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 01 (motor-de-flujo-selector-y-preparaci-n-de-mesa) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-08-28
 
-Progress: [███░░░░░░░] 25%
+Progress: [████░░░░░░] 38%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [███░░░░░░░] 25%
 *Updated after each plan completion*
 | Phase 01 P01 | 25min | 2 tasks | 13 files |
 | Phase 01 P07 | 20min | 3 tasks | 13 files |
+| Phase 01 P08 | 12min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-01: Inter quedo autoalojada de verdad (woff2 variable, subset latin) en vez de quedar en fallback
 - [Phase 01]: 01-07: resolveText() siempre devuelve las tres claves de TextBlock (text/warning/speech), con undefined explicito cuando ni la variante ni el base las definen
 - [Phase 01]: 01-07: jumpTo() con runtimeId inexistente devuelve la misma referencia de sesion (no-op), sin clonar
+- [Phase 01]: 01-08: position/sectionLabel se derivan del nodo actual (kind==='step'/sectionTitle), nunca codificadas contra el id 'setup'
+- [Phase 01]: 01-08: el runner monta las tres bandas bajo ClientOnly con fallback 'Cargando...' desde ya, aunque hoy el contexto de sesion es un STUB determinista sin localStorage
+- [Phase 01]: 01-08: nitro.prerender.crawlLinks=false y routes limitado a /marvel-champions hasta que 01-02 aporte app/pages/index.vue
 
 ### Pending Todos
 
@@ -89,6 +93,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T11:56:18.361Z
-Stopped at: Completado 01-07-PLAN.md
+Last session: 2026-08-28T12:09:41.299Z
+Stopped at: Completado 01-08-PLAN.md
 Resume file: None
