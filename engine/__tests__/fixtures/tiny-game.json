@@ -1,0 +1,51 @@
+{
+  "gameId": "tiny-game",
+  "title": "Tiny Game",
+  "locale": "es",
+  "contentVersion": 1,
+  "sections": [
+    {
+      "id": "intro",
+      "title": "Introducción",
+      "repeats": false,
+      "phases": [
+        {
+          "id": "intro.prep",
+          "title": "Preparación",
+          "steps": [
+            { "id": "intro.prep.01", "title": "Paso 1", "kind": "step", "text": "Colocad el tablero." },
+            { "id": "intro.prep.02", "title": "Paso 2", "kind": "step", "text": "Repartid las fichas." },
+            { "id": "intro.prep.03", "title": "Paso 3", "kind": "step", "text": "Revisad que todo esté listo." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "loop",
+      "title": "Bucle",
+      "repeats": true,
+      "phases": [
+        {
+          "id": "loop.turno",
+          "title": "Turno",
+          "steps": [
+            { "id": "loop.turno.01", "title": "Turno A", "kind": "step", "text": "Robad una ficha." },
+            {
+              "id": "loop.turno.02",
+              "title": "Turno B",
+              "kind": "step",
+              "text": "Resolved el efecto base x2 por jugador.",
+              "warning": "No olvidéis el efecto secundario.",
+              "variants": {
+                "difficulty": {
+                  "expert": { "text": "Resolved el efecto avanzado x2 por jugador." }
+                }
+              }
+            },
+            { "id": "loop.turno.03", "title": "Turno C", "kind": "step", "text": "Pasad el turno." }
+          ]
+        }
+      ]
+    }
+  ]
+}
