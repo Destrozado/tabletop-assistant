@@ -87,7 +87,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Motor de flujo, selector y preparación de mesa | 0/6 | Not started | - |
+| 1. Motor de flujo, selector y preparación de mesa | 0/8 | Not started | - |
 | 2. Bucle de ronda y reglas verificadas | 0/TBD | Not started | - |
 | 3. Locución por voz y pantalla siempre encendida | 0/TBD | Not started | - |
 | 4. Instalación y funcionamiento offline | 0/TBD | Not started | - |
