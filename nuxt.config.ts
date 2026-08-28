@@ -29,6 +29,8 @@ export default defineNuxtConfig({
 
   app: {
     head: {
+      htmlAttrs: { lang: 'es' },
+      title: 'TableGameAssistant',
       meta: [
         {
           name: 'viewport',
