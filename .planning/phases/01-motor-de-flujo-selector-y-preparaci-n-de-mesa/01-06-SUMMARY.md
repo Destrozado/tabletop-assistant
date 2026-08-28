@@ -180,3 +180,39 @@ FOUND commit: 7c2a46d
 *Phase: 01-motor-de-flujo-selector-y-preparaci-n-de-mesa*
 *Plan: 06*
 *Completed: 2026-08-28*
+
+---
+
+## ADENDA (2026-08-29) — Dos correcciones más de fidelidad de reglas, post-cierre
+
+**No forma parte del plan 01-06 original.** Fase 1 ya estaba completa (8/8) y verificada cuando la revisión humana del usuario encontró dos defectos adicionales de la misma clase que las tres correcciones documentadas arriba. Aplicadas y comprometidas en un commit atómico separado, sin nuevo SUMMARY ni nueva sección en ROADMAP/STATE — solo esta adenda.
+
+**Commit:** `fb2a4e0` — `fix(01-06): dos correcciones más de fidelidad de reglas (vida del villano y pasos 12a/12c del Apéndice II)`
+
+### Corrección 4 — `setup.escenario.02` (vida del villano): sobreafirmación "por el número de jugadores"
+
+- **Issue:** El texto decía "Ajustad el dial de vida del villano a su vida impresa por el número de jugadores." El Apéndice II paso 9 (p.49, verificado con `pdftotext -f/-l`) dice literalmente *"Set the villain's hit point dial to the value indicated by the villain card"* — genérico, sin multiplicación. La anatomía de carta de Villano (p.52, punto 5, también verificada) es igualmente genérica: *"A value that represents this card's durability."* Que un valor impreso lleve el icono "por jugador" es propiedad de cada carta concreta (regla ya cubierta aparte, "Per Player Icon", p.31), no una regla general de este paso — el mismo defecto ya revertido para la amenaza inicial en el commit `d5e3043`.
+- **Fix:** Reescrito a "Ajustad el dial de vida del villano al valor indicado en la carta de villano." Cita ajustada a "Apéndice II, paso 9; ver también anatomía de carta de Villano (p.52, punto 5)", sin mención a "Per Player Icon" en la cita (mismo criterio que `d5e3043`).
+- **Test actualizado:** `engine/__tests__/content.test.ts` — el test que exigía `/número de jugadores/i` en este paso pasó a exigir `/valor indicado en la carta de villano/i` y a rechazar cualquier mención a "jugadores".
+
+### Corrección 5 — Apéndice II paso 12: faltaban 12a y 12c por completo
+
+- **Issue:** El paso 12 ("Resolve Scenario Setup and When Revealed Abilities", p.49, verificado) tiene tres sub-pasos — 12a (Preparación en la carta de escenario, cara 1A), 12b (voltear a 1B + Cuando se revela de esa cara) y 12c (Preparación y Cuando se revela en la carta de villano) — y el contenido solo cubría 12b. Un grupo siguiendo la app se saltaría por completo la habilidad de Preparación del escenario y las habilidades de Preparación/Cuando se revela del villano.
+- **Fix:** Añadidos `setup.escenario.06` (12a, "Resolver Preparación del escenario (cara 1A)") y `setup.escenario.09` (12c, "Resolver Preparación y Cuando se revela del villano"), en el orden correcto de reglas: 12a precede al volteo a 1B (no lo sigue), 12c sigue a 12b. De paso se corrigió que el antiguo paso 11 ("Poner en juego cartas de Preparación") estaba mal posicionado después del bloque 12b; se movió a `setup.escenario.05`, antes de todo el bloque 12, que es donde le corresponde según el Apéndice II.
+- **Secuencia final verificada paso a paso contra Apéndice II 7-12:** `.01`=paso8, `.02`=paso9, `.03`=paso7, `.04`=variante de dificultad (autoral, sin número de paso oficial), `.05`=paso11, `.06`=paso12a, `.07`=paso12b(volteo+amenaza), `.08`=paso12b(Cuando se revela), `.09`=paso12c.
+
+### Impacto en conteos y versión
+
+- `contentVersion`: 5 → 6.
+- Pasos `kind:step`: 21 → 23 (24 nodos totales con el resumen).
+- Actualizados todos los conteos que dependían del total anterior: `engine/__tests__/content.test.ts` (dos asserts de conteo total), y los comentarios ilustrativos de ejemplo en `app/composables/useGameSession.ts` ("el paso 22 de 22" → "el paso 24 de 24") y en `app/pages/[game]/index.vue` ("8 de 21" → "8 de 23"). `README.md` no mencionaba ningún conteo, sin cambios necesarios.
+- `npm run test`: 56/56 verde. `npm run generate`: exit 0.
+
+### Ficheros modificados en esta adenda
+
+- `content/marvel-champions.json`
+- `engine/__tests__/content.test.ts`
+- `app/composables/useGameSession.ts`
+- `app/pages/[game]/index.vue`
+
+**Detectado por revisión humana del usuario, no por el proceso de autoría ni por ninguna reverificación automática previa — mismo patrón que las correcciones 1-3 originales de este plan.**
