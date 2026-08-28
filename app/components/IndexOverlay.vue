@@ -1,0 +1,100 @@
+<script setup lang="ts">
+// Componente tonto: recibe `blocks` ya agrupado por `tableOfContents` (engine
+// puro) desde la página — nunca importa ~~/engine directamente
+// (ARCHITECTURE.md §3/§5). D-13: overlay a pantalla completa, sin
+// atenuación de fondo (no hay "fuera" que atenuar). D-14: las marcas llegan
+// ya derivadas de la posición, este componente no guarda ningún estado propio
+// sobre qué se ha visitado.
+import { computed, onMounted, ref } from 'vue'
+
+const props = defineProps<{
+  title: string
+  blocks: {
+    label: string
+    steps: { id: string, label: string, mark: 'done' | 'current' | null }[]
+  }[]
+}>()
+
+const emit = defineEmits<{
+  'jump-to': [id: string]
+  'close': []
+}>()
+
+// Transición de apertura (180ms, fade + 8px hacia arriba). Cierre: solo con
+// el botón ✕, no hay toque fuera porque no hay "fuera" en un overlay a
+// pantalla completa.
+const entered = ref(false)
+onMounted(() => {
+  requestAnimationFrame(() => {
+    entered.value = true
+  })
+})
+
+// Numeración continua de filas a través de todos los bloques (la maqueta
+// aprobada en 01-CONTEXT.md numera 1..N de forma corrida, no por bloque).
+const numberedBlocks = computed(() => {
+  let order = 0
+  return props.blocks.map(block => ({
+    label: block.label,
+    steps: block.steps.map(step => {
+      order += 1
+      return { ...step, order }
+    }),
+  }))
+})
+
+function onRowClick(row: { id: string, mark: 'done' | 'current' | null }) {
+  // Tocar la fila current cierra sin navegar (equivale a cancelar, D-13).
+  // Tocar cualquier otra fila cierra y salta, sin confirmación.
+  emit('close')
+  if (row.mark !== 'current') {
+    emit('jump-to', row.id)
+  }
+}
+</script>
+
+<template>
+  <div
+    class="fixed inset-0 z-50 bg-surface flex flex-col transition-all duration-[180ms] ease-out"
+    :class="entered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'"
+  >
+    <!-- Barra de título fijada. -->
+    <div class="h-16 shrink-0 flex items-center justify-between px-lg border-b border-background">
+      <h1 class="text-heading font-bold text-primary-text truncate">
+        {{ title }}
+      </h1>
+      <button
+        type="button"
+        class="w-12 h-12 flex items-center justify-center text-primary-text text-heading leading-none active:brightness-95"
+        aria-label="Cerrar índice"
+        @click="emit('close')"
+      >
+        ✕
+      </button>
+    </div>
+
+    <!-- Cuerpo desplazable independientemente del título. -->
+    <div class="flex-1 overflow-y-auto px-lg pb-lg">
+      <div v-for="block in numberedBlocks" :key="block.label" class="mt-lg">
+        <h2 class="text-label font-bold uppercase text-secondary-text px-sm">
+          {{ block.label }}
+        </h2>
+        <button
+          v-for="row in block.steps"
+          :key="row.id"
+          type="button"
+          class="w-full min-h-11 flex items-center gap-md px-sm text-left transition-transform duration-75 active:brightness-95"
+          :class="row.mark === 'current' ? 'text-primary-text' : row.mark === 'done' ? 'text-primary-text' : 'text-secondary-text'"
+          @click="onRowClick(row)"
+        >
+          <span class="w-8 shrink-0 text-body font-normal text-secondary-text text-right">{{ row.order }}</span>
+          <span class="w-6 shrink-0 text-body font-normal text-accent text-center">
+            <template v-if="row.mark === 'done'">✓</template>
+            <template v-else-if="row.mark === 'current'">●</template>
+          </span>
+          <span class="text-body font-normal">{{ row.label }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>

@@ -8,6 +8,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { expand } from '~~/engine/expand'
 import { resume } from '~~/engine/persistence'
+import { tableOfContents } from '~~/engine/toc'
 import { useGameContent } from '~/composables/useGameContent'
 import { useGameSession } from '~/composables/useGameSession'
 import { usePersistedSession } from '~/composables/usePersistedSession'
@@ -23,6 +24,7 @@ const {
   start,
   next,
   prev,
+  jumpTo,
   currentText,
   sectionLabel,
   position,
@@ -90,8 +92,24 @@ function onConfirm() {
   start(gameId, { playerCount: playerCount.value, difficulty: difficulty.value })
 }
 
+// FLOW-06/D-13: overlay a pantalla completa, agrupado por bloques (fases del
+// esquema, TECH-04). `blocks` se recalcula sobre cada cursor — D-14: marcas
+// derivadas de la posición, sin ningún estado adicional que persistir.
+const isIndexOpen = ref(false)
+const blocks = computed(() =>
+  session.value ? tableOfContents(session.value.sequence, session.value.cursor) : [],
+)
+
 function onIndexOpen() {
-  // El índice de salto llega en el plan 01-05; sin handler todavía.
+  isIndexOpen.value = true
+}
+
+function onIndexClose() {
+  isIndexOpen.value = false
+}
+
+function onIndexJumpTo(runtimeId: string) {
+  jumpTo(runtimeId)
 }
 
 // Resumen "PREPARACIÓN · 8 de 21 · 3 jug · Normal" compuesto SIEMPRE con las
@@ -210,6 +228,13 @@ function onContentChangedAcknowledge() {
         :warning-text="currentText.warning ?? null"
       />
       <NavBand @back="prev" @next="next" />
+      <IndexOverlay
+        v-if="isIndexOpen"
+        :title="sectionLabel"
+        :blocks="blocks"
+        @jump-to="onIndexJumpTo"
+        @close="onIndexClose"
+      />
     </div>
   </ClientOnly>
 </template>
