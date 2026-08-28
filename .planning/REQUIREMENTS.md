@@ -42,7 +42,7 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 - [ ] **CONT-05**: El flujo cubre el agotamiento del mazo de jugador y el del mazo de encuentros como casos distintos, con sus consecuencias correctas
 - [ ] **CONT-06**: El flujo cubre el cambio de fase del villano al agotarse su vida
 - [ ] **CONT-07**: El flujo recuerda, en el momento en que aplican, los estados Aturdido, Confundido y Duro con su resolución correcta
-- [ ] **CONT-08**: Cada paso que enuncia una regla lleva una cita a su origen en el reglamento oficial (documento, página y sección)
+- [x] **CONT-08**: Cada paso que enuncia una regla lleva una cita a su origen en el reglamento oficial (documento, página y sección)
 - [ ] **CONT-09**: Todo el contenido queda verificado contra el Rules Reference oficial v1.7 antes de considerarse definitivo, incluidos los errores ya detectados en el borrador (recuento de pasos de la fase del villano, cadencia de obligaciones, quién roba cartas de aumento, Experto frente a Heroico)
 - [ ] **CONT-10**: Los pasos enuncian acciones físicas en imperativo y breve, sin reproducir texto extenso del reglamento con copyright
 - [ ] **CONT-11**: Un paso equivale a una acción física inequívoca: ni tan fino que sea un festival de toques ni tan grueso que entierre el detalle olvidable
@@ -91,8 +91,8 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 
 - [x] **TECH-01**: El contenido de cada juego vive en un fichero de datos versionado en el repositorio, sin backend ni base de datos
 - [x] **TECH-02**: Un fichero de contenido mal formado o incompleto hace fallar la validación en CI, nunca llega a la tablet
-- [ ] **TECH-03**: La lógica del motor de flujo está cubierta por tests automáticos, incluidos el cierre del bucle, el salto entre pasos y la reanudación con contenido desactualizado
-- [ ] **TECH-04**: Añadir un juego nuevo consiste en añadir un fichero de contenido conforme al esquema, sin tocar el motor
+- [x] **TECH-03**: La lógica del motor de flujo está cubierta por tests automáticos, incluidos el cierre del bucle, el salto entre pasos y la reanudación con contenido desactualizado
+- [x] **TECH-04**: Añadir un juego nuevo consiste en añadir un fichero de contenido conforme al esquema, sin tocar el motor
 - [ ] **TECH-05**: La app está publicada en una URL accesible desde la tablet
 
 ## v2 Requirements
@@ -171,7 +171,7 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | CONT-05 | Phase 2 | Pending |
 | CONT-06 | Phase 2 | Pending |
 | CONT-07 | Phase 2 | Pending |
-| CONT-08 | Phase 1 | Pending |
+| CONT-08 | Phase 1 | Complete |
 | CONT-09 | Phase 2 | Pending |
 | CONT-10 | Phase 1 | Pending |
 | CONT-11 | Phase 1 | Pending |
@@ -202,8 +202,8 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | OFF-04 | Phase 4 | Pending |
 | TECH-01 | Phase 1 | Complete |
 | TECH-02 | Phase 1 | Complete |
-| TECH-03 | Phase 1 | Pending |
-| TECH-04 | Phase 1 | Pending |
+| TECH-03 | Phase 1 | Complete |
+| TECH-04 | Phase 1 | Complete |
 | TECH-05 | Phase 1 | Pending |
 
 **Coverage:**
