@@ -4,13 +4,13 @@ milestone: v1.7
 milestone_name: milestone
 status: executing
 stopped_at: Completado 01-08-PLAN.md
-last_updated: "2026-08-28T12:18:01.191Z"
+last_updated: "2026-08-28T12:31:02.227Z"
 last_activity: 2026-08-28
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 8
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 01 (motor-de-flujo-selector-y-preparaci-n-de-mesa) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
 Last activity: 2026-08-28
 
-Progress: [█████░░░░░] 50%
+Progress: [██████░░░░] 63%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [█████░░░░░] 50%
 | Phase 01 P07 | 20min | 3 tasks | 13 files |
 | Phase 01 P08 | 12min | 2 tasks | 7 files |
 | Phase 01 P02 | 25min | 2 tasks | 5 files |
+| Phase 01 P03 | 35min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-08: nitro.prerender.crawlLinks=false y routes limitado a /marvel-champions hasta que 01-02 aporte app/pages/index.vue
 - [Phase 01]: 01-02: ADAPT-02 implementado segun D-10 (cabecera, no texto de paso); REQUIREMENTS.md queda pendiente de reescritura en transicion de fase
 - [Phase 01]: 01-02: nuxt.config.ts recupera / en nitro.prerender.routes junto a /marvel-champions; crawlLinks se mantiene false porque la navegacion usa navigateTo() sin href real
+- [Phase 01]: 01-03: Open Question 1 (nº de cartas del conjunto de Archienemigo) resuelta con texto generico sin cifra, porque el Rules Reference no da una cifra universal
+- [Phase 01]: 01-03: el paso fusionado 21 (habilidades de Preparacion + jugador inicial) se mantiene como un solo paso reescrito de forma mas compacta en vez de dividirse, para respetar el total duro de 21 pasos
+- [Phase 01]: 01-03: gate de citation en engine/__tests__/content.test.ts corregido para exigirla solo en kind:step, nunca en kind:summary
 
 ### Pending Todos
 
@@ -96,6 +100,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T12:17:45.777Z
+Last session: 2026-08-28T12:29:34.627Z
 Stopped at: Completado 01-08-PLAN.md
 Resume file: None

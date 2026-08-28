@@ -35,7 +35,7 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 
 ### Contenido de Marvel Champions
 
-- [ ] **CONT-01**: El flujo cubre la preparación de mesa completa, paso a paso, hasta poder empezar a jugar
+- [x] **CONT-01**: El flujo cubre la preparación de mesa completa, paso a paso, hasta poder empezar a jugar
 - [ ] **CONT-02**: El flujo cubre la fase de los jugadores, incluido el orden correcto de fin de fase (descartar, robar, preparar)
 - [ ] **CONT-03**: El flujo cubre la fase del villano con sus 6 pasos oficiales, en el orden del reglamento
 - [ ] **CONT-04**: El flujo cubre el fin de ronda, incluido el paso de la ficha de jugador inicial
@@ -44,14 +44,14 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 - [ ] **CONT-07**: El flujo recuerda, en el momento en que aplican, los estados Aturdido, Confundido y Duro con su resolución correcta
 - [x] **CONT-08**: Cada paso que enuncia una regla lleva una cita a su origen en el reglamento oficial (documento, página y sección)
 - [ ] **CONT-09**: Todo el contenido queda verificado contra el Rules Reference oficial v1.7 antes de considerarse definitivo, incluidos los errores ya detectados en el borrador (recuento de pasos de la fase del villano, cadencia de obligaciones, quién roba cartas de aumento, Experto frente a Heroico)
-- [ ] **CONT-10**: Los pasos enuncian acciones físicas en imperativo y breve, sin reproducir texto extenso del reglamento con copyright
-- [ ] **CONT-11**: Un paso equivale a una acción física inequívoca: ni tan fino que sea un festival de toques ni tan grueso que entierre el detalle olvidable
+- [x] **CONT-10**: Los pasos enuncian acciones físicas en imperativo y breve, sin reproducir texto extenso del reglamento con copyright
+- [x] **CONT-11**: Un paso equivale a una acción física inequívoca: ni tan fino que sea un festival de toques ni tan grueso que entierre el detalle olvidable
 
 ### Adaptación del texto
 
-- [ ] **ADAPT-01**: Los pasos con diferencias por dificultad muestran el texto correspondiente a Normal o Experto según lo elegido
+- [x] **ADAPT-01**: Los pasos con diferencias por dificultad muestran el texto correspondiente a Normal o Experto según lo elegido
 - [x] **ADAPT-02**: Los pasos que dependen del número de jugadores lo enuncian con el número real de la partida, sin resolver aritmética
-- [ ] **ADAPT-03**: Las fórmulas de cantidades (vida del villano, amenaza inicial) se muestran tal cual para que el grupo las resuelva en la mesa
+- [x] **ADAPT-03**: Las fórmulas de cantidades (vida del villano, amenaza inicial) se muestran tal cual para que el grupo las resuelva en la mesa
 - [ ] **ADAPT-04**: Los pasos con ramas condicionales muestran todas las ramas como texto simultáneamente, sin requerir ningún toque para elegir
 
 ### Locución por voz
@@ -164,7 +164,7 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | FLOW-06 | Phase 1 | Pending |
 | FLOW-07 | Phase 2 | Pending |
 | FLOW-08 | Phase 2 | Pending |
-| CONT-01 | Phase 1 | Pending |
+| CONT-01 | Phase 1 | Complete |
 | CONT-02 | Phase 2 | Pending |
 | CONT-03 | Phase 2 | Pending |
 | CONT-04 | Phase 2 | Pending |
@@ -173,11 +173,11 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | CONT-07 | Phase 2 | Pending |
 | CONT-08 | Phase 1 | Complete |
 | CONT-09 | Phase 2 | Pending |
-| CONT-10 | Phase 1 | Pending |
-| CONT-11 | Phase 1 | Pending |
-| ADAPT-01 | Phase 1 | Pending |
+| CONT-10 | Phase 1 | Complete |
+| CONT-11 | Phase 1 | Complete |
+| ADAPT-01 | Phase 1 | Complete |
 | ADAPT-02 | Phase 1 | Complete |
-| ADAPT-03 | Phase 1 | Pending |
+| ADAPT-03 | Phase 1 | Complete |
 | ADAPT-04 | Phase 2 | Pending |
 | VOZ-01 | Phase 3 | Pending |
 | VOZ-02 | Phase 3 | Pending |
