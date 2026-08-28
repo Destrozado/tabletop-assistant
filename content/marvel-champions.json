@@ -1,0 +1,55 @@
+{
+  "gameId": "marvel-champions",
+  "title": "Marvel Champions: El Juego de Cartas",
+  "locale": "es",
+  "contentVersion": 1,
+  "sections": [
+    {
+      "id": "setup",
+      "title": "Preparación",
+      "repeats": false,
+      "phases": [
+        {
+          "id": "setup.heroes",
+          "title": "HÉROES",
+          "summaryLabel": "Héroes elegidos y dial ajustado",
+          "steps": [
+            {
+              "id": "setup.heroes.01",
+              "title": "Elegir villano y héroes",
+              "kind": "step",
+              "text": "Decidid, como grupo, qué villano vais a enfrentar y qué héroe llevará cada jugador.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, pasos 1 y 8 (decisión de escenario adelantada)",
+                "page": 49
+              }
+            },
+            {
+              "id": "setup.heroes.02",
+              "title": "Lado Alter-Ego",
+              "kind": "step",
+              "text": "Colocad vuestra identidad por el lado Alter-Ego.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 1",
+                "page": 49
+              }
+            },
+            {
+              "id": "setup.heroes.03",
+              "title": "Ajustar dial de salud",
+              "kind": "step",
+              "text": "Ajustad vuestro dial de salud a la vida inicial de vuestra identidad.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Apéndice II, paso 2",
+                "page": 49
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
