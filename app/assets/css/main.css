@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/* Inter autoalojada (woff2 variable, subset latin, descargada de fonts.gstatic.com v20
+   durante el plan 01-01). Cubre los pesos 400/700 que usa el contrato tipográfico
+   (font-normal / font-bold de Tailwind, sin --font-weight-* custom). */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/inter-latin.woff2") format("woff2");
+}
+
+@theme {
+  /* Color — 01-UI-SPEC.md §Color */
+  --color-background: #14161C;   /* Dominante 60% */
+  --color-surface: #1E212B;      /* Secundario 30% */
+  --color-primary-text: #F2F3F5;
+  --color-secondary-text: #9AA0AC;
+  --color-accent: #2F81F7;
+  --color-warning: #FFB020;
+  --color-destructive: #FF5C5C;
+  --color-on-accent: #0B1220;    /* texto sobre fill de accent/destructive */
+
+  /* Spacing — 01-UI-SPEC.md §Spacing Scale (named, no numeric) */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+
+  /* Typography — 01-UI-SPEC.md §Typography (4 tamaños exactos) */
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.2;
+  --text-heading: 1.75rem;
+  --text-heading--line-height: 1.25;
+  --text-body: 1.25rem;
+  --text-body--line-height: 1.5;
+  --text-label: 1.125rem;
+  --text-label--line-height: 1.2;
+
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
