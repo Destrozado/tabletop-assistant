@@ -12,6 +12,7 @@ const props = defineProps<{
   blocks: {
     label: string
     steps: { id: string, label: string, mark: 'done' | 'current' | null }[]
+    dimmed: boolean
   }[]
 }>()
 
@@ -32,16 +33,24 @@ onMounted(() => {
 
 // Numeración continua de filas a través de todos los bloques (la maqueta
 // aprobada en 01-CONTEXT.md numera 1..N de forma corrida, no por bloque).
+// Con el reordenado de D-24 esto numera la ronda como 1..10 y la preparación
+// como 11..34, tal como pide la maqueta — sin tocar esta lógica.
 const numberedBlocks = computed(() => {
   let order = 0
   return props.blocks.map(block => ({
     label: block.label,
+    dimmed: block.dimmed,
     steps: block.steps.map(step => {
       order += 1
       return { ...step, order }
     }),
   }))
 })
+
+// D-24: el índice del primer bloque atenuado — solo ahí se inserta el
+// divisor "PREPARACIÓN (CONSULTA)". -1 cuando no hay ningún bloque atenuado
+// (fuera del bucle), y entonces el divisor nunca se renderiza.
+const firstDimmedIndex = computed(() => props.blocks.findIndex(block => block.dimmed))
 
 function onRowClick(row: { id: string, mark: 'done' | 'current' | null }) {
   // Tocar la fila current cierra sin navegar (equivale a cancelar, D-13).
@@ -75,26 +84,44 @@ function onRowClick(row: { id: string, mark: 'done' | 'current' | null }) {
 
     <!-- Cuerpo desplazable independientemente del título. -->
     <div class="flex-1 overflow-y-auto px-lg pb-lg">
-      <div v-for="block in numberedBlocks" :key="block.label" class="mt-lg">
-        <h2 class="text-label font-bold uppercase text-secondary-text px-sm">
-          {{ block.label }}
-        </h2>
-        <button
-          v-for="row in block.steps"
-          :key="row.id"
-          type="button"
-          class="w-full min-h-12 flex items-center gap-md px-sm text-left transition-transform duration-75 active:brightness-95"
-          :class="row.mark === 'current' ? 'text-primary-text' : row.mark === 'done' ? 'text-primary-text' : 'text-secondary-text'"
-          @click="onRowClick(row)"
+      <template v-for="(block, index) in numberedBlocks" :key="block.label">
+        <!--
+          D-24: divisor solo antes del PRIMER bloque atenuado — separa la
+          ronda (zona de juego) de la preparación (zona de consulta). Nunca
+          se renderiza fuera del bucle (firstDimmedIndex === -1).
+        -->
+        <div
+          v-if="index === firstDimmedIndex"
+          class="mt-lg pt-lg border-t border-background"
         >
-          <span class="w-8 shrink-0 text-body font-normal text-secondary-text text-right">{{ row.order }}</span>
-          <span class="w-6 shrink-0 text-body font-normal text-accent text-center">
-            <template v-if="row.mark === 'done'">✓</template>
-            <template v-else-if="row.mark === 'current'">●</template>
-          </span>
-          <span class="text-body font-normal">{{ row.label }}</span>
-        </button>
-      </div>
+          <p class="text-label font-bold uppercase text-secondary-text text-center">
+            PREPARACIÓN (CONSULTA)
+          </p>
+        </div>
+        <div class="mt-lg">
+          <h2 class="text-label font-bold uppercase text-secondary-text px-sm">
+            {{ block.label }}
+          </h2>
+          <button
+            v-for="row in block.steps"
+            :key="row.id"
+            type="button"
+            class="w-full min-h-12 flex items-center gap-md px-sm text-left transition-transform duration-75 active:brightness-95"
+            :class="block.dimmed ? 'text-secondary-text' : (row.mark === 'current' ? 'text-primary-text' : row.mark === 'done' ? 'text-primary-text' : 'text-secondary-text')"
+            @click="onRowClick(row)"
+          >
+            <span class="w-8 shrink-0 text-body font-normal text-secondary-text text-right">{{ row.order }}</span>
+            <span
+              class="w-6 shrink-0 text-body font-normal text-center"
+              :class="block.dimmed ? 'text-secondary-text' : 'text-accent'"
+            >
+              <template v-if="row.mark === 'done'">✓</template>
+              <template v-else-if="row.mark === 'current'">●</template>
+            </span>
+            <span class="text-body font-normal">{{ row.label }}</span>
+          </button>
+        </div>
+      </template>
     </div>
   </div>
 </template>
