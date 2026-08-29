@@ -100,3 +100,45 @@ Un primer intento de extraer todo el documento de una vez (`pdftotext -layout` s
 ---
 
 *Dossier producido por la Tarea 1 del plan `02-04-PLAN.md`. Pendiente de la sección final con el veredicto literal del usuario y las correcciones que salgan de la Tarea 2 (D-36) — esa sección la añade la Tarea 3.*
+
+---
+
+## Veredicto del usuario (Tarea 2, D-36) — 2026-08-29
+
+El usuario completó la revisión humana obligatoria de CONT-09: cubrió tanto la **Parte A** (revisión de la tabla de los 10 pasos contra `~/Downloads/mc_rulesreference_v17-compressed.pdf`, con las cinco correcciones objetivas de la Tarea 1 y las cuatro correcciones confirmadas del borrador ya localizadas arriba) como la **Parte B** (partida jugada de principio a fin en la app, `npm run dev`, recorriendo el bucle de ronda, la cabecera, el índice y los 5 modales de aviso con consecuencia).
+
+**Veredicto literal, sin editar:**
+
+> "La ronda del jugador se me hace un poco pobre, el paso "Jugad vuestros turnos en orden de jugador, uno tras otro" Ignora muchas cosas, yo pondria algo ahora como "Jugad vuestros turnos en orden de jugador, uno tras otro. Opciones: - Cambiar Alter Ego / Heroe - Poner cartas en juego - Utilizar eventos - Activar acciones" un poco el listado de cosas que se pueden hacer, breves y concisas como todas, y que cada opcion sea clickable y tenga el popup que ha quedado muy bien. Por lo demas lo veo bastante bien. Izquierda esta bien. El aviso de los estados en los personajes esta perfecto, aunque solo esta cuando ataca el villano, cuando atacan los personajes no pone nada en ningun sitio."
+
+### Preguntas abiertas — resolución
+
+1. **`ronda.villano.05` (izquierda vs. sentido horario del reglamento).** RESUELTA, sin cambios: el usuario confirma «Izquierda está bien». La convención de mesa ya asumida por el texto es correcta y no requiere corrección.
+2. **`ronda.villano.02` (granularidad/énfasis del aviso de Estados).** RESUELTA, sin cambios en ese paso: el usuario confirma que el aviso «Atentos a los Estados en los personajes» «está perfecto» tal y como está redactado hoy. La carencia real detectada no es de redacción en `ronda.villano.02`, sino de **cobertura**: ver Corrección C2 más abajo.
+
+### Correcciones enumeradas por el usuario — C1 y C2
+
+Ambas correcciones caen en el mismo paso, **`ronda.jugadores.01`**, y ambas piden la misma capacidad nueva: una lista de opciones del turno, breve y concisa, con cada opción clicable y con el mismo popup de consecuencia (`WarningDetailModal.vue`) que `warningDetail` estrenó en el plan `02-03`.
+
+- **C1 — `ronda.jugadores.01`, campo `text` (contenido).** El paso «Jugad vuestros turnos en orden de jugador, uno tras otro.» se queda corto: el usuario pide enumerar las opciones del turno — Cambiar Alter-Ego / Héroe · Poner cartas en juego · Utilizar eventos · Activar acciones — cada una breve y concisa, y **clicable con su propio popup de detalle**.
+- **C2 — fase `ronda.jugadores` (cobertura, converge en `ronda.jugadores.01`).** El aviso de Estados de `ronda.villano.02` («Atentos a los Estados en los personajes») le parece perfecto, pero solo existe en la fase del villano. Cuando atacan los personajes (parte de las «Opciones» de C1, en «Activar acciones»), no hay ningún recordatorio equivalente de Estados en ninguna parte del turno de jugador.
+
+**Estas dos correcciones quedan PENDIENTES, no aprobadas, no aplicadas y no descartadas.** El esquema vigente de `content/marvel-champions.json` solo admite **un** `warning` + un `warningDetail` por paso, y `ronda.jugadores.01` ya gasta esa única capacidad en «Atentos al dial del villano». Aplicar C1/C2 con el esquema actual exigiría una de estas tres cosas, todas descartadas por falsear el veredicto o romper presupuestos vigentes:
+- concatenar la lista de opciones dentro de `text` (rompería el presupuesto `text` ≤90 y no sería clicable, que es justamente lo que pide el usuario);
+- sustituir el `warning`/`warningDetail` existente de «Atentos al dial del villano» por la lista de opciones (perdería el aviso que el propio usuario no ha objetado);
+- desbordar los presupuestos de `text` ≤90 / `warning` ≤60 para forzar la lista dentro de los campos actuales.
+
+La capacidad que sí las resuelve correctamente — un campo tipo `options[]` en el esquema de contenido, con render clicable reutilizando `WarningDetailModal.vue` para cada opción — se construye en un plan aparte, **`02-05`**, que el orquestador lanza después de esta tarea. **La fase 02 no se da por completa hasta que `02-05` incorpore C1 y C2.**
+
+### Resto del contenido — aprobado
+
+Fuera de C1/C2, el usuario confirma explícitamente: «por lo demás lo veo bastante bien». Esto cubre:
+- Las 5 correcciones objetivas de citas y omisiones aplicadas en la Tarea 1 (Correcciones A–E arriba), que siguen en pie sin cambios.
+- Las 4 correcciones confirmadas del borrador (6 pasos de villano, obligaciones «una o más», Boost Cards solo villano/esbirros con palabra clave, Modo Experto no altera estructura), verificadas contra el reglamento y bajo gate en `content.test.ts`.
+- El bucle de ronda, la cabecera relativa, el índice reordenado y los 5 modales de aviso con consecuencia (`Atentos al dial del villano`, `Mazo agotado…`, `Terminan aquí los efectos…`, `Atentos a los Estados…`, `Encuentros agotado…`), todos comprobados en partida real durante la Parte B.
+
+### Sin cambios en esta tarea
+
+Por la razón de esquema explicada arriba, **esta tarea (Tarea 3) no modifica `content/marvel-champions.json`, no toca `contentVersion` (sigue en 9) y no modifica `engine/__tests__/content.test.ts`**. `npx vitest run` reconfirmado en verde (109/109) al cerrar la tarea, sin ningún cambio de contenido ni de test. CONT-09 queda satisfecho en cuanto a *proceso* (la revisión humana ocurrió y produjo veredicto explícito, versionado, con fecha), pero **el contenido de `ronda.jugadores.01` no es definitivo todavía**: sigue pendiente de C1/C2 hasta que `02-05` añada la capacidad de esquema/UI necesaria.
+
+*Sección añadida por la Tarea 3 del plan `02-04-PLAN.md`.*
