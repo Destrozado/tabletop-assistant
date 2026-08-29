@@ -14,6 +14,10 @@ export interface Citation {
 export interface TextBlock {
   text: string
   warning?: string
+  // D-32: consecuencia detallada del aviso, opcional y dependiente de
+  // `warning` (un paso no puede declarar el campo siguiente sin este —
+  // regla de esquema en engine/schema.ts). Alimenta WarningDetailModal.vue.
+  warningDetail?: string
   speech?: string
 }
 

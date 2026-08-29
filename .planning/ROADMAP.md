@@ -46,13 +46,14 @@ Plans (en orden de ejecución; los planes 01-07 y 01-08 son posteriores en numer
 **Goal**: Un grupo puede jugar una partida completa de Marvel Champions de principio a fin: tras la preparación, la fase de los jugadores, la fase del villano (con sus 6 pasos oficiales) y el fin de ronda se encadenan en un bucle que vuelve solo al punto correcto, ronda tras ronda, con el contenido corregido y verificado contra los errores ya detectados en el borrador.
 **Mode:** mvp
 **Depends on**: Phase 1
-**Requirements**: FLOW-03, FLOW-04, FLOW-07, FLOW-08, CONT-02, CONT-03, CONT-04, CONT-05, CONT-06, CONT-07, CONT-09, ADAPT-04
+**Requirements**: FLOW-03, FLOW-04, FLOW-07, FLOW-08, CONT-02, CONT-03, CONT-04, CONT-05, CONT-06, CONT-07, CONT-09, ADAPT-04, UI-09
 **Success Criteria** (what must be TRUE):
   1. El usuario completa la fase de los jugadores en el orden correcto (descartar, robar, preparar) y recorre la fase del villano con sus 6 pasos oficiales, en el orden del reglamento (no los 4 del borrador original).
   2. Al avanzar desde el último paso de la ronda, el usuario vuelve al primer paso de la fase de jugadores (no a la preparación) y el contador de ronda se incrementa; tras saltar a un paso del bucle desde el índice, seguir avanzando continúa correctamente por el bucle, y un salto a un paso de la preparación no toca el contador de ronda.
   3. El usuario ve, en el momento en que aplican, el agotamiento del mazo de jugador y el del mazo de encuentros como casos distintos con sus consecuencias correctas, el cambio de fase del villano al agotarse su vida, y los estados Aturdido/Confundido/Duro con su resolución correcta.
   4. En los pasos con ramas Héroe/Alter-Ego, el usuario ve ambas ramas como texto simultáneamente, sin necesidad de ningún toque para elegir.
   5. Todo el contenido de la ronda queda verificado contra el Rules Reference v1.7 antes de darse por definitivo, incluidas las correcciones ya confirmadas: 6 pasos oficiales de la fase del villano, obligaciones «una o más por identidad» (no una por jugador), solo el villano y los esbirros con la palabra clave Villano roban cartas de aumento, y el Modo Experto no altera la estructura de la fase del villano (eso es el Modo Heroico, un eje aparte).
+  6. En los pasos cuyo aviso `⚠` tiene consecuencia detallada, el usuario puede tocar el aviso para verla y cerrarla al instante sin perder el paso ni la ronda en curso; los avisos sin consecuencia detallada no ofrecen ninguna afordancia de toque.
 **Plans**: 4 plans
 Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número de fichero):
 - [x] 02-01-PLAN.md — (ola 1) Sección RONDA autorada y gate de contenido endurecido: el bucle gira por primera vez con datos reales

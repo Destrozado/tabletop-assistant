@@ -55,4 +55,36 @@ describe('resolveText', () => {
     const context: SessionContext = { playerCount: 4, difficulty: 'normal' }
     expect(resolveText(node, context).text).toBe(formula)
   })
+
+  describe('warningDetail (D-32)', () => {
+    it('devuelve la clave warningDetail siempre presente, con undefined explícito cuando ni base ni variante la definen', () => {
+      const node = makeNode({})
+      const context: SessionContext = { playerCount: 2, difficulty: 'normal' }
+      const resolved = resolveText(node, context)
+      expect('warningDetail' in resolved).toBe(true)
+      expect(resolved.warningDetail).toBeUndefined()
+    })
+
+    it('hereda el warningDetail del base cuando la variante activa no lo define', () => {
+      const node = makeNode({
+        warning: 'Aviso base.',
+        warningDetail: 'Detalle base.',
+        variants: { difficulty: { expert: { text: 'Texto experto.' } } },
+      })
+      const context: SessionContext = { playerCount: 2, difficulty: 'expert' }
+      expect(resolveText(node, context).warningDetail).toBe('Detalle base.')
+    })
+
+    it('la variante activa sobrescribe el warningDetail del base cuando lo define', () => {
+      const node = makeNode({
+        warning: 'Aviso base.',
+        warningDetail: 'Detalle base.',
+        variants: { difficulty: { expert: { warning: 'Aviso experto.', warningDetail: 'Detalle experto.' } } },
+      })
+      const context: SessionContext = { playerCount: 2, difficulty: 'expert' }
+      const resolved = resolveText(node, context)
+      expect(resolved.warningDetail).toBe('Detalle experto.')
+      expect(resolved.warning).toBe('Aviso experto.')
+    })
+  })
 })

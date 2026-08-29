@@ -87,7 +87,7 @@ describe('content/marvel-champions.json', () => {
     }
   })
 
-  it('ningún text, warning ni title menciona un recuento concreto de jugadores (D-08)', () => {
+  it('ningún text, warning, warningDetail ni title menciona un recuento concreto de jugadores (D-08)', () => {
     const steps = allSteps(marvelChampions)
     for (const step of steps) {
       expect(step.text).not.toMatch(PLAYER_COUNT_PATTERN)
@@ -95,10 +95,14 @@ describe('content/marvel-champions.json', () => {
       if (step.warning) {
         expect(step.warning).not.toMatch(PLAYER_COUNT_PATTERN)
       }
+      if (step.warningDetail) {
+        expect(step.warningDetail).not.toMatch(PLAYER_COUNT_PATTERN)
+      }
       if (step.variants?.difficulty) {
         for (const variant of Object.values(step.variants.difficulty)) {
           if (variant?.text) expect(variant.text).not.toMatch(PLAYER_COUNT_PATTERN)
           if (variant?.warning) expect(variant.warning).not.toMatch(PLAYER_COUNT_PATTERN)
+          if (variant?.warningDetail) expect(variant.warningDetail).not.toMatch(PLAYER_COUNT_PATTERN)
         }
       }
     }
@@ -286,11 +290,18 @@ describe('content/marvel-champions.json', () => {
       }
     })
 
-    it('error confirmado nº3 (negativo): ningún text ni warning de la ronda dice "todos los esbirros" (el positivo llega en 02-03)', () => {
+    it('error confirmado nº3 (negativo): ningún campo de la ronda dice "todos los esbirros"', () => {
       for (const step of rondaSteps(marvelChampions)) {
         expect(step.text).not.toMatch(/todos los esbirros/i)
         expect(step.warning ?? '').not.toMatch(/todos los esbirros/i)
+        expect(step.warningDetail ?? '').not.toMatch(/todos los esbirros/i)
       }
+    })
+
+    it('error confirmado nº3 (positivo, 02-03): ronda.villano.02.warningDetail casa con "palabra clave Villano" y con "carta de aumento"', () => {
+      const detail = findStep(marvelChampions, 'ronda.villano.02').warningDetail!
+      expect(detail).toMatch(/palabra clave Villano/i)
+      expect(detail).toMatch(/carta de aumento/i)
     })
 
     it('error confirmado nº4: ningún paso de la ronda declara variants.difficulty ni menciona "experto"/"heroico"', () => {
@@ -325,6 +336,45 @@ describe('content/marvel-champions.json', () => {
       const mutated: GameDefinition = JSON.parse(JSON.stringify(rawMarvelChampions))
       const ronda = mutated.sections.find((s: { id: string }) => s.id === 'ronda')
       ronda.repeats = false
+      expect(() => validateGameDefinition(mutated)).toThrow()
+    })
+
+    it('D-32: exactamente 5 pasos declaran warningDetail, en esta lista ordenada de ids', () => {
+      const steps = allSteps(marvelChampions)
+      const withDetail = steps.filter(s => s.warningDetail)
+      expect(withDetail.map(s => s.id).sort()).toEqual([
+        'ronda.jugadores.01',
+        'ronda.jugadores.03',
+        'ronda.jugadores.04',
+        'ronda.villano.02',
+        'ronda.villano.04',
+      ])
+    })
+
+    it('D-32: ningún warningDetail supera 320 caracteres ni contiene el carácter de salto de línea', () => {
+      const steps = allSteps(marvelChampions).filter(s => s.warningDetail)
+      expect(steps.length).toBeGreaterThan(0)
+      for (const step of steps) {
+        expect(step.warningDetail!.length).toBeLessThanOrEqual(320)
+        expect(step.warningDetail).not.toMatch(/\n/)
+      }
+    })
+
+    it('DC-8: todo paso que declara warningDetail declara también warning (nunca huérfano)', () => {
+      const steps = allSteps(marvelChampions).filter(s => s.warningDetail)
+      expect(steps.length).toBeGreaterThan(0)
+      for (const step of steps) {
+        expect(step.warning).toBeDefined()
+      }
+    })
+
+    it('gate DC-8 que muerde: borrar el warning de ronda.villano.02 dejando su warningDetail hace fallar la validación', () => {
+      const mutated: GameDefinition = JSON.parse(JSON.stringify(rawMarvelChampions))
+      const step = mutated.sections
+        .flatMap((s: { phases: { steps: { id: string, warning?: string }[] }[] }) => s.phases)
+        .flatMap((p: { steps: { id: string, warning?: string }[] }) => p.steps)
+        .find((s: { id: string }) => s.id === 'ronda.villano.02')
+      delete step.warning
       expect(() => validateGameDefinition(mutated)).toThrow()
     })
   })

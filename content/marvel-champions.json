@@ -2,7 +2,7 @@
   "gameId": "marvel-champions",
   "title": "Marvel Champions: El Juego de Cartas",
   "locale": "es",
-  "contentVersion": 7,
+  "contentVersion": 8,
   "minPlayers": 1,
   "maxPlayers": 4,
   "sections": [
@@ -359,6 +359,7 @@
               "kind": "step",
               "text": "Jugad vuestros turnos en orden de jugador, uno tras otro.",
               "warning": "Atentos al dial del villano",
+              "warningDetail": "Cuando el dial del villano llega a cero, retirad su etapa actual y revelad la siguiente, ajustando el dial a la vida impresa. Si el título de la nueva etapa es el mismo, conservad adjuntos, mejoras, cartas de Estado y fichas que no sean de daño; si el título es distinto, no se conserva nada.",
               "speech": "Jugad vuestros turnos en orden de jugador.",
               "citation": {
                 "source": "rules-reference",
@@ -384,6 +385,7 @@
               "kind": "step",
               "text": "Robad a la vez hasta completar el tamaño de vuestra mano.",
               "warning": "Mazo agotado: barajad el descarte y repartíos un encuentro",
+              "warningDetail": "Si tu mazo de jugador se queda sin cartas, barajad vuestro descarte para formar uno nuevo y repartíos a vosotros mismos una carta de encuentro boca abajo. Si tampoco tenéis descarte, el mazo no se rehace hasta que vuelva a haber al menos una carta en él.",
               "speech": "Robad a la vez hasta completar el tamaño de vuestra mano.",
               "citation": {
                 "source": "rules-reference",
@@ -397,6 +399,7 @@
               "kind": "step",
               "text": "Enderezad a la vez todas vuestras cartas, incluidas las de encuentro agotadas.",
               "warning": "Terminan aquí los efectos «hasta el final de la fase»",
+              "warningDetail": "Aquí terminan los efectos que duraban «hasta el final de la fase» y se resuelven los que dicen «cuando termine la fase» o «después de que termine la fase», antes de pasar a la fase del villano.",
               "speech": "Enderezad todas vuestras cartas, incluidas las de encuentro agotadas.",
               "citation": {
                 "source": "rules-reference",
@@ -430,6 +433,7 @@
               "kind": "step",
               "text": "El villano ataca a cada héroe y avanza el esquema contra quien esté en Alter-Ego.",
               "warning": "Atentos a los Estados en los personajes",
+              "warningDetail": "En orden de jugador: primero activa el villano contra ese jugador y después cada esbirro enfrentado con él, en el orden que ese jugador elija. Sin saltarse a nadie. Solo el villano y los esbirros con la palabra clave Villano roban carta de aumento.",
               "speech": "El villano ataca a cada héroe y avanza el esquema contra quien esté en Alter-Ego.",
               "citation": {
                 "source": "rules-reference",
@@ -456,6 +460,7 @@
               "kind": "step",
               "text": "Revelad las cartas de encuentro una a una, empezando por el jugador inicial.",
               "warning": "Encuentros agotado: barajad y poned ficha de aceleración",
+              "warningDetail": "Si el mazo de encuentros se queda sin cartas, barajad su pila de descartes para formar uno nuevo y colocad además una ficha de aceleración junto al mazo del esquema principal. Es un castigo global y permanente, distinto del agotamiento de un mazo de jugador.",
               "speech": "Revelad las cartas de encuentro una a una, empezando por el jugador inicial.",
               "citation": {
                 "source": "rules-reference",

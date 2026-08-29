@@ -114,6 +114,27 @@ function onIndexJumpTo(runtimeId: string) {
   jumpTo(runtimeId)
 }
 
+// D-32: estado efímero de interfaz, nunca persistido (misma categoría que
+// D-26 ya rechazó persistir). Cerrar el modal es una consulta de solo
+// lectura: nunca toca cursor/round/context, y devuelve el foco al `⚠` que
+// lo abrió. StepScreen emite `open-warning-detail` sin payload (componente
+// tonto, sin acoplarse a cómo la página gestiona el foco), así que la
+// referencia al disparador se captura aquí, en el sitio de la llamada, leyendo
+// `document.activeElement` en el instante del emit — el propio botón que
+// disparó el click es el elemento con foco en ese momento.
+const isWarningDetailOpen = ref(false)
+const warningTriggerEl = ref<HTMLElement | null>(null)
+
+function onOpenWarningDetail() {
+  warningTriggerEl.value = document.activeElement as HTMLElement | null
+  isWarningDetailOpen.value = true
+}
+
+function onDismissWarningDetail() {
+  isWarningDetailOpen.value = false
+  warningTriggerEl.value?.focus()
+}
+
 // D-03: la lista de repaso se deriva de los summaryLabel de las fases con al
 // menos un paso kind:step (la fase "mesa lista" queda excluida por no tener
 // ninguno) — nunca tecleada dos veces. WR-03: acotada a la SECCIÓN del nodo
@@ -268,6 +289,8 @@ function onContentChangedAcknowledge() {
       <StepScreen
         :action-text="currentText.text"
         :warning-text="currentText.warning ?? null"
+        :warning-detail-text="currentText.warningDetail ?? null"
+        @open-warning-detail="onOpenWarningDetail"
       />
       <NavBand @back="prev" @next="next" />
       <IndexOverlay
@@ -276,6 +299,12 @@ function onContentChangedAcknowledge() {
         :blocks="blocks"
         @jump-to="onIndexJumpTo"
         @close="onIndexClose"
+      />
+      <WarningDetailModal
+        v-if="isWarningDetailOpen"
+        :heading="currentText.warning ?? ''"
+        :body="currentText.warningDetail ?? ''"
+        @dismiss="onDismissWarningDetail"
       />
     </div>
   </ClientOnly>

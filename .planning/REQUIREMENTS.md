@@ -73,6 +73,7 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 - [ ] **UI-06**: La pantalla no se apaga mientras hay una partida en curso
 - [ ] **UI-07**: El usuario sabe que la pantalla permanecerá encendida y que eso consume batería
 - [ ] **UI-08**: Si el bloqueo de pantalla no está disponible en el dispositivo, la app sigue funcionando con normalidad
+- [ ] **UI-09**: El aviso `⚠` de un paso, cuando tiene consecuencia detallada, se puede tocar para abrir un modal con esa consecuencia, y se cierra fácilmente sin perder la posición ni la ronda en curso
 
 ### Persistencia
 
@@ -107,6 +108,7 @@ Diferidos. Registrados, pero fuera del roadmap actual.
 ### Consulta de reglas
 
 - **REF-01**: Pantalla de consulta rápida de palabras clave y estados, accesible sin perder la posición en el flujo
+  - *Nota (Fase 2, D-32):* **UI-09** adelanta a v1 un recorte mínimo de esta idea — únicamente el aviso `⚠` de un paso concreto, clicable, abre un modal con su consecuencia detallada. El resto de REF-01 (palabras clave enlazadas dentro del texto del paso, diccionario de keywords) sigue aquí, en v2.
 - **REF-02**: Búsqueda por término dentro de la referencia
 
 ### Configuración avanzada
@@ -193,6 +195,7 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | UI-06 | Phase 3 | Pending |
 | UI-07 | Phase 3 | Pending |
 | UI-08 | Phase 3 | Pending |
+| UI-09 | Phase 2 | Pending |
 | PERS-01 | Phase 1 | Complete |
 | PERS-02 | Phase 1 | Complete |
 | PERS-03 | Phase 1 | Complete |
@@ -207,10 +210,10 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | TECH-05 | Phase 1 | Complete |
 
 **Coverage:**
-- v1 requirements: 58 total
-- Mapped to phases: 58
+- v1 requirements: 59 total
+- Mapped to phases: 59
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-08-28*
-*Last updated: 2026-08-28 after roadmap creation*
+*Last updated: 2026-08-29 after 02-03 (UI-09 añadido, D-32)*

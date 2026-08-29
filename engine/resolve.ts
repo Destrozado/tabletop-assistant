@@ -9,6 +9,7 @@ export function resolveText(node: RuntimeStepNode, context: SessionContext): Tex
   return {
     text: variant?.text ?? node.step.text,
     warning: variant?.warning ?? node.step.warning,
+    warningDetail: variant?.warningDetail ?? node.step.warningDetail,
     speech: variant?.speech ?? node.step.speech,
   }
 }
