@@ -36,7 +36,7 @@ Que un grupo pueda jugar una partida completa de Marvel Champions de principio a
 - Cálculo automático de cifras (vida del villano, amenaza) — el usuario prefiere ver la fórmula tal cual y hacer la cuenta en la mesa; menos estado, menos errores
 - Contadores en vivo de vida / amenaza / estado de cada jugador — la app guía, no sustituye a los diales y fichas físicas
 - Warhammer 40.000 jugable en v1 — aparecerá en el selector, pero el contenido llega después de validar el motor con Marvel Champions
-- Pantalla de consulta de reglas (estados Aturdido/Confundido/Duro, agotamiento de mazos, límites de cartas) — no entra en v1; el foco es el flujo guiado
+- Pantalla de consulta de reglas (estados Aturdido/Confundido/Duro, agotamiento de mazos, límites de cartas) — no entra en v1; el foco es el flujo guiado. **Excepción acotada (D-32, Fase 2):** el aviso `⚠` de un paso concreto es clicable y muestra su consecuencia detallada en v1; lo que queda fuera es la pantalla de consulta como tal, las palabras clave enlazadas dentro del texto del paso y la búsqueda por término
 - Editor de juegos/pasos desde la web — el contenido lo escribe el desarrollador como datos versionados
 - Audio pregenerado de calidad — la voz del navegador es suficiente para v1, sin peso ni pipeline extra
 - Backend, base de datos y cuentas de usuario — no hay nada que sincronizar entre dispositivos
@@ -79,6 +79,7 @@ Que un grupo pueda jugar una partida completa de Marvel Champions de principio a
 | Verificar el resumen contra el PDF oficial en una fase dedicada | El usuario sospecha errores en su resumen; el valor entero depende de que la guía sea correcta | — Pendiente |
 | Solo español en v1 | El grupo juega en español; i18n añadiría trabajo sin usuario que lo pida | — Pendiente |
 | Marvel Champions primero, W40k después | Es el juego que el grupo juega ahora; valida el motor con contenido real antes de generalizar | — Pendiente |
+| D-32: el aviso `⚠` es clicable y abre un modal con su consecuencia detallada | El recordatorio en pantalla se quiere siempre; la consecuencia detallada solo si no te la sabes — breve y conciso arriba, detalle a un toque, modal que se cierra fácil para seguir jugando | Completado en la Fase 2 |
 
 ## Evolution
 
