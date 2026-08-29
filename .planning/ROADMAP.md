@@ -55,7 +55,7 @@ Plans (en orden de ejecución; los planes 01-07 y 01-08 son posteriores en numer
   5. Todo el contenido de la ronda queda verificado contra el Rules Reference v1.7 antes de darse por definitivo, incluidas las correcciones ya confirmadas: 6 pasos oficiales de la fase del villano, obligaciones «una o más por identidad» (no una por jugador), solo el villano y los esbirros con la palabra clave Villano roban cartas de aumento, y el Modo Experto no altera la estructura de la fase del villano (eso es el Modo Heroico, un eje aparte).
 **Plans**: 4 plans
 Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número de fichero):
-- [ ] 02-01-PLAN.md — (ola 1) Sección RONDA autorada y gate de contenido endurecido: el bucle gira por primera vez con datos reales
+- [x] 02-01-PLAN.md — (ola 1) Sección RONDA autorada y gate de contenido endurecido: el bucle gira por primera vez con datos reales
 - [ ] 02-02-PLAN.md — (ola 2) Cabecera relativa a la fase e índice reordenado dentro del bucle (D-22…D-25)
 - [ ] 02-03-PLAN.md — (ola 3) Aviso ⚠ clicable con modal de consecuencia (D-32) y deuda de alcance saldada en ROADMAP/REQUIREMENTS/PROJECT
 - [ ] 02-04-PLAN.md — (ola 4) Revisión humana del contenido contra el Rules Reference v1.7 y partida completa (D-36/CONT-09)
@@ -93,6 +93,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Motor de flujo, selector y preparación de mesa | 8/8 | Complete   | 2026-08-28 |
-| 2. Bucle de ronda y reglas verificadas | 0/4 | Not started | - |
+| 2. Bucle de ronda y reglas verificadas | 1/4 | In Progress|  |
 | 3. Locución por voz y pantalla siempre encendida | 0/TBD | Not started | - |
 | 4. Instalación y funcionamiento offline | 0/TBD | Not started | - |
