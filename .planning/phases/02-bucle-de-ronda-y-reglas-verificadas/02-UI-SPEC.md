@@ -1,10 +1,11 @@
 ---
 phase: 2
 slug: bucle-de-ronda-y-reglas-verificadas
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-08-29
+approved: 2026-08-29
 ---
 
 # Phase 2 — UI Design Contract
@@ -342,11 +343,35 @@ Per this session's autonomous (`yolo`) mode, no interactive questions were asked
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+Verificado por `gsd-ui-checker` el 2026-08-29 (fase de planificación, `/gsd:plan-phase 2`).
 
-**Approval:** pending
+- [x] Dimension 1 Copywriting: **FLAG** (no bloqueante)
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
+
+**Approval:** APPROVED (6/6 dimensiones evaluadas, 0 bloqueantes)
+
+### Dimension 1 — FLAG y su resolucion
+
+El CTA del modal es «Entendido»: una sola palabra sin sustantivo, que diverge del
+`ENTENDIDO ›` de la Fase 1. No es una etiqueta generica de la lista de bloqueo
+(Submit / OK / Click Here / Cancel / Save), asi que el checker lo marco como FLAG
+no bloqueante y pidio una confirmacion consciente durante la planificacion.
+
+**Resuelto en planificacion como DC-7 (`02-03-PLAN.md`): CONFIRMADO sin chevron.**
+Razon explicita: el chevron de `ENTENDIDO ›` señala ir a un sitio nuevo; aqui se
+cierra el modal y se vuelve al mismo paso, sin navegacion. No es herencia por
+descuido.
+
+### Notas de verificacion
+
+- Contraste del atenuado (D-24) verificado con la ratio ya calculada en la Fase 1
+  (Secondary-text `#9AA0AC`, 6.9:1, AA), no simplemente afirmado. El atenuado se
+  implementa por intercambio de token de color, no por opacidad, precisamente para
+  conservar el contraste.
+- Las 18 decisiones autonomas (modo `yolo`, sin input del usuario) se cotejaron una
+  a una contra D-20…D-37 y `01-UI-SPEC.md`: ninguna contradice una decision cerrada.
+  Siguen marcadas para revision del usuario en su seccion correspondiente.

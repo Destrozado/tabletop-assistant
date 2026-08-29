@@ -454,22 +454,31 @@ Extracted directly with `pdftotext -layout ~/Downloads/mc_rulesreference_v17-com
 
 **None of these are compliance, retention, or security-critical** — all four are either a product trade-off already flagged as the planner's explicit decision in `02-CONTEXT.md`, or a low-risk naming/shape preference easily revised.
 
-## Open Questions
+## Open Questions (RESUELTAS EN PLANIFICACION)
+
+> **Retro-anotado el 2026-08-29 durante `/gsd:plan-phase 2`.** Las tres preguntas
+> abiertas de esta seccion quedaron cerradas antes de ejecutar: la 1 y la 3 por el
+> planner en los propios PLAN.md (bloques `<decisions_closed_here>`), y la 2 por
+> `02-UI-SPEC.md`. Se conservan aqui con su razonamiento original para que se vea
+> de donde salio cada decision; la resolucion va anotada bajo cada una.
 
 1. **Should the `speech` field decision (A1) be made per-step or as a phase-wide policy?**
    - What we know: the field exists in the schema since Phase 1, zero steps use it today, and `02-CONTEXT.md` explicitly defers the decision to planning.
    - What's unclear: whether "author it now" means every one of the ~10 new round steps gets a `speech` override, or only the ones where `text` (already ≤90 chars, imperative, plural) would read awkwardly aloud as-is.
    - Recommendation: decide as a phase-wide policy in the plan (not per-step ad hoc), and if the decision is "yes, author now," default to omitting `speech` when `text` already reads naturally as a spoken sentence — reserve explicit `speech` overrides for steps where the on-screen text is not TTS-friendly (e.g., a formula shown as-is, per D-07/ADAPT-03, would need a spoken paraphrase since Web Speech cannot sensibly read `"× nº de jugadores"` aloud).
+   - **RESUELTA — DC-1 (`02-01-PLAN.md`): se autora `speech` AHORA, como politica de fase, en los 10 pasos de la ronda**, con tope ≤120 caracteres cableado en el esquema. La preparacion sigue deliberadamente sin `speech` (es trabajo de la Fase 3). El planner descarto la recomendacion de «solo donde haga falta» por una razon concreta: es un juicio que un ejecutor resuelve como «nunca», y entonces la Fase 3 heredaria ~45 pasos que locutar de golpe — exactamente lo que el `ROADMAP.md` dice que hay que evitar.
 
 2. **Exact character budget for `warningDetail`'s modal content — not established by `01-UI-SPEC.md`.**
    - What we know: `text` is capped at 90 chars, `warning` at 60 — both hard UI-SPEC budgets. The modal is new surface `01-UI-SPEC.md` never covered.
    - What's unclear: whether a Zod `.max()` cap should exist on `warningDetail` at all, and if so what value, or whether it should be an unbounded free-text field sized generously for a short paragraph (the D-30 authored consequences — e.g. the villain-defeat procedure — run to 2-3 sentences).
    - Recommendation: resolve via `/gsd:ui-phase 2` as `02-CONTEXT.md` itself suggests, rather than guessing a number here; content authoring can proceed once a budget exists, but should not block on it if the plan sequences UI-spec work first.
+   - **RESUELTA — `02-UI-SPEC.md` (generado por `/gsd:ui-phase 2` antes de planificar, como recomendaba esta pregunta): `warningDetail` ≤ 320 caracteres, cap en Zod (`.max(320)`).** El numero sale del peor caso real: el procedimiento de cambio de fase del villano (D-30), que ronda los 250 caracteres. Si el campo existe pero no hay `warning`, el `superRefine` de raiz lo rechaza (DC-8).
 
 3. **Does REF-01/REQUIREMENTS.md/ROADMAP.md documentation debt (D-32's "deuda de alcance a saldar") get its own task in this phase's plan, or land as a housekeeping edit alongside another task?**
    - What we know: `02-CONTEXT.md` explicitly states the `ROADMAP.md`/`REQUIREMENTS.md` scope-debt from adding the clickable-`⚠`-modal surface must be reflected somewhere, and that it wasn't accounted for when those documents were written.
    - What's unclear: whether this needs a dedicated plan task or is folded into the D-32 implementation task's file list.
    - Recommendation: fold it into the same task that implements the modal, since it's a small, mechanical documentation update (updating the phase 2 roadmap description and possibly adding a v1-scoped requirement id), not independent work.
+   - **RESUELTA — `02-03-PLAN.md` Tarea 3: se pliega a la tarea del modal, como recomendaba esta pregunta.** Actualiza `ROADMAP.md`, `REQUIREMENTS.md` (con un `UI-09` nuevo de alcance v1) y `PROJECT.md` — este ultimo para acotar la linea de Out of Scope «Pantalla de consulta de reglas», que D-32 contradecia en silencio. REF-01/REF-02 siguen en v2 sin promocionar.
 
 ## Environment Availability
 
