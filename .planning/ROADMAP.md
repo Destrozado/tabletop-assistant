@@ -58,7 +58,7 @@ Plans (en orden de ejecución; los planes 01-07 y 01-08 son posteriores en numer
 Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número de fichero):
 - [x] 02-01-PLAN.md — (ola 1) Sección RONDA autorada y gate de contenido endurecido: el bucle gira por primera vez con datos reales
 - [x] 02-02-PLAN.md — (ola 2) Cabecera relativa a la fase e índice reordenado dentro del bucle (D-22…D-25)
-- [ ] 02-03-PLAN.md — (ola 3) Aviso ⚠ clicable con modal de consecuencia (D-32) y deuda de alcance saldada en ROADMAP/REQUIREMENTS/PROJECT
+- [x] 02-03-PLAN.md — (ola 3) Aviso ⚠ clicable con modal de consecuencia (D-32) y deuda de alcance saldada en ROADMAP/REQUIREMENTS/PROJECT
 - [ ] 02-04-PLAN.md — (ola 4) Revisión humana del contenido contra el Rules Reference v1.7 y partida completa (D-36/CONT-09)
 
 ### Phase 3: Locución por voz y pantalla siempre encendida
@@ -94,6 +94,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Motor de flujo, selector y preparación de mesa | 8/8 | Complete   | 2026-08-28 |
-| 2. Bucle de ronda y reglas verificadas | 2/4 | In Progress|  |
+| 2. Bucle de ronda y reglas verificadas | 3/4 | In Progress|  |
 | 3. Locución por voz y pantalla siempre encendida | 0/TBD | Not started | - |
 | 4. Instalación y funcionamiento offline | 0/TBD | Not started | - |
