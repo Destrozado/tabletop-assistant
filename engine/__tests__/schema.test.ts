@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { GameDefinitionSchema } from '../schema'
 
+// D-37: exactamente una sección repeats:true. baseGame() debe incluir SIEMPRE
+// una sección repetible para que los tests negativos de este fichero (id
+// vacío, text de 120, etc.) lancen por el motivo que dicen comprobar, y no
+// por la invariante de repetición (02-RESEARCH.md Pitfall 2).
 function baseGame() {
   return {
     gameId: 'test-game',
@@ -18,6 +22,20 @@ function baseGame() {
             title: 'Intro',
             steps: [
               { id: 'setup.intro.01', title: 'Paso 1', text: 'Haced algo.' },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'ronda',
+        title: 'Ronda',
+        repeats: true,
+        phases: [
+          {
+            id: 'ronda.turno',
+            title: 'Jugadores',
+            steps: [
+              { id: 'ronda.turno.01', title: 'Paso ronda', text: 'Haced otra cosa.' },
             ],
           },
         ],
@@ -40,27 +58,14 @@ describe('GameDefinitionSchema', () => {
   it('lanza ZodError con dos secciones marcadas repeats:true', () => {
     const game = baseGame()
     game.sections[0].repeats = true
-    game.sections.push({
-      id: 'round',
-      title: 'Ronda',
-      repeats: true,
-      phases: [
-        {
-          id: 'round.jugadores',
-          title: 'Jugadores',
-          steps: [
-            { id: 'round.jugadores.01', title: 'Paso', text: 'Haced otra cosa.' },
-          ],
-        },
-      ],
-    })
     expect(() => GameDefinitionSchema.parse(game)).toThrow()
   })
 
-  it('NO lanza con cero secciones repeats:true', () => {
+  it('lanza ZodError con cero secciones repeats:true', () => {
     const game = baseGame()
+    game.sections[1].repeats = false
     expect(game.sections.every(s => s.repeats === false)).toBe(true)
-    expect(() => GameDefinitionSchema.parse(game)).not.toThrow()
+    expect(() => GameDefinitionSchema.parse(game)).toThrow()
   })
 
   it('lanza ZodError con un text de 120 caracteres', () => {
