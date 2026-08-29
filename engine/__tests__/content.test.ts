@@ -87,7 +87,7 @@ describe('content/marvel-champions.json', () => {
     }
   })
 
-  it('ningún text, warning, warningDetail ni title menciona un recuento concreto de jugadores (D-08)', () => {
+  it('ningún text, warning, warningDetail, title, optionsWarning ni options[].label/detail menciona un recuento concreto de jugadores (D-08, extendido en 02-05 para C1/C2)', () => {
     const steps = allSteps(marvelChampions)
     for (const step of steps) {
       expect(step.text).not.toMatch(PLAYER_COUNT_PATTERN)
@@ -98,11 +98,27 @@ describe('content/marvel-champions.json', () => {
       if (step.warningDetail) {
         expect(step.warningDetail).not.toMatch(PLAYER_COUNT_PATTERN)
       }
+      if (step.optionsWarning) {
+        expect(step.optionsWarning).not.toMatch(PLAYER_COUNT_PATTERN)
+      }
+      if (step.options) {
+        for (const option of step.options) {
+          expect(option.label).not.toMatch(PLAYER_COUNT_PATTERN)
+          expect(option.detail).not.toMatch(PLAYER_COUNT_PATTERN)
+        }
+      }
       if (step.variants?.difficulty) {
         for (const variant of Object.values(step.variants.difficulty)) {
           if (variant?.text) expect(variant.text).not.toMatch(PLAYER_COUNT_PATTERN)
           if (variant?.warning) expect(variant.warning).not.toMatch(PLAYER_COUNT_PATTERN)
           if (variant?.warningDetail) expect(variant.warningDetail).not.toMatch(PLAYER_COUNT_PATTERN)
+          if (variant?.optionsWarning) expect(variant.optionsWarning).not.toMatch(PLAYER_COUNT_PATTERN)
+          if (variant?.options) {
+            for (const option of variant.options) {
+              expect(option.label).not.toMatch(PLAYER_COUNT_PATTERN)
+              expect(option.detail).not.toMatch(PLAYER_COUNT_PATTERN)
+            }
+          }
         }
       }
     }
@@ -324,10 +340,19 @@ describe('content/marvel-champions.json', () => {
       // Los pasos de setup siguen deliberadamente sin speech (retrofit es Fase 3, VOZ-01) — no se afirma aquí.
     })
 
-    it('ningún warning del fichero contiene el glifo ⚠ (lo antepone StepScreen.vue)', () => {
+    it('ningún warning ni optionsWarning del fichero contiene el glifo ⚠, y ninguna options[].label/detail tampoco (los glifos los antepone la plantilla, extendido en 02-05)', () => {
       for (const step of allSteps(marvelChampions)) {
         if (step.warning) {
           expect(step.warning).not.toMatch(/⚠/)
+        }
+        if (step.optionsWarning) {
+          expect(step.optionsWarning).not.toMatch(/⚠/)
+        }
+        if (step.options) {
+          for (const option of step.options) {
+            expect(option.label).not.toMatch(/⚠/)
+            expect(option.detail).not.toMatch(/⚠/)
+          }
         }
       }
     })
@@ -377,6 +402,86 @@ describe('content/marvel-champions.json', () => {
         .find((s: { id: string }) => s.id === 'ronda.villano.02')
       delete step.warning
       expect(() => validateGameDefinition(mutated)).toThrow()
+    })
+
+    describe('options[] y optionsWarning (C1/C2, DC-10/DC-11)', () => {
+      it('exactamente un paso declara options, y es ronda.jugadores.01', () => {
+        const withOptions = allSteps(marvelChampions).filter(s => s.options)
+        expect(withOptions.map(s => s.id)).toEqual(['ronda.jugadores.01'])
+      })
+
+      it('ese paso declara exactamente 6 opciones, en el orden literal de <content_spec>', () => {
+        const step = findStep(marvelChampions, 'ronda.jugadores.01')
+        expect(step.options).toHaveLength(6)
+        expect(step.options!.map(o => o.label)).toEqual([
+          'Cambiar Alter-Ego / Héroe',
+          'Poner cartas en juego',
+          'Utilizar eventos',
+          'Usar un poder básico',
+          'Activar aliados',
+          'Activar habilidades «Acción»',
+        ])
+      })
+
+      it('ninguna label supera 40 caracteres ni ningún detail supera 320; ninguno contiene salto de línea; las labels son únicas', () => {
+        const step = findStep(marvelChampions, 'ronda.jugadores.01')
+        const labels = step.options!.map(o => o.label)
+        expect(new Set(labels).size).toBe(labels.length)
+        for (const option of step.options!) {
+          expect(option.label.length).toBeLessThanOrEqual(40)
+          expect(option.detail.length).toBeLessThanOrEqual(320)
+          expect(option.label).not.toMatch(/\n/)
+          expect(option.detail).not.toMatch(/\n/)
+        }
+      })
+
+      it('C2 bajo gate de igualdad: ronda.jugadores.01.optionsWarning es exactamente igual a ronda.villano.02.warning, y ambos casan con /estados/i', () => {
+        const jugadores = findStep(marvelChampions, 'ronda.jugadores.01')
+        const villano = findStep(marvelChampions, 'ronda.villano.02')
+        expect(jugadores.optionsWarning).toBe(villano.warning)
+        expect(jugadores.optionsWarning).toMatch(/estados/i)
+        expect(villano.warning).toMatch(/estados/i)
+      })
+
+      it('nada de 02-03 se pierde: ronda.jugadores.01 sigue con warning sobre el dial del villano y con warningDetail', () => {
+        const step = findStep(marvelChampions, 'ronda.jugadores.01')
+        expect(step.warning).toMatch(/dial del villano/i)
+        expect(step.warningDetail).toBeDefined()
+      })
+
+      it('ronda.villano.02 intacto: su warning sigue siendo exactamente "Atentos a los Estados en los personajes"', () => {
+        const step = findStep(marvelChampions, 'ronda.villano.02')
+        expect(step.warning).toBe('Atentos a los Estados en los personajes')
+      })
+
+      it('contentVersion es exactamente 10 (PERS-03)', () => {
+        expect(marvelChampions.contentVersion).toBe(10)
+      })
+
+      it('la citation.section de ronda.jugadores.01 casa con /Player Turn \\(p\\. 34\\)/', () => {
+        const step = findStep(marvelChampions, 'ronda.jugadores.01')
+        expect(step.citation!.section).toMatch(/Player Turn \(p\. 34\)/)
+      })
+
+      it('gate que muerde: borrar options de ronda.jugadores.01 dejando su optionsWarning huérfano hace fallar la validación', () => {
+        const mutated: GameDefinition = JSON.parse(JSON.stringify(rawMarvelChampions))
+        const step = mutated.sections
+          .flatMap((s: { phases: { steps: { id: string, options?: unknown }[] }[] }) => s.phases)
+          .flatMap((p: { steps: { id: string, options?: unknown }[] }) => p.steps)
+          .find((s: { id: string }) => s.id === 'ronda.jugadores.01')
+        delete step.options
+        expect(() => validateGameDefinition(mutated)).toThrow()
+      })
+
+      it('gate que muerde: duplicar la label de la primera opción en la segunda hace fallar la validación', () => {
+        const mutated: GameDefinition = JSON.parse(JSON.stringify(rawMarvelChampions))
+        const step = mutated.sections
+          .flatMap((s: { phases: { steps: { id: string, options?: { label: string }[] }[] }[] }) => s.phases)
+          .flatMap((p: { steps: { id: string, options?: { label: string }[] }[] }) => p.steps)
+          .find((s: { id: string }) => s.id === 'ronda.jugadores.01')
+        step.options[1].label = step.options[0].label
+        expect(() => validateGameDefinition(mutated)).toThrow()
+      })
     })
   })
 })

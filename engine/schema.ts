@@ -29,6 +29,21 @@ const TextBlockSchema = z.object({
   // navegador — no hay divergencia que compensar, así que `app/` nunca debe
   // añadir un `?? fallback` para este campo (no copiar el patrón de `kind`).
   warningDetail: z.string().max(320).optional(),
+  // C1/DC-10 (02-05-PLAN.md): lista de opciones del turno. Tope de 40 en la
+  // etiqueta porque es una línea de un vistazo a un brazo de distancia; tope
+  // de 320 en el detalle porque es el mismo panel y el mismo presupuesto de
+  // lectura que warningDetail. Entre 2 y 8 entradas: una sola no es lista,
+  // y por encima de ocho el bloque deja de leerse de un vistazo. `detail` es
+  // obligatorio en cada entrada (D-32: sin afordancia falsa, cada opción es
+  // pulsable de verdad). Sin valor por defecto, misma razón que warningDetail.
+  options: z.array(z.object({
+    label: z.string().min(1).max(40),
+    detail: z.string().min(1).max(320),
+  })).min(2).max(8).optional(),
+  // C2/DC-11: recordatorio siempre visible bajo la lista anterior, nunca
+  // pulsable (sin detalle propio). Tope de 60 porque es la misma línea y el
+  // mismo registro que `warning`. Sin valor por defecto.
+  optionsWarning: z.string().max(60).optional(),
   speech: z.string().max(120).optional(), // DC-1 (02-01-PLAN.md): política de fase para el contenido de la ronda desde ya; el consumidor en tiempo de ejecución (TTS) sigue siendo Fase 3
 })
 
@@ -107,6 +122,29 @@ export const GameDefinitionSchema = z.object({
             message: `Step "${step.id}" declares warningDetail without warning`,
           })
         }
+        // C2/DC-11: optionsWarning huérfano (sin options) es el mismo
+        // razonamiento que DC-8 — un recordatorio colgado de una lista que
+        // no se pinta es interfaz inalcanzable.
+        if (step.optionsWarning !== undefined && step.options === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Step "${step.id}" declares optionsWarning without options`,
+          })
+        }
+
+        // DC-10/T-02-12: dos opciones del mismo paso con la misma label
+        // serían indistinguibles en pantalla y en el panel de detalle.
+        if (step.options) {
+          const labels = step.options.map(o => o.label)
+          const dupeLabels = labels.filter((label, i) => labels.indexOf(label) !== i)
+          if (dupeLabels.length) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Step "${step.id}" has duplicate option labels: ${[...new Set(dupeLabels)].join(', ')}`,
+            })
+          }
+        }
+
         const difficultyVariants = step.variants?.difficulty
         if (difficultyVariants) {
           for (const [level, variant] of Object.entries(difficultyVariants)) {
@@ -116,6 +154,13 @@ export const GameDefinitionSchema = z.object({
               ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 message: `Step "${step.id}" variant "${level}" declares warningDetail without warning`,
+              })
+            }
+            const effectiveOptions = variant.options ?? step.options
+            if (variant.optionsWarning !== undefined && effectiveOptions === undefined) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Step "${step.id}" variant "${level}" declares optionsWarning without options`,
               })
             }
           }

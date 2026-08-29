@@ -11,6 +11,11 @@ export interface Citation {
   page?: number
 }
 
+export interface StepOption {
+  label: string
+  detail: string
+}
+
 export interface TextBlock {
   text: string
   warning?: string
@@ -18,6 +23,14 @@ export interface TextBlock {
   // `warning` (un paso no puede declarar el campo siguiente sin este —
   // regla de esquema en engine/schema.ts). Alimenta WarningDetailModal.vue.
   warningDetail?: string
+  // C1/DC-10 (02-05-PLAN.md): lista pulsable de opciones del turno, entre
+  // 2 y 8 entradas; cada entrada lleva su propio `detail` obligatorio (sin
+  // afordancia falsa, D-32) y alimenta el mismo modal reutilizado con
+  // `tone: 'neutral'`.
+  options?: StepOption[]
+  // C2/DC-11: recordatorio siempre visible, sin afordancia, dependiente de
+  // que el paso declare la lista anterior (regla de esquema en schema.ts).
+  optionsWarning?: string
   speech?: string
 }
 

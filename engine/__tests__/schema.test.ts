@@ -164,4 +164,81 @@ describe('GameDefinitionSchema', () => {
       expect(() => GameDefinitionSchema.parse(game)).not.toThrow()
     })
   })
+
+  describe('options[] y optionsWarning (C1/C2, DC-10)', () => {
+    function withOptions(count = 2) {
+      const game = baseGame()
+      const step = game.sections[0].phases[0].steps[0] as any
+      step.options = Array.from({ length: count }, (_, i) => ({
+        label: `Opción ${i + 1}`,
+        detail: `Detalle de la opción ${i + 1}.`,
+      }))
+      return game
+    }
+
+    it('lanza ZodError con una label de 60 caracteres', () => {
+      const game = withOptions()
+      ;(game.sections[0].phases[0].steps[0] as any).options[0].label = 'a'.repeat(60)
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con un detail de 400 caracteres', () => {
+      const game = withOptions()
+      ;(game.sections[0].phases[0].steps[0] as any).options[0].detail = 'a'.repeat(400)
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con una opción sin detail', () => {
+      const game = withOptions()
+      delete (game.sections[0].phases[0].steps[0] as any).options[0].detail
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con una lista de una sola opción', () => {
+      const game = withOptions(1)
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con una lista de nueve opciones', () => {
+      const game = withOptions(9)
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con dos opciones que comparten la misma label en el mismo paso', () => {
+      const game = withOptions()
+      const step = game.sections[0].phases[0].steps[0] as any
+      step.options[1].label = step.options[0].label
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con un optionsWarning de 80 caracteres', () => {
+      const game = withOptions()
+      ;(game.sections[0].phases[0].steps[0] as any).optionsWarning = 'a'.repeat(80)
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con optionsWarning declarado sin options', () => {
+      const game = baseGame()
+      ;(game.sections[0].phases[0].steps[0] as any).optionsWarning = 'Recordatorio huérfano.'
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('acepta un paso con options y sin optionsWarning', () => {
+      const game = withOptions()
+      expect(() => GameDefinitionSchema.parse(game)).not.toThrow()
+    })
+
+    it('acepta un paso con options y optionsWarning dentro de los topes', () => {
+      const game = withOptions()
+      ;(game.sections[0].phases[0].steps[0] as any).optionsWarning = 'Recordatorio válido.'
+      expect(() => GameDefinitionSchema.parse(game)).not.toThrow()
+    })
+
+    it('lanza ZodError cuando una variante declara optionsWarning sin que ella ni el base declaren options', () => {
+      const game = baseGame()
+      const step = game.sections[0].phases[0].steps[0] as any
+      step.variants = { difficulty: { expert: { optionsWarning: 'Recordatorio solo en experto.' } } }
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+  })
 })

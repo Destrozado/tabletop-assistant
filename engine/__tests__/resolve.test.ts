@@ -87,4 +87,45 @@ describe('resolveText', () => {
       expect(resolved.warning).toBe('Aviso experto.')
     })
   })
+
+  describe('options[] y optionsWarning (C1/C2)', () => {
+    it('devuelve las dos claves siempre presentes, con undefined explícito cuando ni base ni variante las definen', () => {
+      const node = makeNode({})
+      const context: SessionContext = { playerCount: 2, difficulty: 'normal' }
+      const resolved = resolveText(node, context)
+      expect('options' in resolved).toBe(true)
+      expect('optionsWarning' in resolved).toBe(true)
+      expect(resolved.options).toBeUndefined()
+      expect(resolved.optionsWarning).toBeUndefined()
+    })
+
+    it('hereda options/optionsWarning del base cuando la variante activa no los define', () => {
+      const node = makeNode({
+        options: [{ label: 'Opción A', detail: 'Detalle A.' }, { label: 'Opción B', detail: 'Detalle B.' }],
+        optionsWarning: 'Recordatorio base.',
+        variants: { difficulty: { expert: { text: 'Texto experto.' } } },
+      })
+      const context: SessionContext = { playerCount: 2, difficulty: 'expert' }
+      const resolved = resolveText(node, context)
+      expect(resolved.options).toHaveLength(2)
+      expect(resolved.optionsWarning).toBe('Recordatorio base.')
+    })
+
+    it('la variante activa sustituye el array entero de options en vez de fusionar elemento a elemento', () => {
+      const node = makeNode({
+        options: [{ label: 'Opción A', detail: 'Detalle A.' }, { label: 'Opción B', detail: 'Detalle B.' }],
+        variants: {
+          difficulty: {
+            expert: {
+              options: [{ label: 'Solo experto', detail: 'Detalle único.' }, { label: 'Otra', detail: 'Detalle otra.' }, { label: 'Tercera', detail: 'Detalle tercera.' }],
+            },
+          },
+        },
+      })
+      const context: SessionContext = { playerCount: 2, difficulty: 'expert' }
+      const resolved = resolveText(node, context)
+      expect(resolved.options).toHaveLength(3)
+      expect(resolved.options?.[0].label).toBe('Solo experto')
+    })
+  })
 })

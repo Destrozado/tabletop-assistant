@@ -2,7 +2,7 @@
   "gameId": "marvel-champions",
   "title": "Marvel Champions: El Juego de Cartas",
   "locale": "es",
-  "contentVersion": 9,
+  "contentVersion": 10,
   "minPlayers": 1,
   "maxPlayers": 4,
   "sections": [
@@ -360,6 +360,33 @@
               "text": "Jugad vuestros turnos en orden de jugador, uno tras otro.",
               "warning": "Atentos al dial del villano",
               "warningDetail": "Cuando el dial del villano llega a cero, retirad su etapa actual y revelad la siguiente, ajustando el dial a la vida impresa. Si el título de la nueva etapa es el mismo, conservad adjuntos, mejoras, cartas de Estado y fichas que no sean de daño; si el título es distinto, no se conserva nada.",
+              "options": [
+                {
+                  "label": "Cambiar Alter-Ego / Héroe",
+                  "detail": "Podéis pasar de Héroe a Alter-Ego, o al revés, una sola vez por turno. Es la única opción con límite: las demás podéis repetirlas tantas veces como podáis pagar su coste."
+                },
+                {
+                  "label": "Poner cartas en juego",
+                  "detail": "Jugad de vuestra mano aliados, mejoras, apoyos y esquemas secundarios de jugador, pagando su coste con recursos. Los eventos no entran aquí: van por su propia opción."
+                },
+                {
+                  "label": "Utilizar eventos",
+                  "detail": "Jugad un evento de vuestra mano pagando su coste; se resuelve y va al descarte. Cuenta como habilidad «Acción», así que respetad la forma que pida la carta: Héroe o Alter-Ego."
+                },
+                {
+                  "label": "Usar un poder básico",
+                  "detail": "Agotad vuestra identidad para usar un poder básico impreso en ella: en Héroe, atacar a un enemigo o retirar amenaza de un esquema; en Alter-Ego, recuperar vida."
+                },
+                {
+                  "label": "Activar aliados",
+                  "detail": "Agotad un aliado que controléis para atacar a un enemigo o retirar amenaza de un esquema. Al hacerlo recibe el daño colateral que tenga impreso bajo ese valor."
+                },
+                {
+                  "label": "Activar habilidades «Acción»",
+                  "detail": "Disparad habilidades «Acción» de cartas que controléis o de cartas de encuentro en juego, y podéis pedir a otro jugador que dispare una de las suyas. Si la habilidad lleva delante «Héroe» o «Alter-Ego», hay que estar en esa forma."
+                }
+              ],
+              "optionsWarning": "Atentos a los Estados en los personajes",
               "speech": "Jugad vuestros turnos en orden de jugador.",
               "citation": {
                 "source": "rules-reference",

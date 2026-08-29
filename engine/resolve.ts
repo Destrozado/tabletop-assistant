@@ -10,6 +10,8 @@ export function resolveText(node: RuntimeStepNode, context: SessionContext): Tex
     text: variant?.text ?? node.step.text,
     warning: variant?.warning ?? node.step.warning,
     warningDetail: variant?.warningDetail ?? node.step.warningDetail,
+    options: variant?.options ?? node.step.options,
+    optionsWarning: variant?.optionsWarning ?? node.step.optionsWarning,
     speech: variant?.speech ?? node.step.speech,
   }
 }
