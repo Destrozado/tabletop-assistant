@@ -2,7 +2,7 @@
   "gameId": "marvel-champions",
   "title": "Marvel Champions: El Juego de Cartas",
   "locale": "es",
-  "contentVersion": 6,
+  "contentVersion": 7,
   "minPlayers": 1,
   "maxPlayers": 4,
   "sections": [
@@ -338,6 +338,155 @@
               "title": "Mesa lista",
               "kind": "summary",
               "text": "Repasad antes de empezar"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ronda",
+      "title": "Ronda",
+      "repeats": true,
+      "phases": [
+        {
+          "id": "ronda.jugadores",
+          "title": "Jugadores",
+          "summaryLabel": "Fase de los jugadores completa",
+          "steps": [
+            {
+              "id": "ronda.jugadores.01",
+              "title": "Turnos de los jugadores",
+              "kind": "step",
+              "text": "Jugad vuestros turnos en orden de jugador, uno tras otro.",
+              "warning": "Atentos al dial del villano",
+              "speech": "Jugad vuestros turnos en orden de jugador.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Player Phase / Player Turn; ver también Villain Defeat (p. 44)",
+                "page": 32
+              }
+            },
+            {
+              "id": "ronda.jugadores.02",
+              "title": "Descartar hasta el tamaño de mano",
+              "kind": "step",
+              "text": "En orden de jugador, descartad hasta bajar al tamaño de vuestra mano.",
+              "speech": "En orden de jugador, descartad hasta bajar al tamaño de mano.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "End of Player Phase, paso 1",
+                "page": 16
+              }
+            },
+            {
+              "id": "ronda.jugadores.03",
+              "title": "Robar hasta el tamaño de mano",
+              "kind": "step",
+              "text": "Robad a la vez hasta completar el tamaño de vuestra mano.",
+              "warning": "Mazo agotado: barajad el descarte y repartíos un encuentro",
+              "speech": "Robad a la vez hasta completar el tamaño de vuestra mano.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "End of Player Phase, paso 2; ver también Player Deck, mazo agotado (p. 32)",
+                "page": 16
+              }
+            },
+            {
+              "id": "ronda.jugadores.04",
+              "title": "Enderezar",
+              "kind": "step",
+              "text": "Enderezad a la vez todas vuestras cartas, incluidas las de encuentro agotadas.",
+              "warning": "Terminan aquí los efectos «hasta el final de la fase»",
+              "speech": "Enderezad todas vuestras cartas, incluidas las de encuentro agotadas.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "End of Player Phase, pasos 3, 4 y 5",
+                "page": 16
+              }
+            }
+          ]
+        },
+        {
+          "id": "ronda.villano",
+          "title": "Villano",
+          "summaryLabel": "Fase del villano completa",
+          "steps": [
+            {
+              "id": "ronda.villano.01",
+              "title": "Colocar amenaza",
+              "kind": "step",
+              "text": "Colocad amenaza en el esquema principal según su campo de aceleración.",
+              "warning": "Sumad los iconos y fichas de aceleración en juego",
+              "speech": "Colocad amenaza en el esquema principal según su campo de aceleración.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Villain Phase, paso 1",
+                "page": 45
+              }
+            },
+            {
+              "id": "ronda.villano.02",
+              "title": "Los enemigos activan",
+              "kind": "step",
+              "text": "El villano ataca a cada héroe y avanza el esquema contra quien esté en Alter-Ego.",
+              "warning": "Atentos a los Estados en los personajes",
+              "speech": "El villano ataca a cada héroe y avanza el esquema contra quien esté en Alter-Ego.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Villain Phase, paso 2; ver también Boost Cards (p. 8) y Stunned/Confused/Tough",
+                "page": 45
+              }
+            },
+            {
+              "id": "ronda.villano.03",
+              "title": "Repartir cartas de encuentro",
+              "kind": "step",
+              "text": "Repartid una carta de encuentro a cada jugador, en orden de jugador.",
+              "warning": "Una a cada jugador, más una por cada icono de peligro",
+              "speech": "Repartid una carta de encuentro a cada jugador, en orden de jugador.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Villain Phase, paso 3",
+                "page": 45
+              }
+            },
+            {
+              "id": "ronda.villano.04",
+              "title": "Revelar cartas de encuentro",
+              "kind": "step",
+              "text": "Revelad las cartas de encuentro una a una, empezando por el jugador inicial.",
+              "warning": "Encuentros agotado: barajad y poned ficha de aceleración",
+              "speech": "Revelad las cartas de encuentro una a una, empezando por el jugador inicial.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Villain Phase, paso 4; ver también Encounter Deck, mazo agotado",
+                "page": 45
+              }
+            },
+            {
+              "id": "ronda.villano.05",
+              "title": "Pasar la ficha de jugador inicial",
+              "kind": "step",
+              "text": "Pasad la ficha de jugador inicial al jugador de vuestra izquierda.",
+              "speech": "Pasad la ficha de jugador inicial al jugador de vuestra izquierda.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Villain Phase, paso 5",
+                "page": 45
+              }
+            },
+            {
+              "id": "ronda.villano.06",
+              "title": "Fin de la fase del villano y de la ronda",
+              "kind": "step",
+              "text": "Cerrad la fase y la ronda antes de empezar la siguiente.",
+              "warning": "Resolved los «cuando termine la fase o la ronda»",
+              "speech": "Cerrad la fase y la ronda antes de empezar la siguiente.",
+              "citation": {
+                "source": "rules-reference",
+                "section": "Villain Phase, paso 6; ver también Round Overview (p. 4)",
+                "page": 45
+              }
             }
           ]
         }

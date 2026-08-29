@@ -18,7 +18,7 @@ const CitationSchema = z.object({
 const TextBlockSchema = z.object({
   text: z.string().min(1).max(90), // presupuesto duro de 01-UI-SPEC.md
   warning: z.string().max(60).optional(), // NO "detail" — línea de aviso de trampa (D-05)
-  speech: z.string().optional(), // reservado para Fase 3, sin usar aquí
+  speech: z.string().max(120).optional(), // DC-1 (02-01-PLAN.md): política de fase para el contenido de la ronda desde ya; el consumidor en tiempo de ejecución (TTS) sigue siendo Fase 3
 })
 
 const StepSchema = TextBlockSchema.extend({
@@ -63,11 +63,13 @@ export const GameDefinitionSchema = z.object({
   sections: z.array(SectionSchema).min(1),
 }).superRefine((game, ctx) => {
   const repeating = game.sections.filter(s => s.repeats)
-  // "<= 1" en Fase 1 — TODO(fase 2): endurecer a === 1 cuando exista la sección "round"
-  if (repeating.length > 1) {
+  // D-37: exactamente una sección repeats:true, ni cero ni dos. Una sección sin
+  // bucle dejaría loopStartIndex/loopEndIndex indefinidos (engine/expand.ts) y
+  // el juego llegaría a la mesa sin ronda, en silencio.
+  if (repeating.length !== 1) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: `At most one section may have repeats:true, found ${repeating.length}`,
+      message: `Exactly one section must have repeats:true, found ${repeating.length}`,
     })
   }
 
