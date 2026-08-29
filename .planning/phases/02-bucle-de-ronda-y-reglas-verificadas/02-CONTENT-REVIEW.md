@@ -155,4 +155,28 @@ El plan `02-05` construyó la capacidad de esquema que faltaba (`options[]` + `o
 - **Nada de lo ya aprobado se ha tocado.** `ronda.villano.02` no cambia ni una letra (el usuario dijo que está perfecto); `ronda.villano.05` sigue diciendo «izquierda» (el usuario dijo que está bien); el aviso «Atentos al dial del villano» y su `warningDetail` en `ronda.jugadores.01` siguen intactos — la lista se suma, no sustituye.
 - `npx vitest run`: 133/133 en verde (109 de línea base + 24 nuevos entre `schema.test.ts`, `resolve.test.ts` y `content.test.ts`, incluidos los gates que muerden de C1/C2). `npx nuxt build` sin errores.
 
+---
+
+## Visto bueno del usuario en la app (Tarea 4 del plan `02-05`) — cierre de CONT-09 — 2026-08-29
+
+El usuario verificó en la app, con `npm run dev`, el guion completo de la Tarea 4: **Parte A** (la lista de las seis opciones de `ronda.jugadores.01`, cada una tocada y comprobada contra su panel de detalle), **Parte B** (el recordatorio «Atentos a los Estados en los personajes» siempre visible en la fase de jugadores, sin toque, y su gemelo intacto en `ronda.villano.02`), y **Parte C** (no-regresión: el aviso «Atentos al dial del villano ›» sigue abriendo su panel con el triángulo de aviso, la ronda completa avanza y la lista de opciones reaparece en la vuelta, y el cambio de `contentVersion` avisa correctamente al recargar en mitad de partida).
+
+**Veredicto literal, sin editar:**
+
+> "aprobado"
+
+Es una aprobación incondicional: sin correcciones, sin reservas y sin preguntas pendientes. El usuario confirma explícitamente las seis opciones tal como quedaron autoradas — incluidas `Usar un poder básico` y `Activar aliados`, las dos que no estaban en su borrador original y que se añadieron desde el Rules Reference p. 34 porque son justo por donde atacan los héroes —, sus seis detalles, y la línea «Atentos a los Estados en los personajes» como superficie siempre visible y no pulsable en la fase de jugadores.
+
+### CONT-09 — CERRADO
+
+Con este visto bueno, **CONT-09 queda cerrado**: el contenido de la sección `ronda` es definitivo, revisado por una persona contra el Rules Reference v1.7, con las dos correcciones que trajo esa revisión humana (C1, C2) incorporadas al esquema y al contenido, y verificadas por el propio usuario en la app — no solo en el diff.
+
+La cadena completa de evidencia de CONT-09, de punta a punta, vive en este mismo documento:
+1. **Primera revisión (`02-04`, Tarea 1):** las 5 correcciones objetivas de citas/omisiones contra el PDF, y la tabla de los 10 pasos con verificación página a página.
+2. **Veredicto humano (`02-04`, Tarea 2/D-36):** aprobación de fondo con dos correcciones pendientes, C1 y C2, diferidas por exigir una capacidad de esquema que no existía (`ronda.jugadores.01` §«Veredicto del usuario»).
+3. **Capacidad construida (`02-05`, Tareas 1–3):** `options[]`/`optionsWarning` de punta a punta en el esquema, la UI y el contenido; C1/C2 pasan de PENDIENTES a APLICADAS (sección de arriba, «C1 y C2 — de PENDIENTES a APLICADAS»).
+4. **Visto bueno final (`02-05`, Tarea 4, esta sección):** el usuario confirma en la app, con «aprobado» sin condiciones, que C1 y C2 le resuelven lo que pidió.
+
+No queda ninguna corrección abierta, ni de esquema ni de contenido, sobre la sección `ronda`.
+
 **Pendiente de la Tarea 4:** el visto bueno del usuario, en la app y no en el diff, de que C1 y C2 le resuelven lo que pidió. Esta sección registra qué se construyó y por qué; el veredicto del usuario se transcribirá literal, con fecha, a continuación de este párrafo cuando llegue — **CONT-09 no se da por cerrada hasta entonces.**
