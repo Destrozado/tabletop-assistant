@@ -17,7 +17,18 @@ const CitationSchema = z.object({
 
 const TextBlockSchema = z.object({
   text: z.string().min(1).max(90), // presupuesto duro de 01-UI-SPEC.md
-  warning: z.string().max(60).optional(), // NO "detail" — línea de aviso de trampa (D-05)
+  warning: z.string().max(60).optional(), // línea de aviso de trampa (D-05)
+  // D-32: consecuencia detallada del aviso, autorada aparte de `warning`.
+  // No es el `detail` de propósito general que se rechazó en la Fase 1 (esa
+  // idea, una elaboración "¿Por qué?" siempre visible en todos los pasos,
+  // sigue rechazada — DC-6 de 02-03-PLAN.md); este campo es mucho más
+  // estrecho: solo alimenta el modal que abre el `⚠` cuando existe.
+  // Sin `.default()` a propósito: a diferencia de `kind` (WR-01), un campo
+  // opcional sin valor por defecto llega como `undefined` tanto en el JSON
+  // validado por Zod en Node como en el JSON crudo que recibe el navegador
+  // — no hay divergencia que compensar, así que `app/` nunca debe añadir un
+  // `?? fallback` para este campo (no copiar el patrón de `kind`).
+  warningDetail: z.string().max(320).optional(),
   speech: z.string().max(120).optional(), // DC-1 (02-01-PLAN.md): política de fase para el contenido de la ronda desde ya; el consumidor en tiempo de ejecución (TTS) sigue siendo Fase 3
 })
 
@@ -81,6 +92,36 @@ export const GameDefinitionSchema = z.object({
       code: z.ZodIssueCode.custom,
       message: `Duplicate ids: ${[...new Set(dupes)].join(', ')}`,
     })
+  }
+
+  // D-32/DC-8: warningDetail sin warning visible es interfaz inalcanzable —
+  // el ⚠ que abriría su modal nunca se pinta. Se aplica al bloque base y,
+  // por separado, a cada variante de dificultad (una variante hereda
+  // warning del base solo si ella misma no lo sobrescribe).
+  for (const section of game.sections) {
+    for (const phase of section.phases) {
+      for (const step of phase.steps) {
+        if (step.warningDetail !== undefined && step.warning === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Step "${step.id}" declares warningDetail without warning`,
+          })
+        }
+        const difficultyVariants = step.variants?.difficulty
+        if (difficultyVariants) {
+          for (const [level, variant] of Object.entries(difficultyVariants)) {
+            if (!variant) continue
+            const effectiveWarning = variant.warning ?? step.warning
+            if (variant.warningDetail !== undefined && effectiveWarning === undefined) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Step "${step.id}" variant "${level}" declares warningDetail without warning`,
+              })
+            }
+          }
+        }
+      }
+    }
   }
 
   if (game.minPlayers !== undefined && game.maxPlayers !== undefined && game.minPlayers > game.maxPlayers) {

@@ -121,4 +121,47 @@ describe('GameDefinitionSchema', () => {
     const game = { ...baseGame(), minPlayers: 5, maxPlayers: 4 }
     expect(() => GameDefinitionSchema.parse(game)).toThrow()
   })
+
+  describe('warningDetail (D-32)', () => {
+    it('lanza ZodError con un warningDetail de 400 caracteres', () => {
+      const game = baseGame()
+      ;(game.sections[0].phases[0].steps[0] as any).warning = 'Aviso.'
+      ;(game.sections[0].phases[0].steps[0] as any).warningDetail = 'a'.repeat(400)
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con warningDetail declarado sin warning en el mismo paso', () => {
+      const game = baseGame()
+      ;(game.sections[0].phases[0].steps[0] as any).warningDetail = 'Consecuencia detallada.'
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('acepta un paso que declara warning sin warningDetail', () => {
+      const game = baseGame()
+      ;(game.sections[0].phases[0].steps[0] as any).warning = 'Aviso sin detalle.'
+      expect(() => GameDefinitionSchema.parse(game)).not.toThrow()
+    })
+
+    it('acepta un paso que declara warning y warningDetail juntos, dentro del tope de 320', () => {
+      const game = baseGame()
+      ;(game.sections[0].phases[0].steps[0] as any).warning = 'Aviso.'
+      ;(game.sections[0].phases[0].steps[0] as any).warningDetail = 'a'.repeat(320)
+      expect(() => GameDefinitionSchema.parse(game)).not.toThrow()
+    })
+
+    it('lanza ZodError cuando una variante de dificultad declara warningDetail sin warning propio ni heredado del base', () => {
+      const game = baseGame()
+      const step = game.sections[0].phases[0].steps[0] as any
+      step.variants = { difficulty: { expert: { warningDetail: 'Consecuencia solo en experto.' } } }
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('acepta una variante que declara warningDetail cuando el paso base ya declara warning', () => {
+      const game = baseGame()
+      const step = game.sections[0].phases[0].steps[0] as any
+      step.warning = 'Aviso base.'
+      step.variants = { difficulty: { expert: { warningDetail: 'Consecuencia solo en experto.' } } }
+      expect(() => GameDefinitionSchema.parse(game)).not.toThrow()
+    })
+  })
 })
