@@ -7,6 +7,7 @@
 // composable solo reasigna el ref, nunca muta `session.value` in situ.
 import { computed, ref } from 'vue'
 import { expand } from '~~/engine/expand'
+import { describeHeader } from '~~/engine/header'
 import { jumpTo as engineJumpTo, next as engineNext, prev as enginePrev } from '~~/engine/navigator'
 import { resolveText } from '~~/engine/resolve'
 import type { EngineSession, RuntimeStepNode, SessionContext, TextBlock } from '~~/engine/types'
@@ -46,30 +47,25 @@ export function useGameSession() {
     return resolveText(currentNode.value, session.value.context)
   })
 
-  // Derivada del nodo actual, nunca codificada contra el id 'setup': es el punto
-  // de extensión de D-11 para la cabecera de la Fase 2 (`RONDA 4 · Villano`).
-  const sectionLabel = computed<string>(() => {
-    if (!currentNode.value) return ''
-    return currentNode.value.sectionTitle.toUpperCase()
-  })
+  // sectionLabel/plainSectionTitle/position se derivan de una única función
+  // pura del motor (engine/header.ts, D-22/D-23) en vez de tres cómputos
+  // independientes — así cabecera, título del overlay del índice y resumen
+  // de reanudación (savedSummary en app/pages/[game]/index.vue) no pueden
+  // desincronizarse entre sí. El fallback `?? 'step'` de WR-01 y el resto de
+  // la lógica de derivación viven ahora en engine/header.ts, no aquí.
+  const headerInfo = computed(() => (session.value ? describeHeader(session.value) : null))
 
-  // Solo cuenta nodos kind === 'step'. null cuando el nodo actual es
-  // kind === 'summary' (D-03: la pantalla de repaso no es "el paso 24 de 24").
-  // Fallback ?? 'step' (WR-01): el `.default('step')` de GameDefinitionSchema
-  // solo se aplica en Vitest/CI (validateGameDefinition); el contenido real
-  // llega al navegador como JSON crudo sin pasar por Zod, así que un paso que
-  // omita `kind` confiando en ese default llegaría aquí con `kind: undefined`
-  // si no se replica el mismo fallback en tiempo de ejecución.
-  const position = computed<{ current: number, total: number } | null>(() => {
-    if (!session.value || !currentNode.value) return null
-    if (currentNode.value.step.kind === 'summary') return null
+  // Compuesta (`RONDA 4 · Villano` dentro del bucle, `PREPARACIÓN` fuera) —
+  // alimenta la cabecera (AppHeader.sectionLabel), nunca el título del overlay.
+  const sectionLabel = computed<string>(() => headerInfo.value?.sectionLabel ?? '')
 
-    const stepNodes = session.value.sequence.filter(node => (node.step.kind ?? 'step') === 'step')
-    const index = stepNodes.findIndex(node => node.runtimeId === currentNode.value!.runtimeId)
-    if (index === -1) return null
+  // Plana (`RONDA`, `PREPARACIÓN`) — alimenta el título del IndexOverlay,
+  // nunca la cabecera (Pitfall 4 de 02-RESEARCH.md).
+  const plainSectionTitle = computed<string>(() => headerInfo.value?.plainSectionTitle ?? '')
 
-    return { current: index + 1, total: stepNodes.length }
-  })
+  // null cuando el nodo actual es kind === 'summary' (D-03: la pantalla de
+  // repaso no es "el paso 24 de 24").
+  const position = computed<{ current: number, total: number } | null>(() => headerInfo.value?.position ?? null)
 
   const sessionContextLabel = computed<string>(() => {
     if (!session.value) return ''
@@ -86,6 +82,7 @@ export function useGameSession() {
     currentNode,
     currentText,
     sectionLabel,
+    plainSectionTitle,
     position,
     sessionContextLabel,
   }
