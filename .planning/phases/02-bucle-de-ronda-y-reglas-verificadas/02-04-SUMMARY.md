@@ -118,3 +118,13 @@ Ninguno nuevo. Las mitigaciones T-02-09 (repudiation — veredicto versionado co
 ---
 *Phase: 02-bucle-de-ronda-y-reglas-verificadas*
 *Completed: 2026-08-29*
+
+## Self-Check: PASSED
+- FOUND: .planning/phases/02-bucle-de-ronda-y-reglas-verificadas/02-CONTENT-REVIEW.md
+- FOUND: .planning/phases/02-bucle-de-ronda-y-reglas-verificadas/02-04-SUMMARY.md
+- FOUND commit d1ba9d8 (Tarea 1)
+- FOUND commit 3754d41 (Tarea 3: dossier)
+- FOUND commit a14d1d6 (SUMMARY)
+- content/marvel-champions.json unchanged (git diff empty), contentVersion still 9
+- engine/__tests__/content.test.ts unchanged
+- npx vitest run: 109/109 green
