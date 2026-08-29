@@ -114,25 +114,43 @@ function onIndexJumpTo(runtimeId: string) {
   jumpTo(runtimeId)
 }
 
-// D-32: estado efímero de interfaz, nunca persistido (misma categoría que
-// D-26 ya rechazó persistir). Cerrar el modal es una consulta de solo
-// lectura: nunca toca cursor/round/context, y devuelve el foco al `⚠` que
-// lo abrió. StepScreen emite `open-warning-detail` sin payload (componente
-// tonto, sin acoplarse a cómo la página gestiona el foco), así que la
-// referencia al disparador se captura aquí, en el sitio de la llamada, leyendo
-// `document.activeElement` en el instante del emit — el propio botón que
-// disparó el click es el elemento con foco en ese momento.
-const isWarningDetailOpen = ref(false)
-const warningTriggerEl = ref<HTMLElement | null>(null)
+// D-32/DC-15: estado efímero de interfaz, nunca persistido (misma categoría
+// que D-26 ya rechazó persistir). Cerrar el modal es una consulta de solo
+// lectura: nunca toca cursor/round/context, y devuelve el foco al elemento
+// que lo abrió. Con dos disparadores (el `⚠` y ahora cada opción del turno,
+// C1) apuntando al mismo modal, un único `activeDetail` evita el estado
+// imposible "ambos abiertos" que dos banderas paralelas permitirían.
+// StepScreen emite sin payload de foco (componente tonto, sin acoplarse a
+// cómo la página gestiona el foco), así que la referencia al disparador se
+// captura aquí, en el sitio de la llamada, leyendo `document.activeElement`
+// en el instante del emit — el propio botón que disparó el click es el
+// elemento con foco en ese momento.
+const activeDetail = ref<{ heading: string, body: string, tone: 'warning' | 'neutral' } | null>(null)
+const detailTriggerEl = ref<HTMLElement | null>(null)
 
 function onOpenWarningDetail() {
-  warningTriggerEl.value = document.activeElement as HTMLElement | null
-  isWarningDetailOpen.value = true
+  detailTriggerEl.value = document.activeElement as HTMLElement | null
+  activeDetail.value = {
+    heading: currentText.value.warning ?? '',
+    body: currentText.value.warningDetail ?? '',
+    tone: 'warning',
+  }
 }
 
-function onDismissWarningDetail() {
-  isWarningDetailOpen.value = false
-  warningTriggerEl.value?.focus()
+function onOpenOptionDetail(index: number) {
+  const option = currentText.value.options?.[index]
+  if (!option) return
+  detailTriggerEl.value = document.activeElement as HTMLElement | null
+  activeDetail.value = {
+    heading: option.label,
+    body: option.detail,
+    tone: 'neutral',
+  }
+}
+
+function onDismissDetail() {
+  activeDetail.value = null
+  detailTriggerEl.value?.focus()
 }
 
 // D-03: la lista de repaso se deriva de los summaryLabel de las fases con al
@@ -290,7 +308,10 @@ function onContentChangedAcknowledge() {
         :action-text="currentText.text"
         :warning-text="currentText.warning ?? null"
         :warning-detail-text="currentText.warningDetail ?? null"
+        :options="currentText.options ?? null"
+        :options-warning-text="currentText.optionsWarning ?? null"
         @open-warning-detail="onOpenWarningDetail"
+        @open-option-detail="onOpenOptionDetail"
       />
       <NavBand @back="prev" @next="next" />
       <IndexOverlay
@@ -301,10 +322,11 @@ function onContentChangedAcknowledge() {
         @close="onIndexClose"
       />
       <WarningDetailModal
-        v-if="isWarningDetailOpen"
-        :heading="currentText.warning ?? ''"
-        :body="currentText.warningDetail ?? ''"
-        @dismiss="onDismissWarningDetail"
+        v-if="activeDetail"
+        :heading="activeDetail.heading"
+        :body="activeDetail.body"
+        :tone="activeDetail.tone"
+        @dismiss="onDismissDetail"
       />
     </div>
   </ClientOnly>

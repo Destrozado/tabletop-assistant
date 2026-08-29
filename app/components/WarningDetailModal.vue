@@ -13,10 +13,18 @@
 // patrón a copiar (02-UI-SPEC.md §Component Inventory).
 import { onMounted, onUnmounted, ref } from 'vue'
 
-defineProps<{
+// DC-12 (02-05-PLAN.md): este modal ahora sirve a dos disparadores distintos
+// — el `⚠` de un aviso con consecuencia y, desde este plan, cada opción del
+// turno. El glifo antepuesto en el encabezado solo tiene sentido para el
+// primero (una opción no es una trampa, y ese color está reservado); el
+// prop `tone` decide si se pinta o no, sin crear un segundo componente.
+withDefaults(defineProps<{
   heading: string
   body: string
-}>()
+  tone?: 'warning' | 'neutral'
+}>(), {
+  tone: 'warning',
+})
 
 const emit = defineEmits<{
   dismiss: []
@@ -50,7 +58,7 @@ onUnmounted(() => {
   >
     <div class="w-full max-w-[640px] bg-surface p-2xl flex flex-col gap-lg">
       <h1 id="warning-detail-heading" class="text-heading font-bold text-primary-text">
-        ⚠ {{ heading }}
+        <template v-if="tone === 'warning'">⚠ </template>{{ heading }}
       </h1>
 
       <p class="text-body font-normal text-primary-text">
