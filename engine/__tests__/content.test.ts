@@ -339,7 +339,7 @@ describe('content/marvel-champions.json', () => {
       expect(() => validateGameDefinition(mutated)).toThrow()
     })
 
-    it('D-32: exactamente 5 pasos declaran warningDetail, en esta lista ordenada de ids', () => {
+    it('D-32: exactamente 6 pasos declaran warningDetail, en esta lista ordenada de ids', () => {
       const steps = allSteps(marvelChampions)
       const withDetail = steps.filter(s => s.warningDetail)
       expect(withDetail.map(s => s.id).sort()).toEqual([
@@ -348,6 +348,7 @@ describe('content/marvel-champions.json', () => {
         'ronda.jugadores.04',
         'ronda.villano.02',
         'ronda.villano.04',
+        'ronda.villano.06',
       ])
     })
 

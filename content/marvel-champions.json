@@ -2,7 +2,7 @@
   "gameId": "marvel-champions",
   "title": "Marvel Champions: El Juego de Cartas",
   "locale": "es",
-  "contentVersion": 8,
+  "contentVersion": 9,
   "minPlayers": 1,
   "maxPlayers": 4,
   "sections": [
@@ -363,8 +363,8 @@
               "speech": "Jugad vuestros turnos en orden de jugador.",
               "citation": {
                 "source": "rules-reference",
-                "section": "Player Phase / Player Turn; ver también Villain Defeat (p. 44)",
-                "page": 32
+                "section": "Player Phase (p. 33) / Player Turn (p. 34); ver también Villain Defeat (p. 45)",
+                "page": 33
               }
             },
             {
@@ -376,7 +376,7 @@
               "citation": {
                 "source": "rules-reference",
                 "section": "End of Player Phase, paso 1",
-                "page": 16
+                "page": 17
               }
             },
             {
@@ -390,7 +390,7 @@
               "citation": {
                 "source": "rules-reference",
                 "section": "End of Player Phase, paso 2; ver también Player Deck, mazo agotado (p. 32)",
-                "page": 16
+                "page": 17
               }
             },
             {
@@ -404,7 +404,7 @@
               "citation": {
                 "source": "rules-reference",
                 "section": "End of Player Phase, pasos 3, 4 y 5",
-                "page": 16
+                "page": 17
               }
             }
           ]
@@ -437,7 +437,7 @@
               "speech": "El villano ataca a cada héroe y avanza el esquema contra quien esté en Alter-Ego.",
               "citation": {
                 "source": "rules-reference",
-                "section": "Villain Phase, paso 2; ver también Boost Cards (p. 8) y Stunned/Confused/Tough",
+                "section": "Villain Phase, paso 2; ver también Boost Cards (p. 9) y Stunned/Confused/Tough",
                 "page": 45
               }
             },
@@ -458,10 +458,10 @@
               "id": "ronda.villano.04",
               "title": "Revelar cartas de encuentro",
               "kind": "step",
-              "text": "Revelad las cartas de encuentro una a una, empezando por el jugador inicial.",
+              "text": "Revelad las cartas de encuentro una a una, en orden de jugador desde el jugador inicial.",
               "warning": "Encuentros agotado: barajad y poned ficha de aceleración",
               "warningDetail": "Si el mazo de encuentros se queda sin cartas, barajad su pila de descartes para formar uno nuevo y colocad además una ficha de aceleración junto al mazo del esquema principal. Es un castigo global y permanente, distinto del agotamiento de un mazo de jugador.",
-              "speech": "Revelad las cartas de encuentro una a una, empezando por el jugador inicial.",
+              "speech": "Revelad las cartas de encuentro una a una, en orden de jugador desde el jugador inicial.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Villain Phase, paso 4; ver también Encounter Deck, mazo agotado",
@@ -485,7 +485,8 @@
               "title": "Fin de la fase del villano y de la ronda",
               "kind": "step",
               "text": "Cerrad la fase y la ronda antes de empezar la siguiente.",
-              "warning": "Resolved los «cuando termine la fase o la ronda»",
+              "warning": "Terminan y se resuelven los efectos de fin de fase/ronda",
+              "warningDetail": "Aquí terminan los efectos que duraban «hasta el final de la fase» o «hasta el final de la ronda», y se resuelven los que dicen «cuando termine» o «después de que termine» la fase o la ronda, antes de empezar la fase de jugadores de la ronda siguiente.",
               "speech": "Cerrad la fase y la ronda antes de empezar la siguiente.",
               "citation": {
                 "source": "rules-reference",
