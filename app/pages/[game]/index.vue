@@ -28,6 +28,7 @@ const {
   currentNode,
   currentText,
   sectionLabel,
+  plainSectionTitle,
   position,
   sessionContextLabel,
 } = useGameSession()
@@ -271,7 +272,7 @@ function onContentChangedAcknowledge() {
       <NavBand @back="prev" @next="next" />
       <IndexOverlay
         v-if="isIndexOpen"
-        :title="sectionLabel"
+        :title="plainSectionTitle"
         :blocks="blocks"
         @jump-to="onIndexJumpTo"
         @close="onIndexClose"
