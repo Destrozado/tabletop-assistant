@@ -13,7 +13,7 @@ Cuatro fases, cada una entregando algo jugable de verdad, no una capa técnica a
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Motor de flujo, selector y preparación de mesa** - El grupo elige Marvel Champions, configura la partida y recorre toda la preparación de mesa en una tablet real, con contenido verificado y la app desplegada en una URL. (completed 2026-08-28)
-- [ ] **Phase 2: Bucle de ronda y reglas verificadas** - El grupo juega ronda tras ronda —fase de jugadores, fase del villano (6 pasos oficiales), fin de ronda— con el contenido corregido contra el Rules Reference v1.7.
+- [x] **Phase 2: Bucle de ronda y reglas verificadas** - El grupo juega ronda tras ronda —fase de jugadores, fase del villano (6 pasos oficiales), fin de ronda— con el contenido corregido contra el Rules Reference v1.7. (completed 2026-08-29)
 - [ ] **Phase 3: Locución por voz y pantalla siempre encendida** - El grupo escucha cada paso en voz alta en español y la tablet no se apaga durante la partida, sin que ninguna de las dos cosas bloquee el flujo si falla.
 - [ ] **Phase 4: Instalación y funcionamiento offline** - El grupo instala la app en la tablet y juega una partida completa aunque se caiga la wifi a mitad de partida.
 
@@ -59,7 +59,7 @@ Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número d
 - [x] 02-01-PLAN.md — (ola 1) Sección RONDA autorada y gate de contenido endurecido: el bucle gira por primera vez con datos reales
 - [x] 02-02-PLAN.md — (ola 2) Cabecera relativa a la fase e índice reordenado dentro del bucle (D-22…D-25)
 - [x] 02-03-PLAN.md — (ola 3) Aviso ⚠ clicable con modal de consecuencia (D-32) y deuda de alcance saldada en ROADMAP/REQUIREMENTS/PROJECT
-- [ ] 02-04-PLAN.md — (ola 4) Revisión humana del contenido contra el Rules Reference v1.7 y partida completa (D-36/CONT-09)
+- [x] 02-04-PLAN.md — (ola 4) Revisión humana del contenido contra el Rules Reference v1.7 y partida completa (D-36/CONT-09)
 
 ### Phase 3: Locución por voz y pantalla siempre encendida
 **Goal**: Un grupo puede jugar escuchando cada paso en voz alta, en español, con una frase corta y curada distinta del texto en pantalla, y la tablet permanece encendida durante toda la partida; si la voz o el bloqueo de pantalla fallan o no están disponibles, el flujo guiado sigue funcionando con normalidad.
@@ -94,6 +94,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Motor de flujo, selector y preparación de mesa | 8/8 | Complete   | 2026-08-28 |
-| 2. Bucle de ronda y reglas verificadas | 3/4 | In Progress|  |
+| 2. Bucle de ronda y reglas verificadas | 4/4 | Complete   | 2026-08-29 |
 | 3. Locución por voz y pantalla siempre encendida | 0/TBD | Not started | - |
 | 4. Instalación y funcionamiento offline | 0/TBD | Not started | - |
