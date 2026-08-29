@@ -23,11 +23,11 @@ const TextBlockSchema = z.object({
   // idea, una elaboración "¿Por qué?" siempre visible en todos los pasos,
   // sigue rechazada — DC-6 de 02-03-PLAN.md); este campo es mucho más
   // estrecho: solo alimenta el modal que abre el `⚠` cuando existe.
-  // Sin `.default()` a propósito: a diferencia de `kind` (WR-01), un campo
-  // opcional sin valor por defecto llega como `undefined` tanto en el JSON
-  // validado por Zod en Node como en el JSON crudo que recibe el navegador
-  // — no hay divergencia que compensar, así que `app/` nunca debe añadir un
-  // `?? fallback` para este campo (no copiar el patrón de `kind`).
+  // Sin valor por defecto a propósito: a diferencia de `kind` (WR-01), un
+  // campo opcional sin valor por defecto llega como `undefined` tanto en el
+  // JSON validado por Zod en Node como en el JSON crudo que recibe el
+  // navegador — no hay divergencia que compensar, así que `app/` nunca debe
+  // añadir un `?? fallback` para este campo (no copiar el patrón de `kind`).
   warningDetail: z.string().max(320).optional(),
   speech: z.string().max(120).optional(), // DC-1 (02-01-PLAN.md): política de fase para el contenido de la ronda desde ya; el consumidor en tiempo de ejecución (TTS) sigue siendo Fase 3
 })
