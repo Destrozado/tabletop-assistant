@@ -142,3 +142,17 @@ Fuera de C1/C2, el usuario confirma explícitamente: «por lo demás lo veo bast
 Por la razón de esquema explicada arriba, **esta tarea (Tarea 3) no modifica `content/marvel-champions.json`, no toca `contentVersion` (sigue en 9) y no modifica `engine/__tests__/content.test.ts`**. `npx vitest run` reconfirmado en verde (109/109) al cerrar la tarea, sin ningún cambio de contenido ni de test. CONT-09 queda satisfecho en cuanto a *proceso* (la revisión humana ocurrió y produjo veredicto explícito, versionado, con fecha), pero **el contenido de `ronda.jugadores.01` no es definitivo todavía**: sigue pendiente de C1/C2 hasta que `02-05` añada la capacidad de esquema/UI necesaria.
 
 *Sección añadida por la Tarea 3 del plan `02-04-PLAN.md`.*
+
+---
+
+## C1 y C2 — de PENDIENTES a APLICADAS (Tarea 3 del plan `02-05`) — 2026-08-29
+
+El plan `02-05` construyó la capacidad de esquema que faltaba (`options[]` + `optionsWarning`, DC-10/DC-11) y aplicó C1 y C2 sobre `ronda.jugadores.01`. **Esta sección deja constancia del cambio; no cierra CONT-09 por sí sola** — eso corresponde a la Tarea 4 del propio `02-05`, el visto bueno del usuario en la app, todavía pendiente al escribir esto.
+
+- **C1 aplicada — campo `options[]` de `ronda.jugadores.01`.** Las seis opciones del turno (Rules Reference v1.7, «Player Turn», p. 34): Cambiar Alter-Ego / Héroe · Poner cartas en juego · Utilizar eventos · Usar un poder básico · Activar aliados · Activar habilidades «Acción». Las dos últimas no estaban en el borrador del usuario (que nombraba solo cuatro) y son justo por donde atacan los héroes — el eje donde C2 tiene sentido. Cada una lleva su propio `detail` obligatorio y abre el mismo `WarningDetailModal.vue` que estrenó `02-03`, ahora con `tone: 'neutral'` (DC-12): sin el glifo `⚠`, porque una opción no es una trampa.
+- **C2 aplicada — campo `optionsWarning` de `ronda.jugadores.01`.** Cadena idéntica carácter a carácter a `ronda.villano.02.warning`: «Atentos a los Estados en los personajes». No es una opción de la lista (DC-11): es una línea siempre visible bajo la rejilla, sin borde ni chevron, porque D-30 la fija como puro recordatorio de mirar (sin consecuencia enunciada, y por tanto sin detalle posible sin fingir una afordancia falsa). `content.test.ts` la deja bajo gate de igualdad exacta con `ronda.villano.02.warning`: tocar uno sin el otro rompe la suite.
+- **`contentVersion` 9 → 10.** Única consecuencia esperada: una partida guardada con contenido de la versión 9 mostrará el aviso de «contenido cambiado» al reanudar, en vez de reanudar en un paso que ya no es el mismo (PERS-03).
+- **Nada de lo ya aprobado se ha tocado.** `ronda.villano.02` no cambia ni una letra (el usuario dijo que está perfecto); `ronda.villano.05` sigue diciendo «izquierda» (el usuario dijo que está bien); el aviso «Atentos al dial del villano» y su `warningDetail` en `ronda.jugadores.01` siguen intactos — la lista se suma, no sustituye.
+- `npx vitest run`: 133/133 en verde (109 de línea base + 24 nuevos entre `schema.test.ts`, `resolve.test.ts` y `content.test.ts`, incluidos los gates que muerden de C1/C2). `npx nuxt build` sin errores.
+
+**Pendiente de la Tarea 4:** el visto bueno del usuario, en la app y no en el diff, de que C1 y C2 le resuelven lo que pidió. Esta sección registra qué se construyó y por qué; el veredicto del usuario se transcribirá literal, con fecha, a continuación de este párrafo cuando llegue — **CONT-09 no se da por cerrada hasta entonces.**

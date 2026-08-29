@@ -73,7 +73,7 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 - [ ] **UI-06**: La pantalla no se apaga mientras hay una partida en curso
 - [ ] **UI-07**: El usuario sabe que la pantalla permanecerá encendida y que eso consume batería
 - [ ] **UI-08**: Si el bloqueo de pantalla no está disponible en el dispositivo, la app sigue funcionando con normalidad
-- [ ] **UI-09**: El aviso `⚠` de un paso, cuando tiene consecuencia detallada, se puede tocar para abrir un modal con esa consecuencia, y se cierra fácilmente sin perder la posición ni la ronda en curso
+- [ ] **UI-09**: El aviso `⚠` de un paso, cuando tiene consecuencia detallada, se puede tocar para abrir un panel con esa consecuencia; y en el paso que enumera las opciones del turno, cada opción se puede tocar igual para leer su detalle. Ambas superficies se cierran fácilmente sin perder la posición ni la ronda en curso
 
 ### Persistencia
 
@@ -108,7 +108,7 @@ Diferidos. Registrados, pero fuera del roadmap actual.
 ### Consulta de reglas
 
 - **REF-01**: Pantalla de consulta rápida de palabras clave y estados, accesible sin perder la posición en el flujo
-  - *Nota (Fase 2, D-32):* **UI-09** adelanta a v1 un recorte mínimo de esta idea — únicamente el aviso `⚠` de un paso concreto, clicable, abre un modal con su consecuencia detallada. El resto de REF-01 (palabras clave enlazadas dentro del texto del paso, diccionario de keywords) sigue aquí, en v2.
+  - *Nota (Fase 2, D-32/02-05):* **UI-09** adelanta a v1 un recorte mínimo de esta idea, hoy en dos superficies acotadas y explícitas: el aviso `⚠` de un paso concreto, clicable, que abre un panel con su consecuencia detallada; y la lista de opciones del turno de `ronda.jugadores.01` (C1 de la revisión humana de `02-04`), donde cada opción abre el mismo panel con su propio detalle. El resto de REF-01 (palabras clave enlazadas dentro del texto de cualquier paso, diccionario de keywords) y REF-02 completo (búsqueda por término) siguen fuera, en v2.
 - **REF-02**: Búsqueda por término dentro de la referencia
 
 ### Configuración avanzada
@@ -216,4 +216,4 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 
 ---
 *Requirements defined: 2026-08-28*
-*Last updated: 2026-08-29 after 02-03 (UI-09 añadido, D-32)*
+*Last updated: 2026-08-29 after 02-05 (UI-09 ampliada a las dos superficies acotadas: aviso `⚠` y opciones del turno)*
