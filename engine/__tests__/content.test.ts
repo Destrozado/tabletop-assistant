@@ -28,6 +28,21 @@ function findRuntimeNode(sequence: RuntimeStepNode[], stepId: string): RuntimeSt
   return node
 }
 
+// Lee un paso por su id, nunca por índice de array (02-01-PLAN.md tarea 3):
+// insertar un paso en el futuro debe romper el recuento, no desplazar en
+// silencio las comprobaciones semánticas de otro paso.
+function findStep(game: GameDefinition, id: string) {
+  const step = allSteps(game).find(s => s.id === id)
+  if (!step) throw new Error(`No se encontró el paso ${id}`)
+  return step
+}
+
+function rondaSteps(game: GameDefinition) {
+  const ronda = game.sections.find(s => s.id === 'ronda')
+  if (!ronda) throw new Error('No se encontró la sección ronda')
+  return ronda.phases.flatMap(p => p.steps)
+}
+
 describe('content/marvel-champions.json', () => {
   it('valida contra GameDefinitionSchema', () => {
     expect(() => validateGameDefinition(rawMarvelChampions)).not.toThrow()
@@ -38,10 +53,10 @@ describe('content/marvel-champions.json', () => {
     expect(marvelChampions.maxPlayers).toBe(4)
   })
 
-  it('la sección setup aplanada produce exactamente 24 nodos: 23 kind step y 1 kind summary', () => {
+  it('el contenido aplanado produce exactamente 34 nodos: 33 kind step y 1 kind summary', () => {
     const steps = allSteps(marvelChampions)
-    expect(steps.length).toBe(24)
-    expect(steps.filter(s => (s.kind ?? 'step') === 'step').length).toBe(23)
+    expect(steps.length).toBe(34)
+    expect(steps.filter(s => (s.kind ?? 'step') === 'step').length).toBe(33)
     expect(steps.filter(s => s.kind === 'summary').length).toBe(1)
   })
 
@@ -97,10 +112,18 @@ describe('content/marvel-champions.json', () => {
     expect(step!.text).not.toMatch(/jugadores?/i)
   })
 
-  it('exactamente 3 pasos declaran warning (D-05)', () => {
+  it('exactamente 11 pasos declaran warning (D-05, D-21/D-29 aplicados a la ronda)', () => {
     const steps = allSteps(marvelChampions)
     const warned = steps.filter(s => s.warning)
     expect(warned.map(s => s.id).sort()).toEqual([
+      'ronda.jugadores.01',
+      'ronda.jugadores.03',
+      'ronda.jugadores.04',
+      'ronda.villano.01',
+      'ronda.villano.02',
+      'ronda.villano.03',
+      'ronda.villano.04',
+      'ronda.villano.06',
       'setup.archienemigos.02',
       'setup.encuentros.04',
       'setup.manos.03',
@@ -165,15 +188,17 @@ describe('content/marvel-champions.json', () => {
     const normalSession = expand(marvelChampions, { playerCount: 3, difficulty: 'normal' })
     const expertSession = expand(marvelChampions, { playerCount: 3, difficulty: 'expert' })
     expect(normalSession.sequence.length).toBe(expertSession.sequence.length)
-    expect(normalSession.sequence.length).toBe(24)
+    expect(normalSession.sequence.length).toBe(34)
   })
 
   it('toda fase con al menos un paso kind step declara summaryLabel no vacío', () => {
-    for (const phase of marvelChampions.sections[0].phases) {
-      const hasStepKind = phase.steps.some(s => (s.kind ?? 'step') === 'step')
-      if (hasStepKind) {
-        expect(phase.summaryLabel).toBeDefined()
-        expect(phase.summaryLabel!.length).toBeGreaterThan(0)
+    for (const section of marvelChampions.sections) {
+      for (const phase of section.phases) {
+        const hasStepKind = phase.steps.some(s => (s.kind ?? 'step') === 'step')
+        if (hasStepKind) {
+          expect(phase.summaryLabel).toBeDefined()
+          expect(phase.summaryLabel!.length).toBeGreaterThan(0)
+        }
       }
     }
   })
@@ -182,5 +207,125 @@ describe('content/marvel-champions.json', () => {
     const mutated: GameDefinition = JSON.parse(JSON.stringify(rawMarvelChampions))
     mutated.sections[0].phases[0].steps[0].text = 'x'.repeat(120)
     expect(() => validateGameDefinition(mutated)).toThrow()
+  })
+
+  describe('sección ronda (D-34/D-35, CONT-02/03/04/05/06/07, ADAPT-04)', () => {
+    it('existe una sección ronda con repeats:true, exactamente 2 fases; jugadores tiene 4 pasos kind step y villano exactamente 6; el último paso es ronda.villano.06', () => {
+      const ronda = marvelChampions.sections.find(s => s.id === 'ronda')
+      expect(ronda).toBeDefined()
+      expect(ronda!.repeats).toBe(true)
+      expect(ronda!.phases).toHaveLength(2)
+
+      const jugadores = ronda!.phases.find(p => p.id === 'ronda.jugadores')!
+      const villano = ronda!.phases.find(p => p.id === 'ronda.villano')!
+      expect(jugadores.steps.filter(s => (s.kind ?? 'step') === 'step')).toHaveLength(4)
+      expect(villano.steps.filter(s => (s.kind ?? 'step') === 'step')).toHaveLength(6)
+
+      const allRondaSteps = rondaSteps(marvelChampions)
+      expect(allRondaSteps[allRondaSteps.length - 1].id).toBe('ronda.villano.06')
+    })
+
+    it('las fases de la ronda van en Title Case, no en mayúsculas (Pitfall 5)', () => {
+      const ronda = marvelChampions.sections.find(s => s.id === 'ronda')!
+      const jugadores = ronda.phases.find(p => p.id === 'ronda.jugadores')!
+      const villano = ronda.phases.find(p => p.id === 'ronda.villano')!
+      expect(jugadores.title).toBe('Jugadores')
+      expect(villano.title).toBe('Villano')
+      expect(jugadores.title).not.toBe(jugadores.title.toUpperCase())
+      expect(villano.title).not.toBe(villano.title.toUpperCase())
+    })
+
+    it('CONT-02: orden de fin de fase — descartar, robar, enderezar, en ese orden de ids', () => {
+      const ronda = marvelChampions.sections.find(s => s.id === 'ronda')!
+      const jugadores = ronda.phases.find(p => p.id === 'ronda.jugadores')!
+      expect(jugadores.steps.map(s => s.id)).toEqual([
+        'ronda.jugadores.01',
+        'ronda.jugadores.02',
+        'ronda.jugadores.03',
+        'ronda.jugadores.04',
+      ])
+      expect(findStep(marvelChampions, 'ronda.jugadores.02').text).toMatch(/descartad/i)
+      expect(findStep(marvelChampions, 'ronda.jugadores.03').text).toMatch(/robad/i)
+      expect(findStep(marvelChampions, 'ronda.jugadores.04').text).toMatch(/enderezad/i)
+    })
+
+    it('CONT-04: ronda.villano.05 pasa la ficha de jugador inicial y ronda.villano.06 existe como paso real', () => {
+      expect(findStep(marvelChampions, 'ronda.villano.05').text).toMatch(/ficha de jugador inicial/i)
+      const step06 = findStep(marvelChampions, 'ronda.villano.06')
+      expect(step06.kind ?? 'step').toBe('step')
+    })
+
+    it('CONT-05: agotamiento del mazo de jugador y del mazo de encuentros son avisos distintos', () => {
+      const jugadorWarning = findStep(marvelChampions, 'ronda.jugadores.03').warning!
+      const encuentrosWarning = findStep(marvelChampions, 'ronda.villano.04').warning!
+      expect(jugadorWarning).toMatch(/barajad el descarte/i)
+      expect(jugadorWarning).not.toMatch(/aceleración/i)
+      expect(encuentrosWarning).toMatch(/aceleración/i)
+      expect(jugadorWarning).not.toBe(encuentrosWarning)
+    })
+
+    it('CONT-06: aviso de cambio de fase del villano remite al dial del villano', () => {
+      expect(findStep(marvelChampions, 'ronda.jugadores.01').warning).toMatch(/dial del villano/i)
+    })
+
+    it('CONT-07: aviso de los enemigos activan remite a los Estados', () => {
+      expect(findStep(marvelChampions, 'ronda.villano.02').warning).toMatch(/estados/i)
+    })
+
+    it('ADAPT-04 (D-33): ronda.villano.02 muestra la rama héroe y la rama alter-ego a la vez, sin campo branches', () => {
+      const step = findStep(marvelChampions, 'ronda.villano.02')
+      expect(step.text).toMatch(/héroe/i)
+      expect(step.text).toMatch(/alter-ego/i)
+      expect((step as unknown as { branches?: unknown }).branches).toBeUndefined()
+    })
+
+    it('error confirmado nº2: ningún text ni warning de la ronda dice "una por jugador"', () => {
+      for (const step of rondaSteps(marvelChampions)) {
+        expect(step.text).not.toMatch(/una por jugador/i)
+        expect(step.warning ?? '').not.toMatch(/una por jugador/i)
+      }
+    })
+
+    it('error confirmado nº3 (negativo): ningún text ni warning de la ronda dice "todos los esbirros" (el positivo llega en 02-03)', () => {
+      for (const step of rondaSteps(marvelChampions)) {
+        expect(step.text).not.toMatch(/todos los esbirros/i)
+        expect(step.warning ?? '').not.toMatch(/todos los esbirros/i)
+      }
+    })
+
+    it('error confirmado nº4: ningún paso de la ronda declara variants.difficulty ni menciona "experto"/"heroico"', () => {
+      for (const step of rondaSteps(marvelChampions)) {
+        expect(step.variants?.difficulty).toBeUndefined()
+        expect(step.text).not.toMatch(/experto|heroico/i)
+        expect(step.warning ?? '').not.toMatch(/experto|heroico/i)
+      }
+    })
+
+    it('DC-1: los 10 pasos de la ronda declaran speech no vacío de <=120 caracteres, sin ⚠, × ni ›', () => {
+      const steps = rondaSteps(marvelChampions)
+      expect(steps).toHaveLength(10)
+      for (const step of steps) {
+        expect(step.speech).toBeDefined()
+        expect(step.speech!.length).toBeGreaterThan(0)
+        expect(step.speech!.length).toBeLessThanOrEqual(120)
+        expect(step.speech).not.toMatch(/[⚠×›]/)
+      }
+      // Los pasos de setup siguen deliberadamente sin speech (retrofit es Fase 3, VOZ-01) — no se afirma aquí.
+    })
+
+    it('ningún warning del fichero contiene el glifo ⚠ (lo antepone StepScreen.vue)', () => {
+      for (const step of allSteps(marvelChampions)) {
+        if (step.warning) {
+          expect(step.warning).not.toMatch(/⚠/)
+        }
+      }
+    })
+
+    it('gate D-37 que muerde: poner repeats:false en la sección ronda de una copia en memoria hace fallar la validación', () => {
+      const mutated: GameDefinition = JSON.parse(JSON.stringify(rawMarvelChampions))
+      const ronda = mutated.sections.find((s: { id: string }) => s.id === 'ronda')
+      ronda.repeats = false
+      expect(() => validateGameDefinition(mutated)).toThrow()
+    })
   })
 })

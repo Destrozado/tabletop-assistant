@@ -57,10 +57,13 @@ describe('tableOfContents', () => {
     expect(backward.flatMap(b => b.steps)[0].mark).toBe('current')
   })
 
-  it('sobre el contenido real de Marvel Champions con cursor 0 devuelve los 7 bloques en orden', () => {
+  it('sobre el contenido real de Marvel Champions con cursor 0 devuelve los 9 bloques en orden, con Jugadores y Villano al final', () => {
     const session = expand(marvelChampions, context)
     const blocks = tableOfContents(session.sequence, 0)
 
+    // Con cursor 0 el nodo actual NO está en la sección repetible, así que el
+    // orden es el natural del documento (sin reordenado; el reordenado D-24
+    // llega en el plan 02-02).
     expect(blocks.map(b => b.label)).toEqual([
       'HÉROES',
       'ARCHIENEMIGOS',
@@ -69,6 +72,8 @@ describe('tableOfContents', () => {
       'MANOS INICIALES',
       'JUGADOR INICIAL',
       'MESA LISTA',
+      'Jugadores',
+      'Villano',
     ])
   })
 
