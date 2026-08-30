@@ -4,8 +4,8 @@ milestone: v1.7
 milestone_name: milestone
 status: executing
 stopped_at: Phase 3 UI-SPEC approved
-last_updated: "2026-08-30T22:21:16.191Z"
-last_activity: 2026-08-30 -- Phase 03.1 planning complete
+last_updated: "2026-08-30T22:23:26.748Z"
+last_activity: 2026-08-30 -- Phase 03.1 execution started
 progress:
   total_phases: 5
   completed_phases: 3
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-28)
 
 **Core value:** Que un grupo pueda jugar una partida completa de Marvel Champions de principio a fin sin abrir el reglamento y sin olvidarse de ningún paso.
-**Current focus:** Phase 03.1 — voz pregenerada en español con Gemini TTS
+**Current focus:** Phase 03.1 — voz-pregenerada-en-espa-ol-con-gemini-tts
 
 ## Current Position
 
-Phase: 4
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-08-30 -- Phase 03.1 planning complete
+Phase: 03.1 (voz-pregenerada-en-espa-ol-con-gemini-tts) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 03.1
+Last activity: 2026-08-30 -- Phase 03.1 execution started
 
 Progress: [██████████] 100%
 
