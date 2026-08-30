@@ -61,11 +61,15 @@ const MODEL = 'gemini-2.5-flash-preview-tts'
 const VOICE = 'Rasalgethi' // D-01: voz elegida por el usuario ("Informativa")
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`
 const AUDIO_DIR = 'public/audio'
-const PROBE_DIR = 'public/audio/_probe'
 const MANIFEST_PATH = 'scripts/voice/manifest.json'
 const CONTENT_PATH = 'content/marvel-champions.json'
 const ID_PATTERN = /^[a-z0-9]+(?:\.[a-z0-9-]+)*$/
 const RETRY_BACKOFFS_MS = [5000, 15000, 45000] // ante 429/5xx: 5s, 15s, 45s
+
+// Directorio de los clips desechables de la Task 2 (modo --probe): fuera del
+// bloque de constantes de arriba a propósito, para que quede claro que no
+// participa en el contrato de huellas que gobierna AUDIO_DIR/MANIFEST_PATH.
+const PROBE_DIR = 'public/audio/_probe'
 
 // ── 4. Argumentos ────────────────────────────────────────────────────────────
 const rawArgs = process.argv.slice(2)
@@ -195,13 +199,14 @@ function convertPcmToM4a(pcm, m4aPath) {
 
 // ── 9. Modo --probe (Task 2 de 03.1-01-PLAN.md) ─────────────────────────────
 // Genera PROBE_PHRASE con cada estilo de STYLES y escribe
-// public/audio/_probe/estilo-<clave>.m4a. Deliberadamente NO lee ni escribe
-// manifest.json: son clips desechables para que el usuario elija estilo
-// (D-02), no forman parte del contrato de deriva contenido<->audio.
+// public/audio/_probe/estilo-<clave>.m4a. Son clips desechables para que el
+// usuario elija estilo (D-02): esta función deliberadamente no toca el
+// fichero de huellas compartido, no forman parte del contrato de deriva
+// contenido<->audio.
 async function runProbe() {
   mkdirSync(PROBE_DIR, { recursive: true })
   const styleKeys = Object.keys(STYLES)
-  console.log(`Generando ${styleKeys.length} variantes de estilo de la frase de prueba (modo --probe, sin tocar manifest.json)...`)
+  console.log(`Generando ${styleKeys.length} variantes de estilo de la frase de prueba (modo --probe, sin persistir huellas)...`)
   let index = 0
   for (const styleKey of styleKeys) {
     const text = `${STYLES[styleKey]}${PROBE_PHRASE}`

@@ -1,0 +1,111 @@
+<!--
+  public/voice-probe.html
+
+  Artefacto TEMPORAL de la fase 03.1 (voz pregenerada con Gemini TTS). El plan
+  03.1-06 borra este fichero al cerrar la fase. Sirve para que el usuario
+  escuche, en la tablet real, tres variantes de estilo de la MISMA frase
+  (D-02 de 03.1-CONTEXT.md) y elija una antes de generar el lote de 37 clips.
+
+  De paso, cada click de esta página verifica el riesgo A1 de 03.1-RESEARCH.md:
+  si `audio.play()` invocado de forma síncrona dentro de un manejador de click
+  es aceptado por el navegador de la tablet (o si aparece `NotAllowedError`).
+
+  Página estática suelta: sin Vue, sin Nuxt, sin build. Vercel y `nuxt dev` la
+  sirven tal cual desde `public/`.
+-->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prueba de estilo de voz</title>
+<style>
+  :root {
+    color-scheme: dark;
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 2rem;
+    background: #111318;
+    color: #f5f5f7;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    text-align: center;
+  }
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+  }
+  #frase {
+    font-size: 1.25rem;
+    max-width: 40rem;
+    color: #c7c9d1;
+    margin: 0;
+  }
+  .botones {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    max-width: 28rem;
+  }
+  button {
+    font-size: 1.5rem;
+    font-weight: 700;
+    padding: 1.25rem 1.5rem;
+    border-radius: 1rem;
+    border: 2px solid #4b5563;
+    background: #1c1f26;
+    color: #f5f5f7;
+    cursor: pointer;
+  }
+  button:active {
+    background: #2a2e38;
+  }
+  #estado {
+    min-height: 2rem;
+    font-size: 1.1rem;
+    color: #ffb4a2;
+  }
+</style>
+</head>
+<body>
+  <h1>Prueba de estilo de voz</h1>
+  <p id="frase">"Buscad el conjunto de Archienemigo (Nemesis) de vuestra identidad."</p>
+
+  <div class="botones">
+    <button type="button" data-src="/audio/_probe/estilo-plano.m4a">A · en plano</button>
+    <button type="button" data-src="/audio/_probe/estilo-pausado.m4a">B · pausado e instructivo</button>
+    <button type="button" data-src="/audio/_probe/estilo-monitor.m4a">C · monitor de juego</button>
+  </div>
+
+  <p id="estado"></p>
+
+  <script>
+    var audio = new Audio()
+    var estado = document.getElementById('estado')
+    var botones = document.querySelectorAll('button[data-src]')
+
+    botones.forEach(function (boton) {
+      boton.addEventListener('click', function () {
+        // Todo de forma síncrona y sin diferir nada: pause() + asignar src +
+        // play(), en el mismo manejador de click (Pattern 2 de
+        // 03.1-RESEARCH.md, misma disciplina que speechSynthesis.speak()
+        // en CLAUDE.md §TTS gotchas).
+        audio.pause()
+        audio.src = boton.dataset.src
+        estado.textContent = ''
+        audio.play().catch(function (err) {
+          estado.textContent = err.name + ': ' + err.message
+        })
+      })
+    })
+  </script>
+</body>
+</html>
