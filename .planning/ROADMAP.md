@@ -93,10 +93,14 @@ Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número d
   2. Si un audio falta, no carga o la red se cae, la app recurre a `speechSynthesis` en silencio —sin banda ni aviso— y el botón SIGUIENTE nunca se bloquea.
   3. Los 37 audios quedan disponibles en local al empezar la partida, de modo que una caída de wifi a mitad de partida no degrada la locución al respaldo.
   4. Si alguien cambia una frase `speech` sin regenerar su audio, CI falla y nombra los ids afectados y el comando exacto para regenerarlos.
-**Plans**: 0 plans
-
-Plans:
-- [ ] TBD (run /gsd-plan-phase 03.1 to break down)
+**Plans**: 6 plans
+Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número de fichero):
+- [ ] 03.1-01-PLAN.md — (ola 1) Cadena de generación local con Gemini TTS y prueba de estilo bloqueante en la tablet (D-01/D-02/D-10/D-11)
+- [ ] 03.1-02-PLAN.md — (ola 1) Contrato de identificadores de audio en el motor: `resolveAudioId` y `collectSpeechEntries` (37 ids)
+- [ ] 03.1-03-PLAN.md — (ola 2) Lote de los 37 clips con el estilo aprobado y gate de deriva contenido↔audio en CI (D-03/D-04/D-05)
+- [ ] 03.1-04-PLAN.md — (ola 3) Precarga de los 37 audios al empezar partida, sin bloquear el flujo, y cabeceras de `/audio/**` (D-09)
+- [ ] 03.1-05-PLAN.md — (ola 4) Reproducción del clip pregenerado con la voz del sistema como respaldo silencioso (D-07/D-08)
+- [ ] 03.1-06-PLAN.md — (ola 5) Limpieza de artefactos, verificación del despliegue y prueba humana bloqueante en la tablet real
 
 ### Phase 4: Instalación y funcionamiento offline
 **Goal**: Un grupo puede instalar la app en la tablet, abrirla a pantalla completa, y jugar una partida entera aunque la wifi se caiga a mitad de partida; cuando se publica una versión nueva, la app espera la decisión del usuario en vez de recargarse sola.
@@ -120,4 +124,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Motor de flujo, selector y preparación de mesa | 8/8 | Complete   | 2026-08-28 |
 | 2. Bucle de ronda y reglas verificadas | 5/5 | Complete   | 2026-08-29 |
 | 3. Locución por voz y pantalla siempre encendida | 5/5 | Complete   | 2026-08-30 |
+| 03.1. Voz pregenerada en español con Gemini TTS | 0/6 | Not started | - |
 | 4. Instalación y funcionamiento offline | 0/TBD | Not started | - |
