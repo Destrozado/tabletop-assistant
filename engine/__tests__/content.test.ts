@@ -87,6 +87,41 @@ describe('content/marvel-champions.json', () => {
     expect(summarySteps[0].citation).toBeUndefined()
   })
 
+  it('DC-1 (D-38): todo paso kind:step declara speech no vacío de <=120 caracteres, sin ⚠, × ni ›', () => {
+    const steps = allSteps(marvelChampions).filter(s => (s.kind ?? 'step') === 'step')
+    expect(steps).toHaveLength(33)
+    for (const step of steps) {
+      expect(step.speech).toBeDefined()
+      expect(step.speech!.length).toBeGreaterThan(0)
+      expect(step.speech!.length).toBeLessThanOrEqual(120)
+      expect(step.speech).not.toMatch(/[⚠×›]/)
+    }
+  })
+
+  it('D-41: toda variante de dificultad que declara text declara también speech', () => {
+    for (const step of allSteps(marvelChampions)) {
+      const variants = step.variants?.difficulty
+      if (!variants) continue
+      for (const [level, variant] of Object.entries(variants)) {
+        if (variant?.text !== undefined) {
+          expect(variant.speech, `${step.id} variant "${level}" tiene text pero no speech`).toBeDefined()
+          expect(variant.speech!.length, `${step.id} variant "${level}" speech vacío`).toBeGreaterThan(0)
+          expect(variant.speech!.length, `${step.id} variant "${level}" speech supera 120 caracteres`).toBeLessThanOrEqual(120)
+          expect(variant.speech, `${step.id} variant "${level}" speech contiene glifo prohibido`).not.toMatch(/[⚠×›]/)
+        }
+      }
+    }
+  })
+
+  it('D-39: ninguna frase speech reproduce el warning de su paso', () => {
+    const steps = allSteps(marvelChampions).filter(s => (s.kind ?? 'step') === 'step' && s.warning)
+    expect(steps.length).toBeGreaterThan(0)
+    for (const step of steps) {
+      expect(step.speech).toBeDefined()
+      expect(step.speech, `${step.id} speech repite su propio warning`).not.toContain(step.warning!)
+    }
+  })
+
   it('ningún text supera los 90 caracteres y ningún warning supera los 60 (presupuesto de 01-UI-SPEC.md)', () => {
     const steps = allSteps(marvelChampions)
     for (const step of steps) {
@@ -357,18 +392,6 @@ describe('content/marvel-champions.json', () => {
         expect(step.text).not.toMatch(/experto|heroico/i)
         expect(step.warning ?? '').not.toMatch(/experto|heroico/i)
       }
-    })
-
-    it('DC-1: los 10 pasos de la ronda declaran speech no vacío de <=120 caracteres, sin ⚠, × ni ›', () => {
-      const steps = rondaSteps(marvelChampions)
-      expect(steps).toHaveLength(10)
-      for (const step of steps) {
-        expect(step.speech).toBeDefined()
-        expect(step.speech!.length).toBeGreaterThan(0)
-        expect(step.speech!.length).toBeLessThanOrEqual(120)
-        expect(step.speech).not.toMatch(/[⚠×›]/)
-      }
-      // Los pasos de setup siguen deliberadamente sin speech (retrofit es Fase 3, VOZ-01) — no se afirma aquí.
     })
 
     it('ningún warning ni optionsWarning del fichero contiene el glifo ⚠, y ninguna options[].label/detail tampoco (los glifos los antepone la plantilla, extendido en 02-05)', () => {
