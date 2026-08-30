@@ -407,7 +407,9 @@ const emit = defineEmits<{
 | A2 | Wake Lock API request initiated inside an `async` function body still counts as "within the user gesture" on iOS Safari, even though `request()` returns a Promise | Pattern 2 / D-51 | If WebKit is stricter than assumed, the wake lock could silently fail to activate on iPad specifically — this is exactly what D-53's blocking human tablet test exists to catch; no code mitigation is proposed beyond calling `request()` synchronously as the first statement in the tap handler |
 | A3 | Android TTS voice-pack absence produces a *listed-but-non-Spanish-sounding* voice rather than an outright missing `es-*` entry in `getVoices()` (STACK.md's own MEDIUM-confidence claim, not independently re-verified this session) | Common Pitfalls §3 | If wrong (i.e., Android actually omits the `es-*` entry entirely when the pack is missing), detection would correctly flag it as unavailable anyway — the risk is only in the *notice's wording* implying a cause that may not always be accurate, which `03-UI-SPEC.md` already mitigates by using deliberately generic copy |
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+Resolution path: the single open question below is closed by the blocking human tablet test in `03-05-PLAN.md` (Task 2, "Antes de empezar" + the acta section of `03-SPEECH-REVIEW.md`), which records the tablet model and OS/browser version and gives each of the phase's four ROADMAP success criteria an explicit verdict on that device. No further research can resolve it; no plan depends on resolving it earlier.
 
 1. **Exact target tablet model/OS is still unknown** (carried over from `STATE.md`'s own blocker, unresolved by this research or by any prior phase).
    - What we know: iOS Safari 16.4+ supports Wake Lock (caniuse, HIGH confidence per STACK.md); Web Speech API's user-gesture requirement on iOS Safari is well-documented in general but not verified against a specific current build.
