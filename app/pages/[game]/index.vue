@@ -12,6 +12,7 @@ import { tableOfContents } from '~~/engine/toc'
 import { useGameContent } from '~/composables/useGameContent'
 import { useGameSession } from '~/composables/useGameSession'
 import { usePersistedSession } from '~/composables/usePersistedSession'
+import { useVoiceAnnouncer } from '~/composables/useVoiceAnnouncer'
 
 const route = useRoute()
 const gameId = route.params.game as string
@@ -34,6 +35,12 @@ const {
 } = useGameSession()
 
 const { load, save, clear } = usePersistedSession()
+
+// Capa de locución (VOZ-01/02/04): recibe los computeds de useGameSession,
+// nunca los obtiene por su cuenta (D-42's own single-seam discipline). La
+// API de voz se queda encapsulada en el composable — esta página nunca
+// importa useSpeechSynthesis.
+const { voiceState, announce, toggle: toggleVoice } = useVoiceAnnouncer(currentNode, currentText)
 
 // Estado local del mini-setup (SETUP-01/02), previo a iniciar la sesión real.
 const playerCount = ref<number | null>(null)
@@ -89,9 +96,25 @@ watchDebounced(
   { debounce: 300 },
 )
 
+// D-43/D-40: entrar al primer paso desde el mini-setup no locuta. Es una
+// decisión de configuración, se mira de cerca y se lee, no un paso guiado.
 function onConfirm() {
   if (playerCount.value === null || difficulty.value === null) return
   start(gameId, { playerCount: playerCount.value, difficulty: difficulty.value })
+}
+
+// D-42: la locución se llama de forma síncrona, como sentencia plana, en el
+// mismo cuerpo del manejador del toque que ya invoca next()/prev() — nunca
+// desde un watch. En iPad Safari una locución disparada fuera del gesto del
+// usuario se descarta en silencio.
+function onNext() {
+  next()
+  announce()
+}
+
+function onBack() {
+  prev()
+  announce()
 }
 
 // FLOW-06/D-13: overlay a pantalla completa, agrupado por bloques (fases del
@@ -102,6 +125,8 @@ const blocks = computed(() =>
   session.value ? tableOfContents(session.value.sequence, session.value.cursor) : [],
 )
 
+// D-45: abrir el índice ni locuta ni corta la locución en curso — la frase es
+// corta y termina sola.
 function onIndexOpen() {
   isIndexOpen.value = true
 }
@@ -112,6 +137,7 @@ function onIndexClose() {
 
 function onIndexJumpTo(runtimeId: string) {
   jumpTo(runtimeId)
+  announce()
 }
 
 // D-32/DC-15: estado efímero de interfaz, nunca persistido (misma categoría
@@ -128,6 +154,8 @@ function onIndexJumpTo(runtimeId: string) {
 const activeDetail = ref<{ heading: string, body: string, tone: 'warning' | 'neutral' } | null>(null)
 const detailTriggerEl = ref<HTMLElement | null>(null)
 
+// D-45: abrir el modal de detalle del ⚠/de una opción ni locuta ni corta la
+// locución en curso — la frase es corta y termina sola.
 function onOpenWarningDetail() {
   detailTriggerEl.value = document.activeElement as HTMLElement | null
   activeDetail.value = {
@@ -187,8 +215,12 @@ const discardBody = computed(() =>
   `Se borrará el progreso guardado de la partida en curso (${savedSummary.value}). Esta acción no se puede deshacer.`,
 )
 
+// D-43: «Continuar» de la reanudación locuta el paso recuperado — es un
+// toque del usuario (funciona también en iPad) y volver de un bloqueo de
+// tablet es justo cuando oír dónde ibais tiene valor.
 function onResumeContinue() {
   awaitingResumeChoice.value = false
+  announce()
 }
 
 function onResumeNewGame() {
@@ -206,8 +238,11 @@ function onDiscardConfirm() {
   awaitingDiscardConfirm.value = false
 }
 
+// D-43: mismo razonamiento que onResumeContinue — el CTA de reconocimiento
+// del aviso de contenido cambiado locuta el paso recuperado.
 function onContentChangedAcknowledge() {
   awaitingContentChangedAck.value = false
+  announce()
 }
 
 // NO-OP INTENCIONAL (documentado para la Fase 2, ver 01-05-SUMMARY.md):
@@ -217,6 +252,8 @@ function onContentChangedAcknowledge() {
 // secuencia) — no navega a ningún sitio. Esto NO es un bug: es el punto de
 // enganche reservado para el bucle de ronda que la Fase 2 añadirá autorando
 // la sección "round". No añadir lógica especial aquí para "arreglarlo".
+// D-40/D-43: por el mismo motivo, la voz tampoco se engancha aquí — "Mesa
+// lista" es kind:'summary' y nunca habla.
 </script>
 
 <template>
@@ -293,7 +330,7 @@ function onContentChangedAcknowledge() {
       v-else-if="currentNode?.step.kind === 'summary'"
       :checklist="checklist"
       :session-context="sessionContextLabel"
-      @back="prev"
+      @back="onBack"
       @start="next"
     />
 
@@ -302,7 +339,9 @@ function onContentChangedAcknowledge() {
         :section-label="sectionLabel"
         :position="position"
         :session-context="sessionContextLabel"
+        :voice-state="voiceState"
         @index-open="onIndexOpen"
+        @voice-toggle="toggleVoice"
       />
       <StepScreen
         :action-text="currentText.text"
@@ -313,7 +352,7 @@ function onContentChangedAcknowledge() {
         @open-warning-detail="onOpenWarningDetail"
         @open-option-detail="onOpenOptionDetail"
       />
-      <NavBand @back="prev" @next="next" />
+      <NavBand @back="onBack" @next="onNext" />
       <IndexOverlay
         v-if="isIndexOpen"
         :title="plainSectionTitle"
