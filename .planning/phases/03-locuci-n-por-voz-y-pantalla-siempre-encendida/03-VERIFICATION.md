@@ -1,15 +1,17 @@
 ---
 phase: 03-locuci-n-por-voz-y-pantalla-siempre-encendida
 verified: 2026-08-30T20:47:24Z
-status: gaps_found
-score: 3/4 criterios cumplidos — Criterio 2 (VOZ-04) FALLA en dispositivo real
+status: passed
+score: 4/4 criterios cumplidos — G-01 corregido (88b9306) y confirmado en dispositivo real
 overrides_applied: 0
 gaps:
   - id: G-01
     criterion: "ROADMAP Fase 3, Criterio 2 (VOZ-04)"
-    status: failed
+    status: resolved
     severity: blocking
     device: "Samsung Galaxy S21 / Android 15"
+    resolved_by: "88b9306 — watchdog de reintento unico y acotado; el cancel()+speak() sincrono del gesto queda intacto para iOS"
+    resolved_verified_by: "humano, Samsung Galaxy S21 / Android 15: Confirmado arreglado"
     summary: "Al tocar SIGUIENTE a mitad de frase, la locucion en curso se corta pero la del paso destino NO arranca. Si se espera a que termine, la siguiente si suena."
     root_cause: "speak() de @vueuse/core ejecuta synth.cancel() y synth.speak() de forma sincrona y consecutiva. En Chrome/Android el cancel() se procesa de forma asincrona y descarta la utterance recien encolada."
     constraint: "El arreglo NO puede diferir speak() con setTimeout: iOS Safari exige speak() sincrono dentro del handler del toque (CLAUDE.md)."

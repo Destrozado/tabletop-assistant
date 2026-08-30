@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 03-locuci-n-por-voz-y-pantalla-siempre-encendida
 source: [03-VERIFICATION.md]
 started: 2026-08-30T20:49:28Z
-updated: 2026-08-30T21:07:23Z
+updated: 2026-08-30T21:26:47Z
 ---
 
 ## Current Test
@@ -29,7 +29,7 @@ result: CERRADO PARCIALMENTE — dispositivo de prueba: Samsung Galaxy S21, Andr
 
 total: 3
 passed: 1
-issues: 1
+issues: 0
 pending: 1
 skipped: 1
 blocked: 0
@@ -37,7 +37,10 @@ blocked: 0
 ## Gaps
 
 ### G-01 — Al tocar SIGUIENTE a mitad de frase, la locucion se corta pero la siguiente NO arranca
-status: failed
+status: resolved
+resolved_by: 88b9306 (watchdog de reintento acotado, iOS intacto)
+resolved_verified_by: humano, en Samsung Galaxy S21 / Android 15 — "Confirmado arreglado"
+resolved_at: 2026-08-30T21:26:47Z
 severity: blocking
 criterion: ROADMAP Fase 3, Criterio de exito 2 (VOZ-04)
 device: Samsung Galaxy S21 / Android 15 (Chrome)
