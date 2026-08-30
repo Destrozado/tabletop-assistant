@@ -95,6 +95,59 @@ export function detectSpanishVoice(
   }
 }
 
+// G-01 (03-VERIFICATION.md): `useSpeechSynthesis().speak()` de @vueuse/core
+// es literalmente `synth.cancel(); synth.speak(utterance.value)`, sincrono y
+// consecutivo (confirmado leyendo node_modules/@vueuse/core/dist/index.js).
+// En Chrome/Android, `cancel()` se procesa de forma asincrona y puede
+// descartar el utterance que `speak()` acaba de encolar en el mismo tick,
+// sin lanzar ningun error — la locucion del paso destino nunca arranca.
+// Cuando no hay locucion en curso, `cancel()` es un no-op y `speak()`
+// sobrevive, lo que explica que el fallo solo aparezca al pulsar SIGUIENTE
+// a mitad de frase, nunca esperando a que termine.
+//
+// El intento sincrono en el manejador de toque NO puede diferirse: iOS
+// Safari exige que `speak()` se invoque de forma sincrona dentro del gesto
+// del usuario (CLAUDE.md §TTS gotchas), y ese cableado ya es un entregable
+// probado en dispositivo real (plan 03-02). Este watchdog corre DESPUES del
+// intento sincrono, nunca en su lugar.
+//
+// `getStatus` debe leer el mismo `status` reactivo que expone
+// `useSpeechSynthesis` (su `bindEventsForUtterance` interno ya asigna
+// `utterance.onstart -> status.value = 'play'`); comprobarlo aqui compone
+// con ese cableado en vez de sobrescribir `onstart` (que rompería
+// `isPlaying`/`status` de VueUse). Si `status` sigue en `'init'` tras el
+// retraso, el navegador nunca disparo `onstart` para este intento — la
+// locucion se perdio (la carrera de G-01) — y se reintenta `speak()` UNA
+// sola vez. Si `status` ya avanzo a `'play'`/`'pause'`/`'end'`, el intento
+// sincrono si arranco (camino de iOS/desktop/Chrome sin la carrera) y esta
+// funcion es un no-op.
+//
+// Devuelve una funcion de cancelacion (mismo patron que `detectSpanishVoice`
+// arriba): el llamador debe invocarla si programa un nuevo intento antes de
+// que el retraso expire (nueva navegacion), al silenciar, o al desechar el
+// scope — un reintento tardio de un paso ya abandonado violaria VOZ-04
+// (nunca se encola ni repite) igual que la carrera original.
+export function scheduleSpeakWatchdog(
+  speak: () => void,
+  getStatus: () => string,
+  delayMs = 200,
+): () => void {
+  const timer = setTimeout(() => {
+    if (getStatus() !== 'init') return
+    try {
+      speak()
+    }
+    catch {
+      // Misma guarda que announce(): un throw aqui jamas debe romper
+      // next()/prev() (VOZ-06).
+    }
+  }, delayMs)
+
+  return function cancel(): void {
+    clearTimeout(timer)
+  }
+}
+
 export function useVoiceAnnouncer(
   currentNode: ComputedRef<RuntimeStepNode | null>,
   currentText: ComputedRef<TextBlock>,
@@ -108,7 +161,20 @@ export function useVoiceAnnouncer(
   // argumentos y relee spokenLine en cada llamada. Solo `lang`: 03-CONTEXT.md
   // §Deferred descarta el selector de voz — que el sistema elija su voz
   // española por defecto.
-  const { speak, stop, isSupported } = useSpeechSynthesis(spokenLine, { lang: 'es-ES' })
+  const { speak, stop, isSupported, status } = useSpeechSynthesis(spokenLine, { lang: 'es-ES' })
+
+  // G-01 (03-VERIFICATION.md): un unico watchdog vivo a la vez, cancelable
+  // desde announce()/silence()/dispose. `cancelWatchdog` empieza como no-op
+  // para que clearPendingRetry() sea siempre segura de llamar aunque nunca
+  // se haya programado ningun watchdog todavia.
+  let cancelWatchdog: () => void = () => {}
+
+  function clearPendingRetry(): void {
+    cancelWatchdog()
+    cancelWatchdog = () => {}
+  }
+
+  tryOnScopeDispose(clearPendingRetry)
 
   // D-47: valor optimista hasta que se lee el almacenamiento. Cargado en
   // onMounted (guard de cliente obligatorio), nunca en el cuerpo del setup.
@@ -158,6 +224,11 @@ export function useVoiceAnnouncer(
       line: spokenLine.value,
       isSupported: isSupported.value,
     })
+    // G-01: cualquier watchdog pendiente de un announce() anterior queda
+    // obsoleto en cuanto se llama a announce() de nuevo — un reintento
+    // tardio de un paso ya abandonado violaria VOZ-04 (encolado/repetido)
+    // igual que la carrera original.
+    clearPendingRetry()
     if (!willAnnounce) return
     try {
       speak()
@@ -166,10 +237,24 @@ export function useVoiceAnnouncer(
       // El emparejamiento cancelar/hablar de VueUse puede fallar en iOS justo
       // tras terminar la locución anterior (03-RESEARCH.md). VOZ-06 exige que
       // esto jamás rompa next()/prev().
+      return
     }
+    // G-01: synth.cancel()+synth.speak() de VueUse es sincrono; en Chrome/
+    // Android cancel() se resuelve de forma asincrona y puede descartar el
+    // utterance que speak() acaba de encolar en el mismo tick, sin lanzar
+    // error — la locucion nunca arranca. El intento de arriba no puede
+    // diferirse (iOS exige speak() dentro del gesto, CLAUDE.md §TTS
+    // gotchas); scheduleSpeakWatchdog corre DESPUES de el y solo reintenta
+    // si `status` (el mismo ref que expone useSpeechSynthesis, ya cableado
+    // por su propio onstart interno) nunca salio de 'init'.
+    cancelWatchdog = scheduleSpeakWatchdog(speak, () => status.value)
   }
 
   function silence(): void {
+    // G-01: si habia un watchdog pendiente (locucion que aun no habia
+    // arrancado), silenciar no debe dejarlo vivo para que reaparezca la voz
+    // mas tarde por su cuenta — D-45 exige corte inmediato, sin excepciones.
+    clearPendingRetry()
     if (!isSupported.value) return
     try {
       stop()

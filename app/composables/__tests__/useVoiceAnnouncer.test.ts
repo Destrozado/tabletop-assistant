@@ -1,9 +1,12 @@
 // Tests puros de resolveVoiceState/shouldAnnounce/hasSpanishVoice/
-// detectSpanishVoice (D-40/D-45/D-47/VOZ-05/VOZ-06). NO se monta el
-// composable useVoiceAnnouncer() aquí: el entorno es `node` y
-// useSpeechSynthesis construiria un SpeechSynthesisUtterance inexistente.
+// detectSpanishVoice/scheduleSpeakWatchdog (D-40/D-45/D-47/VOZ-05/VOZ-06/
+// G-01). NO se monta el composable useVoiceAnnouncer() aquí: el entorno es
+// `node` y useSpeechSynthesis construiria un SpeechSynthesisUtterance
+// inexistente. scheduleSpeakWatchdog es la pieza extraída como función pura
+// (mismo patrón que detectSpanishVoice) precisamente para poder testear el
+// arreglo de G-01 sin necesitar jsdom ni montar el composable completo.
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { detectSpanishVoice, hasSpanishVoice, resolveVoiceState, shouldAnnounce } from '../useVoiceAnnouncer'
+import { detectSpanishVoice, hasSpanishVoice, resolveVoiceState, scheduleSpeakWatchdog, shouldAnnounce } from '../useVoiceAnnouncer'
 
 describe('resolveVoiceState (D-47: detección sin resolver es optimista)', () => {
   it('preferencia activada, disponibilidad sin resolver (null) -> on', () => {
@@ -260,5 +263,143 @@ describe('detectSpanishVoice — limpieza del listener/temporizador al cancelar 
     expect(() => cancel()).not.toThrow()
     expect(removeEventListener).toHaveBeenCalledTimes(1)
     expect(cb).toHaveBeenCalledTimes(1)
+  })
+})
+
+// G-01 (03-VERIFICATION.md): en Chrome/Android, useSpeechSynthesis().speak()
+// de @vueuse/core ejecuta synth.cancel() + synth.speak() de forma sincrona y
+// consecutiva (confirmado leyendo node_modules/@vueuse/core/dist/index.js:
+// 6578-6581); cancel() se procesa ahi de forma asincrona y puede descartar
+// el utterance que speak() acaba de encolar en el mismo tick, sin lanzar
+// ningun error — la locucion del paso destino nunca arranca. Reproducido en
+// Samsung Galaxy S21 / Android 15 / Chrome; NO reproducible esperando a que
+// la frase actual termine antes de pulsar SIGUIENTE.
+describe('scheduleSpeakWatchdog (G-01: reintento acotado tras la carrera cancel()/speak() de Android)', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  // Modela el propio speak() de @vueuse/core (cancel()+speak() sincronos) con
+  // un fake synth cuyo cancel() "gana la carrera" la PRIMERA vez y descarta
+  // el utterance que speak() acaba de encolar en el mismo tick (onstart
+  // nunca llega -> status se queda en 'init'). A partir de la segunda
+  // llamada (el reintento del watchdog) ya no hay nada que descartar, asi
+  // que speak() sobrevive y onstart si dispara — la misma asimetria
+  // observada en el dispositivo real.
+  function makeAndroidRaceHarness() {
+    let status: 'init' | 'play' = 'init'
+    let callCount = 0
+    const fakeSynth = {
+      cancel: vi.fn(),
+      speak: vi.fn((utterance: { onstart: () => void }) => {
+        callCount += 1
+        if (callCount === 1) return // la carrera: este utterance se pierde
+        utterance.onstart()
+      }),
+    }
+    function speak(): void {
+      fakeSynth.cancel()
+      fakeSynth.speak({ onstart: () => { status = 'play' } })
+    }
+    return { speak, getStatus: () => status, fakeSynth }
+  }
+
+  it('reintenta speak() exactamente una vez cuando el primer intento se pierde por la carrera cancel()/speak() de Android', () => {
+    vi.useFakeTimers()
+    const { speak, getStatus, fakeSynth } = makeAndroidRaceHarness()
+
+    speak() // intento sincrono en el tap (announce()) — se pierde por la carrera
+    expect(getStatus()).toBe('init')
+    expect(fakeSynth.speak).toHaveBeenCalledTimes(1)
+
+    scheduleSpeakWatchdog(speak, getStatus)
+    vi.advanceTimersByTime(200)
+
+    expect(fakeSynth.speak).toHaveBeenCalledTimes(2) // el watchdog reintento UNA vez
+    expect(getStatus()).toBe('play') // el reintento si arranco
+  })
+
+  it('NO reintenta si el intento sincrono ya arranco antes de expirar el retraso (camino iOS/desktop, sin carrera)', () => {
+    vi.useFakeTimers()
+    let status: 'init' | 'play' = 'init'
+    const fakeSynth = {
+      cancel: vi.fn(),
+      speak: vi.fn((utterance: { onstart: () => void }) => utterance.onstart()),
+    }
+    function speak(): void {
+      fakeSynth.cancel()
+      fakeSynth.speak({ onstart: () => { status = 'play' } })
+    }
+
+    speak() // arranca en la misma llamada, sin carrera
+    expect(status).toBe('play')
+    expect(fakeSynth.speak).toHaveBeenCalledTimes(1)
+
+    scheduleSpeakWatchdog(speak, () => status)
+    vi.advanceTimersByTime(200)
+
+    expect(fakeSynth.speak).toHaveBeenCalledTimes(1) // el watchdog fue un no-op
+  })
+
+  it('una segunda navegacion (cancel() del watchdog) impide el reintento — nunca se encola ni repite (VOZ-04)', () => {
+    vi.useFakeTimers()
+    const speak = vi.fn()
+
+    const cancelWatchdog = scheduleSpeakWatchdog(speak, () => 'init')
+    cancelWatchdog() // equivalente a que announce()/silence() se llamen de nuevo
+
+    vi.advanceTimersByTime(1000)
+
+    expect(speak).not.toHaveBeenCalled()
+  })
+
+  it('el reintento es acotado a UNO: si tras reintentar el estado sigue en \'init\', no se programa un segundo watchdog', () => {
+    vi.useFakeTimers()
+    const speak = vi.fn() // nunca hace avanzar status — simula que el reintento tambien fallo
+
+    scheduleSpeakWatchdog(speak, () => 'init')
+    vi.advanceTimersByTime(200)
+    expect(speak).toHaveBeenCalledTimes(1)
+
+    vi.advanceTimersByTime(10_000)
+    expect(speak).toHaveBeenCalledTimes(1) // sigue en 1: nunca se convierte en un bucle
+  })
+
+  it('un throw durante el reintento no se propaga (VOZ-06: jamas debe romper next()/prev())', () => {
+    vi.useFakeTimers()
+    const speak = vi.fn(() => {
+      throw new Error('boom')
+    })
+
+    scheduleSpeakWatchdog(speak, () => 'init')
+
+    expect(() => vi.advanceTimersByTime(200)).not.toThrow()
+    expect(speak).toHaveBeenCalledTimes(1)
+  })
+
+  it('respeta un delayMs personalizado y no dispara ni un instante antes', () => {
+    vi.useFakeTimers()
+    const speak = vi.fn()
+
+    scheduleSpeakWatchdog(speak, () => 'init', 250)
+
+    vi.advanceTimersByTime(249)
+    expect(speak).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(1)
+    expect(speak).toHaveBeenCalledTimes(1)
+  })
+
+  it('el delayMs por defecto es 200ms', () => {
+    vi.useFakeTimers()
+    const speak = vi.fn()
+
+    scheduleSpeakWatchdog(speak, () => 'init')
+
+    vi.advanceTimersByTime(199)
+    expect(speak).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(1)
+    expect(speak).toHaveBeenCalledTimes(1)
   })
 })
