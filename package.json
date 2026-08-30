@@ -8,7 +8,9 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "test": "vitest run",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "voice:generate": "node scripts/voice/generate.mjs",
+    "voice:probe": "node scripts/voice/generate.mjs --probe"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
