@@ -73,7 +73,13 @@ Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número d
   2. Al navegar (siguiente, atrás o salto), cualquier locución en curso se corta antes de empezar la nueva; las locuciones nunca se encolan ni se repiten.
   3. Si el dispositivo no tiene voz en español, o la síntesis no está disponible o falla, la app lo indica o simplemente no habla, y el flujo guiado sigue siendo plenamente utilizable solo con texto.
   4. La pantalla no se apaga mientras hay una partida en curso y el usuario sabe que eso consume batería; si el bloqueo de pantalla no está disponible en el dispositivo, la app sigue funcionando con normalidad.
-**Plans**: TBD
+**Plans**: 5 plans
+Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número de fichero):
+- [ ] 03-01-PLAN.md — (ola 1) Retrofit de contenido: 27 frases `speech` nuevas y gate de CI endurecido a todo paso `kind:'step'` y a toda variante (D-38/D-39/D-41)
+- [ ] 03-02-PLAN.md — (ola 1) La app habla y se puede callar: `useVoiceAnnouncer`, preferencia persistida propia, control de 3 estados en cabecera y cableado síncrono en los 5 toques (D-42…D-49)
+- [ ] 03-03-PLAN.md — (ola 2) Sin voz en español: detección acotada y banda descartable no modal, sin bloquear SIGUIENTE (D-50, VOZ-05/06)
+- [ ] 03-04-PLAN.md — (ola 3) Pantalla siempre encendida con partida en curso y línea de coste de batería en el mini-setup (D-51/D-52, UI-06/07/08)
+- [ ] 03-05-PLAN.md — (ola 4) Dossier de revisión de las 27 frases y prueba humana bloqueante en la tablet real (D-53)
 **UI hint**: yes
 
 ### Phase 4: Instalación y funcionamiento offline
@@ -97,5 +103,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Motor de flujo, selector y preparación de mesa | 8/8 | Complete   | 2026-08-28 |
 | 2. Bucle de ronda y reglas verificadas | 5/5 | Complete   | 2026-08-29 |
-| 3. Locución por voz y pantalla siempre encendida | 0/TBD | Not started | - |
+| 3. Locución por voz y pantalla siempre encendida | 0/5 | Planned | - |
 | 4. Instalación y funcionamiento offline | 0/TBD | Not started | - |
