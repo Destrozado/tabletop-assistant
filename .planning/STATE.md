@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: milestone
-status: ready_to_plan
-stopped_at: Phase 03 complete (5/5) — ready to discuss Phase 4
-last_updated: 2026-08-30T21:27:01.343Z
+status: planning
+stopped_at: Phase 3 UI-SPEC approved
+last_updated: "2026-08-30T21:29:28.717Z"
 last_activity: 2026-08-30
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 3
   total_plans: 18
   completed_plans: 18
-  percent: 75
+  percent: 60
 ---
 
 # Project State
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-28)
 
 **Core value:** Que un grupo pueda jugar una partida completa de Marvel Champions de principio a fin sin abrir el reglamento y sin olvidarse de ningún paso.
-**Current focus:** Phase 4 — instalación y funcionamiento offline
+**Current focus:** Phase 03.1 — voz pregenerada en español con Gemini TTS
 
 ## Current Position
 
@@ -65,6 +65,10 @@ Progress: [██████████] 100%
 | Phase 03 P05 | 35min | 3 tasks | 2 files |
 
 ## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 03.1 inserted after Phase 3: Voz pregenerada en español con Gemini TTS — la voz TTS del dispositivo se juzgó inaceptable en la prueba humana de la Fase 3 (URGENT)
 
 ### Decisions
 
