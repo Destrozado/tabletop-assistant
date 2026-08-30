@@ -14,8 +14,24 @@ import type { EngineSession } from '~~/engine/types'
 
 const KEY_PREFIX = 'tga:progress:'
 
+// D-46: la preferencia de voz vive en su PROPIA clave, sin sufijo de
+// gameId — `clear(gameId)` (más abajo) borra solo `storageKey(gameId)` y
+// nunca esta constante. Si colgara de `storageKey`, «Empezar partida nueva»
+// (que llama a `clear`) reactivaría la voz sola en cada partida, justo lo
+// que D-46 prohíbe: la preferencia debe sobrevivir a partida nueva, al
+// descarte de progreso y al cambio de juego.
+const VOICE_KEY = 'tga:voice-enabled'
+
 function storageKey(gameId: string): string {
   return `${KEY_PREFIX}${gameId}`
+}
+
+// D-47: sin preferencia guardada (ausente, corrupta, editada a mano), la voz
+// está activada. Mismo criterio defensivo que `isPersistedPosition` ya
+// aplica al progreso — un dato ilegible se trata como ausencia, nunca como
+// error. Solo el booleano `false` exacto silencia.
+export function normalizeVoicePreference(value: unknown): boolean {
+  return value !== false
 }
 
 // Valida la FORMA completa de `PersistedPosition`, no solo la presencia de
@@ -62,5 +78,13 @@ export function usePersistedSession() {
     useLocalStorage<string | null>(storageKey(gameId), '').value = null
   }
 
-  return { load, save, clear }
+  function loadVoicePreference(): boolean {
+    return normalizeVoicePreference(useLocalStorage<boolean>(VOICE_KEY, true, { writeDefaults: false }).value)
+  }
+
+  function saveVoicePreference(enabled: boolean): void {
+    useLocalStorage<boolean>(VOICE_KEY, true).value = enabled
+  }
+
+  return { load, save, clear, loadVoicePreference, saveVoicePreference }
 }
