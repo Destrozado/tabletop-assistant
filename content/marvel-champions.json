@@ -21,6 +21,7 @@
               "title": "Elegir villano y héroes",
               "kind": "step",
               "text": "Decidid, como grupo, qué villano vais a enfrentar y qué héroe llevará cada jugador.",
+              "speech": "Decidid como grupo el villano al que os enfrentaréis y el héroe de cada jugador.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, pasos 1 y 8 (decisión de escenario adelantada)",
@@ -32,6 +33,7 @@
               "title": "Lado Alter-Ego",
               "kind": "step",
               "text": "Colocad vuestra identidad por el lado Alter-Ego.",
+              "speech": "Colocad vuestra identidad por el lado Alter-Ego.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 1",
@@ -43,6 +45,7 @@
               "title": "Ajustar dial de salud",
               "kind": "step",
               "text": "Ajustad vuestro dial de salud a la vida inicial de vuestra identidad.",
+              "speech": "Ajustad el dial de salud a la vida inicial de vuestra identidad.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 2",
@@ -61,6 +64,7 @@
               "title": "Localizar Archienemigo",
               "kind": "step",
               "text": "Localizad el conjunto de Archienemigo (Nemesis) de vuestra identidad.",
+              "speech": "Buscad el conjunto de Archienemigo (Nemesis) de vuestra identidad.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Nemesis Encounter Set",
@@ -73,6 +77,7 @@
               "kind": "step",
               "text": "Apartadlas fuera de la partida.",
               "warning": "No se barajan en el mazo de encuentros",
+              "speech": "Apartadlas fuera de la partida.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 5",
@@ -91,6 +96,7 @@
               "title": "Reunir conjuntos del escenario",
               "kind": "step",
               "text": "Reunid los conjuntos de encuentro indicados en la carta de escenario.",
+              "speech": "Reunid los conjuntos de encuentro que indique la carta de escenario.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 10",
@@ -102,6 +108,7 @@
               "title": "Añadir conjunto Estándar",
               "kind": "step",
               "text": "Añadid el conjunto de encuentro Estándar.",
+              "speech": "Añadid el conjunto de encuentro Estándar.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Standard Set",
@@ -113,6 +120,7 @@
               "title": "Conjunto adicional según dificultad",
               "kind": "step",
               "text": "Añadid el conjunto de encuentro adicional que corresponda a la dificultad elegida.",
+              "speech": "Añadid el conjunto de encuentro adicional según la dificultad elegida.",
               "variants": {
                 "difficulty": {
                   "normal": {
@@ -135,6 +143,7 @@
               "kind": "step",
               "text": "Añadid las cartas de Obligación: una o más por identidad en juego.",
               "warning": "Puede haber más de una Obligación por identidad",
+              "speech": "Añadid las cartas de Obligación: una o más por identidad en juego.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Obligation",
@@ -146,6 +155,7 @@
               "title": "Formar el mazo de encuentros",
               "kind": "step",
               "text": "Barajad todos los conjuntos reunidos junto con las Obligaciones para formar el mazo.",
+              "speech": "Barajad los conjuntos reunidos junto con las Obligaciones para formar el mazo.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 10",
@@ -164,6 +174,7 @@
               "title": "Colocar mazos de villano y escenario",
               "kind": "step",
               "text": "Colocad el mazo de villano y el mazo de escenario principal en el centro de la mesa.",
+              "speech": "Colocad el mazo de villano y el de escenario principal en el centro de la mesa.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 8",
@@ -175,6 +186,7 @@
               "title": "Ajustar dial de vida del villano",
               "kind": "step",
               "text": "Ajustad el dial de vida del villano al valor indicado en la carta de villano.",
+              "speech": "Ajustad el dial de vida del villano al valor indicado en la carta de villano.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 9; ver también anatomía de carta de Villano (p.52, punto 5)",
@@ -186,6 +198,7 @@
               "title": "Preparar reserva de fichas y estados",
               "kind": "step",
               "text": "Preparad la reserva común de fichas de daño, amenaza, aceleración y cartas de estado.",
+              "speech": "Preparad la reserva común de fichas de daño, amenaza, aceleración y estado.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 7",
@@ -197,6 +210,7 @@
               "title": "Cartas de villano según dificultad",
               "kind": "step",
               "text": "Comprobad qué cartas de villano numeradas (etapas) exige la dificultad elegida.",
+              "speech": "Comprobad qué cartas de villano numeradas exige la dificultad elegida.",
               "variants": {
                 "difficulty": {
                   "normal": {
@@ -218,6 +232,7 @@
               "title": "Poner en juego cartas de Preparación",
               "kind": "step",
               "text": "Buscad en mazos y zona apartada cartas con palabra clave Preparación y ponedlas en juego.",
+              "speech": "Buscad cartas con palabra clave Preparación en mazos y aparte, y ponedlas en juego.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 11",
@@ -229,6 +244,7 @@
               "title": "Resolver Preparación del escenario (cara 1A)",
               "kind": "step",
               "text": "Resolved cualquier habilidad de Preparación en la carta de escenario, cara 1A.",
+              "speech": "Resolved la habilidad de Preparación de la carta de escenario, cara 1A.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 12a",
@@ -240,6 +256,7 @@
               "title": "Voltear a cara B y colocar amenaza",
               "kind": "step",
               "text": "Voltead el escenario a su cara B y colocad la amenaza inicial indicada.",
+              "speech": "Voltead el escenario a su cara B y colocad la amenaza inicial indicada.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 12b (voltear a cara 1B); ver también \"Main Scheme\" (p.27) para la colocación de la amenaza inicial",
@@ -251,6 +268,7 @@
               "title": "Resolver Cuando se revela del escenario",
               "kind": "step",
               "text": "Resolved cualquier habilidad de Cuando se revela en esa cara del escenario.",
+              "speech": "Resolved la habilidad de Cuando se revela de esa cara del escenario.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 12b (resolver \"When Revealed\" al voltear); ver también \"Main Scheme\" (p.27)",
@@ -262,6 +280,7 @@
               "title": "Resolver Preparación y Cuando se revela del villano",
               "kind": "step",
               "text": "Resolved cualquier habilidad de Preparación y de Cuando se revela en la carta de villano.",
+              "speech": "Resolved las habilidades de Preparación y de Cuando se revela en la carta de villano.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 12c",
@@ -280,6 +299,7 @@
               "title": "Barajar mazo de jugador",
               "kind": "step",
               "text": "Barajad vuestro mazo de jugador.",
+              "speech": "Barajad vuestro mazo de jugador.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 6",
@@ -291,6 +311,7 @@
               "title": "Robar mano inicial",
               "kind": "step",
               "text": "Robad cartas hasta completar vuestra mano inicial.",
+              "speech": "Robad hasta completar vuestra mano inicial.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 14",
@@ -303,6 +324,7 @@
               "kind": "step",
               "text": "Podéis descartar cartas de vuestra mano y robar de nuevo hasta vuestra mano inicial.",
               "warning": "No barajéis las descartadas de vuelta al mazo todavía",
+              "speech": "Podéis descartar y robar de nuevo hasta vuestra mano inicial.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 15",
@@ -321,6 +343,7 @@
               "title": "Decidir jugador inicial",
               "kind": "step",
               "text": "Resolved habilidades de Preparación en juego y decidid quién es el jugador inicial.",
+              "speech": "Resolved las habilidades de Preparación en juego y decidid el jugador inicial.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, pasos 16 y 3 (jugador inicial, reordenado)",
