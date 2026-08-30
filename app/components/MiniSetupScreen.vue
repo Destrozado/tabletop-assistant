@@ -99,22 +99,27 @@ function onConfirmClick() {
       </div>
     </main>
 
-    <footer class="h-24 shrink-0 bg-surface flex items-center justify-end px-lg">
-      <button
-        type="button"
-        class="h-14 px-2xl flex items-center justify-center gap-xs text-label font-bold transition-transform duration-75"
-        :class="canConfirm
-          ? (ctaPressed ? 'bg-accent text-on-accent brightness-95 scale-[0.98]' : 'bg-accent text-on-accent')
-          : 'opacity-40 text-primary-text cursor-default'"
-        :disabled="!canConfirm"
-        @mousedown="canConfirm && (ctaPressed = true)"
-        @touchstart="canConfirm && (ctaPressed = true)"
-        @mouseup="ctaPressed = false"
-        @touchend="ctaPressed = false"
-        @click="onConfirmClick"
-      >
-        EMPEZAR PREPARACIÓN ›
-      </button>
+    <footer class="min-h-24 shrink-0 bg-surface flex flex-col justify-center gap-sm py-md px-lg">
+      <div class="flex items-center justify-end">
+        <button
+          type="button"
+          class="h-14 px-2xl flex items-center justify-center gap-xs text-label font-bold transition-transform duration-75"
+          :class="canConfirm
+            ? (ctaPressed ? 'bg-accent text-on-accent brightness-95 scale-[0.98]' : 'bg-accent text-on-accent')
+            : 'opacity-40 text-primary-text cursor-default'"
+          :disabled="!canConfirm"
+          @mousedown="canConfirm && (ctaPressed = true)"
+          @touchstart="canConfirm && (ctaPressed = true)"
+          @mouseup="ctaPressed = false"
+          @touchend="ctaPressed = false"
+          @click="onConfirmClick"
+        >
+          EMPEZAR PREPARACIÓN ›
+        </button>
+      </div>
+      <p class="text-body font-normal text-secondary-text text-center pb-md">
+        La pantalla se mantendrá encendida durante la partida y esto consume más batería.
+      </p>
     </footer>
   </div>
 </template>
