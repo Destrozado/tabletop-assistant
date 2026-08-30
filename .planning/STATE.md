@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: milestone
-status: executing
-stopped_at: Phase 3 UI-SPEC approved
-last_updated: "2026-08-30T19:53:35.047Z"
+status: ready_to_plan
+stopped_at: Phase 03 complete (5/5) — ready to discuss Phase 4
+last_updated: 2026-08-30T21:27:01.343Z
 last_activity: 2026-08-30
 progress:
   total_phases: 4
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-28)
 
 **Core value:** Que un grupo pueda jugar una partida completa de Marvel Champions de principio a fin sin abrir el reglamento y sin olvidarse de ningún paso.
-**Current focus:** Phase 03 — locuci-n-por-voz-y-pantalla-siempre-encendida
+**Current focus:** Phase 4 — instalación y funcionamiento offline
 
 ## Current Position
 
-Phase: 03 (locuci-n-por-voz-y-pantalla-siempre-encendida) — EXECUTING
-Plan: 2 of 5
-Status: Ready to execute
+Phase: 4
+Plan: Not started
+Status: Ready to plan
 Last activity: 2026-08-30
 
 Progress: [██████████] 100%
@@ -36,7 +36,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 13
+- Total plans completed: 18
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -46,6 +46,7 @@ Progress: [██████████] 100%
 |-------|-------|-------|----------|
 | 01 | 8 | - | - |
 | 02 | 5 | - | - |
+| 03 | 5 | - | - |
 
 **Recent Trend:**
 
