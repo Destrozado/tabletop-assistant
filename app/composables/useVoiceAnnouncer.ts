@@ -7,7 +7,7 @@
 // localStorage de la app).
 import { computed, onMounted, ref, watch } from 'vue'
 import type { ComputedRef } from 'vue'
-import { useDocumentVisibility, useSpeechSynthesis } from '@vueuse/core'
+import { tryOnScopeDispose, useDocumentVisibility, useSpeechSynthesis } from '@vueuse/core'
 import { usePersistedSession } from './usePersistedSession'
 import type { RuntimeStepNode, TextBlock } from '~~/engine/types'
 
@@ -52,17 +52,23 @@ export function hasSpanishVoice(voices: ReadonlyArray<{ lang: string }>): boolea
 // Safari), el `setTimeout` resuelve igualmente la detección. `settled`
 // garantiza que `onResult` se llame como mucho una vez, aunque el evento y el
 // temporizador se disparen los dos.
+//
+// WR-01: devuelve una función de cancelación. Ni el listener `voiceschanged`
+// (registrado en el `window.speechSynthesis` de larga vida) ni el `setTimeout`
+// de respaldo se limpian solos si nadie llama a esta función antes de que la
+// carrera resuelva — el llamador (useVoiceAnnouncer) es responsable de
+// invocarla al desmontar/desechar el scope.
 export function detectSpanishVoice(
   synth: SpeechSynthesis | undefined,
   onResult: (available: boolean) => void,
   timeoutMs = 2000,
-): void {
+): () => void {
   if (!synth) {
     // isSupported === false: mismo estado y misma banda que "sin voz
     // española" — la app no puede distinguir con fiabilidad la causa, y
     // ambas producen silencio total desde el punto de vista del usuario.
     onResult(false)
-    return
+    return () => {}
   }
 
   let settled = false
@@ -75,11 +81,18 @@ export function detectSpanishVoice(
   const initialVoices = synth.getVoices()
   if (initialVoices.length > 0) {
     finish(initialVoices)
-    return
+    return () => {}
   }
 
-  synth.addEventListener('voiceschanged', () => finish(synth.getVoices()), { once: true })
-  setTimeout(() => finish(synth.getVoices()), timeoutMs)
+  const onVoicesChanged = (): void => finish(synth.getVoices())
+  synth.addEventListener('voiceschanged', onVoicesChanged, { once: true })
+  const timer = setTimeout(() => finish(synth.getVoices()), timeoutMs)
+
+  return function cancel(): void {
+    settled = true
+    clearTimeout(timer)
+    synth.removeEventListener('voiceschanged', onVoicesChanged)
+  }
 }
 
 export function useVoiceAnnouncer(
@@ -109,9 +122,20 @@ export function useVoiceAnnouncer(
   // cambia una vez cuando detectSpanishVoice resuelve su carrera acotada.
   const available = ref<boolean | null>(null)
   onMounted(() => {
-    detectSpanishVoice(typeof window === 'undefined' ? undefined : window.speechSynthesis, (result) => {
-      available.value = result
-    })
+    // WR-01: si el componente se desmonta (navegación antes de que la carrera
+    // de 2s resuelva), `tryOnScopeDispose` cancela el listener `voiceschanged`
+    // y el `setTimeout` de respaldo. `tryOnScopeDispose` (no `onUnmounted`) se
+    // usa a propósito: no asume que siempre hay una instancia de componente
+    // activa, solo un `EffectScope` — igual que hace @vueuse/core
+    // internamente, y necesario para poder testear este composable dentro de
+    // un `effectScope()` desnudo (WR-03) sin montar un componente real.
+    const cancelDetection = detectSpanishVoice(
+      typeof window === 'undefined' ? undefined : window.speechSynthesis,
+      (result) => {
+        available.value = result
+      },
+    )
+    tryOnScopeDispose(cancelDetection)
   })
 
   const voiceState = computed<VoiceState>(() => resolveVoiceState(prefEnabled.value, available.value))
