@@ -139,3 +139,8 @@ Ninguno — no hay configuración de servicios externos que requiera intervenci�
 ---
 *Phase: 03-locuci-n-por-voz-y-pantalla-siempre-encendida*
 *Completed: 2026-08-30*
+
+## Self-Check: PASSED
+
+- Todos los ficheros creados (`app/composables/useVoiceAnnouncer.ts`, `app/composables/__tests__/useVoiceAnnouncer.test.ts`, `app/composables/__tests__/usePersistedSession.test.ts`) verificados presentes en disco.
+- Los 6 commits citados en este SUMMARY (`2b7e284`, `f75789e`, `717e912`, `e4a7364`, `3638163`, `f857793`) verificados presentes en `git log --oneline --all`.
