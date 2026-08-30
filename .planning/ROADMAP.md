@@ -85,10 +85,15 @@ Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número d
 
 ### Phase 03.1: Voz pregenerada en español con Gemini TTS (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
-**Depends on:** Phase 3
-**Plans:** 0 plans
+**Goal**: El grupo escucha cada paso con una voz natural en español, idéntica en cualquier dispositivo, porque las 37 frases `speech` se generan una sola vez con Gemini TTS y se sirven como audio estático versionado en el repo; la voz del sistema construida en la Fase 3 queda intacta como respaldo silencioso, y un gate de CI hace imposible mergear un audio que ya no corresponde a su frase.
+**Depends on**: Phase 3
+**Requirements**: VOZ-07, VOZ-08
+**Success Criteria** (what must be TRUE):
+  1. Al llegar a cada paso, la locución que suena es el audio pregenerado con la voz Rasalgethi, no la síntesis del dispositivo, y el control de silencio de la Fase 3 la calla y la reactiva igual que antes.
+  2. Si un audio falta, no carga o la red se cae, la app recurre a `speechSynthesis` en silencio —sin banda ni aviso— y el botón SIGUIENTE nunca se bloquea.
+  3. Los 37 audios quedan disponibles en local al empezar la partida, de modo que una caída de wifi a mitad de partida no degrada la locución al respaldo.
+  4. Si alguien cambia una frase `speech` sin regenerar su audio, CI falla y nombra los ids afectados y el comando exacto para regenerarlos.
+**Plans**: 0 plans
 
 Plans:
 - [ ] TBD (run /gsd-plan-phase 03.1 to break down)
