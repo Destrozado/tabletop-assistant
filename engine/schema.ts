@@ -9,13 +9,26 @@ import type { GameDefinition } from './types'
 // (ids autorados como "setup.jugador-inicial", "setup.mesa-lista", "warhammer-40k").
 const idPattern = /^[a-z0-9]+(-[a-z0-9]+)*(\.[a-z0-9]+(-[a-z0-9]+)*)*$/
 
-const CitationSchema = z.object({
+// CR-01 (revisión 02): TODOS los objetos de este esquema son `z.strictObject`,
+// nunca `z.object`. El modo por defecto de Zod es *strip*: acepta la clave
+// desconocida y la borra en silencio del objeto validado. Eso rompía la premisa
+// entera de este fichero — el navegador consume el JSON crudo
+// (app/composables/useGameContent.ts), no este objeto validado, así que una clave
+// que Zod borraba seguía llegando a la tablet sin que CI la viera nunca. Con
+// `strictObject` la clave desconocida lanza, y el objeto validado vuelve a ser
+// idéntico al crudo: es lo que hace honesta la puerta de build ("fail loudly at
+// build", CLAUDE.md). Casos concretos que ahora muerden: `branches` en un paso
+// (decisión bloqueada D-33) y `warningDetails` mal tecleado por `warningDetail`
+// (el ⚠ se pintaría sin galón, mudo y no pulsable).
+// Verificado en zod 4.4.3: `.extend()` y `.partial()` conservan la estrictez.
+// `.strict()` debe aplicarse SIEMPRE al objeto interior, antes de `.superRefine()`.
+const CitationSchema = z.strictObject({
   source: z.enum(['rules-reference', 'learn-to-play']),
   section: z.string().min(1),
   page: z.number().int().positive().optional(),
 })
 
-const TextBlockSchema = z.object({
+const TextBlockSchema = z.strictObject({
   text: z.string().min(1).max(90), // presupuesto duro de 01-UI-SPEC.md
   warning: z.string().max(60).optional(), // línea de aviso de trampa (D-05)
   // D-32: consecuencia detallada del aviso, autorada aparte de `warning`.
@@ -36,7 +49,7 @@ const TextBlockSchema = z.object({
   // y por encima de ocho el bloque deja de leerse de un vistazo. `detail` es
   // obligatorio en cada entrada (D-32: sin afordancia falsa, cada opción es
   // pulsable de verdad). Sin valor por defecto, misma razón que warningDetail.
-  options: z.array(z.object({
+  options: z.array(z.strictObject({
     label: z.string().min(1).max(40),
     detail: z.string().min(1).max(320),
   })).min(2).max(8).optional(),
@@ -51,8 +64,8 @@ const StepSchema = TextBlockSchema.extend({
   id: z.string().regex(idPattern),
   title: z.string().min(1),
   kind: z.enum(['step', 'summary']).default('step'),
-  variants: z.object({
-    difficulty: z.object({
+  variants: z.strictObject({
+    difficulty: z.strictObject({
       normal: TextBlockSchema.partial().optional(),
       expert: TextBlockSchema.partial().optional(),
     }).optional(),
@@ -60,21 +73,21 @@ const StepSchema = TextBlockSchema.extend({
   citation: CitationSchema.optional(),
 })
 
-const PhaseSchema = z.object({
+const PhaseSchema = z.strictObject({
   id: z.string().regex(idPattern),
   title: z.string().min(1), // rótulo de bloque autorado — fuente del índice de salto
   summaryLabel: z.string().optional(),
   steps: z.array(StepSchema).min(1),
 })
 
-const SectionSchema = z.object({
+const SectionSchema = z.strictObject({
   id: z.string().regex(idPattern),
   title: z.string().min(1),
   repeats: z.boolean(),
   phases: z.array(PhaseSchema).min(1),
 })
 
-export const GameDefinitionSchema = z.object({
+export const GameDefinitionSchema = z.strictObject({
   gameId: z.string().regex(idPattern),
   title: z.string().min(1),
   locale: z.literal('es'),

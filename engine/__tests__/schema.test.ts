@@ -122,6 +122,93 @@ describe('GameDefinitionSchema', () => {
     expect(() => GameDefinitionSchema.parse(game)).toThrow()
   })
 
+  // CR-01 (revisión 02): el esquema estaba en el modo por defecto de Zod
+  // (*strip*), que acepta la clave desconocida y la borra en silencio. Como el
+  // navegador consume el JSON crudo y no este objeto validado, cualquier clave
+  // que Zod borrase seguía llegando a la tablet sin que CI la viera. Estos
+  // gates fijan lo contrario para los seis objetos del esquema: la clave
+  // desconocida LANZA.
+  describe('claves desconocidas rechazadas (CR-01)', () => {
+    function step(game: ReturnType<typeof baseGame>) {
+      return game.sections[0].phases[0].steps[0] as any
+    }
+
+    it('lanza ZodError con una clave desconocida en la raíz del juego (GameDefinitionSchema)', () => {
+      const game = { ...baseGame(), totallyUnknown: 1 }
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con una clave desconocida en una sección (SectionSchema)', () => {
+      const game = baseGame()
+      ;(game.sections[0] as any).unknownKey = true
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con una clave desconocida en una fase (PhaseSchema)', () => {
+      const game = baseGame()
+      ;(game.sections[0].phases[0] as any).unknownKey = true
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con una clave desconocida en un paso (StepSchema)', () => {
+      const game = baseGame()
+      step(game).unknownKey = true
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('D-33: lanza ZodError con un campo branches en un paso (decisión bloqueada)', () => {
+      const game = baseGame()
+      step(game).branches = [{ label: 'Héroe' }]
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con warningDetails, la errata de warningDetail que antes se colaba muda', () => {
+      const game = baseGame()
+      step(game).warning = 'Aviso.'
+      step(game).warningDetails = 'Consecuencia mal tecleada.'
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con una clave desconocida en una citation (CitationSchema)', () => {
+      const game = baseGame()
+      step(game).citation = { source: 'rules-reference', section: 'Setup (p. 1)', unknownKey: true }
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con una clave desconocida en una entrada de options', () => {
+      const game = baseGame()
+      step(game).options = [
+        { label: 'Opción 1', detail: 'Detalle 1.', unknownKey: true },
+        { label: 'Opción 2', detail: 'Detalle 2.' },
+      ]
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con una clave desconocida dentro de una variante de dificultad (TextBlockSchema.partial sigue siendo estricto)', () => {
+      const game = baseGame()
+      step(game).variants = { difficulty: { expert: { text: 'Otra cosa.', unknownKey: true } } }
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con un nivel de dificultad desconocido', () => {
+      const game = baseGame()
+      step(game).variants = { difficulty: { heroico: { text: 'Otra cosa.' } } }
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('el objeto validado sigue siendo idéntico al de entrada salvo por el default de kind', () => {
+      const game = baseGame()
+      const parsed = GameDefinitionSchema.parse(game)
+      const expected = baseGame()
+      for (const section of expected.sections) {
+        for (const phase of section.phases) {
+          for (const st of phase.steps) (st as any).kind = 'step'
+        }
+      }
+      expect(parsed).toEqual(expected)
+    })
+  })
+
   describe('warningDetail (D-32)', () => {
     it('lanza ZodError con un warningDetail de 400 caracteres', () => {
       const game = baseGame()

@@ -37,6 +37,16 @@ function findStep(game: GameDefinition, id: string) {
   return step
 }
 
+// CR-01 (revisión 02): un gate que afirma la AUSENCIA de un campo debe leer el
+// JSON CRUDO, no el validado. Con el esquema en modo strip, Zod borraba la clave
+// desconocida antes de que la aserción la mirase, así que era estructuralmente
+// incapaz de fallar. El esquema ya es estricto (engine/schema.ts) y lanzaría,
+// pero la aserción sigue leyendo el crudo a propósito: es el objeto que
+// useGameContent.ts importa y que de verdad llega a la tablet.
+function findRawStep(id: string) {
+  return findStep(rawMarvelChampions as GameDefinition, id)
+}
+
 function rondaSteps(game: GameDefinition) {
   const ronda = game.sections.find(s => s.id === 'ronda')
   if (!ronda) throw new Error('No se encontró la sección ronda')
@@ -293,10 +303,31 @@ describe('content/marvel-champions.json', () => {
     })
 
     it('ADAPT-04 (D-33): ronda.villano.02 muestra la rama héroe y la rama alter-ego a la vez, sin campo branches', () => {
-      const step = findStep(marvelChampions, 'ronda.villano.02')
+      // CR-01: se lee del CRUDO, no del validado, para que la última aserción pueda fallar de verdad.
+      const step = findRawStep('ronda.villano.02')
       expect(step.text).toMatch(/héroe/i)
       expect(step.text).toMatch(/alter-ego/i)
       expect((step as unknown as { branches?: unknown }).branches).toBeUndefined()
+    })
+
+    it('gate CR-01/D-33 que muerde: añadir branches a un paso de una copia en memoria hace fallar la validación', () => {
+      const mutated: GameDefinition = JSON.parse(JSON.stringify(rawMarvelChampions))
+      const step = findStep(mutated, 'ronda.villano.02')
+      ;(step as unknown as { branches?: unknown[] }).branches = [{ label: 'Héroe' }]
+      expect(() => validateGameDefinition(mutated)).toThrow()
+    })
+
+    it('gate CR-01 que muerde: la errata warningDetails (por warningDetail) hace fallar la validación en vez de colarse muda hasta la mesa', () => {
+      const mutated: GameDefinition = JSON.parse(JSON.stringify(rawMarvelChampions))
+      const step = findStep(mutated, 'ronda.jugadores.01')
+      ;(step as unknown as { warningDetails?: string }).warningDetails = step.warningDetail
+      expect(() => validateGameDefinition(mutated)).toThrow()
+    })
+
+    it('gate CR-01 que muerde: una clave desconocida en la raíz del juego hace fallar la validación', () => {
+      const mutated: GameDefinition = JSON.parse(JSON.stringify(rawMarvelChampions))
+      ;(mutated as unknown as { totallyUnknown?: number }).totallyUnknown = 1
+      expect(() => validateGameDefinition(mutated)).toThrow()
     })
 
     it('error confirmado nº2: ningún text ni warning de la ronda dice "una por jugador"', () => {
