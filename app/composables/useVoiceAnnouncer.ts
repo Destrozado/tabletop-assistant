@@ -2,8 +2,9 @@
 // La voz NO es motor: no toca session/cursor/round/context, no importa
 // ~~/engine/* salvo tipos (import type), no relee content/marvel-champions.json
 // (haría cortocircuito a resolveText() y se saltaría la resolución de
-// variantes), y no llama a useLocalStorage directamente (pasa siempre por
-// usePersistedSession, la única costura de localStorage de la app).
+// variantes), y no llama al composable reactivo de almacenamiento persistente
+// directamente (pasa siempre por usePersistedSession, la única costura de
+// localStorage de la app).
 import { computed, onMounted, ref, watch } from 'vue'
 import type { ComputedRef } from 'vue'
 import { useDocumentVisibility, useSpeechSynthesis } from '@vueuse/core'
@@ -35,6 +36,52 @@ export function shouldAnnounce(input: {
     && input.isSupported === true
 }
 
+// 03-RESEARCH.md §Pitfall 3: en Android, getVoices() puede listar una entrada
+// es-* genérica aunque el paquete de voz en español no esté descargado. NO
+// construir un detector más fino (por ejemplo, exigir un nombre de voz
+// concreto o `localService === true`): sería adivinar sobre una API que no
+// expone esa información de forma fiable. La banda de aviso (Task 2) ya cubre
+// ese caso con una copia deliberadamente genérica, así que un falso negativo
+// aquí es aceptable por diseño.
+export function hasSpanishVoice(voices: ReadonlyArray<{ lang: string }>): boolean {
+  return voices.some(voice => voice.lang.toLowerCase().startsWith('es'))
+}
+
+// Carrera acotada en el tiempo (T-03-09): si el evento que anuncia voces
+// cargadas no llega nunca (03-RESEARCH.md §Pitfall 2, algunas versiones de
+// Safari), el `setTimeout` resuelve igualmente la detección. `settled`
+// garantiza que `onResult` se llame como mucho una vez, aunque el evento y el
+// temporizador se disparen los dos.
+export function detectSpanishVoice(
+  synth: SpeechSynthesis | undefined,
+  onResult: (available: boolean) => void,
+  timeoutMs = 2000,
+): void {
+  if (!synth) {
+    // isSupported === false: mismo estado y misma banda que "sin voz
+    // española" — la app no puede distinguir con fiabilidad la causa, y
+    // ambas producen silencio total desde el punto de vista del usuario.
+    onResult(false)
+    return
+  }
+
+  let settled = false
+  function finish(voices: ReadonlyArray<{ lang: string }>): void {
+    if (settled) return
+    settled = true
+    onResult(hasSpanishVoice(voices))
+  }
+
+  const initialVoices = synth.getVoices()
+  if (initialVoices.length > 0) {
+    finish(initialVoices)
+    return
+  }
+
+  synth.addEventListener('voiceschanged', () => finish(synth.getVoices()), { once: true })
+  setTimeout(() => finish(synth.getVoices()), timeoutMs)
+}
+
 export function useVoiceAnnouncer(
   currentNode: ComputedRef<RuntimeStepNode | null>,
   currentText: ComputedRef<TextBlock>,
@@ -57,12 +104,27 @@ export function useVoiceAnnouncer(
     prefEnabled.value = loadVoicePreference()
   })
 
-  // Detección de voz española (plan 03-03): el ref existe y ya alimenta la
-  // rama 'unavailable'. null es el estado real "detección sin resolver", no
-  // un stub de decisión.
+  // Detección de voz española (VOZ-05/VOZ-06): null es el estado real
+  // "detección sin resolver" (pinta optimista 'on', UI-SPEC §Layout 1), y solo
+  // cambia una vez cuando detectSpanishVoice resuelve su carrera acotada.
   const available = ref<boolean | null>(null)
+  onMounted(() => {
+    detectSpanishVoice(typeof window === 'undefined' ? undefined : window.speechSynthesis, (result) => {
+      available.value = result
+    })
+  })
 
   const voiceState = computed<VoiceState>(() => resolveVoiceState(prefEnabled.value, available.value))
+
+  // D-50: descarte de la banda como estado de sesión, nunca persistido — no
+  // pasa por usePersistedSession ni añade ninguna clave de localStorage. Si en
+  // una sesión futura el dispositivo ya tiene voz española, el aviso
+  // simplemente no vuelve a salir.
+  const noticeDismissed = ref(false)
+  function dismissNotice(): void {
+    noticeDismissed.value = true
+  }
+  const showVoiceUnavailableNotice = computed(() => available.value === false && !noticeDismissed.value)
 
   function announce(): void {
     const kind = currentNode.value?.step.kind ?? null
@@ -113,5 +175,14 @@ export function useVoiceAnnouncer(
     if (value === 'hidden') silence()
   })
 
-  return { voiceState, announce, toggle, silence, available, isSupported }
+  return {
+    voiceState,
+    announce,
+    toggle,
+    silence,
+    available,
+    isSupported,
+    showVoiceUnavailableNotice,
+    dismissNotice,
+  }
 }
