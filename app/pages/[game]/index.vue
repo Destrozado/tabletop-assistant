@@ -5,6 +5,7 @@
 // esta página necesita para decidir con qué sesión arrancar antes de que
 // exista una — el resto de la navegación sigue pasando siempre por
 // useGameSession (la única costura reactiva).
+import { useWakeLock } from '@vueuse/core'
 import { computed, onMounted, ref } from 'vue'
 import { expand } from '~~/engine/expand'
 import { resume } from '~~/engine/persistence'
@@ -47,6 +48,14 @@ const {
   showVoiceUnavailableNotice,
   dismissNotice,
 } = useVoiceAnnouncer(currentNode, currentText)
+
+// Bloqueo de pantalla (UI-06/08, D-51): una sola instancia atada al ciclo de
+// vida de ESTA página, nunca a un componente hijo que pueda montarse/
+// desmontarse más a menudo que la sesión de partida. Ya trae su propio
+// listener de visibilidad interno para volver a pedir el bloqueo al recuperar
+// primer plano (no añadir aquí un useDocumentVisibility propio, D-45) y su
+// propio tryOnScopeDispose para liberarlo al navegar fuera de esta página.
+const { request: requestWakeLock, release: releaseWakeLock } = useWakeLock()
 
 // Estado local del mini-setup (SETUP-01/02), previo a iniciar la sesión real.
 const playerCount = ref<number | null>(null)
@@ -107,6 +116,11 @@ watchDebounced(
 function onConfirm() {
   if (playerCount.value === null || difficulty.value === null) return
   start(gameId, { playerCount: playerCount.value, difficulty: difficulty.value })
+  // UI-06/08 (D-51): pedir el bloqueo lo antes posible dentro del propio
+  // toque que arranca la partida. UI-08 exige degradación silenciosa — un
+  // rechazo (dispositivo sin soporte, o el issue de wake lock parcialmente
+  // roto en iOS documentado en STACK.md) nunca debe escalar ni mostrar aviso.
+  requestWakeLock('screen').catch(() => {})
 }
 
 // D-42: la locución se llama de forma síncrona, como sentencia plana, en el
@@ -227,6 +241,10 @@ const discardBody = computed(() =>
 function onResumeContinue() {
   awaitingResumeChoice.value = false
   announce()
+  // UI-06/08 (D-51): «Continuar» también es un toque que abre partida en
+  // curso. Degradación silenciosa igual que en onConfirm — sin aviso de
+  // fallo (UI-08).
+  requestWakeLock('screen').catch(() => {})
 }
 
 function onResumeNewGame() {
@@ -242,6 +260,11 @@ function onDiscardConfirm() {
   session.value = null
   awaitingResumeChoice.value = false
   awaitingDiscardConfirm.value = false
+  // UI-06/08 (D-51): liberación EXPLÍCITA y obligatoria. Esta transición no
+  // desmonta la página (misma instancia, misma ruta), así que el
+  // tryOnScopeDispose interno de useWakeLock no se dispara aquí — sin esta
+  // línea la tablet seguiría sin apagarse tras descartar la partida.
+  releaseWakeLock().catch(() => {})
 }
 
 // D-43: mismo razonamiento que onResumeContinue — el CTA de reconocimiento
@@ -249,6 +272,10 @@ function onDiscardConfirm() {
 function onContentChangedAcknowledge() {
   awaitingContentChangedAck.value = false
   announce()
+  // UI-06/08 (D-51): D-43 clasifica este CTA como gesto de reanudación igual
+  // que «Continuar» — resume() deja una sesión real y jugable, así que abre
+  // partida en curso a efectos del bloqueo de pantalla.
+  requestWakeLock('screen').catch(() => {})
 }
 
 // NO-OP INTENCIONAL (documentado para la Fase 2, ver 01-05-SUMMARY.md):
@@ -326,6 +353,12 @@ function onContentChangedAcknowledge() {
       @confirm="onConfirm"
       @back="navigateTo('/')"
     />
+    <!--
+      UI-06/08 (D-51): sin llamada de liberación explícita aquí a propósito,
+      no un olvido — navigateTo desmonta esta página y el tryOnScopeDispose
+      interno de useWakeLock ya libera el bloqueo solo. Añadirla sería
+      redundante sobre un bloqueo que ya se está liberando.
+    -->
 
     <!--
       D-03: "mesa lista" es un paso autorado más (kind:summary), nunca un
