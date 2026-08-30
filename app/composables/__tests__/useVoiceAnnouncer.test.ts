@@ -174,3 +174,91 @@ describe('detectSpanishVoice (T-03-09: carrera acotada, nunca bloquea la primera
     expect(cb).toHaveBeenCalledTimes(1)
   })
 })
+
+// WR-01/WR-03: regresión del dangling listener + setTimeout de
+// detectSpanishVoice. Antes del fix, la función devolvía `void` — el propio
+// `const cancel = detectSpanishVoice(...); cancel()` de estos tests habría
+// lanzado "cancel is not a function" contra el código previo. Cubre ambos
+// caminos de resolución (evento y temporizador) y el camino de cancelación
+// antes de que cualquiera de los dos dispare.
+describe('detectSpanishVoice — limpieza del listener/temporizador al cancelar (WR-01)', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('siempre devuelve una función de cancelación, incluso en los caminos que resuelven de forma síncrona', () => {
+    expect(typeof detectSpanishVoice(undefined, vi.fn())).toBe('function')
+
+    const synthWithVoices = {
+      getVoices: vi.fn(() => [{ lang: 'es-ES' }]),
+      addEventListener: vi.fn(),
+    } as unknown as SpeechSynthesis
+    expect(typeof detectSpanishVoice(synthWithVoices, vi.fn())).toBe('function')
+  })
+
+  it('cancelar ANTES de que voiceschanged o el temporizador disparen impide cualquier invocación posterior de cb', () => {
+    vi.useFakeTimers()
+    let voiceschangedHandler: (() => void) | null = null
+    const removeEventListener = vi.fn()
+    const synth = {
+      getVoices: vi.fn(() => []),
+      addEventListener: vi.fn((_event: string, handler: () => void) => {
+        voiceschangedHandler = handler
+      }),
+      removeEventListener,
+    } as unknown as SpeechSynthesis
+    const cb = vi.fn()
+
+    const cancel = detectSpanishVoice(synth, cb, 2000)
+    cancel()
+
+    // Ni un evento tardío...
+    voiceschangedHandler!()
+    // ...ni el temporizador de respaldo deben llegar a llamar a cb tras cancelar.
+    vi.advanceTimersByTime(2000)
+
+    expect(cb).not.toHaveBeenCalled()
+    expect(removeEventListener).toHaveBeenCalledWith('voiceschanged', voiceschangedHandler)
+  })
+
+  it('resolver por voiceschanged limpia también el temporizador de respaldo (nada queda pendiente tras desmontar)', () => {
+    vi.useFakeTimers()
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
+    let voiceschangedHandler: (() => void) | null = null
+    const synth = {
+      getVoices: vi.fn(() => []),
+      addEventListener: vi.fn((_event: string, handler: () => void) => {
+        voiceschangedHandler = handler
+      }),
+      removeEventListener: vi.fn(),
+    } as unknown as SpeechSynthesis
+    const cb = vi.fn()
+
+    const cancel = detectSpanishVoice(synth, cb, 2000)
+    ;(synth.getVoices as ReturnType<typeof vi.fn>).mockReturnValue([{ lang: 'es-ES' }])
+    voiceschangedHandler!()
+    cancel()
+
+    expect(cb).toHaveBeenCalledTimes(1)
+    expect(clearTimeoutSpy).toHaveBeenCalled()
+  })
+
+  it('resolver por el temporizador de respaldo deja limpiable el listener — cancel() posterior no lanza ni repite cb', () => {
+    vi.useFakeTimers()
+    const removeEventListener = vi.fn()
+    const synth = {
+      getVoices: vi.fn(() => []),
+      addEventListener: vi.fn(),
+      removeEventListener,
+    } as unknown as SpeechSynthesis
+    const cb = vi.fn()
+
+    const cancel = detectSpanishVoice(synth, cb, 2000)
+    vi.advanceTimersByTime(2000)
+    expect(cb).toHaveBeenCalledTimes(1)
+
+    expect(() => cancel()).not.toThrow()
+    expect(removeEventListener).toHaveBeenCalledTimes(1)
+    expect(cb).toHaveBeenCalledTimes(1)
+  })
+})
