@@ -101,3 +101,9 @@ Ninguno — no hay configuración de servicios externos. La verificación conduc
 ---
 *Phase: 03-locuci-n-por-voz-y-pantalla-siempre-encendida*
 *Completed: 2026-08-30*
+
+## Self-Check: PASSED
+
+- Ficheros modificados verificados presentes en disco: `app/pages/[game]/index.vue`, `app/components/MiniSetupScreen.vue`.
+- Los 3 commits citados en este SUMMARY (`b3b6ad6`, `57009ec`, `d2d8d89`) verificados presentes en `git log --oneline --all`.
+- `npm test` (180 tests) y `npm run build` (prerenderiza `/` y `/marvel-champions`) verificados en verde tras el último commit de código (`57009ec`).
