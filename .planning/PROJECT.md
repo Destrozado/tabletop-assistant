@@ -53,6 +53,7 @@ Que un grupo pueda jugar una partida completa de Marvel Champions de principio a
   - `~/Downloads/Marvel-Champions_aprende_a_jugar.pdf` (Aprende a jugar)
 - **La estructura del flujo tiene dos tramos distintos:** el setup es lineal y se recorre una vez; la ronda es un ciclo que se repite indefinidamente. El motor de pasos debe modelar ambos, y el "Siguiente" al final del ciclo debe volver al inicio de la ronda, no al setup.
 - **Entorno de uso hostil al ratón:** tablet, manos ocupadas con cartas, mirada a distancia. De ahí el texto grande y el flujo de un solo botón.
+- **Estado actual (Fase 2 completa, 2026-08-30):** el bucle de ronda gira con datos reales — preparación lineal (23 pasos) + ronda repetible (2 fases, 10 pasos) que vuelve sola al inicio e incrementa el contador. El borrador quedó corregido y **contrastado a mano por el usuario contra el Rules Reference v1.7**, con veredicto literal versionado en `02-CONTENT-REVIEW.md`; el contenido de la ronda es definitivo. Falta la locución por voz y el bloqueo de pantalla (Fase 3).
 
 ## Constraints
 
@@ -80,6 +81,9 @@ Que un grupo pueda jugar una partida completa de Marvel Champions de principio a
 | Solo español en v1 | El grupo juega en español; i18n añadiría trabajo sin usuario que lo pida | — Pendiente |
 | Marvel Champions primero, W40k después | Es el juego que el grupo juega ahora; valida el motor con contenido real antes de generalizar | — Pendiente |
 | D-32: el aviso `⚠` es clicable y abre un modal con su consecuencia detallada | El recordatorio en pantalla se quiere siempre; la consecuencia detallada solo si no te la sabes — breve y conciso arriba, detalle a un toque, modal que se cierra fácil para seguir jugando | Completado en la Fase 2 |
+- **D-36 — la revisión de reglas la hace una persona, no el esquema (Fase 2).** El gate de Zod detecta contenido *malformado*, no contenido *incorrecto*. En la Fase 1 los tres errores de fidelidad reales los cazó el usuario a mano, no la verificación automática. Por eso cada fase de contenido lleva una tarea explícita de revisión humana bloqueante antes de dar el contenido por definitivo.
+- **El esquema de contenido rechaza claves desconocidas (`z.strictObject`), no las descarta (Fase 2, CR-01).** En modo *strip* el objeto que validaba CI y el que renderiza la tablet eran objetos distintos, y un `warningDetail` mal escrito daba build verde y un aviso silenciosamente no pulsable. La validación sigue siendo Node/test-time: `zod` nunca entra en el bundle cliente.
+- **La superficie de detalle es reutilizable (Fase 2).** `warningDetail` (un aviso) y `options[]` (una lista de elecciones) comparten `WarningDetailModal.vue`, que distingue registro con `tone: 'warning' | 'neutral'` — una opción no es una trampa. Un recordatorio sin consecuencia no lleva afordancia de toque.
 
 ## Evolution
 
@@ -99,4 +103,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-28 after initialization*
+*Last updated: 2026-08-30 after Phase 2 (bucle de ronda y reglas verificadas)*
