@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Motor de flujo, selector y preparación de mesa** - El grupo elige Marvel Champions, configura la partida y recorre toda la preparación de mesa en una tablet real, con contenido verificado y la app desplegada en una URL. (completed 2026-08-28)
 - [x] **Phase 2: Bucle de ronda y reglas verificadas** - El grupo juega ronda tras ronda —fase de jugadores, fase del villano (6 pasos oficiales), fin de ronda— con el contenido corregido contra el Rules Reference v1.7. (completed 2026-08-29)
-- [ ] **Phase 3: Locución por voz y pantalla siempre encendida** - El grupo escucha cada paso en voz alta en español y la tablet no se apaga durante la partida, sin que ninguna de las dos cosas bloquee el flujo si falla.
+- [x] **Phase 3: Locución por voz y pantalla siempre encendida** - El grupo escucha cada paso en voz alta en español y la tablet no se apaga durante la partida, sin que ninguna de las dos cosas bloquee el flujo si falla. (completed 2026-08-30)
 - [ ] **Phase 4: Instalación y funcionamiento offline** - El grupo instala la app en la tablet y juega una partida completa aunque se caiga la wifi a mitad de partida.
 
 ## Phase Details
@@ -79,7 +79,7 @@ Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número d
 - [x] 03-02-PLAN.md — (ola 1) La app habla y se puede callar: `useVoiceAnnouncer`, preferencia persistida propia, control de 3 estados en cabecera y cableado síncrono en los 5 toques (D-42…D-49)
 - [x] 03-03-PLAN.md — (ola 2) Sin voz en español: detección acotada y banda descartable no modal, sin bloquear SIGUIENTE (D-50, VOZ-05/06)
 - [x] 03-04-PLAN.md — (ola 3) Pantalla siempre encendida con partida en curso y línea de coste de batería en el mini-setup (D-51/D-52, UI-06/07/08)
-- [ ] 03-05-PLAN.md — (ola 4) Dossier de revisión de las 27 frases y prueba humana bloqueante en la tablet real (D-53)
+- [x] 03-05-PLAN.md — (ola 4) Dossier de revisión de las 27 frases y prueba humana bloqueante en la tablet real (D-53)
 **UI hint**: yes
 
 ### Phase 4: Instalación y funcionamiento offline
@@ -103,5 +103,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Motor de flujo, selector y preparación de mesa | 8/8 | Complete   | 2026-08-28 |
 | 2. Bucle de ronda y reglas verificadas | 5/5 | Complete   | 2026-08-29 |
-| 3. Locución por voz y pantalla siempre encendida | 4/5 | In Progress|  |
+| 3. Locución por voz y pantalla siempre encendida | 5/5 | Complete   | 2026-08-30 |
 | 4. Instalación y funcionamiento offline | 0/TBD | Not started | - |

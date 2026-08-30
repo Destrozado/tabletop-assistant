@@ -4,14 +4,14 @@ milestone: v1.7
 milestone_name: milestone
 status: executing
 stopped_at: Phase 3 UI-SPEC approved
-last_updated: "2026-08-30T15:17:35.662Z"
-last_activity: 2026-08-30 -- Phase 03 execution started
+last_updated: "2026-08-30T19:53:35.047Z"
+last_activity: 2026-08-30
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 18
-  completed_plans: 13
-  percent: 50
+  completed_plans: 18
+  percent: 75
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 03 (locuci-n-por-voz-y-pantalla-siempre-encendida) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 03
-Last activity: 2026-08-30 -- Phase 03 execution started
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-08-30
 
 Progress: [██████████] 100%
 
@@ -61,6 +61,7 @@ Progress: [██████████] 100%
 | Phase 01 P04 | 25min | 3 tasks | 7 files |
 | Phase 01 P05 | 25min | 3 tasks | 4 files |
 | Phase 01 P06 | 55min | 3 tasks | 2 files |
+| Phase 03 P05 | 35min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,8 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-06: D-04 (granularidad) y la Open Question 2 (orden de bloques) aprobadas sin cambios por el usuario tras el playtest completo
 - [Phase 01]: 01-06: tres correcciones de fidelidad de reglas detectadas por revision humana del usuario, no por la reverificacion automatica: reescritura de 'etapas de villano' (paso 15), division del paso 16 por omitir la multiplicacion por jugadores y el 'Cuando se revela', y eliminacion de una regla fantasma (setup.archienemigos.02, 'contar las cartas') sin respaldo en el Rules Reference
 - [Phase 01]: 01-06: TECH-05 completado como 'preparado, no desplegado' por decision explicita del usuario; netlify.toml reverificado contra una build real, publicacion diferida
+- [Phase 03]: 03-05: revision humana bloqueante en tablet real aprobo los 4 criterios de exito del ROADMAP sin pedir ninguna correccion de contenido; contentVersion se mantiene en 11
+- [Phase 03]: 03-05: calidad de la voz TTS del dispositivo por defecto juzgada mala por el usuario (API de Gemini disponible); registrado como seguimiento fuera de alcance para una fase o quick futura
 
 ### Pending Todos
 
@@ -101,6 +104,7 @@ None yet.
 
 - Target tablet model/OS version is unknown — blocks confident verification of Web Speech es-ES voice availability, iOS TTS gesture requirement, and Wake Lock support. Resolve before planning Phase 3.
 - `@vite-pwa/nuxt` compatibility with Nuxt 4.5.x is inferred, not directly confirmed — worth a five-minute spike early in Phase 1's Nuxt scaffold work.
+- 03-05: el modelo y version de SO/navegador de la tablet de mesa siguen sin conocerse pese a la prueba humana (el humano no lo reporto); el sub-check sin voz espanola (segundo dispositivo) queda no verificado; y la calidad de la voz TTS por defecto del dispositivo se juzga mala, seguimiento para fase o quick futura (posible API externa, Gemini disponible)
 
 ## Deferred Items
 
@@ -112,6 +116,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-30T14:08:31.213Z
+Last session: 2026-08-30T19:52:02.618Z
 Stopped at: Phase 3 UI-SPEC approved
-Resume file: .planning/phases/03-locuci-n-por-voz-y-pantalla-siempre-encendida/03-UI-SPEC.md
+Resume file: None

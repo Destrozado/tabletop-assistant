@@ -56,12 +56,12 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 
 ### Locución por voz
 
-- [ ] **VOZ-01**: Al llegar a un paso, la app locuta en voz alta una frase corta y curada, distinta del texto completo mostrado en pantalla
-- [ ] **VOZ-02**: El usuario puede silenciar y reactivar la voz desde un control siempre visible
-- [ ] **VOZ-03**: La preferencia de silencio se conserva entre pasos y entre sesiones
-- [ ] **VOZ-04**: Al navegar (siguiente, atrás o salto), cualquier locución en curso se corta antes de empezar la nueva; las locuciones nunca se encolan ni se repiten
-- [ ] **VOZ-05**: Si el dispositivo no dispone de voz en español, la app lo indica al usuario y sigue siendo plenamente utilizable solo con texto
-- [ ] **VOZ-06**: Si la síntesis de voz no está disponible o falla, el flujo guiado sigue funcionando sin degradarse
+- [x] **VOZ-01**: Al llegar a un paso, la app locuta en voz alta una frase corta y curada, distinta del texto completo mostrado en pantalla
+- [x] **VOZ-02**: El usuario puede silenciar y reactivar la voz desde un control siempre visible
+- [x] **VOZ-03**: La preferencia de silencio se conserva entre pasos y entre sesiones
+- [x] **VOZ-04**: Al navegar (siguiente, atrás o salto), cualquier locución en curso se corta antes de empezar la nueva; las locuciones nunca se encolan ni se repiten
+- [x] **VOZ-05**: Si el dispositivo no dispone de voz en español, la app lo indica al usuario y sigue siendo plenamente utilizable solo con texto
+- [x] **VOZ-06**: Si la síntesis de voz no está disponible o falla, el flujo guiado sigue funcionando sin degradarse
 
 ### Interfaz en tablet
 
@@ -70,9 +70,9 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 - [x] **UI-03**: Los controles principales (Siguiente, Atrás) están al alcance del pulgar sin levantar la tablet
 - [x] **UI-04**: La interfaz se presenta en horizontal y no se reorganiza al rotar el dispositivo
 - [x] **UI-05**: La interfaz usa un tema oscuro de alto contraste, apto para jugar con luz tenue
-- [ ] **UI-06**: La pantalla no se apaga mientras hay una partida en curso
-- [ ] **UI-07**: El usuario sabe que la pantalla permanecerá encendida y que eso consume batería
-- [ ] **UI-08**: Si el bloqueo de pantalla no está disponible en el dispositivo, la app sigue funcionando con normalidad
+- [x] **UI-06**: La pantalla no se apaga mientras hay una partida en curso
+- [x] **UI-07**: El usuario sabe que la pantalla permanecerá encendida y que eso consume batería
+- [x] **UI-08**: Si el bloqueo de pantalla no está disponible en el dispositivo, la app sigue funcionando con normalidad
 - [ ] **UI-09**: El aviso `⚠` de un paso, cuando tiene consecuencia detallada, se puede tocar para abrir un panel con esa consecuencia; y en el paso que enumera las opciones del turno, cada opción se puede tocar igual para leer su detalle. Ambas superficies se cierran fácilmente sin perder la posición ni la ronda en curso
 
 ### Persistencia
@@ -181,20 +181,20 @@ Qué fases cubren qué requisitos. Se actualiza al crear el roadmap.
 | ADAPT-02 | Phase 1 | Complete |
 | ADAPT-03 | Phase 1 | Complete |
 | ADAPT-04 | Phase 2 | Pending |
-| VOZ-01 | Phase 3 | Pending |
-| VOZ-02 | Phase 3 | Pending |
-| VOZ-03 | Phase 3 | Pending |
-| VOZ-04 | Phase 3 | Pending |
-| VOZ-05 | Phase 3 | Pending |
-| VOZ-06 | Phase 3 | Pending |
+| VOZ-01 | Phase 3 | Complete |
+| VOZ-02 | Phase 3 | Complete |
+| VOZ-03 | Phase 3 | Complete |
+| VOZ-04 | Phase 3 | Complete |
+| VOZ-05 | Phase 3 | Complete |
+| VOZ-06 | Phase 3 | Complete |
 | UI-01 | Phase 1 | Complete |
 | UI-02 | Phase 1 | Complete |
 | UI-03 | Phase 1 | Complete |
 | UI-04 | Phase 1 | Complete |
 | UI-05 | Phase 1 | Complete |
-| UI-06 | Phase 3 | Pending |
-| UI-07 | Phase 3 | Pending |
-| UI-08 | Phase 3 | Pending |
+| UI-06 | Phase 3 | Complete |
+| UI-07 | Phase 3 | Complete |
+| UI-08 | Phase 3 | Complete |
 | UI-09 | Phase 2 | Pending |
 | PERS-01 | Phase 1 | Complete |
 | PERS-02 | Phase 1 | Complete |
