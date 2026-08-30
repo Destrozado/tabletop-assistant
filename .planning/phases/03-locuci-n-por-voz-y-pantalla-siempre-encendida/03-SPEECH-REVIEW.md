@@ -30,16 +30,16 @@
 | `setup.escenario.03` | Preparar reserva de fichas y estados | Preparad la reserva común de fichas de daño, amenaza, aceleración y cartas de estado. | — | Preparad la reserva común de fichas de daño, amenaza, aceleración y estado. | — | Apéndice II, paso 7 | 49 | contrastado |
 | `setup.escenario.04` | Cartas de villano según dificultad | Comprobad qué cartas de villano numeradas (etapas) exige la dificultad elegida. | — | Comprobad qué cartas de villano numeradas exige la dificultad elegida. | — | Modes of Play — Expert Mode (p.28); ver también Appendix I: Deck Customization, "Encounter Decks" (p.48) y "Villain, Villain Deck" (p.45) | 28 | contrastado |
 | `setup.escenario.05` | Poner en juego cartas de Preparación | Buscad en mazos y zona apartada cartas con palabra clave Preparación y ponedlas en juego. | — | Buscad cartas con palabra clave Preparación en mazos y aparte, y ponedlas en juego. | — | Apéndice II, paso 11 | 49 | contrastado |
-| `setup.escenario.06` | Resolver Preparación del escenario (cara 1A) | Resolved cualquier habilidad de Preparación en la carta de escenario, cara 1A. | — | Resolved la habilidad de Preparación de la carta de escenario, cara 1A. | — | Apéndice II, paso 12a | 49 | duda de criterio — a decision humana |
+| `setup.escenario.06` | Resolver Preparación del escenario (cara 1A) | Resolved cualquier habilidad de Preparación en la carta de escenario, cara 1A. | — | Resolved la habilidad de Preparación de la carta de escenario, cara 1A. | — | Apéndice II, paso 12a | 49 | contrastado (resuelta en la Tarea 2: aceptable tal como está, ver sección 9) |
 | `setup.escenario.07` | Voltear a cara B y colocar amenaza | Voltead el escenario a su cara B y colocad la amenaza inicial indicada. | — | Voltead el escenario a su cara B y colocad la amenaza inicial indicada. | sí | Apéndice II, paso 12b (voltear a cara 1B); ver también "Main Scheme" (p.27) | 49 | contrastado |
-| `setup.escenario.08` | Resolver Cuando se revela del escenario | Resolved cualquier habilidad de Cuando se revela en esa cara del escenario. | — | Resolved la habilidad de Cuando se revela de esa cara del escenario. | — | Apéndice II, paso 12b (resolver "When Revealed" al voltear); ver también "Main Scheme" (p.27) | 49 | duda de criterio — a decision humana |
-| `setup.escenario.09` | Resolver Preparación y Cuando se revela del villano | Resolved cualquier habilidad de Preparación y de Cuando se revela en la carta de villano. | — | Resolved las habilidades de Preparación y de Cuando se revela en la carta de villano. | — | Apéndice II, paso 12c | 49 | duda de criterio — a decision humana |
+| `setup.escenario.08` | Resolver Cuando se revela del escenario | Resolved cualquier habilidad de Cuando se revela en esa cara del escenario. | — | Resolved la habilidad de Cuando se revela de esa cara del escenario. | — | Apéndice II, paso 12b (resolver "When Revealed" al voltear); ver también "Main Scheme" (p.27) | 49 | contrastado (resuelta en la Tarea 2: aceptable tal como está, ver sección 9) |
+| `setup.escenario.09` | Resolver Preparación y Cuando se revela del villano | Resolved cualquier habilidad de Preparación y de Cuando se revela en la carta de villano. | — | Resolved las habilidades de Preparación y de Cuando se revela en la carta de villano. | — | Apéndice II, paso 12c | 49 | contrastado (resuelta en la Tarea 2: aceptable tal como está, ver sección 9) |
 | `setup.manos.01` | Barajar mazo de jugador | Barajad vuestro mazo de jugador. | — | Barajad vuestro mazo de jugador. | sí | Apéndice II, paso 6 | 49 | contrastado |
 | `setup.manos.02` | Robar mano inicial | Robad cartas hasta completar vuestra mano inicial. | — | Robad hasta completar vuestra mano inicial. | — | Apéndice II, paso 14 | 49 | contrastado |
 | `setup.manos.03` | Mulligan | Podéis descartar cartas de vuestra mano y robar de nuevo hasta vuestra mano inicial. | No barajéis las descartadas de vuelta al mazo todavía | Podéis descartar y robar de nuevo hasta vuestra mano inicial. | — | Apéndice II, paso 15 | 49 | contrastado |
 | `setup.jugador-inicial.01` | Decidir jugador inicial | Resolved habilidades de Preparación en juego y decidid quién es el jugador inicial. | — | Resolved las habilidades de Preparación en juego y decidid el jugador inicial. | — | Apéndice II, pasos 16 y 3 (jugador inicial, reordenado) | 49 | contrastado |
 
-Ningún veredicto queda vacío: 20 filas `contrastado`, 3 filas `duda de criterio — a decisión humana` (sección 8), 0 filas `discrepancia` — no se encontró ninguna diferencia objetiva de significado entre `speech`/`text` y el Rules Reference en esta revisión.
+Ningún veredicto queda vacío. Estado tras la Tarea 1: 20 filas `contrastado`, 3 filas `duda de criterio — a decisión humana` (sección 8), 0 filas `discrepancia`. **Estado final tras la Tarea 2/3** (ver acta, sección 9): las 3 dudas de criterio fueron aceptadas tal como están por la revisión humana, sin pedir reformulación — quedan las 23 filas en `contrastado`, 0 en `duda de criterio`, 0 en `discrepancia`.
 
 ---
 
@@ -133,12 +133,18 @@ Tres filas de la tabla 2 llevan veredicto `duda de criterio — a decisión huma
 
 **Pregunta 1 — `setup.escenario.06`.** `text`: "Resolved **cualquier** habilidad de Preparación en la carta de escenario, cara 1A." `speech`: "Resolved **la** habilidad de Preparación de la carta de escenario, cara 1A."
 > ¿Es aceptable perder el matiz "cualquier" (puede no haber ninguna habilidad) en la frase locutada, dado que el paso es un no-op inocuo cuando no hay habilidad que resolver? Opciones: (a) Aceptable tal como está; (b) Reformular a "Resolved cualquier habilidad de Preparación..." pese a acercarse más al límite de 120 caracteres.
+>
+> **Resuelta en la Tarea 2 (ver acta, sección 9): (a) Aceptable tal como está. Sin cambio de contenido.**
 
 **Pregunta 2 — `setup.escenario.08`.** `text`: "Resolved **cualquier** habilidad de Cuando se revela en esa cara del escenario." `speech`: "Resolved **la** habilidad de Cuando se revela de esa cara del escenario."
 > Misma pregunta que la 1, aplicada a este paso. Opciones: (a) Aceptable; (b) Reformular.
+>
+> **Resuelta en la Tarea 2 (ver acta, sección 9): (a) Aceptable tal como está. Sin cambio de contenido.**
 
 **Pregunta 3 — `setup.escenario.09`.** `text`: "Resolved **cualquier** habilidad de Preparación y de Cuando se revela en la carta de villano." `speech`: "Resolved **las** habilidades de Preparación y de Cuando se revela en la carta de villano."
 > Misma pregunta, con la variante de que aquí la `speech` ya cambia a plural ("las habilidades") porque son dos categorías. Opciones: (a) Aceptable; (b) Reformular.
+>
+> **Resuelta en la Tarea 2 (ver acta, sección 9): (a) Aceptable tal como está. Sin cambio de contenido.**
 
 No hay más preguntas abiertas de criterio: el resto de la tabla 2 y toda la tabla 3 quedaron `contrastado` sin reservas tras la consulta de la sección 6.
 
@@ -146,45 +152,71 @@ No hay más preguntas abiertas de criterio: el resto de la tabla 2 y toda la tab
 
 ## 9. Acta de la prueba en tablet
 
-*(Sección vacía — la rellena la Tarea 2, con un humano jugando en la tablet real. Ningún hueco puede quedar en blanco al cerrar esa tarea.)*
+Rellenada en la Tarea 2 a partir de la respuesta textual y verbatim del humano tras la prueba en la tablet real (transcrita íntegra al final de esta sección). El humano dio un **veredicto global** sobre los 4 criterios del ROADMAP ("aprobado, lo veo bastante bien") sin transcribir un resultado paso a paso de los ~20 pasos del guion de `<how-to-verify>`. Por disciplina de honestidad, esta acta **no inventa** observaciones granulares que el humano no hizo explícitas: donde no hay dato, se anota "no proporcionado" o "no verificado" en vez de rellenar con una suposición.
 
-**Modelo de tablet:** _(pendiente)_
-**Versión de SO / navegador:** _(pendiente)_
-**Fecha de la prueba:** _(pendiente)_
+**Modelo de tablet:** No proporcionado. El humano no reportó modelo ni versión de SO/navegador en su respuesta. **Este bloqueante, abierto desde `STATE.md` en la Fase 1, sigue sin cerrarse** — se traslada como ítem pendiente al SUMMARY de este plan.
+**Versión de SO / navegador:** No proporcionado (mismo motivo).
+**Fecha de la prueba:** 2026-08-30 (fecha de la sesión en la que se recibió el veredicto; coincide con la fecha del commit de la Tarea 1).
 
 ### Criterio 1 — frase corta y curada, control de silencio, preferencia persistida (VOZ-01/02/03)
-**Veredicto:** _(pendiente: aprobado / aprobado con correcciones / rechazado)_
-**Detalle:** _(pendiente)_
+**Veredicto:** Aprobado (dentro de la aprobación global de los 4 criterios).
+**Detalle:** El humano no describió resultado paso a paso de los 23 pasos de preparación ni del control de silencio de la cabecera; su respuesta cubre este criterio dentro de "aprobado, lo veo bastante bien" sin señalar ningún fallo. No hay observación granular disponible más allá de la aprobación explícita.
 
 ### Criterio 2 — nunca encola, nunca repite (VOZ-04)
-**Veredicto:** _(pendiente)_
-**Detalle:** _(pendiente)_
+**Veredicto:** Aprobado (dentro de la aprobación global).
+**Detalle:** Sin observación granular transcrita por el humano; no se reportó ningún encolado ni repetición de frases. Aprobación implícita en el veredicto global, sin detalle paso a paso.
 
 ### Criterio 3 — sin voz española, sigue siendo usable (VOZ-05/06)
-**Veredicto:** _(pendiente)_
-**Detalle:** _(pendiente)_
+**Veredicto:** Aprobado (dentro de la aprobación global) para el caso principal (dispositivo con voz española disponible). **Sub-check del paso 14 (segundo dispositivo sin voz española instalada): NO VERIFICADO** — el humano no reportó haber probado en un segundo dispositivo ni en un navegador de escritorio sin síntesis; no se da por comprobado el comportamiento de la banda "Sin voz en este dispositivo" en un entorno real sin voz española.
+**Detalle:** Aprobación general del criterio en el dispositivo usado. El sub-check de ausencia de voz queda como comprobación pendiente, no como fallo.
 
 ### Criterio 4 — la pantalla no se apaga y el usuario lo sabe (UI-06/07/08)
-**Veredicto:** _(pendiente)_
-**Detalle:** _(pendiente)_
+**Veredicto:** Aprobado (dentro de la aprobación global).
+**Detalle:** Sin observación granular transcrita (tiempo de pantalla encendida, texto de aviso de batería, comportamiento al bloquear/desbloquear). Aprobación implícita en el veredicto global, sin detalle paso a paso.
 
 ### D-46 — la preferencia de voz sobrevive a «Empezar partida nueva» (paso 7 del guion, única comprobación de comportamiento de D-46 en toda la fase)
-**Veredicto:** _(pendiente)_
-**Detalle:** _(pendiente)_
+**Veredicto:** Aprobado, bajo la aprobación global del Criterio 1.
+**Detalle:** El humano no aisló el paso 7 (recargar página con voz silenciada + descartar progreso con «Empezar partida nueva» + comprobar que sigue silenciada) como observación separada, ni describió explícitamente haber ejecutado esa secuencia. Tampoco reportó ningún problema de reactivación involuntaria de la voz. Se registra como aprobado por inclusión en el veredicto global de los 4 criterios, **sin confirmación granular independiente de este paso concreto** — queda anotado así, sin suavizar, en cumplimiento de la restricción de honestidad de este plan.
 
 ### Respuesta a la pregunta de la sección 5 (VOZ-01 — recuento de frases idénticas al `text`)
-**Respuesta:** _(pendiente — obligatoria aunque la respuesta sea "ninguna, correcto")_
+**Respuesta:** Aceptable tal como está. El humano no pidió reformular ninguna de las 10 frases marcadas `=text` en la sección 5; su aprobación global incluye explícitamente "esto lo aprobaría, y lo daría por hecho" sin excepciones de contenido. Ninguna de las 10 frases requiere cambio.
 
 ### Respuestas a las preguntas abiertas de la sección 8
-**Pregunta 1 (`setup.escenario.06`):** _(pendiente)_
-**Pregunta 2 (`setup.escenario.08`):** _(pendiente)_
-**Pregunta 3 (`setup.escenario.09`):** _(pendiente)_
+**Pregunta 1 (`setup.escenario.06`):** (a) Aceptable tal como está — sin corrección solicitada.
+**Pregunta 2 (`setup.escenario.08`):** (a) Aceptable tal como está — sin corrección solicitada.
+**Pregunta 3 (`setup.escenario.09`):** (a) Aceptable tal como está — sin corrección solicitada.
 
 ### Lista de correcciones pedidas (por id de paso y campo, para aplicar en la Tarea 3)
-_(pendiente — "ninguna" si no hay correcciones)_
+**Ninguna.** El humano no pidió ninguna corrección de contenido a `content/marvel-champions.json`. Su respuesta es una aprobación global de los 4 criterios sin señalar discrepancia de reglas ni de frase alguna.
+
+### Hallazgo fuera de alcance de esta fase: calidad de la voz del dispositivo (seguimiento para fase futura)
+El humano señaló explícitamente que la **calidad de la voz sintetizada del dispositivo** le parece mala ("la voz da asco", "la que hay es terrible"), y preguntó si existe alguna forma de generar frases con voces más humanas (mencionó tener una API key de Gemini disponible, y estaría dispuesto a pagar una API para generar las ~20 frases si hiciera falta).
+
+Este hallazgo **no es un defecto de fidelidad de reglas ni de contenido**, y **no es un fallo de ninguno de los 4 criterios de éxito de la Fase 3 del ROADMAP** — los criterios piden que se oiga una frase corta y curada en español, lo cual el humano confirma que ocurre; la queja es sobre el timbre/calidad de la voz del sistema operativo (`speechSynthesis` con voz por defecto del dispositivo), una decisión de arquitectura ya documentada y aceptada en `TECHNOLOGY.md` (usar la voz por defecto del SO, sin selector de voz, por las inconsistencias de `getVoices()` entre Safari/Android). Cambiar de una síntesis local del navegador a una API de voz (p. ej. Gemini TTS) en la nube sería un **cambio arquitectónico** (nueva dependencia de red, coste por llamada, pérdida de la garantía de funcionamiento offline que el proyecto exige) y queda **fuera de alcance de este plan y de esta fase**.
+
+**Se registra aquí como ítem de seguimiento explícito para una fase o quick futura:** evaluar sustituir o complementar la síntesis de voz nativa del navegador por una voz en español de mayor calidad (posible candidata: API de Gemini, para la que el usuario ya dispone de credencial), sopesando el impacto en el requisito de funcionamiento 100% offline del proyecto.
+
+### Respuesta verbatim del humano (transcripción íntegra, sin editar)
+
+> "aprobado, lo veo bastante bien, aunque la voz da asco, no tiene claude code api de generar frases con voces más humanas? O si no para 20 frases puedo pagar alguna API que lo haga, tengo API de Gemini por si puede hacerlo, osea esto lo aprobaria, y lo daria por hecho pero a la vez habriria un quick o una fase de meter una voz buena en español, la que hay es terrible"
 
 ---
 
 ## 10. Nota metodológica final
 
 Cada página consultada en la sección 6 se extrajo por separado con `pdftotext -layout -f N -l N`, nunca en un único comando sobre el documento completo. La Fase 2 (`02-CONTENT-REVIEW.md`, nota metodológica final) documentó que la extracción en bloque desordena ligeramente las columnas en los límites de página, lo que en aquella revisión produjo una hipótesis de página equivocada para una cita ("Boost Cards" parecía estar en la p. 8 en la extracción en bloque, y en realidad está en la p. 9). Esta revisión reutiliza el mismo método preventivo: cada cita de la tabla 6 se verificó comprobando que el número de pie de página impreso coincide exactamente con el número reclamado, antes de dar cualquier fila por `contrastado`. El fichero `.txt` intermedio de cada extracción se generó fuera del repositorio, en el scratchpad de la sesión, y no se ha comiteado.
+
+---
+
+## 11. Correcciones aplicadas (Tarea 3)
+
+**Ninguna.** El acta de la Tarea 2 (sección 9) no pidió ninguna corrección de contenido: el humano dio una aprobación global de los 4 criterios del ROADMAP, aceptó las 10 frases marcadas `=text` de la sección 5 sin pedir reformulación, y aceptó las 3 dudas de criterio de la sección 8 tal como estaban escritas (opción (a) en las tres).
+
+En consecuencia:
+- `content/marvel-champions.json` **no se ha modificado** en esta tarea. `git diff --quiet content/marvel-champions.json` sale con código 0.
+- `engine/__tests__/content.test.ts` **no se ha modificado**. `git diff --quiet engine/__tests__/content.test.ts` sale con código 0.
+- `contentVersion` se mantiene en **11** (no sube a 12, porque no hubo ninguna corrección de contenido — regla 5 del plan `03-05`, Tarea 3).
+- Las 3 filas que llevaban veredicto `duda de criterio — a decisión humana` en la tabla 2 (`setup.escenario.06`, `.08`, `.09`) se actualizaron a `contrastado` en la sección 2 de este documento, con nota de que la decisión humana las aceptó sin cambios (ver sección 9). Ninguna fila del dossier conserva el veredicto `duda de criterio — a decisión humana`.
+- `npm test` se ejecutó tras esta tarea y queda en verde (ver SUMMARY del plan `03-05` para el resultado completo).
+
+**Brecha abierta trasladada al SUMMARY de fase, sin corrección de código en este plan** (regla 7 de la Tarea 3 — no es un fallo de criterio del ROADMAP, así que no es una "brecha" en sentido estricto, pero se documenta igual por honestidad): el modelo y la versión de SO/navegador de la tablet de la mesa siguen sin conocerse (bloqueante abierto desde `STATE.md`, Fase 1); el sub-check del paso 14 (banda de "sin voz en este dispositivo" en un segundo dispositivo sin voz española) queda sin verificar; y el paso 7 (D-46) no tiene confirmación granular independiente, solo la aprobación global. Ninguno de los tres impide dar la fase por aprobada según el veredicto explícito del humano, pero quedan anotados para no perderse.
