@@ -2,7 +2,7 @@
   "gameId": "marvel-champions",
   "title": "Marvel Champions: El Juego de Cartas",
   "locale": "es",
-  "contentVersion": 10,
+  "contentVersion": 11,
   "minPlayers": 1,
   "maxPlayers": 4,
   "sections": [
@@ -124,10 +124,12 @@
               "variants": {
                 "difficulty": {
                   "normal": {
-                    "text": "No añadáis ningún conjunto adicional en este paso."
+                    "text": "No añadáis ningún conjunto adicional en este paso.",
+                    "speech": "No añadáis ningún conjunto adicional en este paso."
                   },
                   "expert": {
-                    "text": "Añadid también el conjunto de encuentro Experto."
+                    "text": "Añadid también el conjunto de encuentro Experto.",
+                    "speech": "Añadid también el conjunto de encuentro Experto."
                   }
                 }
               },
@@ -214,10 +216,12 @@
               "variants": {
                 "difficulty": {
                   "normal": {
-                    "text": "Dejad las cartas de villano numeradas (etapas) tal como vienen con el escenario."
+                    "text": "Dejad las cartas de villano numeradas (etapas) tal como vienen con el escenario.",
+                    "speech": "Dejad las cartas de villano numeradas tal como vienen con el escenario."
                   },
                   "expert": {
-                    "text": "Sustituid las cartas de villano numeradas por las del modo Experto de este escenario."
+                    "text": "Sustituid las cartas de villano numeradas por las del modo Experto de este escenario.",
+                    "speech": "Sustituid las cartas de villano numeradas por las del modo Experto de este escenario."
                   }
                 }
               },

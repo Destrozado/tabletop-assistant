@@ -508,8 +508,8 @@ describe('content/marvel-champions.json', () => {
         expect(step.warning).toBe('Atentos a los Estados en los personajes')
       })
 
-      it('contentVersion es exactamente 10 (PERS-03)', () => {
-        expect(marvelChampions.contentVersion).toBe(10)
+      it('contentVersion es exactamente 11 (PERS-03)', () => {
+        expect(marvelChampions.contentVersion).toBe(11)
       })
 
       it('la citation.section de ronda.jugadores.01 casa con /Player Turn \\(p\\. 34\\)/', () => {
