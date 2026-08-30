@@ -27,7 +27,17 @@ findings:
   warning: 7
   info: 7
   total: 15
-status: issues_found
+# El único hallazgo Critical (CR-01) está corregido y verificado. Los 7 Warning
+# y los 7 Info siguen abiertos: el usuario los ha revisado y los ha aceptado
+# tal cual, de forma explícita, sin corregirlos en esta fase.
+status: critical_resolved
+resolved:
+  - id: CR-01
+    commit: aa350a4
+    at: 2026-08-30
+open_accepted_by_user:
+  warning: 7
+  info: 7
 ---
 
 # Phase 02: Code Review Report
@@ -35,7 +45,7 @@ status: issues_found
 **Reviewed:** 2026-08-29T22:06:57Z
 **Depth:** standard
 **Files Reviewed:** 18
-**Status:** issues_found
+**Status:** critical_resolved — CR-01 corregido en `aa350a4`; WR-01…WR-07 e IN-01…IN-07 siguen abiertos y aceptados por el usuario
 
 ## Summary
 
@@ -85,6 +95,39 @@ into `app/`, and no component imports `~~/engine/*` except through `useGameSessi
 ### Critical Issues
 
 #### CR-01: Content schema strips unknown keys, so the CI gate cannot see what ships to the tablet
+
+> **RESUELTO** en `aa350a4` (2026-08-30).
+>
+> Los ocho `z.object(` de `engine/schema.ts` pasan a `z.strictObject(`: los seis
+> del hallazgo (`CitationSchema`, `TextBlockSchema`, `StepSchema`, `PhaseSchema`,
+> `SectionSchema`, `GameDefinitionSchema`) más los dos objetos anidados en línea
+> (la entrada de `options[]` y `variants`/`variants.difficulty`), que si no
+> habrían dejado agujeros por los que se colaba la misma errata. Verificado en
+> zod 4.4.3 que `.extend()` y `.partial()` conservan la estrictez, así que
+> `StepSchema` y las variantes de dificultad heredan el rechazo; la estrictez se
+> aplica al objeto interior, antes de `.superRefine()`.
+>
+> La aserción de D-33 en `content.test.ts` lee ahora el JSON **crudo** (helper
+> `findRawStep`), de modo que puede fallar de verdad. Se añaden 14 gates que
+> muerden: 3 en `content.test.ts` sobre copias en memoria del contenido real
+> (`branches`, la errata `warningDetails`, clave desconocida en la raíz) y 11 en
+> `schema.test.ts`, uno por esquema más options, variantes, nivel de dificultad
+> desconocido y una aserción de que el objeto validado es idéntico al de entrada
+> salvo por el default de `kind`. Revirtiendo el esquema a `z.object` fallan 13
+> de los 14.
+>
+> `useGameContent.ts` se deja intacto a propósito: pasar el contenido por
+> `validateGameDefinition` en el navegador metería `zod` en el bundle del cliente
+> y violaría la decisión de stack de `CLAUDE.md` (devDependency, solo Node/test,
+> "never imported into client-bundled Vue components"). Con el esquema estricto
+> la divergencia crudo-vs-validado desaparece por construcción; la única que
+> queda es el default de `kind`, ya documentado y ya resuelto en `app/` con
+> `?? 'step'`, y ahora fijada por test.
+>
+> `content/marvel-champions.json` sin tocar y `contentVersion` sigue en 10: el
+> contenido real valida sin errores contra el esquema estricto.
+> `npx vitest run` 147 verdes (133 de base + 14); `npx nuxt build` limpio y
+> `zod` sigue sin aparecer en `.output/public/_nuxt`.
 
 **File:** `engine/schema.ts:12-89` (every `z.object` call), `engine/__tests__/content.test.ts:295-300`, `app/composables/useGameContent.ts:9-13`
 
@@ -153,6 +196,10 @@ Add a gate-that-bites alongside it: `expect(() => validateGameDefinition({ ...ra
 ---
 
 ### Warnings
+
+> Los siete Warning y los siete Info de abajo siguen **abiertos**. El usuario
+> los ha revisado y los ha aceptado tal cual, de forma explícita: la corrección
+> de esta ronda se limitó a CR-01 por decisión suya, no por falta de tiempo.
 
 #### WR-01: Duplicate option labels inside a difficulty variant bypass the schema refinement and collide as `v-for` keys
 
