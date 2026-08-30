@@ -1,9 +1,18 @@
 ---
 phase: 03-locuci-n-por-voz-y-pantalla-siempre-encendida
 verified: 2026-08-30T20:47:24Z
-status: human_needed
-score: 4/4 truths verified at code level (1 with an unresolved real-device sub-check)
+status: gaps_found
+score: 3/4 criterios cumplidos — Criterio 2 (VOZ-04) FALLA en dispositivo real
 overrides_applied: 0
+gaps:
+  - id: G-01
+    criterion: "ROADMAP Fase 3, Criterio 2 (VOZ-04)"
+    status: failed
+    severity: blocking
+    device: "Samsung Galaxy S21 / Android 15"
+    summary: "Al tocar SIGUIENTE a mitad de frase, la locucion en curso se corta pero la del paso destino NO arranca. Si se espera a que termine, la siguiente si suena."
+    root_cause: "speak() de @vueuse/core ejecuta synth.cancel() y synth.speak() de forma sincrona y consecutiva. En Chrome/Android el cancel() se procesa de forma asincrona y descarta la utterance recien encolada."
+    constraint: "El arreglo NO puede diferir speak() con setTimeout: iOS Safari exige speak() sincrono dentro del handler del toque (CLAUDE.md)."
 human_verification:
   - test: "Probar la banda «Sin voz en este dispositivo» y el icono de voz en estado no-disponible en un segundo dispositivo/navegador que NO tenga voz española instalada (p. ej. Android sin el paquete de voz TTS es-ES descargado, o un navegador de escritorio sin síntesis)."
     expected: "El icono de la cabecera pasa a atenuado/deshabilitado, aparece una sola vez la banda con la instrucción de Ajustes → Idiomas → Texto a voz, se puede descartar con ✕, y SIGUIENTE sigue siendo tocable y el flujo sigue funcionando solo con texto."
