@@ -160,6 +160,16 @@ None - las mitigaciones T-03-01 (límite de 120 caracteres) y T-03-02 (gate D-41
 - `contentVersion: 11` ejercitará el camino "El contenido ha cambiado" (D-43) en cualquier sesión guardada con la versión 10, útil para la prueba de tablet del plan 03-05
 - El dossier de revisión humana de 03-05 puede citar directamente la tabla de este SUMMARY (27 frases, recuento de coincidencias literales) sin tener que releer el JSON
 
+## Self-Check: PASSED
+
+- FOUND: content/marvel-champions.json
+- FOUND: engine/__tests__/content.test.ts
+- FOUND: .planning/phases/03-locuci-n-por-voz-y-pantalla-siempre-encendida/03-01-SUMMARY.md
+- FOUND commit: b2db91a (Task 1)
+- FOUND commit: c99a81c (Task 2)
+- FOUND commit: 8a43185 (Task 3)
+- FOUND commit: a085524 (docs: summary)
+
 ---
 *Phase: 03-locuci-n-por-voz-y-pantalla-siempre-encendida*
 *Completed: 2026-08-30*
