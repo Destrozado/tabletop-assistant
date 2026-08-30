@@ -40,7 +40,13 @@ const { load, save, clear } = usePersistedSession()
 // nunca los obtiene por su cuenta (D-42's own single-seam discipline). La
 // API de voz se queda encapsulada en el composable — esta página nunca
 // importa useSpeechSynthesis.
-const { voiceState, announce, toggle: toggleVoice } = useVoiceAnnouncer(currentNode, currentText)
+const {
+  voiceState,
+  announce,
+  toggle: toggleVoice,
+  showVoiceUnavailableNotice,
+  dismissNotice,
+} = useVoiceAnnouncer(currentNode, currentText)
 
 // Estado local del mini-setup (SETUP-01/02), previo a iniciar la sesión real.
 const playerCount = ref<number | null>(null)
@@ -342,6 +348,10 @@ function onContentChangedAcknowledge() {
         :voice-state="voiceState"
         @index-open="onIndexOpen"
         @voice-toggle="toggleVoice"
+      />
+      <VoiceUnavailableNotice
+        v-if="showVoiceUnavailableNotice"
+        @dismiss="dismissNotice"
       />
       <StepScreen
         :action-text="currentText.text"
