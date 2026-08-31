@@ -10,7 +10,8 @@
     "test": "vitest run",
     "postinstall": "nuxt prepare",
     "voice:generate": "node scripts/voice/generate.mjs",
-    "voice:probe": "node scripts/voice/generate.mjs --probe"
+    "voice:probe": "node scripts/voice/generate.mjs --probe",
+    "icons:generate": "node scripts/pwa/generate-icons.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
