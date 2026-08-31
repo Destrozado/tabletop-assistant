@@ -28,6 +28,7 @@ decisions:
 metrics:
   duration: "~25 min"
   completed: "2026-08-31"
+status: complete
 ---
 
 # Quick 260831-mgd: Quitar guarda de orientación Summary

@@ -53,6 +53,7 @@ decisions:
 metrics:
   duration_minutes: 10
   completed: 2026-08-31
+status: complete
 ---
 
 # Phase quick-260831-pym Plan 01: Retoques de contenido tras playtest Summary

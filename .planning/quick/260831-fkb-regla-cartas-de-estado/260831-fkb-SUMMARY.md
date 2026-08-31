@@ -46,6 +46,7 @@ requirements-completed: []
 # Metrics
 duration: N/A (sesión previa + continuación)
 completed: 2026-08-31
+status: complete
 ---
 
 # Quick Task 260831-fkb: Regla de cartas de Estado Summary
