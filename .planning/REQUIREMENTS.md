@@ -85,10 +85,10 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 
 ### Instalación y funcionamiento offline
 
-- [ ] **OFF-01**: El usuario puede instalar la app en la tablet y abrirla a pantalla completa, sin barra del navegador
-- [ ] **OFF-02**: Con la app ya visitada una vez, el flujo completo funciona sin conexión a internet
-- [ ] **OFF-03**: Si se cae la conexión a mitad de partida, la app sigue funcionando sin interrupción
-- [ ] **OFF-04**: Cuando hay una versión nueva publicada, la app avisa y espera la decisión del usuario; nunca se recarga sola a mitad de ronda
+- [x] **OFF-01**: El usuario puede instalar la app en la tablet y abrirla a pantalla completa, sin barra del navegador
+- [x] **OFF-02**: Con la app ya visitada una vez, el flujo completo funciona sin conexión a internet
+- [x] **OFF-03**: Si se cae la conexión a mitad de partida, la app sigue funcionando sin interrupción
+- [x] **OFF-04**: Cuando hay una versión nueva publicada, la app avisa y espera la decisión del usuario; nunca se recarga sola a mitad de ronda
 
 ### Base técnica
 
