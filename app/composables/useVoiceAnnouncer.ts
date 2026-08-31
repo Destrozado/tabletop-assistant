@@ -217,8 +217,13 @@ export function scheduleSpeakWatchdog(
 export function useVoiceAnnouncer(
   currentNode: ComputedRef<RuntimeStepNode | null>,
   currentText: ComputedRef<TextBlock>,
+  currentAudioId: ComputedRef<string | null>,
 ) {
   const { loadVoicePreference, saveVoicePreference } = usePersistedSession()
+  // Plan 03.1-05: capa de audio pregenerado (plan 03.1-04). `getObjectUrl`
+  // es SÍNCRONA (Pitfall 1) — la única lectura permitida dentro del camino
+  // que va del toque a `.play()`.
+  const { getObjectUrl, staticUrlFor, audioAvailable } = usePreloadedAudio()
 
   // Única fuente de la frase locutada — nunca currentText.value.text.
   const spokenLine = computed(() => currentText.value.speech ?? '')
@@ -242,6 +247,62 @@ export function useVoiceAnnouncer(
 
   tryOnScopeDispose(clearPendingRetry)
 
+  // Plan 03.1-05: elemento <audio> ÚNICO y reutilizado (no un pool: solo
+  // suena una locución a la vez, VOZ-04). Creado en onMounted, nunca en el
+  // cuerpo del setup — esta página prerrenderiza (`nuxt generate`) y `Audio`
+  // no existe durante el build. `audioStarted` la lee scheduleAudioWatchdog
+  // (T-03.1-17: clip que ni arranca ni falla).
+  let audioEl: HTMLAudioElement | null = null
+  let audioStarted = false
+  let cancelAudioWatchdog: () => void = () => {}
+
+  function clearPendingAudioWatchdog(): void {
+    cancelAudioWatchdog()
+    cancelAudioWatchdog = () => {}
+  }
+
+  onMounted(() => {
+    const el = new Audio()
+    el.preload = 'auto'
+    const onPlaying = (): void => {
+      audioStarted = true
+    }
+    el.addEventListener('playing', onPlaying)
+    audioEl = el
+    // WR-01: mismo patrón que el resto del fichero — tryOnScopeDispose, no
+    // onUnmounted, para poder desechar el recurso desde un EffectScope
+    // desnudo (tests) igual que un componente real.
+    tryOnScopeDispose(() => {
+      clearPendingAudioWatchdog()
+      try {
+        el.pause()
+      }
+      catch {
+        // Pausar un elemento sin fuente cargada puede lanzar en algunos
+        // navegadores: nunca debe romper el desmontaje.
+      }
+      el.removeEventListener('playing', onPlaying)
+      el.src = ''
+      audioEl = null
+    })
+  })
+
+  // stopAudio() (VOZ-04/D-45): corte síncrono del elemento de audio y de
+  // cualquier watchdog de audio pendiente. Se llama al principio de
+  // announce() (navegar corta lo que hubiera sonando, decida lo que decida
+  // la guarda) y desde silence() (corte inmediato al silenciar).
+  function stopAudio(): void {
+    clearPendingAudioWatchdog()
+    if (!audioEl) return
+    try {
+      audioEl.pause()
+    }
+    catch {
+      // Mismo talante defensivo que el resto del fichero: un fallo al
+      // pausar nunca debe romper next()/prev() (VOZ-06).
+    }
+  }
+
   // D-47: valor optimista hasta que se lee el almacenamiento. Cargado en
   // onMounted (guard de cliente obligatorio), nunca en el cuerpo del setup.
   const prefEnabled = ref(true)
@@ -252,7 +313,11 @@ export function useVoiceAnnouncer(
   // Detección de voz española (VOZ-05/VOZ-06): null es el estado real
   // "detección sin resolver" (pinta optimista 'on', UI-SPEC §Layout 1), y solo
   // cambia una vez cuando detectSpanishVoice resuelve su carrera acotada.
-  const available = ref<boolean | null>(null)
+  // Plan 03.1-05: renombrado de `available` a `spanishVoiceAvailable` — ya
+  // no es LA disponibilidad, es una de las dos fuentes que resuelve
+  // `resolveEffectiveAvailability` más abajo. Su lógica y su carrera acotada
+  // NO se tocan.
+  const spanishVoiceAvailable = ref<boolean | null>(null)
   onMounted(() => {
     // WR-01: si el componente se desmonta (navegación antes de que la carrera
     // de 2s resuelva), `tryOnScopeDispose` cancela el listener `voiceschanged`
@@ -264,11 +329,19 @@ export function useVoiceAnnouncer(
     const cancelDetection = detectSpanishVoice(
       typeof window === 'undefined' ? undefined : window.speechSynthesis,
       (result) => {
-        available.value = result
+        spanishVoiceAvailable.value = result
       },
     )
     tryOnScopeDispose(cancelDetection)
   })
+
+  // Plan 03.1-05 (D-07/D-08): la disponibilidad efectiva combina las DOS
+  // fuentes — ver el comentario-contrato de resolveEffectiveAvailability.
+  // Con audio pregenerado disponible, el control de silencio nunca cae en
+  // 'unavailable' (criterio 1); la banda de "sin voz en español" solo
+  // aparece si fallan las dos fuentes.
+  const available = computed<boolean | null>(() =>
+    resolveEffectiveAvailability(audioAvailable.value, spanishVoiceAvailable.value))
 
   const voiceState = computed<VoiceState>(() => resolveVoiceState(prefEnabled.value, available.value))
 
@@ -282,20 +355,13 @@ export function useVoiceAnnouncer(
   }
   const showVoiceUnavailableNotice = computed(() => available.value === false && !noticeDismissed.value)
 
-  function announce(): void {
-    const kind = currentNode.value?.step.kind ?? null
-    const willAnnounce = shouldAnnounce({
-      kind,
-      state: voiceState.value,
-      line: spokenLine.value,
-      isSupported: isSupported.value,
-    })
-    // G-01: cualquier watchdog pendiente de un announce() anterior queda
-    // obsoleto en cuanto se llama a announce() de nuevo — un reintento
-    // tardio de un paso ya abandonado violaria VOZ-04 (encolado/repetido)
-    // igual que la carrera original.
-    clearPendingRetry()
-    if (!willAnnounce) return
+  // speakFallback() (Fase 3, G-01): EXTRAÍDO tal cual del cuerpo previo de
+  // announce() — ni una línea de esta lógica cambia, es el arreglo G-01 ya
+  // verificado en dispositivo real (Samsung Galaxy S21/Android 15). Es el
+  // respaldo de D-07/D-08: se llama cuando no hay audio pregenerado y desde
+  // el `.catch()`/watchdog del camino de audio (rechazo o clip que no
+  // arranca = ausencia, nunca un error visible).
+  function speakFallback(): void {
     try {
       speak()
     }
@@ -316,7 +382,77 @@ export function useVoiceAnnouncer(
     cancelWatchdog = scheduleSpeakWatchdog(speak, () => status.value)
   }
 
+  // announce() (plan 03.1-05, VOZ-07/VOZ-08): TODO síncrono hasta la llamada
+  // a `.play()` — prohibido cualquier `await` en este camino (Pitfall 1,
+  // CLAUDE.md §TTS gotchas, extendido de speak() a <audio>.play()).
+  function announce(): void {
+    const kind = currentNode.value?.step.kind ?? null
+    const audioId = currentAudioId.value
+    // Primer escalón: blob ya precargado (lectura SÍNCRONA de un Map,
+    // usePreloadedAudio.ts). Segundo escalón: si la precarga todavía no
+    // tiene el blob pero hay red, la URL estática directa suena mucho mejor
+    // que caer a la voz del sistema — el elemento de audio la resuelve por
+    // su cuenta de forma asíncrona al reproducir, sin que este composable
+    // tenga que esperar nada.
+    const objectUrl = audioId ? getObjectUrl(audioId) : undefined
+    const audioSrc = objectUrl ?? (audioId ? staticUrlFor(audioId) : undefined)
+    const willAnnounce = shouldAnnounce({
+      kind,
+      state: voiceState.value,
+      line: spokenLine.value,
+      isSupported: isSupported.value,
+      hasAudio: audioSrc !== undefined,
+    })
+    // G-01/VOZ-04: cualquier watchdog pendiente (de voz o de audio) de un
+    // announce() anterior queda obsoleto en cuanto se llama a announce() de
+    // nuevo, y navegar corta lo que hubiera sonando — decida lo que decida
+    // la guarda de abajo.
+    clearPendingRetry()
+    stopAudio()
+    if (!willAnnounce) return
+
+    if (audioSrc !== undefined && audioEl) {
+      // La fuente cambia de motor (audio pregenerado en vez de síntesis):
+      // cortar cualquier utterance en curso para que no se solapen.
+      try {
+        stop()
+      }
+      catch {
+        // Misma landmine de TypeError que en silence() cuando la síntesis
+        // no está soportada.
+      }
+      audioEl.src = audioSrc
+      try {
+        // Necesario para re-locutar el mismo paso (p. ej. tras «Continuar»
+        // de una reanudación) — sin esto un `src` idéntico no reinicia
+        // la reproducción.
+        audioEl.currentTime = 0
+      }
+      catch {
+        // Un elemento recién creado sin metadata cargada puede lanzar aquí
+        // en algunos navegadores: no debe romper next()/prev() (VOZ-06).
+      }
+      audioStarted = false
+      // D-07: un rechazo de reproducción (autoplay bloqueado, fichero
+      // ausente, fallo de red) es una AUSENCIA, no un error — cae al
+      // respaldo en silencio, sin salida por consola, sin banda.
+      audioEl.play().catch(() => speakFallback())
+      // T-03.1-17: el clip puede no rechazar NI resolver nunca (red
+      // presente pero inútil). Pasado el retardo sin `playing`, cae al
+      // respaldo — ya fuera del gesto, por eso es una mejora oportunista
+      // (puede descartarse en iOS) y nunca una garantía.
+      cancelAudioWatchdog = scheduleAudioWatchdog(() => audioStarted, speakFallback)
+      return
+    }
+
+    // Sin audio pregenerado disponible (id ausente, precarga sin terminar
+    // y sin red, o audioEl aún no montado) — mismo camino de la Fase 3.
+    speakFallback()
+  }
+
   function silence(): void {
+    // VOZ-04/D-45: corte inmediato de la locución, venga de donde venga.
+    stopAudio()
     // G-01: si habia un watchdog pendiente (locucion que aun no habia
     // arrancado), silenciar no debe dejarlo vivo para que reaparezca la voz
     // mas tarde por su cuenta — D-45 exige corte inmediato, sin excepciones.
