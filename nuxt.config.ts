@@ -70,6 +70,21 @@ export default defineNuxtConfig({
           name: 'viewport',
           content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
         },
+        // 04-RESEARCH.md Pitfall 2: iOS Safari ignora por completo el array
+        // `icons` del manifiesto al añadir a pantalla de inicio; solo lee
+        // `apple-mobile-web-app-capable` + `<link rel="apple-touch-icon">`
+        // (declarado abajo en `link`). Por eso el `apple-touch-icon` no es
+        // redundante con `manifest.icons`, es obligatorio para iOS.
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        // Equivalente estándar moderno para Android/Chrome.
+        { name: 'mobile-web-app-capable', content: 'yes' },
+        // Barra de estado translúcida para no romper el tema oscuro en iOS.
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+      ],
+      link: [
+        // Ver comentario del meta `apple-mobile-web-app-capable` de arriba:
+        // este link es el que iOS realmente usa como icono instalado.
+        { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
       ],
     },
   },
@@ -98,8 +113,18 @@ export default defineNuxtConfig({
       // podría no ser consistente.
       background_color: '#14161C', // --color-background de app/assets/css/main.css
       theme_color: '#14161C',
-      // NO declarar `icons` todavía: los PNG los produce el plan 04-02;
-      // referenciar ficheros inexistentes rompería la instalabilidad.
+      // Iconos generados por scripts/pwa/generate-icons.mjs (plan 04-02,
+      // D-06: cero dependencias). Sin `orientation` (D-08).
+      icons: [
+        { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+        {
+          src: '/icons/icon-512-maskable.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'maskable',
+        },
+      ],
     },
     // Valor por defecto, declarado explícito porque es lo que expone `$pwa`
     // en el cliente, del que depende el plan 04-05 (banda de actualización).

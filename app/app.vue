@@ -1,5 +1,15 @@
 <template>
   <div>
+    <!--
+      Rule 2 (04-02): componente que inyecta `<link rel="manifest">` apuntando
+      a manifest.webmanifest. @vite-pwa/nuxt lo registra como componente
+      auto-importado pero NO lo coloca solo en ningún sitio — sin esta línea
+      el navegador no descubre el manifiesto y Chrome nunca ofrece instalar la
+      app, con independencia de que el manifiesto tenga `icons` bien
+      declarados (04-RESEARCH.md/documentación oficial del módulo). No
+      renderiza nada visualmente.
+    -->
+    <NuxtPwaManifest />
     <div id="app-root" class="portrait:hidden">
       <NuxtPage />
     </div>
