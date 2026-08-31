@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: milestone
-status: executing
-stopped_at: Phase 4 context gathered
+status: milestone_complete
+stopped_at: v1.7 archivado y etiquetado
 last_updated: "2026-08-31T12:06:33.054Z"
-last_activity: 2026-08-31 -- Phase 04 execution started
+last_activity: 2026-08-31 -- milestone v1.7 cerrado (60/61 requisitos, deuda documentada)
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 5
   total_plans: 30
-  completed_plans: 23
-  percent: 60
+  completed_plans: 30
+  percent: 100
 ---
 
 # Project State
@@ -141,7 +141,12 @@ Items acknowledged and carried forward from previous milestone close:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none — first milestone)* | | | |
+| requisito | VOZ-08: respaldo silencioso (D-07) nunca observado en dispositivo | abierto | 2026-08-31 |
+| verificación | Fase 2: foco del modal de detalle en iPad/Safari real | abierto (necesita iPad) | 2026-08-31 |
+| entorno | Modelo y SO/navegador de la tablet de mesa — sin identificar desde la Fase 1 | abierto | 2026-08-31 |
+| verificación | Control de silencio nunca ejercitado en dispositivo | abierto | 2026-08-31 |
+| threat model | voice-probe.html devuelve 200 por el fallback 200.html de Nuxt; el 404 literal no es alcanzable, el riesgo real sí está cerrado | aceptado | 2026-08-31 |
+| proceso | CONT-09 marcado con matiz: cubre el 100% del contenido existente pero no es auditoría de tercero | aceptado | 2026-08-31 |
 
 ## Session Continuity
 
