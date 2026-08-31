@@ -2,8 +2,58 @@
   "voice": "Rasalgethi",
   "model": "gemini-2.5-flash-preview-tts",
   "style": "plano-agil",
-  "generatedAt": "2026-08-31T07:35:48.951Z",
+  "generatedAt": "2026-08-31T11:50:57.326Z",
   "entries": {
+    "ronda.jugadores.01": {
+      "hash": "845b9b2ca02cc174",
+      "bytes": 129166,
+      "generatedAt": "2026-08-31T11:50:09.181Z"
+    },
+    "ronda.jugadores.02": {
+      "hash": "60770125869690c9",
+      "bytes": 173326,
+      "generatedAt": "2026-08-31T11:50:15.133Z"
+    },
+    "ronda.jugadores.03": {
+      "hash": "a77ed0fcf7b8d402",
+      "bytes": 154126,
+      "generatedAt": "2026-08-31T11:50:20.035Z"
+    },
+    "ronda.jugadores.04": {
+      "hash": "ae38e911529c6186",
+      "bytes": 194446,
+      "generatedAt": "2026-08-31T11:50:24.962Z"
+    },
+    "ronda.villano.01": {
+      "hash": "cebcd1c0c1b9b921",
+      "bytes": 205966,
+      "generatedAt": "2026-08-31T11:50:30.056Z"
+    },
+    "ronda.villano.02": {
+      "hash": "70bb0d228048d145",
+      "bytes": 219406,
+      "generatedAt": "2026-08-31T11:50:36.620Z"
+    },
+    "ronda.villano.03": {
+      "hash": "ca61c4b8de78f27d",
+      "bytes": 198286,
+      "generatedAt": "2026-08-31T11:50:42.030Z"
+    },
+    "ronda.villano.04": {
+      "hash": "ed94b70419bfb01f",
+      "bytes": 263566,
+      "generatedAt": "2026-08-31T11:50:48.082Z"
+    },
+    "ronda.villano.05": {
+      "hash": "0980e64a82789f36",
+      "bytes": 156046,
+      "generatedAt": "2026-08-31T11:50:52.698Z"
+    },
+    "ronda.villano.06": {
+      "hash": "55065282dc6da4f4",
+      "bytes": 138766,
+      "generatedAt": "2026-08-31T11:50:57.326Z"
+    },
     "setup.archienemigos.01": {
       "hash": "ec461a991abbf9b8",
       "bytes": 250126,
@@ -29,10 +79,80 @@
       "bytes": 179086,
       "generatedAt": "2026-08-31T07:35:38.515Z"
     },
+    "setup.encuentros.03.expert": {
+      "hash": "ec6030b3e640fe2c",
+      "bytes": 154126,
+      "generatedAt": "2026-08-31T11:48:18.010Z"
+    },
     "setup.encuentros.03.normal": {
       "hash": "fa184f1f3745a26b",
       "bytes": 163726,
       "generatedAt": "2026-08-31T07:35:48.951Z"
+    },
+    "setup.encuentros.04": {
+      "hash": "ac810be6e0a8b857",
+      "bytes": 217486,
+      "generatedAt": "2026-08-31T11:48:23.174Z"
+    },
+    "setup.encuentros.05": {
+      "hash": "6d3dda9f5bd8d2fe",
+      "bytes": 234766,
+      "generatedAt": "2026-08-31T11:48:29.326Z"
+    },
+    "setup.escenario.01": {
+      "hash": "db8474d1cd268e91",
+      "bytes": 207886,
+      "generatedAt": "2026-08-31T11:48:36.578Z"
+    },
+    "setup.escenario.02": {
+      "hash": "463314bd260715e7",
+      "bytes": 184846,
+      "generatedAt": "2026-08-31T11:48:42.912Z"
+    },
+    "setup.escenario.03": {
+      "hash": "36d04d54624a86c4",
+      "bytes": 225166,
+      "generatedAt": "2026-08-31T11:48:49.146Z"
+    },
+    "setup.escenario.04": {
+      "hash": "c2dbdf9138a38f89",
+      "bytes": 213646,
+      "generatedAt": "2026-08-31T11:48:54.672Z"
+    },
+    "setup.escenario.04.expert": {
+      "hash": "0fe57496f8db2bbd",
+      "bytes": 244366,
+      "generatedAt": "2026-08-31T11:49:06.733Z"
+    },
+    "setup.escenario.04.normal": {
+      "hash": "eebd50b7a5dfba1b",
+      "bytes": 204046,
+      "generatedAt": "2026-08-31T11:49:00.631Z"
+    },
+    "setup.escenario.05": {
+      "hash": "f89f64aaf52d910b",
+      "bytes": 238606,
+      "generatedAt": "2026-08-31T11:49:12.468Z"
+    },
+    "setup.escenario.06": {
+      "hash": "48d34d36811a4d72",
+      "bytes": 215566,
+      "generatedAt": "2026-08-31T11:49:18.213Z"
+    },
+    "setup.escenario.07": {
+      "hash": "7f40e1281e33a937",
+      "bytes": 244366,
+      "generatedAt": "2026-08-31T11:49:29.518Z"
+    },
+    "setup.escenario.08": {
+      "hash": "f7cbe082a374aa1d",
+      "bytes": 184846,
+      "generatedAt": "2026-08-31T11:49:36.104Z"
+    },
+    "setup.escenario.09": {
+      "hash": "577960a6425139d8",
+      "bytes": 278926,
+      "generatedAt": "2026-08-31T11:49:43.622Z"
     },
     "setup.heroes.01": {
       "hash": "f688bd8e46772659",
@@ -48,6 +168,26 @@
       "hash": "4ed051346e7538b8",
       "bytes": 190606,
       "generatedAt": "2026-08-31T07:33:57.574Z"
+    },
+    "setup.jugador-inicial.01": {
+      "hash": "e0a07f89aa185a8f",
+      "bytes": 234766,
+      "generatedAt": "2026-08-31T11:50:04.830Z"
+    },
+    "setup.manos.01": {
+      "hash": "3e00f21ce3d76097",
+      "bytes": 104206,
+      "generatedAt": "2026-08-31T11:49:47.993Z"
+    },
+    "setup.manos.02": {
+      "hash": "88fbaf47db87c36e",
+      "bytes": 123406,
+      "generatedAt": "2026-08-31T11:49:52.599Z"
+    },
+    "setup.manos.03": {
+      "hash": "6dfcfe62db7ee07e",
+      "bytes": 188686,
+      "generatedAt": "2026-08-31T11:49:57.769Z"
     }
   }
 }
