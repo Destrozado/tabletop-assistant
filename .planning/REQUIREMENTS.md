@@ -26,24 +26,24 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 
 - [x] **FLOW-01**: El usuario avanza al paso siguiente con un único botón «Siguiente», el elemento más prominente de la pantalla
 - [x] **FLOW-02**: El usuario puede volver al paso anterior
-- [ ] **FLOW-03**: Al avanzar desde el último paso de la ronda, el usuario vuelve al primer paso de la ronda, no al de la preparación
-- [ ] **FLOW-04**: Al cerrar el ciclo de la ronda, el contador de ronda se incrementa
+- [x] **FLOW-03**: Al avanzar desde el último paso de la ronda, el usuario vuelve al primer paso de la ronda, no al de la preparación
+- [x] **FLOW-04**: Al cerrar el ciclo de la ronda, el contador de ronda se incrementa
 - [x] **FLOW-05**: El usuario ve en todo momento una cabecera de orientación con ronda actual, fase actual y posición dentro de la fase
 - [x] **FLOW-06**: El usuario puede abrir un índice del flujo completo y tocar cualquier paso para saltar directamente a él
-- [ ] **FLOW-07**: Tras saltar a un paso del bucle de ronda, seguir avanzando continúa correctamente por el bucle desde ese punto
-- [ ] **FLOW-08**: Un salto a un paso de la preparación no rompe ni reinicia el contador de ronda
+- [x] **FLOW-07**: Tras saltar a un paso del bucle de ronda, seguir avanzando continúa correctamente por el bucle desde ese punto
+- [x] **FLOW-08**: Un salto a un paso de la preparación no rompe ni reinicia el contador de ronda
 
 ### Contenido de Marvel Champions
 
 - [x] **CONT-01**: El flujo cubre la preparación de mesa completa, paso a paso, hasta poder empezar a jugar
-- [ ] **CONT-02**: El flujo cubre la fase de los jugadores, incluido el orden correcto de fin de fase (descartar, robar, preparar)
-- [ ] **CONT-03**: El flujo cubre la fase del villano con sus 6 pasos oficiales, en el orden del reglamento
-- [ ] **CONT-04**: El flujo cubre el fin de ronda, incluido el paso de la ficha de jugador inicial
-- [ ] **CONT-05**: El flujo cubre el agotamiento del mazo de jugador y el del mazo de encuentros como casos distintos, con sus consecuencias correctas
-- [ ] **CONT-06**: El flujo cubre el cambio de fase del villano al agotarse su vida
-- [ ] **CONT-07**: El flujo recuerda, en el momento en que aplican, los estados Aturdido, Confundido y Duro con su resolución correcta
+- [x] **CONT-02**: El flujo cubre la fase de los jugadores, incluido el orden correcto de fin de fase (descartar, robar, preparar)
+- [x] **CONT-03**: El flujo cubre la fase del villano con sus 6 pasos oficiales, en el orden del reglamento
+- [x] **CONT-04**: El flujo cubre el fin de ronda, incluido el paso de la ficha de jugador inicial
+- [x] **CONT-05**: El flujo cubre el agotamiento del mazo de jugador y el del mazo de encuentros como casos distintos, con sus consecuencias correctas
+- [x] **CONT-06**: El flujo cubre el cambio de fase del villano al agotarse su vida
+- [x] **CONT-07**: El flujo recuerda, en el momento en que aplican, los estados Aturdido, Confundido y Duro con su resolución correcta
 - [x] **CONT-08**: Cada paso que enuncia una regla lleva una cita a su origen en el reglamento oficial (documento, página y sección)
-- [ ] **CONT-09**: Todo el contenido queda verificado contra el Rules Reference oficial v1.7 antes de considerarse definitivo, incluidos los errores ya detectados en el borrador (recuento de pasos de la fase del villano, cadencia de obligaciones, quién roba cartas de aumento, Experto frente a Heroico)
+- [x] **CONT-09**: Todo el contenido queda verificado contra el Rules Reference oficial v1.7 antes de considerarse definitivo, incluidos los errores ya detectados en el borrador (recuento de pasos de la fase del villano, cadencia de obligaciones, quién roba cartas de aumento, Experto frente a Heroico)
 - [x] **CONT-10**: Los pasos enuncian acciones físicas en imperativo y breve, sin reproducir texto extenso del reglamento con copyright
 - [x] **CONT-11**: Un paso equivale a una acción física inequívoca: ni tan fino que sea un festival de toques ni tan grueso que entierre el detalle olvidable
 
@@ -52,7 +52,7 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 - [x] **ADAPT-01**: Los pasos con diferencias por dificultad muestran el texto correspondiente a Normal o Experto según lo elegido
 - [x] **ADAPT-02**: El número de jugadores se expone en la cabecera permanente de la sesión, no sustituido dentro del texto de los pasos (redacción de D-10; la anterior contradecía D-08/D-09)
 - [x] **ADAPT-03**: Las fórmulas de cantidades (vida del villano, amenaza inicial) se muestran tal cual para que el grupo las resuelva en la mesa
-- [ ] **ADAPT-04**: Los pasos con ramas condicionales muestran todas las ramas como texto simultáneamente, sin requerir ningún toque para elegir
+- [x] **ADAPT-04**: Los pasos con ramas condicionales muestran todas las ramas como texto simultáneamente, sin requerir ningún toque para elegir
 
 ### Locución por voz
 
@@ -75,7 +75,7 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 - [x] **UI-06**: La pantalla no se apaga mientras hay una partida en curso
 - [x] **UI-07**: El usuario sabe que la pantalla permanecerá encendida y que eso consume batería
 - [x] **UI-08**: Si el bloqueo de pantalla no está disponible en el dispositivo, la app sigue funcionando con normalidad
-- [ ] **UI-09**: El aviso `⚠` de un paso, cuando tiene consecuencia detallada, se puede tocar para abrir un panel con esa consecuencia; y en el paso que enumera las opciones del turno, cada opción se puede tocar igual para leer su detalle. Ambas superficies se cierran fácilmente sin perder la posición ni la ronda en curso
+- [x] **UI-09**: El aviso `⚠` de un paso, cuando tiene consecuencia detallada, se puede tocar para abrir un panel con esa consecuencia; y en el paso que enumera las opciones del turno, cada opción se puede tocar igual para leer su detalle. Ambas superficies se cierran fácilmente sin perder la posición ni la ronda en curso
 
 ### Persistencia
 
