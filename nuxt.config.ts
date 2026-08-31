@@ -172,7 +172,7 @@ export default defineNuxtConfig({
       // precacheado, no hay un único shell de SPA al que caer.
       //
       // No se toca `maximumFileSizeToCacheInBytes`: el límite por defecto de
-      // Workbox son 2 MiB por fichero; con los 37 clips reales el mayor pesa
+      // Workbox son 2 MiB por fichero; con los 36 clips reales el mayor pesa
       // ~173 KB y el total ronda 1,4 MB, muy por debajo del límite.
     },
     // Plan 04-04 Task 2: `experimental.enableWorkboxPayloadQueryParams`

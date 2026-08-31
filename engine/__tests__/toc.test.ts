@@ -88,7 +88,7 @@ describe('tableOfContents', () => {
 
   it('D-24: con el cursor dentro del bucle, los bloques Jugadores/Villano van primero en orden natural y los de la preparación van detrás, atenuados', () => {
     const session = expand(marvelChampions, context)
-    // Índice 26 = ronda.jugadores.03 (interfaces del plan 02-02): dentro del bucle.
+    // Índice 26 = ronda.jugadores.04 (interfaces del plan 02-02): dentro del bucle.
     const blocks = tableOfContents(session.sequence, 26)
 
     expect(blocks.map(b => b.label)).toEqual([
@@ -108,8 +108,8 @@ describe('tableOfContents', () => {
 
   it('D-25: con el cursor dentro del bucle, ninguna fila del tramo repetitivo lleva done, ni siquiera las de pasos ya recorridos en esta misma ronda', () => {
     const session = expand(marvelChampions, context)
-    // Índice 30 = ronda.villano.03: ya se recorrieron ronda.jugadores.01-04 y
-    // ronda.villano.01-02 en esta misma pasada por la ronda.
+    // Índice 30 = ronda.villano.04: ya se recorrieron ronda.jugadores.01, .02 y
+    // .04, y ronda.villano.01-03 en esta misma pasada por la ronda.
     const blocks = tableOfContents(session.sequence, 30)
     const loopRows = blocks.slice(0, 2).flatMap(b => b.steps)
 

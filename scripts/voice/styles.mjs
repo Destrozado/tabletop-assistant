@@ -5,7 +5,7 @@
 // (scripts/voice/generate.mjs) y, más adelante, el gate de CI del plan
 // 03.1-03 (que compara `style` contra lo grabado en manifest.json).
 //
-// Qué decisión satisface: D-02 — antes de generar las 37 frases, el usuario
+// Qué decisión satisface: D-02 — antes de generar las 36 frases, el usuario
 // debe elegir uno de estos tres estilos escuchando la MISMA frase (PROBE_PHRASE)
 // en los tres. D-11 — cambiar ACTIVE_STYLE implica regenerar con `--force`.
 //

@@ -63,10 +63,10 @@ describe('content/marvel-champions.json', () => {
     expect(marvelChampions.maxPlayers).toBe(4)
   })
 
-  it('el contenido aplanado produce exactamente 34 nodos: 33 kind step y 1 kind summary', () => {
+  it('el contenido aplanado produce exactamente 33 nodos: 32 kind step y 1 kind summary', () => {
     const steps = allSteps(marvelChampions)
-    expect(steps.length).toBe(34)
-    expect(steps.filter(s => (s.kind ?? 'step') === 'step').length).toBe(33)
+    expect(steps.length).toBe(33)
+    expect(steps.filter(s => (s.kind ?? 'step') === 'step').length).toBe(32)
     expect(steps.filter(s => s.kind === 'summary').length).toBe(1)
   })
 
@@ -89,7 +89,7 @@ describe('content/marvel-champions.json', () => {
 
   it('DC-1 (D-38): todo paso kind:step declara speech no vacío de <=120 caracteres, sin ⚠, × ni ›', () => {
     const steps = allSteps(marvelChampions).filter(s => (s.kind ?? 'step') === 'step')
-    expect(steps).toHaveLength(33)
+    expect(steps).toHaveLength(32)
     for (const step of steps) {
       expect(step.speech).toBeDefined()
       expect(step.speech!.length).toBeGreaterThan(0)
@@ -186,7 +186,7 @@ describe('content/marvel-champions.json', () => {
     const warned = steps.filter(s => s.warning)
     expect(warned.map(s => s.id).sort()).toEqual([
       'ronda.jugadores.01',
-      'ronda.jugadores.03',
+      'ronda.jugadores.02',
       'ronda.jugadores.04',
       'ronda.villano.01',
       'ronda.villano.02',
@@ -257,7 +257,7 @@ describe('content/marvel-champions.json', () => {
     const normalSession = expand(marvelChampions, { playerCount: 3, difficulty: 'normal' })
     const expertSession = expand(marvelChampions, { playerCount: 3, difficulty: 'expert' })
     expect(normalSession.sequence.length).toBe(expertSession.sequence.length)
-    expect(normalSession.sequence.length).toBe(34)
+    expect(normalSession.sequence.length).toBe(33)
   })
 
   it('toda fase con al menos un paso kind step declara summaryLabel no vacío', () => {
@@ -279,7 +279,7 @@ describe('content/marvel-champions.json', () => {
   })
 
   describe('sección ronda (D-34/D-35, CONT-02/03/04/05/06/07, ADAPT-04)', () => {
-    it('existe una sección ronda con repeats:true, exactamente 2 fases; jugadores tiene 4 pasos kind step y villano exactamente 6; el último paso es ronda.villano.06', () => {
+    it('existe una sección ronda con repeats:true, exactamente 2 fases; jugadores tiene 3 pasos kind step y villano exactamente 6; el último paso es ronda.villano.06', () => {
       const ronda = marvelChampions.sections.find(s => s.id === 'ronda')
       expect(ronda).toBeDefined()
       expect(ronda!.repeats).toBe(true)
@@ -287,7 +287,7 @@ describe('content/marvel-champions.json', () => {
 
       const jugadores = ronda!.phases.find(p => p.id === 'ronda.jugadores')!
       const villano = ronda!.phases.find(p => p.id === 'ronda.villano')!
-      expect(jugadores.steps.filter(s => (s.kind ?? 'step') === 'step')).toHaveLength(4)
+      expect(jugadores.steps.filter(s => (s.kind ?? 'step') === 'step')).toHaveLength(3)
       expect(villano.steps.filter(s => (s.kind ?? 'step') === 'step')).toHaveLength(6)
 
       const allRondaSteps = rondaSteps(marvelChampions)
@@ -304,17 +304,18 @@ describe('content/marvel-champions.json', () => {
       expect(villano.title).not.toBe(villano.title.toUpperCase())
     })
 
-    it('CONT-02: orden de fin de fase — descartar, robar, enderezar, en ese orden de ids', () => {
+    it('CONT-02: orden de fin de fase — descartar o robar, y enderezar, en ese orden de ids', () => {
       const ronda = marvelChampions.sections.find(s => s.id === 'ronda')!
       const jugadores = ronda.phases.find(p => p.id === 'ronda.jugadores')!
+      // Hueco deliberado en el 03: la fusión de .02+.03 conserva el id .02 como
+      // superviviente y no renumera .04 (ver <id_policy> del plan 260831-pym).
       expect(jugadores.steps.map(s => s.id)).toEqual([
         'ronda.jugadores.01',
         'ronda.jugadores.02',
-        'ronda.jugadores.03',
         'ronda.jugadores.04',
       ])
       expect(findStep(marvelChampions, 'ronda.jugadores.02').text).toMatch(/descartad/i)
-      expect(findStep(marvelChampions, 'ronda.jugadores.03').text).toMatch(/robad/i)
+      expect(findStep(marvelChampions, 'ronda.jugadores.02').text).toMatch(/robad/i)
       expect(findStep(marvelChampions, 'ronda.jugadores.04').text).toMatch(/enderezad/i)
     })
 
@@ -325,7 +326,7 @@ describe('content/marvel-champions.json', () => {
     })
 
     it('CONT-05: agotamiento del mazo de jugador y del mazo de encuentros son avisos distintos', () => {
-      const jugadorWarning = findStep(marvelChampions, 'ronda.jugadores.03').warning!
+      const jugadorWarning = findStep(marvelChampions, 'ronda.jugadores.02').warning!
       const encuentrosWarning = findStep(marvelChampions, 'ronda.villano.04').warning!
       expect(jugadorWarning).toMatch(/barajad el descarte/i)
       expect(jugadorWarning).not.toMatch(/aceleración/i)
@@ -427,7 +428,7 @@ describe('content/marvel-champions.json', () => {
       const withDetail = steps.filter(s => s.warningDetail)
       expect(withDetail.map(s => s.id).sort()).toEqual([
         'ronda.jugadores.01',
-        'ronda.jugadores.03',
+        'ronda.jugadores.02',
         'ronda.jugadores.04',
         'ronda.villano.02',
         'ronda.villano.04',
@@ -533,8 +534,8 @@ describe('content/marvel-champions.json', () => {
         expect(step.warningDetail).toMatch(/aturdido|confundido/i)
       })
 
-      it('contentVersion es exactamente 11 (PERS-03)', () => {
-        expect(marvelChampions.contentVersion).toBe(11)
+      it('contentVersion es exactamente 12 (PERS-03)', () => {
+        expect(marvelChampions.contentVersion).toBe(12)
       })
 
       it('la citation.section de ronda.jugadores.01 casa con /Player Turn \\(p\\. 34\\)/', () => {

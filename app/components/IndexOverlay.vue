@@ -33,8 +33,8 @@ onMounted(() => {
 
 // Numeración continua de filas a través de todos los bloques (la maqueta
 // aprobada en 01-CONTEXT.md numera 1..N de forma corrida, no por bloque).
-// Con el reordenado de D-24 esto numera la ronda como 1..10 y la preparación
-// como 11..34, tal como pide la maqueta — sin tocar esta lógica.
+// Con el reordenado de D-24 esto numera la ronda como 1..9 y la preparación
+// como 10..33, tal como pide la maqueta — sin tocar esta lógica.
 const numberedBlocks = computed(() => {
   let order = 0
   return props.blocks.map(block => ({
