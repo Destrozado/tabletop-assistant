@@ -124,6 +124,13 @@ None yet.
   REANUDAR ASI: (1) `npm run voice:generate` una vez al dia hasta que `ls public/audio/*.m4a | wc -l` de 37; (2) completar Task 2 de 03.1-03 (gate de deriva, plantilla en engine/__tests__/content.test.ts); (3) ejecutar el plan 03.1-06 (limpieza de public/voice-probe.html y public/audio/_probe/, verificacion de despliegue y prueba humana bloqueante en la tablet real).
   CRITERIOS DIFERIDOS que el verificador debe re-comprobar al cerrar la fase: recuento de 37 clips en la salida de `nuxt generate`; grep de la cabecera /audio/** en .vercel/output/config.json; "cada paso suena con clip real" (hoy solo 9 ids lo cumplen); y toda la verificacion en dispositivo real de reproduccion, corte a mitad de clip, silencio y offline.
 - 03.1-01: el checkpoint de estilo D-02 se escucho en el PORTATIL, no en la tablet. La asuncion A1 de RESEARCH.md (`<audio>.play()` dentro del gesto tactil) sigue SIN verificar en el dispositivo real, y el modelo/SO de la tablet sigue sin conocerse. Todo el riesgo recae ahora en la prueba humana del plan 03.1-06.
+- 260831-fkb: el Rules Reference v1.7 p. 39 dice explicitamente que un personaje puede intentar una accion bloqueada por un Estado (atacar, retirar amenaza) aunque no tenga objetivo valido, solo para descartar ese Estado — el detalle tactico mas util de la regla de Estados, no incluido en `optionsWarningDetail` por el limite de 320 caracteres. Sitio natural para retomarlo: un aviso propio (mismo patron `optionsWarning`/`optionsWarningDetail`) en el paso de atacar o de retirar amenaza.
+
+## Quick Tasks Completed
+
+| Quick ID | Description | Date | Commit | Link |
+|----------|-------------|------|--------|------|
+| 260831-fkb | Regla de cartas de Estado: `optionsWarningDetail` de extremo a extremo, regla de Estados autorada en `ronda.jugadores.01`, aviso de `ronda.villano.02` coherente con su detalle | 2026-08-31 | 3b2db30 | [260831-fkb-regla-cartas-de-estado](./quick/260831-fkb-regla-cartas-de-estado/) |
 
 ## Deferred Items
 
