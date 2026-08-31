@@ -99,7 +99,7 @@ Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número d
 - [x] 03.1-02-PLAN.md — (ola 1) Contrato de identificadores de audio en el motor: `resolveAudioId` y `collectSpeechEntries` (37 ids)
 - [x] 03.1-03-PLAN.md — (ola 2) Lote de los 37 clips con el estilo aprobado y gate de deriva contenido↔audio en CI (D-03/D-04/D-05)
 - [x] 03.1-04-PLAN.md — (ola 3) Precarga de los 37 audios al empezar partida, sin bloquear el flujo, y cabeceras de `/audio/**` (D-09)
-- [ ] 03.1-05-PLAN.md — (ola 4) Reproducción del clip pregenerado con la voz del sistema como respaldo silencioso (D-07/D-08)
+- [x] 03.1-05-PLAN.md — (ola 4) Reproducción del clip pregenerado con la voz del sistema como respaldo silencioso (D-07/D-08)
 - [ ] 03.1-06-PLAN.md — (ola 5) Limpieza de artefactos, verificación del despliegue y prueba humana bloqueante en la tablet real
 
 ### Phase 4: Instalación y funcionamiento offline
@@ -124,5 +124,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Motor de flujo, selector y preparación de mesa | 8/8 | Complete   | 2026-08-28 |
 | 2. Bucle de ronda y reglas verificadas | 5/5 | Complete   | 2026-08-29 |
 | 3. Locución por voz y pantalla siempre encendida | 5/5 | Complete   | 2026-08-30 |
-| 03.1. Voz pregenerada en español con Gemini TTS | 4/6 | In Progress|  |
+| 03.1. Voz pregenerada en español con Gemini TTS | 5/6 | In Progress|  |
 | 4. Instalación y funcionamiento offline | 0/TBD | Not started | - |
