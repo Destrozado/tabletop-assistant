@@ -35,6 +35,7 @@ const {
   jumpTo,
   currentNode,
   currentText,
+  currentAudioId,
   sectionLabel,
   plainSectionTitle,
   position,
@@ -63,7 +64,7 @@ const {
   toggle: toggleVoice,
   showVoiceUnavailableNotice,
   dismissNotice,
-} = useVoiceAnnouncer(currentNode, currentText)
+} = useVoiceAnnouncer(currentNode, currentText, currentAudioId)
 
 // Bloqueo de pantalla (UI-06/08, D-51): una sola instancia atada al ciclo de
 // vida de ESTA página, nunca a un componente hijo que pueda montarse/

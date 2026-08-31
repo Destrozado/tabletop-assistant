@@ -9,7 +9,7 @@ import { computed, ref } from 'vue'
 import { expand } from '~~/engine/expand'
 import { describeHeader } from '~~/engine/header'
 import { jumpTo as engineJumpTo, next as engineNext, prev as enginePrev } from '~~/engine/navigator'
-import { resolveText } from '~~/engine/resolve'
+import { resolveAudioId, resolveText } from '~~/engine/resolve'
 import type { EngineSession, RuntimeStepNode, SessionContext, TextBlock } from '~~/engine/types'
 import { useGameContent } from './useGameContent'
 
@@ -47,6 +47,18 @@ export function useGameSession() {
     return resolveText(currentNode.value, session.value.context)
   })
 
+  // currentAudioId (VOZ-07/plan 03.1-05): la voz no puede calcular esto por
+  // su cuenta — el comentario de cabecera de useVoiceAnnouncer.ts le prohíbe
+  // importar valores de `~~/engine/*` (solo `import type`), así que la
+  // traducción nodo+dificultad → id de audio pregenerado vive aquí, al lado
+  // de currentText, con la misma computed que ya resuelve el texto. Las dos
+  // no pueden desincronizarse porque ambas leen la misma rama de variante
+  // del motor (misma rama `speech` que ya usa resolveText, arriba).
+  const currentAudioId = computed<string | null>(() => {
+    if (!session.value || !currentNode.value) return null
+    return resolveAudioId(currentNode.value, session.value.context)
+  })
+
   // sectionLabel/plainSectionTitle/position se derivan de una única función
   // pura del motor (engine/header.ts, D-22/D-23) en vez de tres cómputos
   // independientes — así cabecera, título del overlay del índice y resumen
@@ -81,6 +93,7 @@ export function useGameSession() {
     jumpTo,
     currentNode,
     currentText,
+    currentAudioId,
     sectionLabel,
     plainSectionTitle,
     position,
