@@ -426,22 +426,25 @@ manifest: {
 
 **Ningún ítem de esta tabla bloquea empezar a planificar** — todos son verificables con una prueba barata en Wave 0 o durante la ejecución normal de la fase.
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> Las tres preguntas quedan cerradas por mecanismos verificables dentro de los
+> planes de la fase, no al aire. El plan que cierra cada una se indica debajo.
 
 1. **¿`@vite-pwa/nuxt@1.1.1` compila limpio con Nuxt 4.5.2 + preset `vercel`?**
    - What we know: el bug de directorio de Nuxt 4 (#204) está arreglado desde la 1.0.7 (2025-10-18); no hay issues abiertos de build roto contra Nuxt 4.5.x específicamente.
    - What's unclear: no existe una declaración oficial de "Nuxt 4 soportado"; el issue #222 preguntando esto sigue sin respuesta.
-   - Recommendation: primera tarea de Wave 0 — instalar, config mínima, `npm run generate`, comprobar `.output/public/sw.js` y `.output/public/manifest.webmanifest` no vacíos, antes de construir el resto encima.
+   - **RESOLVED por `04-01` Task 1** (spike de ola 0): instala, configura al mínimo, corre `npm run generate` y comprueba que `.output/public/sw.js` y `.output/public/manifest.webmanifest` no están vacíos, con camino de fallo explícito de 4 pasos que revierte los cambios y devuelve `## BLOCKED` si la asunción A1 resulta falsa.
 
 2. **Modelo y SO de la tablet de mesa — bloqueante heredado, no resuelto aquí.**
    - What we know: es la misma incógnita abierta desde la Fase 1 y arrastrada por las Fases 3/03.1; el móvil Android usado para depurar el audio comparte SO con la tablet, pero no está confirmado que comparta versión de navegador/OS.
    - What's unclear: si es iPadOS o Android, y qué versión — determina si el Pitfall 2 (iconos iOS) y el comportamiento de `context.setOffline` en modo avión real aplican tal cual.
-   - Recommendation: no bloquea planificar ni ejecutar la mayor parte de la fase (el código cubre ambos casos razonablemente), pero SÍ es una precondición explícita para dar por buena la prueba humana D-10 — el plan debe registrar qué dispositivo se usó.
+   - **RESOLVED por `04-06` Task 2** (diferida a propósito al checkpoint humano): no bloquea planificar ni ejecutar el resto de la fase, porque el código cubre ambos casos; el plan obliga a registrar en el SUMMARY el modelo y SO reales del dispositivo usado, cerrando por fin el bloqueante heredado de la Fase 1.
 
 3. **¿Hace falta `experimental.enableWorkboxPayloadQueryParams: true` en este proyecto concreto?**
    - What we know: el mecanismo y el riesgo están documentados por la fuente oficial del módulo (ver Pitfall 1).
    - What's unclear: si el patrón de navegación real de esta app (mayormente `navigateTo()` dentro de una sola pantalla dinámica `[game]/index.vue`, con solo 2 rutas prerenderizadas) llega a disparar el escenario problemático en la práctica.
-   - Recommendation: dejar la opción DESACTIVADA por defecto (no añadir complejidad especulativa) y activarla solo si la prueba de navegación offline (Playwright o humana) la revela necesaria.
+   - **RESOLVED por `04-04` Task 2** (empíricamente, no por conjetura): la opción queda DESACTIVADA por defecto y solo se activa si la spec de navegación offline de `04-03` la revela necesaria; la decisión tomada se documenta en el plan con su evidencia.
 
 ## Environment Availability
 

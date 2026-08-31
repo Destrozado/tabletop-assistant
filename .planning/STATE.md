@@ -4,12 +4,12 @@ milestone: v1.7
 milestone_name: milestone
 status: executing
 stopped_at: Phase 4 context gathered
-last_updated: "2026-08-31T11:07:17.791Z"
-last_activity: 2026-08-31
+last_updated: "2026-08-31T12:00:35.208Z"
+last_activity: 2026-08-31 -- Phase 04 planning complete
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 24
+  total_plans: 30
   completed_plans: 23
   percent: 60
 ---
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 Phase: 03.1 (voz-pregenerada-en-espa-ol-con-gemini-tts) — EXECUTING
 Plan: 5 of 6 (03.1-04 completo; 03.1-03 sigue BLOQUEADO por cuota en 9/37 — ver Blockers/Concerns; 03.1-05 depende de 03.1-02/03.1-04, no de 03.1-03, y ya puede ejecutarse)
 Status: Ready to execute
-Last activity: 2026-08-31
+Last activity: 2026-08-31 -- Phase 04 planning complete
 
 Progress: [██████████] 96%
 
