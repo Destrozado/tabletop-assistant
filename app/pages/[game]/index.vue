@@ -7,12 +7,18 @@
 // useGameSession (la única costura reactiva).
 import { useWakeLock } from '@vueuse/core'
 import { computed, onMounted, ref } from 'vue'
+// `collectAudioIds` es tan función pura del motor como `expand`/`resume`/
+// `tableOfContents` de aquí abajo: cálculo determinista sobre el
+// `GameDefinition` que esta página ya tiene, sin I/O ni estado (VOZ-07,
+// plan 03.1-02).
+import { collectAudioIds } from '~~/engine/audio'
 import { expand } from '~~/engine/expand'
 import { resume } from '~~/engine/persistence'
 import { tableOfContents } from '~~/engine/toc'
 import { useGameContent } from '~/composables/useGameContent'
 import { useGameSession } from '~/composables/useGameSession'
 import { usePersistedSession } from '~/composables/usePersistedSession'
+import { usePreloadedAudio } from '~/composables/usePreloadedAudio'
 import { useVoiceAnnouncer } from '~/composables/useVoiceAnnouncer'
 
 const route = useRoute()
@@ -36,6 +42,16 @@ const {
 } = useGameSession()
 
 const { load, save, clear } = usePersistedSession()
+
+// D-09: precarga de los 37 audios pregenerados, disparada junto al wake lock
+// en los tres puntos donde arranca una partida (ver onConfirm/
+// onResumeContinue/onContentChangedAcknowledge más abajo).
+const { prefetchAll } = usePreloadedAudio()
+
+// Los 37 ids COMPLETOS (no solo los de la dificultad en curso): D-09 dice
+// "los 37", así que una partida posterior con la otra dificultad ya
+// encuentra sus variantes en caché aunque no haya red en ese momento.
+const audioIds = computed(() => (game ? collectAudioIds(game) : []))
 
 // Capa de locución (VOZ-01/02/04): recibe los computeds de useGameSession,
 // nunca los obtiene por su cuenta (D-42's own single-seam discipline). La
@@ -121,6 +137,10 @@ function onConfirm() {
   // rechazo (dispositivo sin soporte, o el issue de wake lock parcialmente
   // roto en iOS documentado en STACK.md) nunca debe escalar ni mostrar aviso.
   requestWakeLock('screen').catch(() => {})
+  // D-09: dispara-y-olvida a propósito, SIN await — no puede retrasar ni la
+  // aparición del primer paso ni el botón SIGUIENTE. Cualquier fallo (red,
+  // caché, id ausente) se resuelve en silencio dentro de prefetchAll (D-07).
+  prefetchAll(audioIds.value).catch(() => {})
 }
 
 // D-42: la locución se llama de forma síncrona, como sentencia plana, en el
@@ -245,6 +265,9 @@ function onResumeContinue() {
   // curso. Degradación silenciosa igual que en onConfirm — sin aviso de
   // fallo (UI-08).
   requestWakeLock('screen').catch(() => {})
+  // D-09: mismo dispara-y-olvida que en onConfirm — «Continuar» también
+  // arranca una partida jugable, sin await, sin bloquear nada.
+  prefetchAll(audioIds.value).catch(() => {})
 }
 
 function onResumeNewGame() {
@@ -276,6 +299,9 @@ function onContentChangedAcknowledge() {
   // que «Continuar» — resume() deja una sesión real y jugable, así que abre
   // partida en curso a efectos del bloqueo de pantalla.
   requestWakeLock('screen').catch(() => {})
+  // D-09: mismo dispara-y-olvida que en onConfirm/onResumeContinue — este
+  // CTA también abre una partida jugable.
+  prefetchAll(audioIds.value).catch(() => {})
 }
 
 // NO-OP INTENCIONAL (documentado para la Fase 2, ver 01-05-SUMMARY.md):

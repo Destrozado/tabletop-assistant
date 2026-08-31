@@ -36,6 +36,17 @@ export default defineNuxtConfig({
     // regla se declara ya para que no se olvide al instalar el módulo.
     '/sw.js': { headers: { 'cache-control': 'no-cache' } },
     '/manifest.webmanifest': { headers: { 'cache-control': 'no-cache' } },
+    // Audios pregenerados (VOZ-07, plan 03.1-04): a propósito SIN `immutable`
+    // como `/fonts/**`. El nombre del clip (`<id>.m4a`) es estable pero su
+    // CONTENIDO cambia al regenerar una frase (D-10/D-11) — con una caché
+    // larga, un clip regenerado se serviría para siempre desde una copia
+    // rancia, el mismo fallo que las reglas de `/sw.js` existen para evitar
+    // (T-03.1-15). `must-revalidate` es barato aquí: la precarga
+    // (`usePreloadedAudio.ts`) solo va a red la primera vez de cada sesión y
+    // el respaldo de Cache Storage cubre el caso sin red.
+    '/audio/**': {
+      headers: { 'cache-control': 'public, max-age=0, must-revalidate' },
+    },
   },
 
   nitro: {
