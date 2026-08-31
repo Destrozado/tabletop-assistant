@@ -2,7 +2,7 @@
   "gameId": "marvel-champions",
   "title": "Marvel Champions: El Juego de Cartas",
   "locale": "es",
-  "contentVersion": 11,
+  "contentVersion": 12,
   "minPlayers": 1,
   "maxPlayers": 4,
   "sections": [
@@ -424,27 +424,15 @@
             },
             {
               "id": "ronda.jugadores.02",
-              "title": "Descartar hasta el tamaño de mano",
+              "title": "Ajustar el tamaño de mano",
               "kind": "step",
-              "text": "En orden de jugador, descartad hasta bajar al tamaño de vuestra mano.",
-              "speech": "En orden de jugador, descartad hasta bajar al tamaño de mano.",
-              "citation": {
-                "source": "rules-reference",
-                "section": "End of Player Phase, paso 1",
-                "page": 17
-              }
-            },
-            {
-              "id": "ronda.jugadores.03",
-              "title": "Robar hasta el tamaño de mano",
-              "kind": "step",
-              "text": "Robad a la vez hasta completar el tamaño de vuestra mano.",
+              "text": "Descartad o robad hasta el tamaño de vuestra mano.",
               "warning": "Mazo agotado: barajad el descarte y repartíos un encuentro",
-              "warningDetail": "Si tu mazo de jugador se queda sin cartas, barajad vuestro descarte para formar uno nuevo y repartíos a vosotros mismos una carta de encuentro boca abajo. Si tampoco tenéis descarte, el mazo no se rehace hasta que vuelva a haber al menos una carta en él.",
-              "speech": "Robad a la vez hasta completar el tamaño de vuestra mano.",
+              "warningDetail": "El descarte va en orden de jugador; el robo es simultáneo. Si tu mazo se queda sin cartas, barajad vuestro descarte para formar uno nuevo y repartíos a vosotros mismos una carta de encuentro boca abajo: aquí no se pone ficha de aceleración, eso es solo del mazo de encuentros.",
+              "speech": "Descartad o robad hasta el tamaño de vuestra mano.",
               "citation": {
                 "source": "rules-reference",
-                "section": "End of Player Phase, paso 2; ver también Player Deck, mazo agotado (p. 32)",
+                "section": "End of Player Phase, pasos 1 y 2; ver también Hand Size (p. 21) y Player Deck, mazo agotado (p. 32)",
                 "page": 17
               }
             },
@@ -486,13 +474,13 @@
               "id": "ronda.villano.02",
               "title": "Los enemigos activan",
               "kind": "step",
-              "text": "El villano ataca a cada héroe y avanza el esquema contra quien esté en Alter-Ego.",
+              "text": "Con carta de aumento: el villano ataca al héroe y avanza el esquema contra el Alter-Ego.",
               "warning": "Orden de activación; y los Estados pueden cancelarla",
               "warningDetail": "En orden de jugador: activa el villano contra ese jugador y luego cada esbirro enfrentado con él, en el orden que ese jugador elija, sin saltarse a nadie. Solo el villano y los esbirros con la palabra clave Villano roban carta de aumento. Aturdido o Confundido cancelan esa activación y se descartan.",
-              "speech": "El villano ataca a cada héroe y avanza el esquema contra quien esté en Alter-Ego.",
+              "speech": "Con carta de aumento, el villano ataca al héroe y avanza el esquema contra quien esté en Alter-Ego.",
               "citation": {
                 "source": "rules-reference",
-                "section": "Villain Phase, paso 2; ver también Boost Cards (p. 9) y Status Cards (p. 39)",
+                "section": "Villain Phase, paso 2; ver también Attack (Enemy Activation) (p. 9), Boost, Boost Icon (p. 10), Scheme (Enemy Activation) (p. 38) y Status Cards (p. 39)",
                 "page": 45
               }
             },
@@ -500,12 +488,12 @@
               "id": "ronda.villano.03",
               "title": "Repartir cartas de encuentro",
               "kind": "step",
-              "text": "Repartid una carta de encuentro a cada jugador, en orden de jugador.",
-              "warning": "Una a cada jugador, más una por cada icono de peligro",
-              "speech": "Repartid una carta de encuentro a cada jugador, en orden de jugador.",
+              "text": "Repartid una carta de encuentro a cada jugador.",
+              "warning": "Una más por icono de peligro, en orden de jugador",
+              "speech": "Repartid una carta de encuentro a cada jugador.",
               "citation": {
                 "source": "rules-reference",
-                "section": "Villain Phase, paso 3",
+                "section": "Villain Phase, paso 3; ver también Hazard Icon (p. 21) e In Player Order (p. 23)",
                 "page": 45
               }
             },
@@ -513,13 +501,13 @@
               "id": "ronda.villano.04",
               "title": "Revelar cartas de encuentro",
               "kind": "step",
-              "text": "Revelad las cartas de encuentro una a una, en orden de jugador desde el jugador inicial.",
+              "text": "Revelad las cartas de encuentro una a una, en orden de jugador.",
               "warning": "Encuentros agotado: barajad y poned ficha de aceleración",
               "warningDetail": "Si el mazo de encuentros se queda sin cartas, barajad su pila de descartes para formar uno nuevo y colocad además una ficha de aceleración junto al mazo del esquema principal. Es un castigo global y permanente, distinto del agotamiento de un mazo de jugador.",
-              "speech": "Revelad las cartas de encuentro una a una, en orden de jugador desde el jugador inicial.",
+              "speech": "Revelad las cartas de encuentro una a una, en orden de jugador.",
               "citation": {
                 "source": "rules-reference",
-                "section": "Villain Phase, paso 4; ver también Encounter Deck, mazo agotado",
+                "section": "Villain Phase, paso 4; ver también Encounter Deck, mazo agotado, e In Player Order (p. 23)",
                 "page": 45
               }
             },
