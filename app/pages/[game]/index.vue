@@ -19,6 +19,7 @@ import { useGameContent } from '~/composables/useGameContent'
 import { useGameSession } from '~/composables/useGameSession'
 import { usePersistedSession } from '~/composables/usePersistedSession'
 import { usePreloadedAudio } from '~/composables/usePreloadedAudio'
+import { shortcutsEnabled, useStepShortcuts } from '~/composables/useStepShortcuts'
 import { useVoiceAnnouncer } from '~/composables/useVoiceAnnouncer'
 
 const route = useRoute()
@@ -327,6 +328,27 @@ function onContentChangedAcknowledge() {
 // la sección "round". No añadir lógica especial aquí para "arreglarlo".
 // D-40/D-43: por el mismo motivo, la voz tampoco se engancha aquí — "Mesa
 // lista" es kind:'summary' y nunca habla.
+
+// Quick 260831-g2s: Espacio/Enter/flecha izquierda en un portátil. D-Q2: la
+// condición vive por completo en la función pura ya testeada
+// (shortcutsEnabled) — no se reimplementa en línea. D-Q5: "Mesa lista"
+// (hasSession true, kind:'summary') queda deliberadamente incluida, sin
+// caso especial: sus botones ya llaman a los mismos next()/onBack().
+const atajosActivos = computed(() =>
+  shortcutsEnabled({
+    resumeResolved: resumeResolved.value,
+    hasSession: session.value !== null,
+    awaitingResumeChoice: awaitingResumeChoice.value,
+    awaitingContentChangedAck: awaitingContentChangedAck.value,
+    awaitingDiscardConfirm: awaitingDiscardConfirm.value,
+    isIndexOpen: isIndexOpen.value,
+    hasActiveDetail: activeDetail.value !== null,
+  }),
+)
+
+// D-Q3: reutiliza EXACTAMENTE los mismos onNext/onBack que NavBand — ni una
+// línea duplicada de la lógica de avance/retroceso ni de la locución.
+useStepShortcuts(atajosActivos, { onNext, onBack })
 </script>
 
 <template>
