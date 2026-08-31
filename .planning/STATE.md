@@ -4,8 +4,8 @@ milestone: v1.7
 milestone_name: milestone
 status: executing
 stopped_at: Phase 4 context gathered
-last_updated: "2026-08-31T12:00:35.208Z"
-last_activity: 2026-08-31 -- Phase 04 planning complete
+last_updated: "2026-08-31T12:06:33.054Z"
+last_activity: 2026-08-31 -- Phase 04 execution started
 progress:
   total_phases: 5
   completed_phases: 3
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-28)
 
 **Core value:** Que un grupo pueda jugar una partida completa de Marvel Champions de principio a fin sin abrir el reglamento y sin olvidarse de ningún paso.
-**Current focus:** Phase 03.1 — voz-pregenerada-en-espa-ol-con-gemini-tts
+**Current focus:** Phase 04 — instalaci-n-y-funcionamiento-offline
 
 ## Current Position
 
-Phase: 03.1 (voz-pregenerada-en-espa-ol-con-gemini-tts) — EXECUTING
-Plan: 5 of 6 (03.1-04 y 03.1-05 completos; 03.1-03 DESBLOQUEADO el 2026-08-31 — los 37 clips ya estan generados en disco, ver Blockers/Concerns; queda su Task 2, el gate de deriva)
-Status: Ready to execute
-Last activity: 2026-08-31 -- Phase 04 planning complete
+Phase: 04 (instalaci-n-y-funcionamiento-offline) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 04
+Last activity: 2026-08-31 -- Phase 04 execution started
 
 Progress: [██████████] 96%
 
