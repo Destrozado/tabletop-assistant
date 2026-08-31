@@ -1,6 +1,6 @@
 ---
 slug: audio-corta-y-reinicia
-status: verifying
+status: resolved
 trigger: "El audio pregenerado suena ~1s, se corta y la frase vuelve a empezar desde cero."
 created: 2026-08-31
 updated: 2026-08-31
@@ -255,3 +255,14 @@ hypothesis: (ver reasoning_checkpoint arriba, confirmada por lectura; root_cause
 test: Arreglo aplicado (hasAudioStarted + composeAudioFallback), 241/241 tests en verde. Pendiente: pasada del usuario en el móvil (Samsung, mismo SO que la tablet) sobre el mismo despliegue/reproducción original (pasos 1-8 de Normal).
 expecting: En el dispositivo, el usuario deja de oír el corte en los pasos 1-8 y el clip Rasalgethi suena completo, sin cortes ni reinicio.
 next_action: Checkpoint human-verify — pedir al usuario que despliegue este cambio (o pruebe en local vía túnel/red local si prefiere no desplegar aún) y repita la reproducción exacta de los pasos 1-8 en el Samsung, y que reporte si el corte desaparece.
+
+
+## Resolution
+
+root_cause: El watchdog de audio (1200 ms) solo consideraba el clip arrancado si llegaba el evento `playing` del `<audio>`. En Android/Chrome ese evento puede no reflejarse a tiempo para un elemento con `src` de tipo blob aunque el clip suene. Al disparar, invocaba `speakFallback()` SIN parar el elemento de audio, y `speechSynthesis` robaba el foco de audio de Android, pausando el clip a media reproduccion.
+fix: `hasAudioStarted()` acepta ademas `currentTime > 0` como senal de reproduccion real (descartado `!paused` a proposito: se pone false sincronamente en `play()` y habria dejado el watchdog muerto para el caso T-03.1-17). `composeAudioFallback()` garantiza `stopAudio()` antes de `speakFallback()` en los dos caminos de respaldo. `speakFallback` y `scheduleAudioWatchdog` sin tocar (G-01 verificado en dispositivo).
+verification: 241/241 tests verde (7 nuevos, uno reproduce el solape con un elemento de audio falso) y **confirmado por el usuario en el dispositivo Android real** contra el despliegue `650c682`: los clips suenan completos, sin corte ni reinicio.
+files_changed: app/composables/useVoiceAnnouncer.ts, app/composables/__tests__/useVoiceAnnouncer.test.ts
+commit: 650c682
+
+Nota para la verificacion de la fase: esta confirmacion en dispositivo cierra la asuncion A1 de RESEARCH.md (`<audio>.play()` dentro del gesto no lo bloquea Android) y aporta la primera evidencia real de VOZ-07/VOZ-08 sobre los 8 pasos que hoy tienen clip.
