@@ -114,7 +114,7 @@ Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número d
   4. Cuando hay una versión nueva publicada, la app avisa y espera la decisión del usuario; nunca se recarga sola a mitad de ronda.
 **Plans**: 6 plans
 Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número de fichero):
-- [ ] 04-01-PLAN.md — (ola 1) Verificación de compatibilidad con Nuxt 4.5.x y arranque de @vite-pwa/nuxt con manifiesto base
+- [x] 04-01-PLAN.md — (ola 1) Verificación de compatibilidad con Nuxt 4.5.x y arranque de @vite-pwa/nuxt con manifiesto base
 - [ ] 04-02-PLAN.md — (ola 2) Iconos generados por código sin dependencias y meta etiquetas de pantalla completa (OFF-01)
 - [ ] 04-03-PLAN.md — (ola 3) Playwright sobre un build real: pruebas de instalación y de flujo offline (la de audio nace en rojo)
 - [ ] 04-04-PLAN.md — (ola 4) Precacheo de los 37 clips excluyendo los artefactos de la 03.1, y flujo offline en verde (OFF-02/OFF-03)
@@ -132,4 +132,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. Bucle de ronda y reglas verificadas | 5/5 | Complete   | 2026-08-29 |
 | 3. Locución por voz y pantalla siempre encendida | 5/5 | Complete   | 2026-08-30 |
 | 03.1. Voz pregenerada en español con Gemini TTS | 5/6 | In Progress|  |
-| 4. Instalación y funcionamiento offline | 0/6 | Not started | - |
+| 4. Instalación y funcionamiento offline | 1/6 | In Progress|  |
