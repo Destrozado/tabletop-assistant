@@ -4,13 +4,13 @@ milestone: v1.7
 milestone_name: milestone
 status: executing
 stopped_at: Phase 3 UI-SPEC approved
-last_updated: "2026-08-31T07:31:39.869Z"
+last_updated: "2026-08-31T07:44:28.215Z"
 last_activity: 2026-08-31
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 24
-  completed_plans: 20
+  completed_plans: 21
   percent: 60
 ---
 
@@ -112,6 +112,7 @@ None yet.
 - Target tablet model/OS version is unknown — blocks confident verification of Web Speech es-ES voice availability, iOS TTS gesture requirement, and Wake Lock support. Resolve before planning Phase 3.
 - `@vite-pwa/nuxt` compatibility with Nuxt 4.5.x is inferred, not directly confirmed — worth a five-minute spike early in Phase 1's Nuxt scaffold work.
 - 03-05: el modelo y version de SO/navegador de la tablet de mesa siguen sin conocerse pese a la prueba humana (el humano no lo reporto); el sub-check sin voz espanola (segundo dispositivo) queda no verificado; y la calidad de la voz TTS por defecto del dispositivo se juzga mala, seguimiento para fase o quick futura (posible API externa, Gemini disponible)
+- 03.1-03: cuota diaria del free tier de Gemini agotada (GenerateRequestsPerDayPerProjectPerModel-FreeTier=10/dia para gemini-2.5-flash-tts) tras generar 9/37 clips. Reanudar con: npm run voice:generate (recoge los 28 ids restantes por huella) una vez la cuota se recupere. Task 2 (gate de deriva) diferida hasta que el lote este completo.
 
 ## Deferred Items
 
@@ -123,6 +124,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-31T07:29:44.596Z
+Last session: 2026-08-31T07:44:28.206Z
 Stopped at: Phase 3 UI-SPEC approved
 Resume file: None
