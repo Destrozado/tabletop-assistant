@@ -4,7 +4,11 @@
 // (ARCHITECTURE.md §3/§5). D-13: overlay a pantalla completa, sin
 // atenuación de fondo (no hay "fuera" que atenuar). D-14: las marcas llegan
 // ya derivadas de la posición, este componente no guarda ningún estado propio
-// sobre qué se ha visitado.
+// sobre qué se ha visitado. D-U1: la barra inferior con «Partida terminada»
+// vive aquí porque este overlay es la única salida alcanzable de la pantalla
+// de juego con la app instalada como PWA (sin barra de direcciones ni botón
+// atrás) — deliberadamente a tres toques del borrado real (≡ → botón →
+// confirmar en la página).
 import { computed, onMounted, ref } from 'vue'
 
 const props = defineProps<{
@@ -19,6 +23,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'jump-to': [id: string]
   'close': []
+  'end-game': []
 }>()
 
 // Transición de apertura (180ms, fade + 8px hacia arriba). Cierre: solo con
@@ -30,6 +35,9 @@ onMounted(() => {
     entered.value = true
   })
 })
+
+// Mismo patrón de pulsado que el botón destructivo de ResumePrompt.vue.
+const endPressed = ref(false)
 
 // Numeración continua de filas a través de todos los bloques (la maqueta
 // aprobada en 01-CONTEXT.md numera 1..N de forma corrida, no por bloque).
@@ -122,6 +130,25 @@ function onRowClick(row: { id: string, mark: 'done' | 'current' | null }) {
           </button>
         </div>
       </template>
+    </div>
+
+    <!-- Barra inferior fija (D-U1): única salida alcanzable de la partida en
+         curso. shrink-0 impide que se comprima cuando la lista de pasos es
+         larga; el cuerpo de arriba es flex-1 overflow-y-auto, así que esta
+         barra queda siempre visible al pie sin position:fixed propio. -->
+    <div class="shrink-0 border-t border-background px-lg py-md flex justify-end">
+      <button
+        type="button"
+        class="min-h-12 px-lg border border-destructive text-destructive text-label font-bold transition-transform duration-75"
+        :class="endPressed ? 'brightness-95 scale-[0.98]' : ''"
+        @mousedown="endPressed = true"
+        @touchstart="endPressed = true"
+        @mouseup="endPressed = false"
+        @touchend="endPressed = false"
+        @click="emit('end-game')"
+      >
+        Partida terminada
+      </button>
     </div>
   </div>
 </template>
