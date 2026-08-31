@@ -97,7 +97,7 @@ Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número d
 Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número de fichero):
 - [x] 03.1-01-PLAN.md — (ola 1) Cadena de generación local con Gemini TTS y prueba de estilo bloqueante en la tablet (D-01/D-02/D-10/D-11)
 - [x] 03.1-02-PLAN.md — (ola 1) Contrato de identificadores de audio en el motor: `resolveAudioId` y `collectSpeechEntries` (37 ids)
-- [ ] 03.1-03-PLAN.md — (ola 2) Lote de los 37 clips con el estilo aprobado y gate de deriva contenido↔audio en CI (D-03/D-04/D-05) — **PARCIAL: 9/37 clips, gate sin escribir; bloqueado por la cuota diaria de la API**
+- [x] 03.1-03-PLAN.md — (ola 2) Lote de los 37 clips con el estilo aprobado y gate de deriva contenido↔audio en CI (D-03/D-04/D-05) — **PARCIAL: 9/37 clips, gate sin escribir; bloqueado por la cuota diaria de la API**
 - [x] 03.1-04-PLAN.md — (ola 3) Precarga de los 37 audios al empezar partida, sin bloquear el flujo, y cabeceras de `/audio/**` (D-09)
 - [x] 03.1-05-PLAN.md — (ola 4) Reproducción del clip pregenerado con la voz del sistema como respaldo silencioso (D-07/D-08)
 - [ ] 03.1-06-PLAN.md — (ola 5) Limpieza de artefactos, verificación del despliegue y prueba humana bloqueante en la tablet real
