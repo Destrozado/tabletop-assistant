@@ -6,7 +6,7 @@
 // (mismo patrón que detectSpanishVoice) precisamente para poder testear el
 // arreglo de G-01 sin necesitar jsdom ni montar el composable completo.
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { detectSpanishVoice, hasSpanishVoice, resolveVoiceState, scheduleSpeakWatchdog, shouldAnnounce } from '../useVoiceAnnouncer'
+import { detectSpanishVoice, hasSpanishVoice, resolveEffectiveAvailability, resolveVoiceState, scheduleAudioWatchdog, scheduleSpeakWatchdog, shouldAnnounce } from '../useVoiceAnnouncer'
 
 describe('resolveVoiceState (D-47: detección sin resolver es optimista)', () => {
   it('preferencia activada, disponibilidad sin resolver (null) -> on', () => {
@@ -61,6 +61,133 @@ describe('shouldAnnounce (D-40: Mesa lista no habla; VOZ-06: nunca sin síntesis
 
   it('sin síntesis soportada nunca se llama a speak() (VOZ-06)', () => {
     expect(shouldAnnounce({ kind: 'step', state: 'on', line: 'Hola', isSupported: false })).toBe(false)
+  })
+
+  // Plan 03.1-05, VOZ-07: la locución no puede depender de las voces
+  // instaladas en el sistema — con audio pregenerado disponible, la falta
+  // de síntesis deja de ser motivo para callar.
+  it('con audio pregenerado disponible, sin síntesis soportada -> true (VOZ-07)', () => {
+    expect(shouldAnnounce({ kind: 'step', state: 'on', line: 'Hola', isSupported: false, hasAudio: true })).toBe(true)
+  })
+
+  it('con audio pregenerado disponible, voz silenciada -> false (el silencio manda también sobre el audio)', () => {
+    expect(shouldAnnounce({ kind: 'step', state: 'muted', line: 'Hola', isSupported: false, hasAudio: true })).toBe(false)
+  })
+
+  it('con audio pregenerado disponible, kind summary -> false (D-40 sigue vigente)', () => {
+    expect(shouldAnnounce({ kind: 'summary', state: 'on', line: 'Hola', isSupported: false, hasAudio: true })).toBe(false)
+  })
+
+  it('sin pasar hasAudio se comporta exactamente como antes de este plan (regresión de la Fase 3)', () => {
+    expect(shouldAnnounce({ kind: 'step', state: 'on', line: 'Hola', isSupported: false })).toBe(false)
+    expect(shouldAnnounce({ kind: 'step', state: 'on', line: 'Hola', isSupported: true })).toBe(true)
+  })
+
+  it('hasAudio explícitamente false, con síntesis soportada -> true (equivalente al respaldo de la Fase 3)', () => {
+    expect(shouldAnnounce({ kind: 'step', state: 'on', line: 'Hola', isSupported: true, hasAudio: false })).toBe(true)
+  })
+
+  it('con audio pregenerado disponible, estado unavailable -> false (la indisponibilidad sigue mandando)', () => {
+    expect(shouldAnnounce({ kind: 'step', state: 'unavailable', line: 'Hola', isSupported: false, hasAudio: true })).toBe(false)
+  })
+
+  it('con audio pregenerado disponible, línea vacía -> false (WR-01 sigue vigente)', () => {
+    expect(shouldAnnounce({ kind: 'step', state: 'on', line: '', isSupported: false, hasAudio: true })).toBe(false)
+  })
+})
+
+describe('resolveEffectiveAvailability (plan 03.1-05, D-07/D-08: la banda solo aparece si fallan las DOS fuentes)', () => {
+  it('audio disponible, con o sin voz española -> siempre true', () => {
+    expect(resolveEffectiveAvailability(true, true)).toBe(true)
+    expect(resolveEffectiveAvailability(true, false)).toBe(true)
+    expect(resolveEffectiveAvailability(true, null)).toBe(true)
+  })
+
+  it('precarga de audio sin resolver (null) -> null, sin importar la voz española (no parpadea la banda)', () => {
+    expect(resolveEffectiveAvailability(null, true)).toBe(null)
+    expect(resolveEffectiveAvailability(null, false)).toBe(null)
+    expect(resolveEffectiveAvailability(null, null)).toBe(null)
+  })
+
+  it('audio NO disponible -> se devuelve la disponibilidad de voz española tal cual', () => {
+    expect(resolveEffectiveAvailability(false, true)).toBe(true)
+    expect(resolveEffectiveAvailability(false, false)).toBe(false)
+    expect(resolveEffectiveAvailability(false, null)).toBe(null)
+  })
+})
+
+describe('scheduleAudioWatchdog (plan 03.1-05, T-03.1-17: clip que ni arranca ni falla)', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('llama a onStall si hasStarted() sigue siendo false al vencer el retardo', () => {
+    vi.useFakeTimers()
+    const onStall = vi.fn()
+
+    scheduleAudioWatchdog(() => false, onStall)
+    vi.advanceTimersByTime(1200)
+
+    expect(onStall).toHaveBeenCalledTimes(1)
+  })
+
+  it('NO llama a onStall si hasStarted() ya es true al vencer el retardo', () => {
+    vi.useFakeTimers()
+    const onStall = vi.fn()
+
+    scheduleAudioWatchdog(() => true, onStall)
+    vi.advanceTimersByTime(1200)
+
+    expect(onStall).not.toHaveBeenCalled()
+  })
+
+  it('NO llama a onStall si se canceló antes de que venza el retardo', () => {
+    vi.useFakeTimers()
+    const onStall = vi.fn()
+
+    const cancel = scheduleAudioWatchdog(() => false, onStall)
+    cancel()
+    vi.advanceTimersByTime(1200)
+
+    expect(onStall).not.toHaveBeenCalled()
+  })
+
+  it('un onStall que lanza no propaga la excepción (VOZ-06)', () => {
+    vi.useFakeTimers()
+    const onStall = vi.fn(() => {
+      throw new Error('boom')
+    })
+
+    scheduleAudioWatchdog(() => false, onStall)
+
+    expect(() => vi.advanceTimersByTime(1200)).not.toThrow()
+    expect(onStall).toHaveBeenCalledTimes(1)
+  })
+
+  it('respeta un delayMs personalizado y no dispara ni un instante antes', () => {
+    vi.useFakeTimers()
+    const onStall = vi.fn()
+
+    scheduleAudioWatchdog(() => false, onStall, 500)
+
+    vi.advanceTimersByTime(499)
+    expect(onStall).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(1)
+    expect(onStall).toHaveBeenCalledTimes(1)
+  })
+
+  it('el delayMs por defecto es 1200ms', () => {
+    vi.useFakeTimers()
+    const onStall = vi.fn()
+
+    scheduleAudioWatchdog(() => false, onStall)
+
+    vi.advanceTimersByTime(1199)
+    expect(onStall).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(1)
+    expect(onStall).toHaveBeenCalledTimes(1)
   })
 })
 

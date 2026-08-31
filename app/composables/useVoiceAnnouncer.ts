@@ -5,10 +5,18 @@
 // variantes), y no llama al composable reactivo de almacenamiento persistente
 // directamente (pasa siempre por usePersistedSession, la única costura de
 // localStorage de la app).
+//
+// Plan 03.1-05: la locución tiene ahora DOS fuentes. El audio pregenerado
+// (Rasalgethi) es la PRIMARIA — VOZ-07/VOZ-08 — y todo el cuerpo de la
+// Fase 3 (`speakFallback`, el watchdog G-01, la detección de voz española)
+// sigue intacto por debajo como respaldo silencioso (D-07/D-08). El
+// watchdog G-01 sigue atado EXCLUSIVAMENTE a `speakFallback`: el camino de
+// `<audio>` no tiene la carrera cancel()/speak() de `speechSynthesis`.
 import { computed, onMounted, ref, watch } from 'vue'
 import type { ComputedRef } from 'vue'
 import { tryOnScopeDispose, useDocumentVisibility, useSpeechSynthesis } from '@vueuse/core'
 import { usePersistedSession } from './usePersistedSession'
+import { usePreloadedAudio } from './usePreloadedAudio'
 import type { RuntimeStepNode, TextBlock } from '~~/engine/types'
 
 export type VoiceState = 'on' | 'muted' | 'unavailable'
@@ -23,17 +31,75 @@ export function resolveVoiceState(prefEnabled: boolean, available: boolean | nul
 
 // Las cuatro guardas de announce(): D-40 (solo hablan los pasos kind:'step'),
 // estado 'on' (D-45/D-47), frase no vacía (WR-01) y síntesis soportada
-// (VOZ-06).
+// (VOZ-06) — SALVO que haya audio pregenerado (VOZ-07: la locución no puede
+// depender de las voces instaladas en el sistema). `hasAudio` es OPCIONAL y
+// por defecto `false` para que las llamadas y los tests existentes de la
+// Fase 3 (sin este campo) sigan comportándose exactamente igual.
 export function shouldAnnounce(input: {
   kind: 'step' | 'summary' | null
   state: VoiceState
   line: string
   isSupported: boolean
+  hasAudio?: boolean
 }): boolean {
   return input.kind === 'step'
     && input.state === 'on'
     && input.line.length > 0
-    && input.isSupported === true
+    && (input.hasAudio === true || input.isSupported === true)
+}
+
+// resolveEffectiveAvailability (plan 03.1-05, D-07/D-08): la disponibilidad
+// que gobierna voiceState/showVoiceUnavailableNotice ya no es solo la
+// detección de voz del sistema — es la combinación de las DOS fuentes.
+// Consecuencias, ambas deliberadas:
+// (a) con audio pregenerado disponible (`audioAvailable === true`), el
+//     control de silencio NUNCA cae en 'unavailable', así que el usuario
+//     siempre puede callar y reactivar la voz (criterio 1 del ROADMAP);
+// (b) la banda de "sin voz en español" de la Fase 3 solo aparece cuando
+//     fallan LAS DOS fuentes — exactamente el caso para el que se diseñó.
+//     Pintarla mientras suena Rasalgethi sería mentir y violaría D-07
+//     (nada de bandas cuando el respaldo silencioso ya está funcionando).
+// `audioAvailable === null` (precarga aún en vuelo, plan 03.1-04) se
+// resuelve a `null`: mismo optimismo de D-47, la banda no debe parpadear
+// mientras la precarga todavía puede completarse.
+export function resolveEffectiveAvailability(
+  audioAvailable: boolean | null,
+  spanishVoiceAvailable: boolean | null,
+): boolean | null {
+  if (audioAvailable === true) return true
+  if (audioAvailable === null) return null
+  return spanishVoiceAvailable
+}
+
+// scheduleAudioWatchdog (plan 03.1-05, T-03.1-17): cubre el caso en que
+// `.play()` ni resuelve ni rechaza — un clip que no llega por una red
+// presente pero inútil. Sin esto ese paso se quedaría MUDO, peor que caer al
+// respaldo. Calcado en forma a scheduleSpeakWatchdog (mismo patrón de
+// función de cancelación), pero para el camino de audio: si pasado el
+// retardo `hasStarted()` sigue siendo `false`, invoca `onStall()` una única
+// vez. El respaldo disparado desde aquí ya no está dentro del gesto del
+// usuario y por tanto puede ser descartado en iOS: es una mejora
+// oportunista, no una garantía, y jamás debe bloquear nada ni propagar una
+// excepción de `onStall`.
+export function scheduleAudioWatchdog(
+  hasStarted: () => boolean,
+  onStall: () => void,
+  delayMs = 1200,
+): () => void {
+  const timer = setTimeout(() => {
+    if (hasStarted()) return
+    try {
+      onStall()
+    }
+    catch {
+      // Igual que scheduleSpeakWatchdog: un throw aquí jamás debe romper
+      // next()/prev() (VOZ-06).
+    }
+  }, delayMs)
+
+  return function cancel(): void {
+    clearTimeout(timer)
+  }
 }
 
 // 03-RESEARCH.md §Pitfall 3: en Android, getVoices() puede listar una entrada
