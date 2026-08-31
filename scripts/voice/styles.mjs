@@ -24,12 +24,14 @@ export const STYLES = {
 }
 
 /**
- * Estilo que usa el generador hoy. Este valor lo fija el plan 03.1-03 con la
- * elección real del usuario en el checkpoint de la Task 3 de 03.1-01-PLAN.md
- * (D-02). Cambiar este valor a mano invalida todo el audio ya generado con el
- * estilo anterior: hay que regenerar con `--force` (D-11) tras el cambio.
+ * Estilo que usa el generador hoy. Fijado por el plan 03.1-03 (2026-08-31) con
+ * la elección real del usuario en el checkpoint D-02 de 03.1-01-PLAN.md, tras
+ * dos rondas de escucha sobre las 4 variantes: "El D esta bien, si" (ver
+ * 03.1-01-SUMMARY.md §Decisiones, D-02). Cambiar este valor a mano invalida
+ * todo el audio ya generado con el estilo anterior: hay que regenerar con
+ * `--force` (D-11) tras el cambio.
  */
-export const ACTIVE_STYLE = 'plano'
+export const ACTIVE_STYLE = 'plano-agil'
 
 /**
  * Frase de referencia usada para comparar estilos/voces. Es el `speech` real

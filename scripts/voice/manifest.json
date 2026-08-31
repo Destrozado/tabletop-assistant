@@ -1,0 +1,53 @@
+{
+  "voice": "Rasalgethi",
+  "model": "gemini-2.5-flash-preview-tts",
+  "style": "plano-agil",
+  "generatedAt": "2026-08-31T07:35:48.951Z",
+  "entries": {
+    "setup.archienemigos.01": {
+      "hash": "ec461a991abbf9b8",
+      "bytes": 250126,
+      "generatedAt": "2026-08-31T07:34:03.781Z"
+    },
+    "setup.archienemigos.02": {
+      "hash": "c8da2e2382ca454f",
+      "bytes": 100366,
+      "generatedAt": "2026-08-31T07:34:12.827Z"
+    },
+    "setup.encuentros.01": {
+      "hash": "f64985c56697c19a",
+      "bytes": 175246,
+      "generatedAt": "2026-08-31T07:35:23.636Z"
+    },
+    "setup.encuentros.02": {
+      "hash": "08e5f18b495dc25b",
+      "bytes": 127246,
+      "generatedAt": "2026-08-31T07:35:27.980Z"
+    },
+    "setup.encuentros.03": {
+      "hash": "b4860b9fa04976ce",
+      "bytes": 179086,
+      "generatedAt": "2026-08-31T07:35:38.515Z"
+    },
+    "setup.encuentros.03.normal": {
+      "hash": "fa184f1f3745a26b",
+      "bytes": 163726,
+      "generatedAt": "2026-08-31T07:35:48.951Z"
+    },
+    "setup.heroes.01": {
+      "hash": "f688bd8e46772659",
+      "bytes": 211726,
+      "generatedAt": "2026-08-31T07:33:48.098Z"
+    },
+    "setup.heroes.02": {
+      "hash": "dec53cd993c99ba3",
+      "bytes": 146446,
+      "generatedAt": "2026-08-31T07:33:52.479Z"
+    },
+    "setup.heroes.03": {
+      "hash": "4ed051346e7538b8",
+      "bytes": 190606,
+      "generatedAt": "2026-08-31T07:33:57.574Z"
+    }
+  }
+}
