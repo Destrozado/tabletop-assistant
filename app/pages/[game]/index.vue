@@ -45,13 +45,13 @@ const {
 
 const { load, save, clear } = usePersistedSession()
 
-// D-09: precarga de los 37 audios pregenerados, disparada junto al wake lock
+// D-09: precarga de los 36 audios pregenerados, disparada junto al wake lock
 // en los tres puntos donde arranca una partida (ver onConfirm/
 // onResumeContinue/onContentChangedAcknowledge más abajo).
 const { prefetchAll } = usePreloadedAudio()
 
-// Los 37 ids COMPLETOS (no solo los de la dificultad en curso): D-09 dice
-// "los 37", así que una partida posterior con la otra dificultad ya
+// Los 36 ids COMPLETOS (no solo los de la dificultad en curso): D-09 dice
+// "los 36", así que una partida posterior con la otra dificultad ya
 // encuentra sus variantes en caché aunque no haya red en ese momento.
 const audioIds = computed(() => (game ? collectAudioIds(game) : []))
 

@@ -2,7 +2,7 @@
 // scripts/voice/generate.mjs
 //
 // Qué es: CLI invocado A MANO por el desarrollador para generar los audios de
-// locución (Gemini TTS -> PCM -> WAV -> AAC/M4A) de las 37 frases `speech` de
+// locución (Gemini TTS -> PCM -> WAV -> AAC/M4A) de las 36 frases `speech` de
 // content/marvel-champions.json.
 //
 // D-06: este script NUNCA se invoca desde `build`, `generate`, ni desde CI, ni
@@ -73,7 +73,7 @@ const PROBE_DIR = 'public/audio/_probe'
 
 // ── 4. Argumentos ────────────────────────────────────────────────────────────
 const rawArgs = process.argv.slice(2)
-const force = rawArgs.includes('--force') // D-11: regenerar las 37 sin mirar huellas
+const force = rawArgs.includes('--force') // D-11: regenerar las 36 sin mirar huellas
 const probeMode = rawArgs.includes('--probe')
 const delayArg = rawArgs.find(arg => arg.startsWith('--delay='))
 const delayMs = delayArg ? Number(delayArg.slice('--delay='.length)) : 1500
@@ -239,6 +239,28 @@ async function runBatch() {
   manifest.voice = VOICE
   manifest.model = MODEL
   manifest.style = ACTIVE_STYLE
+
+  // Poda de huérfanos (260831-pym): el gate `el manifiesto cubre exactamente
+  // el catálogo del motor` de voice-drift.test.ts exige igualdad EXACTA entre
+  // las claves del manifiesto y `validIds` (derivado de collectSpeechEntries,
+  // no de requestedIds, para que la poda sea correcta también al regenerar un
+  // subconjunto). Si un id desaparece del contenido (p. ej. una fusión de
+  // pasos), su entrada se quedaría en el manifiesto para siempre y el gate
+  // fallaría hasta el fin de los tiempos. scripts/voice/manifest.json es
+  // ÚNICO ESCRITOR este script (ver cabecera): la poda tiene que vivir aquí,
+  // nunca en una edición manual del JSON.
+  //
+  // Deliberadamente NO se borra el .m4a huérfano de public/audio/: borrar
+  // ficheros en cada ejecución es un pie de escopeta. Se avisa por consola y
+  // el borrado lo hace una persona con `git rm`, que queda en el historial.
+  const orphanIds = Object.keys(manifest.entries).filter(id => !validIds.has(id))
+  if (orphanIds.length > 0) {
+    for (const id of orphanIds) {
+      console.log(`Podando entrada huérfana del manifiesto: ${id} (su public/audio/${id}.m4a sigue en disco; retíralo con git rm)`)
+      delete manifest.entries[id]
+    }
+    saveManifest(manifest)
+  }
 
   const targets = entries.filter((entry) => {
     assertValidId(entry.id)

@@ -135,14 +135,17 @@ describe('jumpTo', () => {
 })
 
 describe('bucle de ronda sobre el contenido real (FLOW-03/04/07/08)', () => {
-  it('expand(marvelChampions, ctx) produce sequence.length 34 y los índices de bucle 24/33', () => {
+  it('expand(marvelChampions, ctx) produce sequence.length 33 y los índices de bucle 24/32', () => {
     const session = expand(marvelChampions, context)
-    expect(session.sequence).toHaveLength(34)
-    expect(session.loopStartIndex).toBe(34 - 10)
-    expect(session.loopEndIndex).toBe(33)
+    expect(session.sequence).toHaveLength(33)
+    // El valor sigue siendo 24 (el paso fusionado vivía dentro del bucle, no
+    // antes de él), pero la sección ronda pasa de 10 a 9 pasos tras la fusión
+    // de ronda.jugadores.02+.03 (260831-pym): la expresión debe reflejarlo.
+    expect(session.loopStartIndex).toBe(33 - 9)
+    expect(session.loopEndIndex).toBe(32)
   })
 
-  it('next() con cursor en loopEndIndex (33) cierra el bucle: cursor 24, round 2 (FLOW-03/04)', () => {
+  it('next() con cursor en loopEndIndex (32) cierra el bucle: cursor 24, round 2 (FLOW-03/04)', () => {
     const session = expand(marvelChampions, context)
     const atLoopEnd = { ...session, cursor: session.loopEndIndex!, round: 1 }
     const result = next(atLoopEnd)
