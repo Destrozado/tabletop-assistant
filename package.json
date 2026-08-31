@@ -11,7 +11,9 @@
     "postinstall": "nuxt prepare",
     "voice:generate": "node scripts/voice/generate.mjs",
     "voice:probe": "node scripts/voice/generate.mjs --probe",
-    "icons:generate": "node scripts/pwa/generate-icons.mjs"
+    "icons:generate": "node scripts/pwa/generate-icons.mjs",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install chromium"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -25,6 +27,7 @@
   },
   "devDependencies": {
     "@nuxt/test-utils": "^4.2.0",
+    "@playwright/test": "^1.62.1",
     "vitest": "^4.1.11",
     "zod": "^4.4.3"
   }
