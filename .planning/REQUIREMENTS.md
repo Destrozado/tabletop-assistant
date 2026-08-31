@@ -70,7 +70,7 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 - [x] **UI-01**: El texto del paso actual es legible a un brazo de distancia en una tablet apoyada junto a la mesa
 - [x] **UI-02**: Los controles táctiles tienen un tamaño mínimo de 44-48 pt/dp
 - [x] **UI-03**: Los controles principales (Siguiente, Atrás) están al alcance del pulgar sin levantar la tablet
-- [x] **UI-04**: La interfaz se presenta en horizontal y no se reorganiza al rotar el dispositivo
+- [x] **UI-04**: La interfaz está optimizada para horizontal y en vertical sigue siendo utilizable: no hay ninguna guarda que oculte la app al rotar el dispositivo (D-08, Fase 4)
 - [x] **UI-05**: La interfaz usa un tema oscuro de alto contraste, apto para jugar con luz tenue
 - [x] **UI-06**: La pantalla no se apaga mientras hay una partida en curso
 - [x] **UI-07**: El usuario sabe que la pantalla permanecerá encendida y que eso consume batería
@@ -141,7 +141,7 @@ Excluido explícitamente. Documentado para evitar que reaparezca.
 | Cuentas de usuario, login o sincronización en la nube | Uso en una sola tablet, un solo grupo; añade infraestructura real para un beneficio que nadie necesita aquí |
 | Anuncios, suscripciones o cualquier monetización | No es un producto comercial; es además la queja principal del competidor más cercano (Dized) |
 | Tutoriales en vídeo | Coste de producción alto por juego y en conflicto directo con el objetivo de una guía ojeable con las manos ocupadas |
-| Modo retrato | La tablet se apoya en horizontal junto a la mesa; permitir la rotación es una fuente de bugs documentada, no una función |
+| Trabajo responsive para retrato y móvil | Usar la app en vertical está permitido y no se bloquea (D-08, Fase 4), pero el diseño se optimiza para la tablet en horizontal, que es como se usa junto a la mesa. En pantallas estrechas se ve peor —la cabecera llega a truncar `PREPARACIÓN · 1 de 23`— y eso es aceptable y esperado, no un defecto a corregir |
 | Multijugador en red o pantallas sincronizadas | Una sola tablet compartida en la mesa; nada que sincronizar |
 | Selección de voz y ajuste de velocidad de locución en v1 | Los `getVoices()` de los navegadores son poco fiables; fijar `es-ES` y no ofrecer selector es más robusto para v1 |
 

@@ -15,7 +15,7 @@ test.describe('Tablet en vertical (820x1180)', () => {
   test('el selector, el mini-setup y la pantalla de juego son usables sin la guarda de orientación', async ({ page }) => {
     await page.goto('/')
 
-    // Aserción central: es justo lo que `portrait:hidden` hacía imposible.
+    // Aserción central: es justo lo que la guarda de orientación por CSS hacía imposible.
     await expect(page.locator('#app-root')).toBeVisible()
     // La guarda ya no existe ni oculta.
     await expect(page.locator('#orientation-guard')).toHaveCount(0)

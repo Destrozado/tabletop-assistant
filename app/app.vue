@@ -10,7 +10,7 @@
       renderiza nada visualmente.
     -->
     <NuxtPwaManifest />
-    <div id="app-root" class="portrait:hidden">
+    <div id="app-root">
       <!--
         Banda de "versión nueva" (OFF-04, D-01/D-02/D-03): se monta aquí y no
         dentro de la pantalla de juego porque una versión nueva puede
@@ -24,24 +24,6 @@
         <UpdateBanner />
       </ClientOnly>
       <NuxtPage />
-    </div>
-
-    <!--
-      Guardia de orientación (UI-04): puramente CSS, sin JS.
-      La visibilidad la decide solo la variante `portrait:` de Tailwind:
-      `#app-root` se oculta en vertical, este overlay se muestra en su lugar.
-      Nada se reorganiza porque la app entera queda oculta.
-    -->
-    <div
-      id="orientation-guard"
-      class="hidden portrait:flex bg-background text-primary-text fixed inset-0 flex-col items-center justify-center gap-md p-lg"
-    >
-      <h1 class="text-heading font-bold text-primary-text text-center">
-        Girad la tablet
-      </h1>
-      <p class="text-body font-normal text-secondary-text text-center max-w-[400px]">
-        Esta aplicación se usa en horizontal.
-      </p>
     </div>
   </div>
 </template>

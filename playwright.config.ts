@@ -10,11 +10,14 @@ export default defineConfig({
 
   use: {
     baseURL: 'http://localhost:4173',
-    // El viewport apaisado NO es decorativo: app/app.vue oculta #app-root con
-    // la clase `portrait:hidden` (guardia de orientación UI-04). Un viewport
-    // vertical dejaría toda la app invisible y cualquier aserción fallaría
-    // por el motivo equivocado (confundir "app oculta por orientación" con
-    // "app rota").
+    // El viewport apaisado por defecto es la orientación real de uso (tablet
+    // apoyada junto a la mesa) y la que asumen las specs de PWA/offline. Ya
+    // NO es obligatorio para que la app sea visible: la guarda de
+    // orientación por CSS que ocultaba #app-root en vertical se retiró en la
+    // quick 260831-mgd, alineándose con D-08 de la Fase 4 (el manifiesto no
+    // fuerza orientación, y ahora tampoco lo hace el CSS).
+    // e2e/portrait-usable.spec.ts sobrescribe este viewport con `test.use`
+    // para cubrir el caso vertical.
     viewport: { width: 1280, height: 800 },
   },
 
