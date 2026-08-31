@@ -7,7 +7,7 @@ export default defineNuxtConfig({
 
   ssr: true,
 
-  modules: ['@vueuse/nuxt'],
+  modules: ['@vueuse/nuxt', '@vite-pwa/nuxt'],
 
   css: ['~/assets/css/main.css'],
 
@@ -72,5 +72,48 @@ export default defineNuxtConfig({
         },
       ],
     },
+  },
+
+  pwa: {
+    // D-03 / CLAUDE.md §"What NOT to Use": NUNCA 'autoUpdate'. Ese modo
+    // recarga sin avisar todas las pestañas abiertas en cuanto detecta una
+    // build nueva, lo que interrumpiría una partida a mitad de paso. 'prompt'
+    // deja que la app muestre una banda descartable ("Nueva versión
+    // disponible") que el grupo decide cuándo aplicar (plan 04-05).
+    registerType: 'prompt',
+    // Nada en esta fase necesita un service worker a medida (`injectManifest`
+    // + sw.ts propio): el precacheo por defecto de Workbox basta.
+    strategies: 'generateSW',
+    manifest: {
+      name: 'TableGameAssistant',
+      short_name: 'TableGame',
+      description: 'Asistente de partidas para juegos de mesa complejos, paso a paso y en voz alta.',
+      lang: 'es',
+      start_url: '/',
+      scope: '/',
+      display: 'standalone',
+      // D-08: NO declarar `orientation`. Decisión explícita del usuario: si
+      // alguien abre la app en un móvil en vertical, se acepta que se vea
+      // peor antes que forzar una orientación con la que el sistema operativo
+      // podría no ser consistente.
+      background_color: '#14161C', // --color-background de app/assets/css/main.css
+      theme_color: '#14161C',
+      // NO declarar `icons` todavía: los PNG los produce el plan 04-02;
+      // referenciar ficheros inexistentes rompería la instalabilidad.
+    },
+    // Valor por defecto, declarado explícito porque es lo que expone `$pwa`
+    // en el cliente, del que depende el plan 04-05 (banda de actualización).
+    client: {
+      registerPlugin: true,
+    },
+    devOptions: {
+      // Un service worker activo durante `nuxt dev` enmascararía cambios de
+      // contenido y de audio mientras se desarrolla. Toda la verificación
+      // real de esta fase corre contra `nuxt generate` + `nuxi preview`
+      // (planes 04-03 y 04-04), no contra el servidor de desarrollo.
+      enabled: false,
+    },
+    // NO añadir todavía el bloque `workbox`: la configuración de
+    // `globPatterns` es del plan 04-04. Se dejan los defaults del plugin.
   },
 })
