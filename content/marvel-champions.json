@@ -413,11 +413,12 @@
                   "detail": "Disparad habilidades «Acción» de cartas que controléis o de cartas de encuentro en juego, y podéis pedir a otro jugador que dispare una de las suyas. Si la habilidad lleva delante «Héroe» o «Alter-Ego», hay que estar en esa forma."
                 }
               ],
-              "optionsWarning": "Atentos a los Estados en los personajes",
+              "optionsWarning": "Atentos a los Estados: no se quitan entre sí",
+              "optionsWarningDetail": "Aturdido cancela el próximo ataque y Confundido el próximo intento de retirar amenaza: se descarta ese Estado en lugar de la acción, y los costes se pagan igual. Se pueden tener los dos a la vez; recibir uno no quita el otro y solo se van al gastarlos. Duro impide recibir daño hasta que se descarta.",
               "speech": "Jugad vuestros turnos en orden de jugador.",
               "citation": {
                 "source": "rules-reference",
-                "section": "Player Phase (p. 33) / Player Turn (p. 34); ver también Villain Defeat (p. 45)",
+                "section": "Player Phase (p. 33) / Player Turn (p. 34); ver también Villain Defeat (p. 45); ver también Status Cards (p. 39)",
                 "page": 33
               }
             },
@@ -486,12 +487,12 @@
               "title": "Los enemigos activan",
               "kind": "step",
               "text": "El villano ataca a cada héroe y avanza el esquema contra quien esté en Alter-Ego.",
-              "warning": "Atentos a los Estados en los personajes",
-              "warningDetail": "En orden de jugador: primero activa el villano contra ese jugador y después cada esbirro enfrentado con él, en el orden que ese jugador elija. Sin saltarse a nadie. Solo el villano y los esbirros con la palabra clave Villano roban carta de aumento.",
+              "warning": "Orden de activación; y los Estados pueden cancelarla",
+              "warningDetail": "En orden de jugador: activa el villano contra ese jugador y luego cada esbirro enfrentado con él, en el orden que ese jugador elija, sin saltarse a nadie. Solo el villano y los esbirros con la palabra clave Villano roban carta de aumento. Aturdido o Confundido cancelan esa activación y se descartan.",
               "speech": "El villano ataca a cada héroe y avanza el esquema contra quien esté en Alter-Ego.",
               "citation": {
                 "source": "rules-reference",
-                "section": "Villain Phase, paso 2; ver también Boost Cards (p. 9) y Stunned/Confused/Tough",
+                "section": "Villain Phase, paso 2; ver también Boost Cards (p. 9) y Status Cards (p. 39)",
                 "page": 45
               }
             },

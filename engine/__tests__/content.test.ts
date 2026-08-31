@@ -146,6 +146,9 @@ describe('content/marvel-champions.json', () => {
       if (step.optionsWarning) {
         expect(step.optionsWarning).not.toMatch(PLAYER_COUNT_PATTERN)
       }
+      if (step.optionsWarningDetail) {
+        expect(step.optionsWarningDetail).not.toMatch(PLAYER_COUNT_PATTERN)
+      }
       if (step.options) {
         for (const option of step.options) {
           expect(option.label).not.toMatch(PLAYER_COUNT_PATTERN)
@@ -158,6 +161,7 @@ describe('content/marvel-champions.json', () => {
           if (variant?.warning) expect(variant.warning).not.toMatch(PLAYER_COUNT_PATTERN)
           if (variant?.warningDetail) expect(variant.warningDetail).not.toMatch(PLAYER_COUNT_PATTERN)
           if (variant?.optionsWarning) expect(variant.optionsWarning).not.toMatch(PLAYER_COUNT_PATTERN)
+          if (variant?.optionsWarningDetail) expect(variant.optionsWarningDetail).not.toMatch(PLAYER_COUNT_PATTERN)
           if (variant?.options) {
             for (const option of variant.options) {
               expect(option.label).not.toMatch(PLAYER_COUNT_PATTERN)
@@ -489,12 +493,23 @@ describe('content/marvel-champions.json', () => {
         }
       })
 
-      it('C2 bajo gate de igualdad: ronda.jugadores.01.optionsWarning es exactamente igual a ronda.villano.02.warning, y ambos casan con /estados/i', () => {
+      // D-Q6 (quick 260831-fkb): se retira el gate de igualdad literal. Tenía
+      // sentido cuando los dos avisos solo sabían dar la alarma con el mismo
+      // texto; desde este plan cada uno dice algo propio y distinto (uno
+      // encabeza la explicación de la regla de Estados, el otro el orden de
+      // activación), así que se sustituye por dos gates independientes que
+      // protegen lo que de verdad importa: cada aviso remite a los Estados y
+      // cada uno tiene su propio detalle no vacío.
+      it('jugadores.01.optionsWarning remite a los Estados y declara su propio optionsWarningDetail no vacío', () => {
         const jugadores = findStep(marvelChampions, 'ronda.jugadores.01')
-        const villano = findStep(marvelChampions, 'ronda.villano.02')
-        expect(jugadores.optionsWarning).toBe(villano.warning)
         expect(jugadores.optionsWarning).toMatch(/estados/i)
+        expect(jugadores.optionsWarningDetail).toBeTruthy()
+      })
+
+      it('villano.02.warning remite a los Estados y declara su propio warningDetail no vacío', () => {
+        const villano = findStep(marvelChampions, 'ronda.villano.02')
         expect(villano.warning).toMatch(/estados/i)
+        expect(villano.warningDetail).toBeTruthy()
       })
 
       it('nada de 02-03 se pierde: ronda.jugadores.01 sigue con warning sobre el dial del villano y con warningDetail', () => {
@@ -503,9 +518,19 @@ describe('content/marvel-champions.json', () => {
         expect(step.warningDetail).toBeDefined()
       })
 
-      it('ronda.villano.02 intacto: su warning sigue siendo exactamente "Atentos a los Estados en los personajes"', () => {
+      // Quick 260831-fkb: villano.02.warning ya no es literalmente igual a
+      // como estaba (D-Q2, reformulado para ser coherente con su detalle);
+      // lo que de verdad importa —y lo que este gate protege ahora— es que
+      // los cinco hechos del orden de activación sobreviven en el detalle y
+      // que el aviso ya habla también de Estados.
+      it('ronda.villano.02: su warningDetail conserva los cinco hechos de orden de activación y su warning habla de Estados', () => {
         const step = findStep(marvelChampions, 'ronda.villano.02')
-        expect(step.warning).toBe('Atentos a los Estados en los personajes')
+        expect(step.warningDetail).toMatch(/orden de jugador/i)
+        expect(step.warningDetail).toMatch(/esbirro/i)
+        expect(step.warningDetail).toMatch(/sin saltarse/i)
+        expect(step.warningDetail).toMatch(/palabra clave Villano/i)
+        expect(step.warningDetail).toMatch(/carta de aumento/i)
+        expect(step.warningDetail).toMatch(/aturdido|confundido/i)
       })
 
       it('contentVersion es exactamente 11 (PERS-03)', () => {
@@ -534,6 +559,37 @@ describe('content/marvel-champions.json', () => {
           .flatMap((p: { steps: { id: string, options?: { label: string }[] }[] }) => p.steps)
           .find((s: { id: string }) => s.id === 'ronda.jugadores.01')
         step.options[1].label = step.options[0].label
+        expect(() => validateGameDefinition(mutated)).toThrow()
+      })
+
+      // Quick 260831-fkb: la regla en sí — jugadores.01.optionsWarningDetail
+      // debe desmontar explícitamente el error de "un Estado quita al otro"
+      // (el motivo entero del encargo), nunca afirmar lo contrario.
+      it('jugadores.01.optionsWarningDetail explica Aturdido y Confundido, y afirma su coexistencia sin decir que se sustituyen', () => {
+        const step = findStep(marvelChampions, 'ronda.jugadores.01')
+        expect(step.optionsWarningDetail).toMatch(/aturdido/i)
+        expect(step.optionsWarningDetail).toMatch(/confundido/i)
+        expect(step.optionsWarningDetail).toMatch(/a la vez/i)
+        expect(step.optionsWarningDetail).not.toMatch(/sustituye|reemplaza/i)
+      })
+
+      it('todo paso que declara optionsWarningDetail declara también optionsWarning; ninguno supera 320 caracteres ni contiene salto de línea', () => {
+        const steps = allSteps(marvelChampions).filter(s => s.optionsWarningDetail)
+        expect(steps.length).toBeGreaterThan(0)
+        for (const step of steps) {
+          expect(step.optionsWarning).toBeDefined()
+          expect(step.optionsWarningDetail!.length).toBeLessThanOrEqual(320)
+          expect(step.optionsWarningDetail).not.toMatch(/\n/)
+        }
+      })
+
+      it('gate que muerde: borrar optionsWarning de ronda.jugadores.01 dejando su optionsWarningDetail huérfano hace fallar la validación', () => {
+        const mutated: GameDefinition = JSON.parse(JSON.stringify(rawMarvelChampions))
+        const step = mutated.sections
+          .flatMap((s: { phases: { steps: { id: string, optionsWarning?: string }[] }[] }) => s.phases)
+          .flatMap((p: { steps: { id: string, optionsWarning?: string }[] }) => p.steps)
+          .find((s: { id: string }) => s.id === 'ronda.jugadores.01')
+        delete step.optionsWarning
         expect(() => validateGameDefinition(mutated)).toThrow()
       })
     })
