@@ -5,7 +5,7 @@
 // esta página necesita para decidir con qué sesión arrancar antes de que
 // exista una — el resto de la navegación sigue pasando siempre por
 // useGameSession (la única costura reactiva).
-import { useWakeLock } from '@vueuse/core'
+import { useEventListener, useWakeLock } from '@vueuse/core'
 import { computed, onMounted, ref } from 'vue'
 // `collectAudioIds` es tan función pura del motor como `expand`/`resume`/
 // `tableOfContents` de aquí abajo: cálculo determinista sobre el
@@ -128,6 +128,22 @@ watchDebounced(
   },
   { debounce: 300 },
 )
+
+// Hallazgo del plan 04-04 (fuera de su alcance original de nuxt.config.ts,
+// documentado como desviación Regla 2 en su SUMMARY): una ráfaga de
+// next()/prev() seguida de una recarga en menos de 300ms deja SIN GUARDAR el
+// último paso — el `watchDebounced` de arriba nunca llega a disparar porque
+// la página se descarga antes de que pase el periodo de silencio. Esto no es
+// específico de offline (ocurriría igual con red), pero la suite de
+// Playwright de OFF-02/OFF-03 lo expone al interactuar mucho más rápido que
+// un dedo humano. `pagehide` cubre tanto recarga como cierre/navegación
+// fuera, incluido el caso de Safari en iPad donde `beforeunload` es menos
+// fiable (mismo criterio de "guardado nunca puede perder el último paso"
+// que ya exige PERS-01). Guardar de más aquí es inofensivo: `save()` es
+// idempotente sobre el mismo `session.value`.
+useEventListener('pagehide', () => {
+  if (session.value) save(session.value)
+})
 
 // D-43/D-40: entrar al primer paso desde el mini-setup no locuta. Es una
 // decisión de configuración, se mira de cerca y se lee, no un paso guiado.

@@ -49,7 +49,13 @@ test.describe('Flujo completo sin conexión (OFF-02, OFF-03)', () => {
 
     // 3. La app arranca sin red.
     await page.reload()
-    const gameButton = page.getByRole('button', { name: 'Marvel Champions: El Juego de Cartas' })
+    // Rótulo real del botón del selector (content/games-index.ts, plan 01-02):
+    // "Marvel Champions", NO el título largo de content/marvel-champions.json
+    // ("Marvel Champions: El Juego de Cartas") que usa la pantalla de juego.
+    // Corrección de un locator equivocado en la prueba (plan 04-03), no un
+    // ajuste de la app: verificado leyendo GameSelectorScreen.vue, que
+    // renderiza `game.title` tal cual viene de games-index.ts.
+    const gameButton = page.getByRole('button', { name: 'Marvel Champions', exact: true })
     await expect(gameButton).toBeVisible()
 
     // 4. Navegación entre las DOS rutas prerenderizadas, sin red. Esta

@@ -138,7 +138,50 @@ export default defineNuxtConfig({
       // (planes 04-03 y 04-04), no contra el servidor de desarrollo.
       enabled: false,
     },
-    // NO añadir todavía el bloque `workbox`: la configuración de
-    // `globPatterns` es del plan 04-04. Se dejan los defaults del plugin.
+    // Plan 04-04: sin este bloque, Workbox no escanea `.output/public` en
+    // absoluto y el precache queda con solo 5 entradas de metadatos de build
+    // (confirmado en 04-03-SUMMARY.md) — ni el HTML de "/" quedaba
+    // precacheado, así que ni siquiera recargar la app sin red funcionaba.
+    workbox: {
+      globPatterns: [
+        '**/*.{js,css,html}',
+        // Un solo nivel (`audio/*.m4a`), NO `audio/**`. Dos motivos, ambos
+        // deliberados: (a) un patrón recursivo arrastraría
+        // `audio/_probe/*.m4a`, artefactos de elección de estilo de voz de
+        // la Fase 03.1 que no pertenecen a producción (T-04-10/T-04-11); (b)
+        // el glob que proponía 04-RESEARCH.md §Pattern 1 (`audio/setup*.m4a`)
+        // es un error de la investigación, porque dejaría fuera los diez
+        // clips `ronda.*` — es decir, toda la locución del bucle de ronda,
+        // la parte más larga de la partida.
+        'audio/*.m4a',
+        'icons/*.png',
+        'fonts/*.woff2',
+        'favicon.ico',
+        'manifest.webmanifest',
+      ],
+      // Redundantes a propósito con los `globPatterns` de arriba (el
+      // `**/*.html` ya alcanzaría `voice-probe.html`; `audio/*.m4a` ya deja
+      // fuera `_probe/` por ser de un solo nivel), pero declarados igual para
+      // que la exclusión siga siendo correcta y legible tanto si estos
+      // ficheros de desarrollo de la Fase 03.1 siguen en el repo como si el
+      // plan 03.1-06 (aún sin ejecutar) ya los ha borrado. Un `globIgnores`
+      // que apunta a algo inexistente es inofensivo.
+      globIgnores: ['**/node_modules/**', 'voice-probe.html', 'audio/_probe/**'],
+      // No se declara `navigateFallback`: cada una de las dos rutas
+      // prerenderizadas (`/`, `/marvel-champions`) tiene su propio HTML real
+      // precacheado, no hay un único shell de SPA al que caer.
+      //
+      // No se toca `maximumFileSizeToCacheInBytes`: el límite por defecto de
+      // Workbox son 2 MiB por fichero; con los 37 clips reales el mayor pesa
+      // ~173 KB y el total ronda 1,4 MB, muy por debajo del límite.
+    },
+    // Plan 04-04 Task 2: `experimental.enableWorkboxPayloadQueryParams`
+    // mitiga que Workbox `generateSW` no resuelva `_payload.json?query`
+    // offline (04-RESEARCH.md Pitfall 1). Comprobado empíricamente contra
+    // este build (`nuxt generate` con preset `static`, el mismo que sirve
+    // `playwright.config.ts`): la suite `e2e/offline-flow.spec.ts` navega de
+    // "/" a "/marvel-champions" sin red (paso 4) y pasa sin activar esta
+    // opción. NO se activa: es una decisión consciente documentada con su
+    // evidencia (SUMMARY del plan 04-04), no un olvido.
   },
 })
