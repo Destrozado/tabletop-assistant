@@ -31,6 +31,12 @@ export interface TextBlock {
   // C2/DC-11: recordatorio siempre visible, sin afordancia, dependiente de
   // que el paso declare la lista anterior (regla de esquema en schema.ts).
   optionsWarning?: string
+  // Quick 260831-fkb: equivalente de `warningDetail` pero para el aviso de la
+  // lista de opciones — depende de `optionsWarning` (regla de esquema en
+  // engine/schema.ts) igual que `warningDetail` depende de `warning`. Sin
+  // valor por defecto a propósito, misma razón que `warningDetail`: `app/`
+  // nunca debe añadirle un `?? fallback` (no copiar el patrón de `kind`, WR-01).
+  optionsWarningDetail?: string
   speech?: string
 }
 

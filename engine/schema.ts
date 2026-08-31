@@ -57,6 +57,10 @@ const TextBlockSchema = z.strictObject({
   // pulsable (sin detalle propio). Tope de 60 porque es la misma línea y el
   // mismo registro que `warning`. Sin valor por defecto.
   optionsWarning: z.string().max(60).optional(),
+  // Quick 260831-fkb: equivalente de warningDetail para optionsWarning. Mismo
+  // tope de 320 que warningDetail y que options[].detail: el mismo panel y el
+  // mismo presupuesto de lectura. Sin valor por defecto, misma razón.
+  optionsWarningDetail: z.string().max(320).optional(),
   speech: z.string().max(120).optional(), // DC-1 (02-01-PLAN.md): política de fase para el contenido de la ronda desde ya; el consumidor en tiempo de ejecución (TTS) sigue siendo Fase 3
 })
 
@@ -144,6 +148,15 @@ export const GameDefinitionSchema = z.strictObject({
             message: `Step "${step.id}" declares optionsWarning without options`,
           })
         }
+        // Quick 260831-fkb: mismo razonamiento que DC-8, aplicado a
+        // optionsWarningDetail/optionsWarning — un detalle cuyo disparador
+        // nunca se pinta es interfaz inalcanzable.
+        if (step.optionsWarningDetail !== undefined && step.optionsWarning === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Step "${step.id}" declares optionsWarningDetail without optionsWarning`,
+          })
+        }
 
         // DC-10/T-02-12: dos opciones del mismo paso con la misma label
         // serían indistinguibles en pantalla y en el panel de detalle.
@@ -174,6 +187,13 @@ export const GameDefinitionSchema = z.strictObject({
               ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 message: `Step "${step.id}" variant "${level}" declares optionsWarning without options`,
+              })
+            }
+            const effectiveOptionsWarning = variant.optionsWarning ?? step.optionsWarning
+            if (variant.optionsWarningDetail !== undefined && effectiveOptionsWarning === undefined) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Step "${step.id}" variant "${level}" declares optionsWarningDetail without optionsWarning`,
               })
             }
           }

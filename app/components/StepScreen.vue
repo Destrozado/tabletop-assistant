@@ -17,11 +17,16 @@ defineProps<{
   // afordancia (sin borde, sin chevron, no pulsable) porque D-32 exige
   // detalle para poder tocar y este campo no lo tiene.
   optionsWarningText: string | null
+  // Quick 260831-fkb: equivalente de warningDetailText para el aviso de la
+  // lista de opciones — null cuando el aviso no tiene consecuencia detallada
+  // (misma regla D-32: sin afordancia falsa).
+  optionsWarningDetailText: string | null
 }>()
 
 const emit = defineEmits<{
   'open-warning-detail': []
   'open-option-detail': [index: number]
+  'open-options-warning-detail': []
 }>()
 </script>
 
@@ -46,7 +51,15 @@ const emit = defineEmits<{
             <span class="text-accent">›</span>
           </button>
         </div>
-        <p v-if="optionsWarningText" class="text-body font-normal text-warning">
+        <button
+          v-if="optionsWarningText && optionsWarningDetailText"
+          type="button"
+          class="min-h-12 px-md py-sm text-body font-normal text-warning border-b border-warning/50 transition-transform duration-75 active:brightness-95"
+          @click="emit('open-options-warning-detail')"
+        >
+          ⚠ {{ optionsWarningText }} ›
+        </button>
+        <p v-else-if="optionsWarningText" class="text-body font-normal text-warning">
           ⚠ {{ optionsWarningText }}
         </p>
       </div>

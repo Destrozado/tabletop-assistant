@@ -206,6 +206,19 @@ function onOpenWarningDetail() {
   }
 }
 
+// Quick 260831-fkb: mismo mecanismo que onOpenWarningDetail, pero para el
+// aviso de la lista de opciones. tone 'warning' porque es un aviso, no una
+// opción neutra — no reusa onOpenWarningDetail porque lee un par de campos
+// distinto (optionsWarning/optionsWarningDetail).
+function onOpenOptionsWarningDetail() {
+  detailTriggerEl.value = document.activeElement as HTMLElement | null
+  activeDetail.value = {
+    heading: currentText.value.optionsWarning ?? '',
+    body: currentText.value.optionsWarningDetail ?? '',
+    tone: 'warning',
+  }
+}
+
 function onOpenOptionDetail(index: number) {
   const option = currentText.value.options?.[index]
   if (!option) return
@@ -419,8 +432,10 @@ function onContentChangedAcknowledge() {
         :warning-detail-text="currentText.warningDetail ?? null"
         :options="currentText.options ?? null"
         :options-warning-text="currentText.optionsWarning ?? null"
+        :options-warning-detail-text="currentText.optionsWarningDetail ?? null"
         @open-warning-detail="onOpenWarningDetail"
         @open-option-detail="onOpenOptionDetail"
+        @open-options-warning-detail="onOpenOptionsWarningDetail"
       />
       <NavBand @back="onBack" @next="onNext" />
       <IndexOverlay
