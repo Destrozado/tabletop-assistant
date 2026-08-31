@@ -4,13 +4,13 @@ milestone: v1.7
 milestone_name: milestone
 status: executing
 stopped_at: Phase 3 UI-SPEC approved
-last_updated: "2026-08-30T22:23:26.748Z"
-last_activity: 2026-08-30 -- Phase 03.1 execution started
+last_updated: "2026-08-31T07:31:39.869Z"
+last_activity: 2026-08-31
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 24
-  completed_plans: 18
+  completed_plans: 20
   percent: 60
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 03.1 (voz-pregenerada-en-espa-ol-con-gemini-tts) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 03.1
-Last activity: 2026-08-30 -- Phase 03.1 execution started
+Plan: 2 of 6
+Status: Ready to execute
+Last activity: 2026-08-31
 
-Progress: [██████████] 100%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [██████████] 100%
 | Phase 01 P05 | 25min | 3 tasks | 4 files |
 | Phase 01 P06 | 55min | 3 tasks | 2 files |
 | Phase 03 P05 | 35min | 3 tasks | 2 files |
+| Phase 03.1 P01 | N/A (2 sesiones) | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,7 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-06: TECH-05 completado como 'preparado, no desplegado' por decision explicita del usuario; netlify.toml reverificado contra una build real, publicacion diferida
 - [Phase 03]: 03-05: revision humana bloqueante en tablet real aprobo los 4 criterios de exito del ROADMAP sin pedir ninguna correccion de contenido; contentVersion se mantiene en 11
 - [Phase 03]: 03-05: calidad de la voz TTS del dispositivo por defecto juzgada mala por el usuario (API de Gemini disponible); registrado como seguimiento fuera de alcance para una fase o quick futura
+- [Phase 03.1-01]: Usuario eligió el estilo plano-agil (4a variante añadida durante el checkpoint D-02); A1 y modelo/SO de la tablet siguen sin verificar (escucha ocurrió en portátil) — bloqueante trasladado a 03.1-06
 
 ### Pending Todos
 
@@ -121,6 +123,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-30T19:52:02.618Z
+Last session: 2026-08-31T07:29:44.596Z
 Stopped at: Phase 3 UI-SPEC approved
 Resume file: None

@@ -95,7 +95,7 @@ Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número d
   4. Si alguien cambia una frase `speech` sin regenerar su audio, CI falla y nombra los ids afectados y el comando exacto para regenerarlos.
 **Plans**: 6 plans
 Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número de fichero):
-- [ ] 03.1-01-PLAN.md — (ola 1) Cadena de generación local con Gemini TTS y prueba de estilo bloqueante en la tablet (D-01/D-02/D-10/D-11)
+- [x] 03.1-01-PLAN.md — (ola 1) Cadena de generación local con Gemini TTS y prueba de estilo bloqueante en la tablet (D-01/D-02/D-10/D-11)
 - [x] 03.1-02-PLAN.md — (ola 1) Contrato de identificadores de audio en el motor: `resolveAudioId` y `collectSpeechEntries` (37 ids)
 - [ ] 03.1-03-PLAN.md — (ola 2) Lote de los 37 clips con el estilo aprobado y gate de deriva contenido↔audio en CI (D-03/D-04/D-05)
 - [ ] 03.1-04-PLAN.md — (ola 3) Precarga de los 37 audios al empezar partida, sin bloquear el flujo, y cabeceras de `/audio/**` (D-09)
@@ -124,5 +124,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Motor de flujo, selector y preparación de mesa | 8/8 | Complete   | 2026-08-28 |
 | 2. Bucle de ronda y reglas verificadas | 5/5 | Complete   | 2026-08-29 |
 | 3. Locución por voz y pantalla siempre encendida | 5/5 | Complete   | 2026-08-30 |
-| 03.1. Voz pregenerada en español con Gemini TTS | 1/6 | In Progress|  |
+| 03.1. Voz pregenerada en español con Gemini TTS | 2/6 | In Progress|  |
 | 4. Instalación y funcionamiento offline | 0/TBD | Not started | - |
