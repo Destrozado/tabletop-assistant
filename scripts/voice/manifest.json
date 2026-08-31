@@ -2,7 +2,7 @@
   "voice": "Rasalgethi",
   "model": "gemini-2.5-flash-preview-tts",
   "style": "plano-agil",
-  "generatedAt": "2026-08-31T11:50:57.326Z",
+  "generatedAt": "2026-08-31T17:02:59.222Z",
   "entries": {
     "ronda.jugadores.01": {
       "hash": "845b9b2ca02cc174",
@@ -10,14 +10,9 @@
       "generatedAt": "2026-08-31T11:50:09.181Z"
     },
     "ronda.jugadores.02": {
-      "hash": "60770125869690c9",
-      "bytes": 173326,
-      "generatedAt": "2026-08-31T11:50:15.133Z"
-    },
-    "ronda.jugadores.03": {
-      "hash": "a77ed0fcf7b8d402",
-      "bytes": 154126,
-      "generatedAt": "2026-08-31T11:50:20.035Z"
+      "hash": "889156c95bc95a5c",
+      "bytes": 167566,
+      "generatedAt": "2026-08-31T17:02:41.608Z"
     },
     "ronda.jugadores.04": {
       "hash": "ae38e911529c6186",
@@ -30,19 +25,19 @@
       "generatedAt": "2026-08-31T11:50:30.056Z"
     },
     "ronda.villano.02": {
-      "hash": "70bb0d228048d145",
-      "bytes": 219406,
-      "generatedAt": "2026-08-31T11:50:36.620Z"
+      "hash": "e9d0bb7cfc792591",
+      "bytes": 286606,
+      "generatedAt": "2026-08-31T17:02:48.063Z"
     },
     "ronda.villano.03": {
-      "hash": "ca61c4b8de78f27d",
-      "bytes": 198286,
-      "generatedAt": "2026-08-31T11:50:42.030Z"
+      "hash": "f20c8812e0b8e8de",
+      "bytes": 140686,
+      "generatedAt": "2026-08-31T17:02:52.728Z"
     },
     "ronda.villano.04": {
-      "hash": "ed94b70419bfb01f",
-      "bytes": 263566,
-      "generatedAt": "2026-08-31T11:50:48.082Z"
+      "hash": "cf588d95bd164f1f",
+      "bytes": 200206,
+      "generatedAt": "2026-08-31T17:02:59.222Z"
     },
     "ronda.villano.05": {
       "hash": "0980e64a82789f36",

@@ -240,6 +240,28 @@ async function runBatch() {
   manifest.model = MODEL
   manifest.style = ACTIVE_STYLE
 
+  // Poda de huérfanos (260831-pym): el gate `el manifiesto cubre exactamente
+  // el catálogo del motor` de voice-drift.test.ts exige igualdad EXACTA entre
+  // las claves del manifiesto y `validIds` (derivado de collectSpeechEntries,
+  // no de requestedIds, para que la poda sea correcta también al regenerar un
+  // subconjunto). Si un id desaparece del contenido (p. ej. una fusión de
+  // pasos), su entrada se quedaría en el manifiesto para siempre y el gate
+  // fallaría hasta el fin de los tiempos. scripts/voice/manifest.json es
+  // ÚNICO ESCRITOR este script (ver cabecera): la poda tiene que vivir aquí,
+  // nunca en una edición manual del JSON.
+  //
+  // Deliberadamente NO se borra el .m4a huérfano de public/audio/: borrar
+  // ficheros en cada ejecución es un pie de escopeta. Se avisa por consola y
+  // el borrado lo hace una persona con `git rm`, que queda en el historial.
+  const orphanIds = Object.keys(manifest.entries).filter(id => !validIds.has(id))
+  if (orphanIds.length > 0) {
+    for (const id of orphanIds) {
+      console.log(`Podando entrada huérfana del manifiesto: ${id} (su public/audio/${id}.m4a sigue en disco; retíralo con git rm)`)
+      delete manifest.entries[id]
+    }
+    saveManifest(manifest)
+  }
+
   const targets = entries.filter((entry) => {
     assertValidId(entry.id)
     if (requestedIds.length > 0 && !requestedIds.includes(entry.id)) return false
