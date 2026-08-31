@@ -77,3 +77,7 @@ desktop.ini
 # ─── Artefactos temporales de GSD ────────────────────────────────────
 .planning/**/.review-fix-recovery-pending.json
 .planning/**/.continue-here.md
+
+# Reglamentos de referencia: uso privado del grupo, con copyright.
+# NO se versionan (el repo es publico y se despliega). Ver reference/README.md
+reference/*.pdf
