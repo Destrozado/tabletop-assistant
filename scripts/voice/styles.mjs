@@ -20,6 +20,7 @@ export const STYLES = {
   plano: '',
   pausado: 'Di lo siguiente con un tono pausado e instructivo, como quien explica una regla de un juego de mesa: ',
   monitor: 'Di lo siguiente con un tono cercano y animado, como un monitor de juegos que guía a un grupo de amigos: ',
+  'plano-agil': 'Di lo siguiente en tono neutro e informativo, con ritmo ágil y sin pausas largas, sin alegría ni entusiasmo: ',
 }
 
 /**
