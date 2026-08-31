@@ -102,6 +102,45 @@ export function scheduleAudioWatchdog(
   }
 }
 
+// hasAudioStarted (audio-corta-y-reinicia): la señal que consulta el
+// watchdog de arriba (`hasStarted`) ya NO depende en exclusiva de que el
+// evento `playing` del `<audio>` haya llegado a tiempo. En Android/Chrome ese
+// evento puede no reflejarse a tiempo para un elemento con `src` de tipo
+// blob aunque el clip SÍ esté sonando de forma audible — el bug reportado
+// ("suena ~1s, se corta, la frase reinicia desde cero con otra voz") encaja
+// exactamente con ese falso negativo: el watchdog disparaba el respaldo de
+// síntesis sobre un clip que en realidad seguía vivo.
+// `audioEl.currentTime` es la señal de sustitución: solo avanza cuando de
+// verdad hay fotogramas decodificándose, es decir, cuando ya existe sonido
+// real. Deliberadamente NO se usa `!audioEl.paused`: el propio contrato de
+// HTMLMediaElement lo pone a `false` de forma SÍNCRONA en cuanto se llama a
+// `.play()`, mucho antes de que exista ningún sonido — usarlo habría hecho
+// que el watchdog nunca disparase, ni siquiera para el caso T-03.1-17 que
+// tiene que seguir cubriendo (un clip que ni arranca ni falla nunca).
+export function hasAudioStarted(
+  audioStarted: boolean,
+  audioEl: { currentTime: number } | null,
+): boolean {
+  return audioStarted || (audioEl !== null && audioEl.currentTime > 0)
+}
+
+// composeAudioFallback (audio-corta-y-reinicia): el defecto real del bug —
+// el respaldo de síntesis (`speakFallback`) podía arrancar con el clip
+// pregenerado todavía sonando, porque nada llamaba a `stopAudio()` primero.
+// En Android eso hace que `speechSynthesis` tome el foco de audio y pause el
+// `<audio>` a media reproducción: exactamente "suena ~1s, se corta, la
+// frase reinicia desde cero". El arreglo NO toca `speakFallback` ni
+// `scheduleAudioWatchdog` (G-01/03.1-05 ya verificados en dispositivo, fuera
+// de límites) — compone el orden correcto en el sitio llamante. El contrato
+// que este export protege es exactamente ese orden: `stopAudio` SIEMPRE
+// antes que `speakFallback`, nunca al revés ni en paralelo.
+export function composeAudioFallback(stopAudio: () => void, speakFallback: () => void): () => void {
+  return function fallbackFromAudio(): void {
+    stopAudio()
+    speakFallback()
+  }
+}
+
 // 03-RESEARCH.md §Pitfall 3: en Android, getVoices() puede listar una entrada
 // es-* genérica aunque el paquete de voz en español no esté descargado. NO
 // construir un detector más fino (por ejemplo, exigir un nombre de voz
@@ -382,6 +421,23 @@ export function useVoiceAnnouncer(
     cancelWatchdog = scheduleSpeakWatchdog(speak, () => status.value)
   }
 
+  // audio-corta-y-reinicia: único punto por el que el camino de `<audio>`
+  // cae al respaldo de síntesis — desde el `.catch()` de `.play()` y desde
+  // `scheduleAudioWatchdog` (T-03.1-17). NO toca speakFallback ni
+  // scheduleAudioWatchdog (G-01/03.1-05 verificados, fuera de límites de
+  // este arreglo): `composeAudioFallback` (función pura, exportada para
+  // poder testearla igual que scheduleAudioWatchdog/scheduleSpeakWatchdog)
+  // compone `stopAudio()` delante de `speakFallback()`. `stopAudio()` ya es
+  // un no-op seguro cuando el elemento nunca llegó a sonar (rechazo de
+  // `.play()`), así que envolver también ese camino no cambia su
+  // comportamiento — el caso que sí importa es el watchdog: si dispara con
+  // el clip realmente sonando (evento `playing` no reflejado a tiempo en
+  // Android, ver `hasAudioStarted` más abajo), `speechSynthesis.speak()` ya
+  // NO arranca sobre un `<audio>` vivo. En Android eso es justo lo que roba
+  // el foco de audio y pausa el clip a media reproducción — el síntoma
+  // exacto de "suena ~1s, se corta, reinicia desde cero con otra voz".
+  const fallbackFromAudio = composeAudioFallback(stopAudio, speakFallback)
+
   // announce() (plan 03.1-05, VOZ-07/VOZ-08): TODO síncrono hasta la llamada
   // a `.play()` — prohibido cualquier `await` en este camino (Pitfall 1,
   // CLAUDE.md §TTS gotchas, extendido de speak() a <audio>.play()).
@@ -436,12 +492,21 @@ export function useVoiceAnnouncer(
       // D-07: un rechazo de reproducción (autoplay bloqueado, fichero
       // ausente, fallo de red) es una AUSENCIA, no un error — cae al
       // respaldo en silencio, sin salida por consola, sin banda.
-      audioEl.play().catch(() => speakFallback())
+      audioEl.play().catch(fallbackFromAudio)
       // T-03.1-17: el clip puede no rechazar NI resolver nunca (red
       // presente pero inútil). Pasado el retardo sin `playing`, cae al
       // respaldo — ya fuera del gesto, por eso es una mejora oportunista
       // (puede descartarse en iOS) y nunca una garantía.
-      cancelAudioWatchdog = scheduleAudioWatchdog(() => audioStarted, speakFallback)
+      //
+      // audio-corta-y-reinicia: `hasAudioStarted` (función pura, ver más
+      // abajo) ya NO depende en exclusiva del evento `playing` (línea
+      // `audioStarted = true` en onPlaying, arriba). En Android/Chrome ese
+      // evento puede no reflejarse a tiempo para un `<audio>` con `src` de
+      // tipo blob aunque el clip SÍ esté sonando.
+      cancelAudioWatchdog = scheduleAudioWatchdog(
+        () => hasAudioStarted(audioStarted, audioEl),
+        fallbackFromAudio,
+      )
       return
     }
 

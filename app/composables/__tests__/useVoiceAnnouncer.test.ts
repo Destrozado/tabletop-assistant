@@ -6,7 +6,7 @@
 // (mismo patrón que detectSpanishVoice) precisamente para poder testear el
 // arreglo de G-01 sin necesitar jsdom ni montar el composable completo.
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { detectSpanishVoice, hasSpanishVoice, resolveEffectiveAvailability, resolveVoiceState, scheduleAudioWatchdog, scheduleSpeakWatchdog, shouldAnnounce } from '../useVoiceAnnouncer'
+import { composeAudioFallback, detectSpanishVoice, hasAudioStarted, hasSpanishVoice, resolveEffectiveAvailability, resolveVoiceState, scheduleAudioWatchdog, scheduleSpeakWatchdog, shouldAnnounce } from '../useVoiceAnnouncer'
 
 describe('resolveVoiceState (D-47: detección sin resolver es optimista)', () => {
   it('preferencia activada, disponibilidad sin resolver (null) -> on', () => {
@@ -188,6 +188,85 @@ describe('scheduleAudioWatchdog (plan 03.1-05, T-03.1-17: clip que ni arranca ni
 
     vi.advanceTimersByTime(1)
     expect(onStall).toHaveBeenCalledTimes(1)
+  })
+})
+
+// audio-corta-y-reinicia: el evento `playing` que `useVoiceAnnouncer`
+// escucha para poner `audioStarted` a `true` puede no reflejarse a tiempo en
+// Android/Chrome para un `<audio>` con `src` de tipo blob, aunque el clip SÍ
+// esté sonando de forma audible. `hasAudioStarted` es la señal robusta que
+// consulta scheduleAudioWatchdog: no depende en exclusiva de ese evento.
+describe('hasAudioStarted (audio-corta-y-reinicia: señal robusta para el watchdog de audio)', () => {
+  it('audioStarted true (el evento playing sí llegó) -> true, sin mirar el elemento', () => {
+    expect(hasAudioStarted(true, null)).toBe(true)
+    expect(hasAudioStarted(true, { currentTime: 0 })).toBe(true)
+  })
+
+  it('audioStarted false, pero currentTime > 0 (el clip suena aunque playing no ha llegado) -> true', () => {
+    expect(hasAudioStarted(false, { currentTime: 0.05 })).toBe(true)
+  })
+
+  it('audioStarted false y currentTime en 0 (ni ha empezado a sonar, ni ha llegado el evento) -> false', () => {
+    expect(hasAudioStarted(false, { currentTime: 0 })).toBe(false)
+  })
+
+  it('audioStarted false y audioEl null (T-03.1-17: el clip nunca llegó a montarse) -> false', () => {
+    expect(hasAudioStarted(false, null)).toBe(false)
+  })
+})
+
+// audio-corta-y-reinicia: el defecto real del bug. `speakFallback()` nunca
+// llamaba a `stopAudio()` — si el watchdog disparaba con el clip realmente
+// sonando (falso negativo de `playing`), `speechSynthesis.speak()` arrancaba
+// ENCIMA del `<audio>` en curso. En Android, el TTS del sistema roba el foco
+// de audio y pausa el elemento a media reproducción: "suena ~1s, se corta,
+// la frase reinicia desde cero con otra voz" — exactamente el síntoma
+// reportado. `composeAudioFallback` es el contrato que evita la regresión:
+// stopAudio() SIEMPRE antes que speakFallback().
+describe('composeAudioFallback (audio-corta-y-reinicia: el respaldo nunca debe solaparse con el clip)', () => {
+  it('llama a stopAudio() antes que a speakFallback(), en ese orden', () => {
+    const order: string[] = []
+    const stopAudio = vi.fn(() => order.push('stopAudio'))
+    const speakFallback = vi.fn(() => order.push('speakFallback'))
+
+    composeAudioFallback(stopAudio, speakFallback)()
+
+    expect(order).toEqual(['stopAudio', 'speakFallback'])
+  })
+
+  it('llama a ambas funciones exactamente una vez', () => {
+    const stopAudio = vi.fn()
+    const speakFallback = vi.fn()
+
+    composeAudioFallback(stopAudio, speakFallback)()
+
+    expect(stopAudio).toHaveBeenCalledTimes(1)
+    expect(speakFallback).toHaveBeenCalledTimes(1)
+  })
+
+  it('con un <audio> falso: el elemento ya está pausado en el momento en que arranca el respaldo de síntesis', () => {
+    // Modela el propio audioEl del composable: stopAudio() real llama a
+    // audioEl.pause(), que en un elemento real detiene la reproducción de
+    // forma síncrona. Este fake reproduce ese efecto observable.
+    const fakeAudioEl = {
+      paused: false,
+      pause(this: { paused: boolean }): void {
+        this.paused = true
+      },
+    }
+    const stopAudio = (): void => fakeAudioEl.pause()
+    let audioWasPausedWhenFallbackRan: boolean | null = null
+    const speakFallback = vi.fn(() => {
+      audioWasPausedWhenFallbackRan = fakeAudioEl.paused
+    })
+
+    composeAudioFallback(stopAudio, speakFallback)()
+
+    // Antes de este arreglo, speakFallback() se llamaba sin pasar por
+    // stopAudio(): esta aserción habría sido `false` (o `fakeAudioEl.paused`
+    // ni siquiera se habría tocado), reproduciendo el solape que causaba el
+    // corte y reinicio en Android.
+    expect(audioWasPausedWhenFallbackRan).toBe(true)
   })
 })
 
