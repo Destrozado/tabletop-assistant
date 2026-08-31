@@ -15,8 +15,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Motor de flujo, selector y preparación de mesa** - El grupo elige Marvel Champions, configura la partida y recorre toda la preparación de mesa en una tablet real, con contenido verificado y la app desplegada en una URL. (completed 2026-08-28)
 - [x] **Phase 2: Bucle de ronda y reglas verificadas** - El grupo juega ronda tras ronda —fase de jugadores, fase del villano (6 pasos oficiales), fin de ronda— con el contenido corregido contra el Rules Reference v1.7. (completed 2026-08-29)
 - [x] **Phase 3: Locución por voz y pantalla siempre encendida** - El grupo escucha cada paso en voz alta en español y la tablet no se apaga durante la partida, sin que ninguna de las dos cosas bloquee el flujo si falla. (completed 2026-08-30)
-- [ ] **Phase 03.1: Voz pregenerada en español con Gemini TTS** (INSERTED) - Las 37 frases locutables se generan una sola vez con Gemini TTS y se sirven como audio estático; la voz del dispositivo queda como respaldo.
-- [ ] **Phase 4: Instalación y funcionamiento offline** - El grupo instala la app en la tablet y juega una partida completa aunque se caiga la wifi a mitad de partida.
+- [x] **Phase 03.1: Voz pregenerada en español con Gemini TTS** (INSERTED) - Las 37 frases locutables se generan una sola vez con Gemini TTS y se sirven como audio estático; la voz del dispositivo queda como respaldo. (completed 2026-08-31)
+- [x] **Phase 4: Instalación y funcionamiento offline** - El grupo instala la app en la tablet y juega una partida completa aunque se caiga la wifi a mitad de partida. (completed 2026-08-31)
 
 ## Phase Details
 
@@ -100,7 +100,7 @@ Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número d
 - [x] 03.1-03-PLAN.md — (ola 2) Lote de los 37 clips con el estilo aprobado y gate de deriva contenido↔audio en CI (D-03/D-04/D-05) — **PARCIAL: 9/37 clips, gate sin escribir; bloqueado por la cuota diaria de la API**
 - [x] 03.1-04-PLAN.md — (ola 3) Precarga de los 37 audios al empezar partida, sin bloquear el flujo, y cabeceras de `/audio/**` (D-09)
 - [x] 03.1-05-PLAN.md — (ola 4) Reproducción del clip pregenerado con la voz del sistema como respaldo silencioso (D-07/D-08)
-- [ ] 03.1-06-PLAN.md — (ola 5) Limpieza de artefactos, verificación del despliegue y prueba humana bloqueante en la tablet real
+- [x] 03.1-06-PLAN.md — (ola 5) Limpieza de artefactos, verificación del despliegue y prueba humana bloqueante en la tablet real
 
 ### Phase 4: Instalación y funcionamiento offline
 **Goal**: Un grupo puede instalar la app en la tablet, abrirla a pantalla completa, y jugar una partida entera aunque la wifi se caiga a mitad de partida; cuando se publica una versión nueva, la app espera la decisión del usuario en vez de recargarse sola.
@@ -119,7 +119,7 @@ Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número d
 - [x] 04-03-PLAN.md — (ola 3) Playwright sobre un build real: pruebas de instalación y de flujo offline (la de audio nace en rojo)
 - [x] 04-04-PLAN.md — (ola 4) Precacheo de los 37 clips excluyendo los artefactos de la 03.1, y flujo offline en verde (OFF-02/OFF-03)
 - [x] 04-05-PLAN.md — (ola 4) Banda de versión nueva descartable montada en app.vue, y prueba de que la app nunca se recarga sola (OFF-04)
-- [ ] 04-06-PLAN.md — (ola 5) Playwright en CI y prueba humana bloqueante en la tablet real (requiere los 37 clips de la Fase 03.1)
+- [x] 04-06-PLAN.md — (ola 5) Playwright en CI y prueba humana bloqueante en la tablet real (requiere los 37 clips de la Fase 03.1)
 
 ## Progress
 
@@ -131,5 +131,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Motor de flujo, selector y preparación de mesa | 8/8 | Complete   | 2026-08-28 |
 | 2. Bucle de ronda y reglas verificadas | 5/5 | Complete   | 2026-08-29 |
 | 3. Locución por voz y pantalla siempre encendida | 5/5 | Complete   | 2026-08-30 |
-| 03.1. Voz pregenerada en español con Gemini TTS | 5/6 | In Progress|  |
-| 4. Instalación y funcionamiento offline | 5/6 | In Progress|  |
+| 03.1. Voz pregenerada en español con Gemini TTS | 6/6 | Complete   | 2026-08-31 |
+| 4. Instalación y funcionamiento offline | 6/6 | Complete   | 2026-08-31 |
