@@ -56,5 +56,10 @@ export default defineConfig({
   fullyParallel: false,
 
   retries: process.env.CI ? 1 : 0,
-  reporter: 'list',
+  // En CI se añade el reportero 'html' (sin abrir navegador) para que el step
+  // "Upload Playwright report" de .github/workflows/ci.yml (04-06-PLAN.md)
+  // tenga de verdad qué subir cuando un test falla — 'list' por sí solo no
+  // genera ningún fichero en disco. En local se mantiene solo 'list', sin
+  // carpeta playwright-report/ de por medio.
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
 })
