@@ -116,7 +116,7 @@ Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número d
 Plans (en orden de ejecución; la verdad es `wave`/`depends_on`, no el número de fichero):
 - [x] 04-01-PLAN.md — (ola 1) Verificación de compatibilidad con Nuxt 4.5.x y arranque de @vite-pwa/nuxt con manifiesto base
 - [x] 04-02-PLAN.md — (ola 2) Iconos generados por código sin dependencias y meta etiquetas de pantalla completa (OFF-01)
-- [ ] 04-03-PLAN.md — (ola 3) Playwright sobre un build real: pruebas de instalación y de flujo offline (la de audio nace en rojo)
+- [x] 04-03-PLAN.md — (ola 3) Playwright sobre un build real: pruebas de instalación y de flujo offline (la de audio nace en rojo)
 - [ ] 04-04-PLAN.md — (ola 4) Precacheo de los 37 clips excluyendo los artefactos de la 03.1, y flujo offline en verde (OFF-02/OFF-03)
 - [ ] 04-05-PLAN.md — (ola 4) Banda de versión nueva descartable montada en app.vue, y prueba de que la app nunca se recarga sola (OFF-04)
 - [ ] 04-06-PLAN.md — (ola 5) Playwright en CI y prueba humana bloqueante en la tablet real (requiere los 37 clips de la Fase 03.1)
@@ -132,4 +132,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. Bucle de ronda y reglas verificadas | 5/5 | Complete   | 2026-08-29 |
 | 3. Locución por voz y pantalla siempre encendida | 5/5 | Complete   | 2026-08-30 |
 | 03.1. Voz pregenerada en español con Gemini TTS | 5/6 | In Progress|  |
-| 4. Instalación y funcionamiento offline | 2/6 | In Progress|  |
+| 4. Instalación y funcionamiento offline | 3/6 | In Progress|  |
