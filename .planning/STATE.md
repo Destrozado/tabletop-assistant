@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: milestone
 status: executing
-stopped_at: Completado 03.1-05-PLAN.md (rama de audio pregenerado en announce()); reanudar con 03.1-06
-last_updated: "2026-08-31T10:02:22.000Z"
+stopped_at: Phase 4 context gathered
+last_updated: "2026-08-31T11:07:17.791Z"
 last_activity: 2026-08-31
 progress:
   total_phases: 5
@@ -123,6 +123,7 @@ None yet.
 - 03.1 ESTADO AL PAUSAR (2026-08-31): olas 1, 3 y 4 completas (planes 03.1-01, 02, 04, 05). Bloqueado en 03.1-03 (9/37 clips) y por tanto en 03.1-06 (ola 5), que necesita el lote completo + prueba humana en tablet.
   REANUDAR ASI: (1) `npm run voice:generate` una vez al dia hasta que `ls public/audio/*.m4a | wc -l` de 37; (2) completar Task 2 de 03.1-03 (gate de deriva, plantilla en engine/__tests__/content.test.ts); (3) ejecutar el plan 03.1-06 (limpieza de public/voice-probe.html y public/audio/_probe/, verificacion de despliegue y prueba humana bloqueante en la tablet real).
   CRITERIOS DIFERIDOS que el verificador debe re-comprobar al cerrar la fase: recuento de 37 clips en la salida de `nuxt generate`; grep de la cabecera /audio/** en .vercel/output/config.json; "cada paso suena con clip real" (hoy solo 9 ids lo cumplen); y toda la verificacion en dispositivo real de reproduccion, corte a mitad de clip, silencio y offline.
+
 - 03.1-01: el checkpoint de estilo D-02 se escucho en el PORTATIL, no en la tablet. La asuncion A1 de RESEARCH.md (`<audio>.play()` dentro del gesto tactil) sigue SIN verificar en el dispositivo real, y el modelo/SO de la tablet sigue sin conocerse. Todo el riesgo recae ahora en la prueba humana del plan 03.1-06.
 - 260831-fkb: el Rules Reference v1.7 p. 39 dice explicitamente que un personaje puede intentar una accion bloqueada por un Estado (atacar, retirar amenaza) aunque no tenga objetivo valido, solo para descartar ese Estado — el detalle tactico mas util de la regla de Estados, no incluido en `optionsWarningDetail` por el limite de 320 caracteres. Sitio natural para retomarlo: un aviso propio (mismo patron `optionsWarning`/`optionsWarningDetail`) en el paso de atacar o de retirar amenaza.
 - 260831-g2s: `IndexOverlay` no escucha Escape, a diferencia de `WarningDetailModal`. Se dejo fuera de alcance del quick de atajos de teclado (D-Q4: "desactivado con overlay abierto" no implicaba anadir cierre por Escape a todos los overlays). Candidato a quick futura si se decide homogeneizar el cierre por teclado de los overlays.
@@ -144,6 +145,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-31T10:02:22.000Z
-Stopped at: Quick 260831-g2s (atajos de teclado) completada; el milestone sigue bloqueado en 03.1-03 (9/37 clips) — reanudar con 03.1-06
-Resume file: None
+Last session: 2026-08-31T11:07:17.776Z
+Stopped at: Phase 4 context gathered
+Resume file: .planning/phases/04-instalaci-n-y-funcionamiento-offline/04-CONTEXT.md
