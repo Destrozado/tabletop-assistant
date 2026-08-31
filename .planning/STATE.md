@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: milestone
 status: executing
-stopped_at: Phase 3 UI-SPEC approved
-last_updated: "2026-08-31T07:44:28.215Z"
+stopped_at: Completado 03.1-04-PLAN.md (precarga de audio); reanudar con 03.1-05
+last_updated: "2026-08-31T08:09:24.026Z"
 last_activity: 2026-08-31
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 24
-  completed_plans: 21
+  completed_plans: 22
   percent: 60
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 03.1 (voz-pregenerada-en-espa-ol-con-gemini-tts) — EXECUTING
-Plan: 2 of 6
-Status: Ready to execute
+Plan: 4 of 6 (03.1-04 completo; 03.1-03 sigue BLOQUEADO por cuota en 9/37 — ver Blockers/Concerns; 03.1-05 depende de 03.1-02/03.1-04, no de 03.1-03, y ya puede ejecutarse)
+Status: Ready to execute (03.1-05)
 Last activity: 2026-08-31
 
-Progress: [████████░░] 83%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [████████░░] 83%
 | Phase 01 P06 | 55min | 3 tasks | 2 files |
 | Phase 03 P05 | 35min | 3 tasks | 2 files |
 | Phase 03.1 P01 | N/A (2 sesiones) | 3 tasks | 10 files |
+| Phase 03.1 P04 | 35min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,7 @@ Recent decisions affecting current work:
 - [Phase 03]: 03-05: revision humana bloqueante en tablet real aprobo los 4 criterios de exito del ROADMAP sin pedir ninguna correccion de contenido; contentVersion se mantiene en 11
 - [Phase 03]: 03-05: calidad de la voz TTS del dispositivo por defecto juzgada mala por el usuario (API de Gemini disponible); registrado como seguimiento fuera de alcance para una fase o quick futura
 - [Phase 03.1-01]: Usuario eligió el estilo plano-agil (4a variante añadida durante el checkpoint D-02); A1 y modelo/SO de la tablet siguen sin verificar (escucha ocurrió en portátil) — bloqueante trasladado a 03.1-06
+- [Phase 03.1-04]: usePreloadedAudio adopta estrategia red-primero + Cache Storage como respaldo (inversion deliberada del orden de RESEARCH.md); routeRule de /audio/** anade max-age=0, must-revalidate — Un clip regenerado reescribe la misma URL de fichero (sin huella en el nombre); con cache-primero un clip regenerado nunca volveria a descargarse — mismo razonamiento del stale service worker trap ya aplicado a /sw.js
 
 ### Pending Todos
 
@@ -127,6 +129,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-31T07:44:28.206Z
-Stopped at: Phase 3 UI-SPEC approved
+Last session: 2026-08-31T08:09:24.019Z
+Stopped at: Completado 03.1-04-PLAN.md (precarga de audio); reanudar con 03.1-05
 Resume file: None
