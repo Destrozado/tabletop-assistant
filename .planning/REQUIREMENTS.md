@@ -62,7 +62,7 @@ Requisitos de la primera versión. Cada uno se mapea a una fase del roadmap.
 - [x] **VOZ-04**: Al navegar (siguiente, atrás o salto), cualquier locución en curso se corta antes de empezar la nueva; las locuciones nunca se encolan ni se repiten
 - [x] **VOZ-05**: Si el dispositivo no dispone de voz en español, la app lo indica al usuario y sigue siendo plenamente utilizable solo con texto
 - [x] **VOZ-06**: Si la síntesis de voz no está disponible o falla, el flujo guiado sigue funcionando sin degradarse
-- [ ] **VOZ-07**: La locución de cada paso suena con una voz natural en español correcto en cualquier dispositivo, sin depender de las voces de síntesis instaladas en el sistema
+- [x] **VOZ-07**: La locución de cada paso suena con una voz natural en español correcto en cualquier dispositivo, sin depender de las voces de síntesis instaladas en el sistema
 - [ ] **VOZ-08**: Si la locución grabada no está disponible, la app recurre a la voz del sistema sin avisar y sin interrumpir el flujo
 
 ### Interfaz en tablet
