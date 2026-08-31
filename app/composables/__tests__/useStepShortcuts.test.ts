@@ -27,6 +27,7 @@ function shortcutState(overrides: Partial<ShortcutState> = {}): ShortcutState {
     awaitingResumeChoice: false,
     awaitingContentChangedAck: false,
     awaitingDiscardConfirm: false,
+    awaitingEndConfirm: false,
     isIndexOpen: false,
     hasActiveDetail: false,
     ...overrides,
@@ -110,6 +111,10 @@ describe('shortcutsEnabled (D-Q4: cualquier overlay abierto desactiva el atajo)'
 
   it('awaitingDiscardConfirm=true -> false (aunque hoy solo aparezca anidado en awaitingResumeChoice)', () => {
     expect(shortcutsEnabled(shortcutState({ awaitingDiscardConfirm: true }))).toBe(false)
+  })
+
+  it('con la confirmación de partida terminada abierta -> false', () => {
+    expect(shortcutsEnabled(shortcutState({ awaitingEndConfirm: true }))).toBe(false)
   })
 
   it('isIndexOpen=true -> false', () => {

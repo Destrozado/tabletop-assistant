@@ -10,10 +10,10 @@
 //      en Chrome/Firefox: un listener ingenuo sumaría su avance al nativo
 //      (doble avance). Ver D-Q1.
 //   2. Espacio desplaza la página por defecto.
-//   3. Hay cinco estados de overlay (índice, modal de detalle, reanudación,
-//      aviso de contenido cambiado, diálogo de descarte) que deben
-//      desactivar el atajo por completo — las teclas no deben actuar "por
-//      detrás" de un diálogo.
+//   3. Hay seis estados de overlay (índice, modal de detalle, reanudación,
+//      aviso de contenido cambiado, diálogo de descarte, confirmación de
+//      partida terminada) que deben desactivar el atajo por completo — las
+//      teclas no deben actuar "por detrás" de un diálogo.
 //   4. En un campo de texto, Espacio escribe un espacio y Enter puede enviar
 //      un formulario: el atajo no debe robarles la tecla.
 //
@@ -49,6 +49,7 @@ export interface ShortcutState {
   awaitingResumeChoice: boolean
   awaitingContentChangedAck: boolean
   awaitingDiscardConfirm: boolean
+  awaitingEndConfirm: boolean
   isIndexOpen: boolean
   hasActiveDetail: boolean
 }
@@ -89,9 +90,14 @@ export function resolveShortcutAction(event: ShortcutKeyEvent, enabled: boolean)
 }
 
 // Contrato: true SOLO si la pantalla está resuelta, hay una sesión activa y
-// ninguno de los cinco overlays está abierto. D-Q4: con cualquier overlay
+// ninguno de los seis overlays está abierto. D-Q4: con cualquier overlay
 // abierto las teclas no hacen NADA — no se añade cierre por Escape a
-// ningún overlay aquí.
+// ningún overlay aquí. D-U6: `awaitingEndConfirm` es hoy estrictamente
+// redundante (el diálogo solo se muestra con `isIndexOpen === true`, que ya
+// desactiva el atajo), pero el contrato de esta función es "ningún overlay
+// abierto", no "el índice abierto" — si el día de mañana se cierra el
+// índice al pedir la confirmación, un Espacio no puede quedar libre para
+// confirmar un borrado por detrás de un diálogo destructivo.
 export function shortcutsEnabled(state: ShortcutState): boolean {
   return (
     state.resumeResolved
@@ -99,6 +105,7 @@ export function shortcutsEnabled(state: ShortcutState): boolean {
     && !state.awaitingResumeChoice
     && !state.awaitingContentChangedAck
     && !state.awaitingDiscardConfirm
+    && !state.awaitingEndConfirm
     && !state.isIndexOpen
     && !state.hasActiveDetail
   )

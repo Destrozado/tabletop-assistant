@@ -62,6 +62,7 @@ const audioIds = computed(() => (game ? collectAudioIds(game) : []))
 const {
   voiceState,
   announce,
+  silence,
   toggle: toggleVoice,
   showVoiceUnavailableNotice,
   dismissNotice,
@@ -87,6 +88,7 @@ const resumeResolved = ref(false)
 const awaitingResumeChoice = ref(false)
 const awaitingContentChangedAck = ref(false)
 const awaitingDiscardConfirm = ref(false)
+const awaitingEndConfirm = ref(false)
 
 onMounted(() => {
   if (!game) {
@@ -286,6 +288,10 @@ const discardBody = computed(() =>
   `Se borrará el progreso guardado de la partida en curso (${savedSummary.value}). Esta acción no se puede deshacer.`,
 )
 
+const endGameBody = computed(() =>
+  `Se borrará el progreso guardado (${savedSummary.value}) y volveréis a la pantalla de inicio. Esta acción no se puede deshacer.`,
+)
+
 // D-43: «Continuar» de la reanudación locuta el paso recuperado — es un
 // toque del usuario (funciona también en iPad) y volver de un bloqueo de
 // tablet es justo cuando oír dónde ibais tiene valor.
@@ -319,6 +325,43 @@ function onDiscardConfirm() {
   // tryOnScopeDispose interno de useWakeLock no se dispara aquí — sin esta
   // línea la tablet seguiría sin apagarse tras descartar la partida.
   releaseWakeLock().catch(() => {})
+}
+
+// D-U3: pedir la confirmación de «Partida terminada» NO cierra el índice —
+// el diálogo se apila ENCIMA (mismo apilamiento que ResumePrompt/su
+// ConfirmDialog de descarte). Cancelar significa «no era esto», no «cierra
+// el menú».
+function onEndGameRequest() {
+  awaitingEndConfirm.value = true
+}
+
+function onEndGameCancel() {
+  awaitingEndConfirm.value = false
+}
+
+// D-U4: orden EXACTO, no cosmético.
+function onEndGameConfirm() {
+  awaitingEndConfirm.value = false
+  isIndexOpen.value = false
+  // Corta la locución en curso: el tryOnScopeDispose de useVoiceAnnouncer
+  // pausa el <audio> pregenerado al desmontar, pero speechSynthesis (el
+  // camino de respaldo) no se detiene solo al cambiar de ruta — sin esto la
+  // voz seguiría oyéndose ya en el selector de juego.
+  silence()
+  // session.value = null ANTES de clear(gameId): el autoguardado es un
+  // watchDebounced de 300ms. Si hubiera una escritura pendiente con la
+  // sesión antigua, se ejecutaría DESPUÉS del borrado y resucitaría la
+  // clave. Asignar null reprograma esa invocación pendiente con null, que
+  // la guarda `if (!value) return` del watch descarta (mismo truco que
+  // onDiscardConfirm).
+  session.value = null
+  clear(gameId)
+  // NO se llama a releaseWakeLock() aquí: navigateTo desmonta esta página y
+  // el tryOnScopeDispose interno de useWakeLock ya libera el bloqueo solo
+  // (mismo razonamiento que el «Atrás» del mini-setup, líneas 434-439 más
+  // abajo) — al contrario que onDiscardConfirm, que sí libera a mano porque
+  // esa transición no desmonta la página.
+  navigateTo('/')
 }
 
 // D-43: mismo razonamiento que onResumeContinue — el CTA de reconocimiento
@@ -357,6 +400,7 @@ const atajosActivos = computed(() =>
     awaitingResumeChoice: awaitingResumeChoice.value,
     awaitingContentChangedAck: awaitingContentChangedAck.value,
     awaitingDiscardConfirm: awaitingDiscardConfirm.value,
+    awaitingEndConfirm: awaitingEndConfirm.value,
     isIndexOpen: isIndexOpen.value,
     hasActiveDetail: activeDetail.value !== null,
   }),
@@ -482,6 +526,23 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         :blocks="blocks"
         @jump-to="onIndexJumpTo"
         @close="onIndexClose"
+        @end-game="onEndGameRequest"
+      />
+      <!--
+        D-U3: hermano JUSTO DESPUÉS de IndexOverlay — ambos son fixed
+        inset-0 z-50, así que el que va después en el DOM pinta encima sin
+        tocar ningún z-index (mismo apilamiento que ResumePrompt/su
+        ConfirmDialog de descarte).
+      -->
+      <ConfirmDialog
+        v-if="awaitingEndConfirm"
+        title="¿Dar la partida por terminada?"
+        :body="endGameBody"
+        confirm-label="Sí, terminar"
+        cancel-label="Cancelar"
+        :destructive="true"
+        @confirm="onEndGameConfirm"
+        @cancel="onEndGameCancel"
       />
       <WarningDetailModal
         v-if="activeDetail"
