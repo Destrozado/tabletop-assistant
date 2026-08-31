@@ -4,7 +4,7 @@ milestone: v1.7
 milestone_name: milestone
 status: executing
 stopped_at: Completado 03.1-05-PLAN.md (rama de audio pregenerado en announce()); reanudar con 03.1-06
-last_updated: "2026-08-31T08:22:16.483Z"
+last_updated: "2026-08-31T10:02:22.000Z"
 last_activity: 2026-08-31
 progress:
   total_phases: 5
@@ -125,12 +125,14 @@ None yet.
   CRITERIOS DIFERIDOS que el verificador debe re-comprobar al cerrar la fase: recuento de 37 clips en la salida de `nuxt generate`; grep de la cabecera /audio/** en .vercel/output/config.json; "cada paso suena con clip real" (hoy solo 9 ids lo cumplen); y toda la verificacion en dispositivo real de reproduccion, corte a mitad de clip, silencio y offline.
 - 03.1-01: el checkpoint de estilo D-02 se escucho en el PORTATIL, no en la tablet. La asuncion A1 de RESEARCH.md (`<audio>.play()` dentro del gesto tactil) sigue SIN verificar en el dispositivo real, y el modelo/SO de la tablet sigue sin conocerse. Todo el riesgo recae ahora en la prueba humana del plan 03.1-06.
 - 260831-fkb: el Rules Reference v1.7 p. 39 dice explicitamente que un personaje puede intentar una accion bloqueada por un Estado (atacar, retirar amenaza) aunque no tenga objetivo valido, solo para descartar ese Estado — el detalle tactico mas util de la regla de Estados, no incluido en `optionsWarningDetail` por el limite de 320 caracteres. Sitio natural para retomarlo: un aviso propio (mismo patron `optionsWarning`/`optionsWarningDetail`) en el paso de atacar o de retirar amenaza.
+- 260831-g2s: `IndexOverlay` no escucha Escape, a diferencia de `WarningDetailModal`. Se dejo fuera de alcance del quick de atajos de teclado (D-Q4: "desactivado con overlay abierto" no implicaba anadir cierre por Escape a todos los overlays). Candidato a quick futura si se decide homogeneizar el cierre por teclado de los overlays.
 
 ## Quick Tasks Completed
 
 | Quick ID | Description | Date | Commit | Link |
 |----------|-------------|------|--------|------|
 | 260831-fkb | Regla de cartas de Estado: `optionsWarningDetail` de extremo a extremo, regla de Estados autorada en `ronda.jugadores.01`, aviso de `ronda.villano.02` coherente con su detalle | 2026-08-31 | 3b2db30 | [260831-fkb-regla-cartas-de-estado](./quick/260831-fkb-regla-cartas-de-estado/) |
+| 260831-g2s | Atajos de teclado: Espacio/Enter avanzan y flecha izquierda retrocede en la pantalla de juego (portátil), decisión extraída a funciones puras testeadas, cero cambios en la interfaz táctil | 2026-08-31 | 46b0003 | [260831-g2s-atajos-de-teclado](./quick/260831-g2s-atajos-de-teclado/) |
 
 ## Deferred Items
 
@@ -142,6 +144,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-31T08:22:16.478Z
-Stopped at: Completado 03.1-05-PLAN.md (rama de audio pregenerado en announce()); reanudar con 03.1-06
+Last session: 2026-08-31T10:02:22.000Z
+Stopped at: Quick 260831-g2s (atajos de teclado) completada; el milestone sigue bloqueado en 03.1-03 (9/37 clips) — reanudar con 03.1-06
 Resume file: None
