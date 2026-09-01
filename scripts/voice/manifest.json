@@ -2,7 +2,7 @@
   "voice": "Rasalgethi",
   "model": "gemini-2.5-flash-preview-tts",
   "style": "plano-agil",
-  "generatedAt": "2026-09-01T12:11:12.985Z",
+  "generatedAt": "2026-09-01T22:38:10.439Z",
   "entries": {
     "ronda.jugadores.01": {
       "hash": "845b9b2ca02cc174",
@@ -55,9 +55,9 @@
       "generatedAt": "2026-09-01T12:11:12.984Z"
     },
     "setup.encuentros.01": {
-      "hash": "f64985c56697c19a",
-      "bytes": 175246,
-      "generatedAt": "2026-08-31T07:35:23.636Z"
+      "hash": "a27f161038a8d44d",
+      "bytes": 238606,
+      "generatedAt": "2026-09-01T22:37:48.789Z"
     },
     "setup.encuentros.02": {
       "hash": "08e5f18b495dc25b",
@@ -90,9 +90,9 @@
       "generatedAt": "2026-08-31T11:48:29.326Z"
     },
     "setup.escenario.01": {
-      "hash": "db8474d1cd268e91",
-      "bytes": 207886,
-      "generatedAt": "2026-08-31T11:48:36.578Z"
+      "hash": "cc5ac1a1e4c8df3c",
+      "bytes": 192526,
+      "generatedAt": "2026-09-01T22:37:53.794Z"
     },
     "setup.escenario.02": {
       "hash": "463314bd260715e7",
@@ -125,19 +125,19 @@
       "generatedAt": "2026-08-31T11:49:12.468Z"
     },
     "setup.escenario.06": {
-      "hash": "48d34d36811a4d72",
-      "bytes": 215566,
-      "generatedAt": "2026-08-31T11:49:18.213Z"
+      "hash": "3d8bb400e7dda358",
+      "bytes": 213646,
+      "generatedAt": "2026-09-01T22:37:59.726Z"
     },
     "setup.escenario.07": {
-      "hash": "7f40e1281e33a937",
-      "bytes": 244366,
-      "generatedAt": "2026-08-31T11:49:29.518Z"
+      "hash": "b536bde5449a883e",
+      "bytes": 229006,
+      "generatedAt": "2026-09-01T22:38:05.270Z"
     },
     "setup.escenario.08": {
-      "hash": "f7cbe082a374aa1d",
-      "bytes": 184846,
-      "generatedAt": "2026-08-31T11:49:36.104Z"
+      "hash": "3c8f92d940e70d41",
+      "bytes": 215566,
+      "generatedAt": "2026-09-01T22:38:10.439Z"
     },
     "setup.escenario.09": {
       "hash": "577960a6425139d8",
