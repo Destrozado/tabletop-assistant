@@ -31,7 +31,7 @@ export const audioAvailable = ref<boolean | null>(null)
 
 // Una precarga a la vez: una segunda llamada a `prefetchAll` (p. ej. desde
 // `onResumeContinue` justo después de `onConfirm`, o un segundo montaje de la
-// página) devuelve la misma promesa en vez de disparar 36 descargas por
+// página) devuelve la misma promesa en vez de disparar 35 descargas por
 // duplicado.
 let inFlight: Promise<void> | null = null
 
@@ -133,7 +133,7 @@ export async function prefetchAll(ids: string[]): Promise<void> {
 // NO se revocan los object URL creados aquí. El mapa es de módulo y vive lo
 // que vive el documento; revocar en el `tryOnScopeDispose` de un consumidor
 // (p. ej. `useVoiceAnnouncer`) dejaría al otro consumidor (esta misma página,
-// en una futura precarga) con URLs muertas. Son ~700 KB en total para los 36
+// en una futura precarga) con URLs muertas. Son ~700 KB en total para los 35
 // clips — irrelevante en cualquier tablet.
 export function usePreloadedAudio() {
   return { prefetchAll, getObjectUrl, staticUrlFor, audioAvailable }
