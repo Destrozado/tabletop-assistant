@@ -39,4 +39,4 @@ export const ACTIVE_STYLE = 'plano-agil'
  * aquí en vez de inventar una frase nueva para que la prueba de estilo suene
  * exactamente como sonará en la mesa.
  */
-export const PROBE_PHRASE = 'Buscad el conjunto de Archienemigo (Nemesis) de vuestra identidad.'
+export const PROBE_PHRASE = 'Localizad y apartad fuera de la partida vuestro conjunto de Archienemigo.'

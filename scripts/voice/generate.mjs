@@ -2,7 +2,7 @@
 // scripts/voice/generate.mjs
 //
 // Qué es: CLI invocado A MANO por el desarrollador para generar los audios de
-// locución (Gemini TTS -> PCM -> WAV -> AAC/M4A) de las 36 frases `speech` de
+// locución (Gemini TTS -> PCM -> WAV -> AAC/M4A) de las 35 frases `speech` de
 // content/marvel-champions.json.
 //
 // D-06: este script NUNCA se invoca desde `build`, `generate`, ni desde CI, ni
@@ -73,7 +73,7 @@ const PROBE_DIR = 'public/audio/_probe'
 
 // ── 4. Argumentos ────────────────────────────────────────────────────────────
 const rawArgs = process.argv.slice(2)
-const force = rawArgs.includes('--force') // D-11: regenerar las 36 sin mirar huellas
+const force = rawArgs.includes('--force') // D-11: regenerar las 35 sin mirar huellas
 const probeMode = rawArgs.includes('--probe')
 const delayArg = rawArgs.find(arg => arg.startsWith('--delay='))
 const delayMs = delayArg ? Number(delayArg.slice('--delay='.length)) : 1500

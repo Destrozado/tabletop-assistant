@@ -2,7 +2,7 @@
   "voice": "Rasalgethi",
   "model": "gemini-2.5-flash-preview-tts",
   "style": "plano-agil",
-  "generatedAt": "2026-08-31T17:02:59.222Z",
+  "generatedAt": "2026-09-01T12:11:12.985Z",
   "entries": {
     "ronda.jugadores.01": {
       "hash": "845b9b2ca02cc174",
@@ -50,14 +50,9 @@
       "generatedAt": "2026-08-31T11:50:57.326Z"
     },
     "setup.archienemigos.01": {
-      "hash": "ec461a991abbf9b8",
-      "bytes": 250126,
-      "generatedAt": "2026-08-31T07:34:03.781Z"
-    },
-    "setup.archienemigos.02": {
-      "hash": "c8da2e2382ca454f",
-      "bytes": 100366,
-      "generatedAt": "2026-08-31T07:34:12.827Z"
+      "hash": "46737d7605612acb",
+      "bytes": 167566,
+      "generatedAt": "2026-09-01T12:11:12.984Z"
     },
     "setup.encuentros.01": {
       "hash": "f64985c56697c19a",

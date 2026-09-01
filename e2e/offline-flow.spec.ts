@@ -16,7 +16,7 @@ import { expect, test } from '@playwright/test'
 
 // El id de audio del paso 7 se deriva del contenido REAL de public/audio/
 // (excluyendo public/audio/_probe/, artefactos de la 03.1), para que la
-// prueba no dependa de qué clips se hayan generado ya (hoy los 36 del
+// prueba no dependa de qué clips se hayan generado ya (hoy los 35 del
 // catálogo, ver 04-CONTEXT.md).
 const AUDIO_DIR = join(process.cwd(), 'public/audio')
 const firstAudioFile = readdirSync(AUDIO_DIR, { withFileTypes: true })

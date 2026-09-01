@@ -63,10 +63,10 @@ describe('content/marvel-champions.json', () => {
     expect(marvelChampions.maxPlayers).toBe(4)
   })
 
-  it('el contenido aplanado produce exactamente 33 nodos: 32 kind step y 1 kind summary', () => {
+  it('el contenido aplanado produce exactamente 32 nodos: 31 kind step y 1 kind summary', () => {
     const steps = allSteps(marvelChampions)
-    expect(steps.length).toBe(33)
-    expect(steps.filter(s => (s.kind ?? 'step') === 'step').length).toBe(32)
+    expect(steps.length).toBe(32)
+    expect(steps.filter(s => (s.kind ?? 'step') === 'step').length).toBe(31)
     expect(steps.filter(s => s.kind === 'summary').length).toBe(1)
   })
 
@@ -89,7 +89,7 @@ describe('content/marvel-champions.json', () => {
 
   it('DC-1 (D-38): todo paso kind:step declara speech no vacío de <=120 caracteres, sin ⚠, × ni ›', () => {
     const steps = allSteps(marvelChampions).filter(s => (s.kind ?? 'step') === 'step')
-    expect(steps).toHaveLength(32)
+    expect(steps).toHaveLength(31)
     for (const step of steps) {
       expect(step.speech).toBeDefined()
       expect(step.speech!.length).toBeGreaterThan(0)
@@ -193,7 +193,7 @@ describe('content/marvel-champions.json', () => {
       'ronda.villano.03',
       'ronda.villano.04',
       'ronda.villano.06',
-      'setup.archienemigos.02',
+      'setup.archienemigos.01',
       'setup.encuentros.04',
       'setup.manos.03',
     ])
@@ -257,7 +257,7 @@ describe('content/marvel-champions.json', () => {
     const normalSession = expand(marvelChampions, { playerCount: 3, difficulty: 'normal' })
     const expertSession = expand(marvelChampions, { playerCount: 3, difficulty: 'expert' })
     expect(normalSession.sequence.length).toBe(expertSession.sequence.length)
-    expect(normalSession.sequence.length).toBe(33)
+    expect(normalSession.sequence.length).toBe(32)
   })
 
   it('toda fase con al menos un paso kind step declara summaryLabel no vacío', () => {
@@ -534,8 +534,8 @@ describe('content/marvel-champions.json', () => {
         expect(step.warningDetail).toMatch(/aturdido|confundido/i)
       })
 
-      it('contentVersion es exactamente 12 (PERS-03)', () => {
-        expect(marvelChampions.contentVersion).toBe(12)
+      it('contentVersion es exactamente 13 (PERS-03)', () => {
+        expect(marvelChampions.contentVersion).toBe(13)
       })
 
       it('la citation.section de ronda.jugadores.01 casa con /Player Turn \\(p\\. 34\\)/', () => {

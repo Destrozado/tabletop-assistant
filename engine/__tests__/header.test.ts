@@ -15,14 +15,15 @@ const rawMarvelChampions: unknown = JSON.parse(readFileSync(contentPath, 'utf-8'
 const marvelChampions = validateGameDefinition(rawMarvelChampions)
 
 // Índices de la estructura real tras 02-01 (interfaces del plan 02-02),
-// actualizados en 260831-pym tras fusionar ronda.jugadores.02+.03:
-// 0-22 setup kind:step, 23 setup kind:summary, 24-26 fase repetible A (3
-// pasos), 27-32 fase repetible B (6 pasos).
-const SETUP_STEP_INDEX = 7 // setup.encuentros.03 — 8º paso kind:step del tramo lineal
-const SETUP_SUMMARY_INDEX = 23 // setup.mesa-lista.01
-const PHASE_A_INDEX = 26 // ronda.jugadores.04 — 3er paso de "Jugadores"
-const PHASE_B_INDEX = 29 // ronda.villano.03 — 3er paso de "Villano"
-const PHASE_B_LAST_INDEX = 32 // ronda.villano.06 — 6º y último paso de "Villano"
+// actualizados en 260831-pym tras fusionar ronda.jugadores.02+.03, y de nuevo
+// en 260901-jg1 tras fusionar setup.archienemigos.01+.02:
+// 0-21 setup kind:step, 22 setup kind:summary, 23-25 fase repetible A (3
+// pasos), 26-31 fase repetible B (6 pasos).
+const SETUP_STEP_INDEX = 6 // setup.encuentros.03 — 7º paso kind:step del tramo lineal
+const SETUP_SUMMARY_INDEX = 22 // setup.mesa-lista.01
+const PHASE_A_INDEX = 25 // ronda.jugadores.04 — 3er paso de "Jugadores"
+const PHASE_B_INDEX = 28 // ronda.villano.03 — 3er paso de "Villano"
+const PHASE_B_LAST_INDEX = 31 // ronda.villano.06 — 6º y último paso de "Villano"
 
 function withCursorAndRound(session: EngineSession, cursor: number, round: number): EngineSession {
   return { ...session, cursor, round }
@@ -36,7 +37,7 @@ describe('describeHeader', () => {
     expect(info).toEqual({
       sectionLabel: 'PREPARACIÓN',
       plainSectionTitle: 'PREPARACIÓN',
-      position: { current: 8, total: 23 },
+      position: { current: 7, total: 22 },
     })
   })
 
