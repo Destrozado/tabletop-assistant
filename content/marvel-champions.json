@@ -2,7 +2,7 @@
   "gameId": "marvel-champions",
   "title": "Marvel Champions: El Juego de Cartas",
   "locale": "es",
-  "contentVersion": 12,
+  "contentVersion": 13,
   "minPlayers": 1,
   "maxPlayers": 4,
   "sections": [
@@ -61,26 +61,14 @@
           "steps": [
             {
               "id": "setup.archienemigos.01",
-              "title": "Localizar Archienemigo",
+              "title": "Localizar y apartar Archienemigo",
               "kind": "step",
-              "text": "Localizad el conjunto de Archienemigo (Nemesis) de vuestra identidad.",
-              "speech": "Buscad el conjunto de Archienemigo (Nemesis) de vuestra identidad.",
-              "citation": {
-                "source": "rules-reference",
-                "section": "Nemesis Encounter Set",
-                "page": 29
-              }
-            },
-            {
-              "id": "setup.archienemigos.02",
-              "title": "Apartar fuera de la partida",
-              "kind": "step",
-              "text": "Apartadlas fuera de la partida.",
+              "text": "Localizad y apartad fuera de la partida vuestro conjunto de Archienemigo (Némesis).",
               "warning": "No se barajan en el mazo de encuentros",
-              "speech": "Apartadlas fuera de la partida.",
+              "speech": "Localizad y apartad fuera de la partida vuestro conjunto de Archienemigo.",
               "citation": {
                 "source": "rules-reference",
-                "section": "Apéndice II, paso 5",
+                "section": "Apéndice II, paso 5; Nemesis Encounter Set (p. 29)",
                 "page": 49
               }
             }
