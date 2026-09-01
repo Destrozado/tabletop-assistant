@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 Phase: 04 (instalaci-n-y-funcionamiento-offline) — EXECUTING
 Plan: 1 of 6
 Status: Executing Phase 04
-Last activity: 2026-09-01 -- Completed quick task 260901-jg1: fusionar los pasos de localizar y apartar el conjunto de Archienemigo en uno
+Last activity: 2026-09-02 -- Completed quick task 260902-0oz: renombrar las referencias a la carta/mazo de escenario como Plan Principal (pendiente escucha humana de los 5 clips regenerados)
 
 Progress: [██████████] 96%
 
@@ -136,6 +136,7 @@ None yet.
 | 260831-g2s | Atajos de teclado: Espacio/Enter avanzan y flecha izquierda retrocede en la pantalla de juego (portátil), decisión extraída a funciones puras testeadas, cero cambios en la interfaz táctil | 2026-08-31 | 46b0003 | [260831-g2s-atajos-de-teclado](./quick/260831-g2s-atajos-de-teclado/) |
 | 260831-umh | Botón «Partida terminada» en el overlay del índice: confirma, borra el progreso guardado y vuelve al inicio — la pantalla de juego ya no era una trampa sin salida en PWA | 2026-08-31 | 795e6d0 | [260831-umh-boton-partida-terminada-para-volver-a-ho](./quick/260831-umh-boton-partida-terminada-para-volver-a-ho/) |
 | 260901-jg1 | Fusión de `setup.archienemigos.01`+`.02` en un solo paso «Localizad y apartad fuera de la partida vuestro conjunto de Archienemigo (Némesis)» con aviso conservado, contentVersion 12→13, clip de audio regenerado y huérfano retirado | 2026-09-01 | 5e8f03a | [260901-jg1-fusionar-pasos-de-apartar-el-conjunto-de](./quick/260901-jg1-fusionar-pasos-de-apartar-el-conjunto-de/) |
+| 260902-0oz | Renombradas las 5 referencias a «carta/mazo de escenario» como Plan Principal (RR Apéndice II pasos 8/10/12a/12b), «cara B»→«cara 1B», 5 clips de voz regenerados, contentVersion intacto (solo texto, ids sin cambios) — pendiente escucha humana de la pronunciación | 2026-09-02 | 8913673 | [260902-0oz-renombrar-las-referencias-a-la-carta-y-m](./quick/260902-0oz-renombrar-las-referencias-a-la-carta-y-m/) |
 
 ## Deferred Items
 
