@@ -135,17 +135,18 @@ describe('jumpTo', () => {
 })
 
 describe('bucle de ronda sobre el contenido real (FLOW-03/04/07/08)', () => {
-  it('expand(marvelChampions, ctx) produce sequence.length 33 y los índices de bucle 24/32', () => {
+  it('expand(marvelChampions, ctx) produce sequence.length 32 y los índices de bucle 23/31', () => {
     const session = expand(marvelChampions, context)
-    expect(session.sequence).toHaveLength(33)
-    // El valor sigue siendo 24 (el paso fusionado vivía dentro del bucle, no
-    // antes de él), pero la sección ronda pasa de 10 a 9 pasos tras la fusión
-    // de ronda.jugadores.02+.03 (260831-pym): la expresión debe reflejarlo.
-    expect(session.loopStartIndex).toBe(33 - 9)
-    expect(session.loopEndIndex).toBe(32)
+    expect(session.sequence).toHaveLength(32)
+    // El paso perdido en la fusión de setup.archienemigos.01+.02 (quick
+    // 260901-jg1) vive ANTES del bucle (es de preparación), así que
+    // loopStartIndex sí baja, de 24 a 23; la sección ronda sigue teniendo 9
+    // pasos (sin cambios desde 260831-pym).
+    expect(session.loopStartIndex).toBe(32 - 9)
+    expect(session.loopEndIndex).toBe(31)
   })
 
-  it('next() con cursor en loopEndIndex (32) cierra el bucle: cursor 24, round 2 (FLOW-03/04)', () => {
+  it('next() con cursor en loopEndIndex (31) cierra el bucle: cursor 23, round 2 (FLOW-03/04)', () => {
     const session = expand(marvelChampions, context)
     const atLoopEnd = { ...session, cursor: session.loopEndIndex!, round: 1 }
     const result = next(atLoopEnd)
@@ -162,7 +163,7 @@ describe('bucle de ronda sobre el contenido real (FLOW-03/04/07/08)', () => {
     expect(result.sequence[result.cursor].runtimeId).toBe('ronda.jugadores.01')
   })
 
-  it('prev() con cursor en loopStartIndex (24) y round 2 vuelve al loopEndIndex (33) y decrementa round', () => {
+  it('prev() con cursor en loopStartIndex (23) y round 2 vuelve al loopEndIndex (31) y decrementa round', () => {
     const session = expand(marvelChampions, context)
     const atLoopStart = { ...session, cursor: session.loopStartIndex!, round: 2 }
     const result = prev(atLoopStart)
@@ -170,7 +171,7 @@ describe('bucle de ronda sobre el contenido real (FLOW-03/04/07/08)', () => {
     expect(result.round).toBe(1)
   })
 
-  it('prev() con cursor en loopStartIndex (24) y round 1 sale del bucle hacia la preparación sin decrementar', () => {
+  it('prev() con cursor en loopStartIndex (23) y round 1 sale del bucle hacia la preparación sin decrementar', () => {
     const session = expand(marvelChampions, context)
     const atLoopStart = { ...session, cursor: session.loopStartIndex!, round: 1 }
     const result = prev(atLoopStart)

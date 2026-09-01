@@ -104,8 +104,8 @@ describe('gate de deriva contenido↔audio (D-04/D-05)', () => {
     expect(extraInManifest).toHaveLength(0)
   })
 
-  it('hay exactamente 36 entradas', () => {
-    expect(Object.keys(manifest.entries)).toHaveLength(36)
+  it('hay exactamente 35 entradas', () => {
+    expect(Object.keys(manifest.entries)).toHaveLength(35)
   })
 
   it('D-11: el estilo del manifiesto coincide con ACTIVE_STYLE', () => {

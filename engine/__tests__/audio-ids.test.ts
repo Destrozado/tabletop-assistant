@@ -21,9 +21,9 @@ function allSteps(game: GameDefinition) {
 const DIFFICULTIES: readonly Difficulty[] = ['normal', 'expert'] as const
 
 describe('engine/audio.ts — collectSpeechEntries/collectAudioIds (VOZ-07/D-09)', () => {
-  it('devuelve exactamente 36 entradas sobre el contenido real (32 base + 4 de variante)', () => {
+  it('devuelve exactamente 35 entradas sobre el contenido real (31 base + 4 de variante)', () => {
     const entries = collectSpeechEntries(marvelChampions)
-    expect(entries).toHaveLength(36)
+    expect(entries).toHaveLength(35)
   })
 
   it('todos los ids son únicos', () => {
