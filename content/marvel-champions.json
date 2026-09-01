@@ -81,10 +81,10 @@
           "steps": [
             {
               "id": "setup.encuentros.01",
-              "title": "Reunir conjuntos del escenario",
+              "title": "Reunir conjuntos de encuentro",
               "kind": "step",
-              "text": "Reunid los conjuntos de encuentro indicados en la carta de escenario.",
-              "speech": "Reunid los conjuntos de encuentro que indique la carta de escenario.",
+              "text": "Reunid los conjuntos de encuentro indicados en el Plan Principal, cara 1A.",
+              "speech": "Reunid los conjuntos de encuentro que indique el Plan Principal, cara 1A.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 10",
@@ -161,10 +161,10 @@
           "steps": [
             {
               "id": "setup.escenario.01",
-              "title": "Colocar mazos de villano y escenario",
+              "title": "Colocar mazos de villano y Plan Principal",
               "kind": "step",
-              "text": "Colocad el mazo de villano y el mazo de escenario principal en el centro de la mesa.",
-              "speech": "Colocad el mazo de villano y el de escenario principal en el centro de la mesa.",
+              "text": "Colocad el mazo de villano y el mazo de Plan Principal en el centro de la mesa.",
+              "speech": "Colocad el mazo de villano y el de Plan Principal en el centro de la mesa.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 8",
@@ -233,10 +233,10 @@
             },
             {
               "id": "setup.escenario.06",
-              "title": "Resolver Preparación del escenario (cara 1A)",
+              "title": "Resolver Preparación del Plan Principal (1A)",
               "kind": "step",
-              "text": "Resolved cualquier habilidad de Preparación en la carta de escenario, cara 1A.",
-              "speech": "Resolved la habilidad de Preparación de la carta de escenario, cara 1A.",
+              "text": "Resolved cualquier habilidad de Preparación en el Plan Principal, cara 1A.",
+              "speech": "Resolved la habilidad de Preparación del Plan Principal, cara 1A.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 12a",
@@ -245,10 +245,10 @@
             },
             {
               "id": "setup.escenario.07",
-              "title": "Voltear a cara B y colocar amenaza",
+              "title": "Voltear a cara 1B y colocar amenaza",
               "kind": "step",
-              "text": "Voltead el escenario a su cara B y colocad la amenaza inicial indicada.",
-              "speech": "Voltead el escenario a su cara B y colocad la amenaza inicial indicada.",
+              "text": "Voltead el Plan Principal a su cara 1B y colocad la amenaza inicial indicada.",
+              "speech": "Voltead el Plan Principal a su cara 1B y colocad la amenaza inicial indicada.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 12b (voltear a cara 1B); ver también \"Main Scheme\" (p.27) para la colocación de la amenaza inicial",
@@ -257,10 +257,10 @@
             },
             {
               "id": "setup.escenario.08",
-              "title": "Resolver Cuando se revela del escenario",
+              "title": "Resolver Cuando se revela del Plan Principal",
               "kind": "step",
-              "text": "Resolved cualquier habilidad de Cuando se revela en esa cara del escenario.",
-              "speech": "Resolved la habilidad de Cuando se revela de esa cara del escenario.",
+              "text": "Resolved cualquier habilidad de Cuando se revela en esa cara del Plan Principal.",
+              "speech": "Resolved la habilidad de Cuando se revela de esa cara del Plan Principal.",
               "citation": {
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 12b (resolver \"When Revealed\" al voltear); ver también \"Main Scheme\" (p.27)",
