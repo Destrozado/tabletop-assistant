@@ -4,8 +4,8 @@ milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
 status: executing
 stopped_at: Phase 5 context gathered
-last_updated: "2026-09-07T16:23:34.921Z"
-last_activity: 2026-09-07 -- Phase 05 planning complete
+last_updated: "2026-09-07T17:04:45.009Z"
+last_activity: 2026-09-07 -- Phase 05 execution started
 progress:
   total_phases: 6
   completed_phases: 0
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-28)
 
 **Core value:** Que un grupo pueda jugar una partida completa de Marvel Champions de principio a fin sin abrir el reglamento y sin olvidarse de ningún paso.
-**Current focus:** Phase 5 — catálogo-de-héroes-y-villanos
+**Current focus:** Phase 05 — cat-logo-de-h-roes-y-villanos
 
 ## Current Position
 
-Phase: 5 of 10 (Catálogo de héroes y villanos) — numeración continua del proyecto; es la Fase 1 de las 6 de v1.8
-Plan: — (fase sin planificar todavía)
-Status: Ready to execute
-Last activity: 2026-09-07 -- Phase 05 planning complete
+Phase: 05 (cat-logo-de-h-roes-y-villanos) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 05
+Last activity: 2026-09-07 -- Phase 05 execution started
 
 ## Performance Metrics
 
