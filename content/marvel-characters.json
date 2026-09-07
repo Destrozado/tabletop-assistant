@@ -219,19 +219,34 @@
           "stage": 1,
           "health": 12,
           "healthPerHero": true,
-          "healthPerGroup": false
+          "healthPerGroup": false,
+          "expert": {
+            "health": 15,
+            "healthPerHero": true,
+            "healthPerGroup": false
+          }
         },
         {
           "stage": 2,
           "health": 18,
           "healthPerHero": false,
-          "healthPerGroup": false
+          "healthPerGroup": false,
+          "expert": {
+            "health": 22,
+            "healthPerHero": false,
+            "healthPerGroup": false
+          }
         },
         {
           "stage": 3,
           "health": 20,
           "healthPerHero": true,
-          "healthPerGroup": false
+          "healthPerGroup": false,
+          "expert": {
+            "health": 25,
+            "healthPerHero": true,
+            "healthPerGroup": false
+          }
         }
       ]
     },

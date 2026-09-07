@@ -30,14 +30,22 @@
 // (`text`, `real_text`, `flavor`, `traits`, `imagesrc`, `illustrator`, `url`,
 // `octgn_id`, entre otras) que son texto de carta, cita de sabor o
 // referencia a arte con copyright. Ninguna de ellas debe entrar jamás al
-// repo público — sólo los cinco campos de héroe y los cuatro de etapa de
-// villano que las funciones de extracción de abajo devuelven explícitamente.
+// repo público — sólo los seis campos de héroe y los cuatro de etapa de
+// villano (más el sub-objeto opcional `expert`, de esos mismos tres campos
+// base) que las funciones de extracción de abajo devuelven explícitamente.
 //
 // ── CÓMO AÑADIR UN HÉROE O VILLANO NUEVO (CAT-07) ───────────────────────────
 // 1. Añadir una fila a `HERO_CARDS` (para un héroe) o las 1..n filas de etapa
 //    correspondientes a `VILLAIN_STAGE_CARDS` (para un villano), con su
 //    `code` y su `expectedName` (o `villainName`/`stage`/`expectedSetCode`
-//    para una etapa de villano).
+//    para una etapa de villano). Si el escenario del villano nuevo trae un
+//    set de villano de modo Experto (`card_set_code` alternativo con salud
+//    más alta), la misma fila de etapa gana además `expertCode` (el `code`
+//    de la carta Experto de esa etapa) y `expectedExpertSetCode` (su
+//    `card_set_code`) — los dos juntos o ninguno. Si el escenario no trae
+//    modo Experto, se dejan fuera y la etapa sale del catálogo sin clave
+//    `expert` (caso de Rhino y Ultron: villanos del Core Set sin set
+//    alternativo).
 // 2. Ejecutar `npm run catalogue:generate`.
 // 3. Revisar el diff de `content/marvel-characters.json` — debe añadir
 //    exactamente la fila nueva, sin tocar nada más (D-10).
@@ -108,22 +116,37 @@ const HERO_CARDS = [
 
 // VILLAIN_STAGE_CARDS — 9 filas, en este orden exacto (D-02: Klaw queda fuera
 // a propósito, exclusión deliberada del usuario).
+//
+// Gap de truth #8 (05-VERIFICATION.md), decisión explícita del usuario: los
+// códigos del set `card_set_code: exp_kang` ("Expert Kang", modo Experto de
+// este escenario: 11034/11035/11039) SÍ están declarados — como `expertCode`
+// de cada fila estándar de Kang — porque `content/marvel-champions.json` ya
+// instruye sustituir las cartas de villano numeradas en dificultad Experta
+// (paso `setup.escenario.04`, variante `expert`), y narrar 12/18/20 en esa
+// partida sería guiar mal (CLAUDE.md §Constraints). Cifras: 15/22/25 frente a
+// 12/18/20, con `health_per_hero` true/false/true por etapa en los dos sets
+// (la etapa II también es `false` en Experto — misma asimetría por etapa que
+// ya justifica D-11, no un error de extracción). La etapa II Experta también
+// tiene cuatro alternativas narrativas (11035 Immortus, 11036 Iron Lad, 11037
+// Rama-Tut, 11038 Scarlet Centurion) con 22/false/false idénticos; se declara
+// 11035 como representante, igual que 11002 en el set estándar, sin impacto
+// numérico. Un villano SIN `expertCode` sale del catálogo sin ninguna clave
+// `expert` — eso significa "el modo Experto de este escenario no sustituye
+// sus cartas numeradas" (Rhino, Ultron), no "dato pendiente". Esta es la
+// decisión explícita que 05-RESEARCH.md dejaba abierta al calificar
+// `exp_kang` de fuera de alcance salvo decisión futura explícita.
 const VILLAIN_STAGE_CARDS = [
   { villainName: 'Rhino', code: '01094', stage: 1, expectedSetCode: 'rhino' },
   { villainName: 'Rhino', code: '01095', stage: 2, expectedSetCode: 'rhino' },
   { villainName: 'Rhino', code: '01096', stage: 3, expectedSetCode: 'rhino' },
-  { villainName: 'Kang', code: '11001', stage: 1, expectedSetCode: 'kang' },
+  { villainName: 'Kang', code: '11001', stage: 1, expectedSetCode: 'kang', expertCode: '11034', expectedExpertSetCode: 'exp_kang' },
   // Etapa II de Kang tiene cuatro alternativas narrativas con cifras
   // idénticas (11002 Immortus, 11003 Iron Lad, 11004 Rama-Tut, 11005 Scarlet
   // Centurion: todas 18/false/false). Se declara 11002 como representante;
   // cuál de las cuatro da igual a efectos numéricos, que es todo lo que este
   // catálogo guarda (D-02: el `name` del villano nunca sale de esta carta).
-  { villainName: 'Kang', code: '11002', stage: 2, expectedSetCode: 'kang' },
-  { villainName: 'Kang', code: '11006', stage: 3, expectedSetCode: 'kang' },
-  // Los códigos de card_set_code "exp_kang" (11034/11035/11039, modo Experto
-  // alternativo con salud más alta) quedan FUERA a propósito: no están
-  // declarados aquí, y la puerta de expectedSetCode los atraparía si alguien
-  // los colara por error.
+  { villainName: 'Kang', code: '11002', stage: 2, expectedSetCode: 'kang', expertCode: '11035', expectedExpertSetCode: 'exp_kang' },
+  { villainName: 'Kang', code: '11006', stage: 3, expectedSetCode: 'kang', expertCode: '11039', expectedExpertSetCode: 'exp_kang' },
   { villainName: 'Ultron', code: '01134', stage: 1, expectedSetCode: 'ultron' },
   { villainName: 'Ultron', code: '01135', stage: 2, expectedSetCode: 'ultron' },
   { villainName: 'Ultron', code: '01136', stage: 3, expectedSetCode: 'ultron' },
@@ -216,39 +239,76 @@ function extractHero({ code, expectedName }) {
   })
 }
 
-function extractVillainStage({ villainName, code, stage, expectedSetCode }) {
-  return fetchCard(code).then((card) => {
-    if (card.type_code !== 'villain') {
-      throw new Error(`Código ${code} (${villainName} etapa ${stage}): se esperaba type_code "villain" pero la API devolvió "${card.type_code}"`)
+// Puertas comunes a la carta estándar y a la carta Experto de una etapa de
+// villano — extraídas para no duplicarlas entre las dos (gap de truth #8).
+// `setLabel` ('estándar' | 'Experto') solo alimenta los mensajes de error,
+// para que el desarrollador sepa qué descarga concreta falló.
+function extractStageFields(card, { villainName, code, stage, expectedSetCode, setLabel }) {
+  if (card.type_code !== 'villain') {
+    throw new Error(`Código ${code} (${villainName} etapa ${stage}, set ${setLabel}): se esperaba type_code "villain" pero la API devolvió "${card.type_code}"`)
+  }
+  if (card.card_set_code !== expectedSetCode) {
+    // Esta es la puerta que atrapa un card_set_code equivocado colado por
+    // error en vez del set declarado para esta fila (estándar o Experto).
+    throw new Error(`Código ${code} (${villainName} etapa ${stage}, set ${setLabel}): se esperaba card_set_code "${expectedSetCode}" pero la API devolvió "${card.card_set_code}"`)
+  }
+  const mappedStage = STAGE_MAP[card.stage]
+  if (mappedStage === undefined) {
+    throw new Error(`Código ${code} (${villainName} etapa ${stage}, set ${setLabel}): la API devolvió un valor de stage no mapeable ("${card.stage}")`)
+  }
+  if (mappedStage !== stage) {
+    throw new Error(`Código ${code} (${villainName}, set ${setLabel}): se declaró etapa ${stage} pero la API dice stage "${card.stage}" (mapea a ${mappedStage})`)
+  }
+  if (!Number.isInteger(card.health) || card.health <= 0) {
+    throw new Error(`Código ${code} (${villainName} etapa ${stage}, set ${setLabel}): health no es un entero positivo (${card.health})`)
+  }
+  if (typeof card.health_per_hero !== 'boolean' || typeof card.health_per_group !== 'boolean') {
+    throw new Error(`Código ${code} (${villainName} etapa ${stage}, set ${setLabel}): health_per_hero/health_per_group no son booleanos (${card.health_per_hero}/${card.health_per_group})`)
+  }
+  return {
+    health: card.health,
+    healthPerHero: card.health_per_hero,
+    healthPerGroup: card.health_per_group,
+  }
+}
+
+async function extractVillainStage({ villainName, code, stage, expectedSetCode, expertCode, expectedExpertSetCode }) {
+  // Puertas propias de la dimensión Experta, ANTES de descargar nada (D-05:
+  // fallar alto antes que escribir un dato dudoso).
+  if ((expertCode === undefined) !== (expectedExpertSetCode === undefined)) {
+    throw new Error(`Fila ${villainName} etapa ${stage}: expertCode y expectedExpertSetCode deben declararse juntos o no declararse (expertCode=${expertCode}, expectedExpertSetCode=${expectedExpertSetCode})`)
+  }
+  if (expertCode !== undefined && expertCode === code) {
+    throw new Error(`Fila ${villainName} etapa ${stage}: expertCode ("${expertCode}") no puede ser igual al code estándar de la fila`)
+  }
+
+  const standardCard = await fetchCard(code)
+  const standardFields = extractStageFields(standardCard, { villainName, code, stage, expectedSetCode, setLabel: 'estándar' })
+
+  // El `name` del villano NUNCA sale de esta carta — la etapa II de Kang
+  // varía entre cuatro nombres narrativos con cifras idénticas (D-02); sale
+  // siempre de `villainName`, declarado arriba en VILLAIN_STAGE_CARDS.
+  const result = {
+    stage,
+    health: standardFields.health,
+    healthPerHero: standardFields.healthPerHero,
+    healthPerGroup: standardFields.healthPerGroup,
+  }
+
+  // La función solo descarga la carta Experto cuando la fila declara
+  // expertCode. La clave `expert` no existe en absoluto cuando no hay
+  // expertCode (asignación condicional, nunca `undefined` ni spread).
+  if (expertCode !== undefined) {
+    const expertCard = await fetchCard(expertCode)
+    const expertFields = extractStageFields(expertCard, { villainName, code: expertCode, stage, expectedSetCode: expectedExpertSetCode, setLabel: 'Experto' })
+    result.expert = {
+      health: expertFields.health,
+      healthPerHero: expertFields.healthPerHero,
+      healthPerGroup: expertFields.healthPerGroup,
     }
-    if (card.card_set_code !== expectedSetCode) {
-      // Esta es la puerta que atrapa un código de card_set_code "exp_kang"
-      // (modo Experto) colado por error en vez del set base declarado.
-      throw new Error(`Código ${code} (${villainName} etapa ${stage}): se esperaba card_set_code "${expectedSetCode}" pero la API devolvió "${card.card_set_code}"`)
-    }
-    const mappedStage = STAGE_MAP[card.stage]
-    if (mappedStage === undefined) {
-      throw new Error(`Código ${code} (${villainName} etapa ${stage}): la API devolvió un valor de stage no mapeable ("${card.stage}")`)
-    }
-    if (mappedStage !== stage) {
-      throw new Error(`Código ${code} (${villainName}): se declaró etapa ${stage} pero la API dice stage "${card.stage}" (mapea a ${mappedStage})`)
-    }
-    if (!Number.isInteger(card.health) || card.health <= 0) {
-      throw new Error(`Código ${code} (${villainName} etapa ${stage}): health no es un entero positivo (${card.health})`)
-    }
-    if (typeof card.health_per_hero !== 'boolean' || typeof card.health_per_group !== 'boolean') {
-      throw new Error(`Código ${code} (${villainName} etapa ${stage}): health_per_hero/health_per_group no son booleanos (${card.health_per_hero}/${card.health_per_group})`)
-    }
-    // El `name` del villano NUNCA sale de esta carta — la etapa II de Kang
-    // varía entre cuatro nombres narrativos con cifras idénticas (D-02); sale
-    // siempre de `villainName`, declarado arriba en VILLAIN_STAGE_CARDS.
-    return {
-      stage,
-      health: card.health,
-      healthPerHero: card.health_per_hero,
-      healthPerGroup: card.health_per_group,
-    }
-  })
+  }
+
+  return result
 }
 
 function writeCatalogue(heroes, villains) {
@@ -259,12 +319,14 @@ function writeCatalogue(heroes, villains) {
 }
 
 async function main() {
-  // D-05/D-09: los 32 códigos se resuelven EN MEMORIA COMPLETA antes de
-  // escribir nada. Solo si los 32 tuvieron éxito se llama a writeCatalogue.
-  // Ninguna escritura parcial de content/marvel-characters.json puede
-  // ocurrir jamás — diferencia deliberada respecto a scripts/voice/generate.mjs,
-  // que escribe incrementalmente (ese script es reanudable por diseño; este
-  // es todo o nada).
+  // D-05/D-09: los 35 códigos (23 héroes + 9 etapas estándar + 3 etapas
+  // Experto de Kang) se resuelven EN MEMORIA COMPLETA antes de escribir
+  // nada. Solo si los 35 tuvieron éxito se llama a writeCatalogue. Ninguna
+  // escritura parcial de content/marvel-characters.json puede ocurrir jamás
+  // — diferencia deliberada respecto a scripts/voice/generate.mjs, que
+  // escribe incrementalmente (ese script es reanudable por diseño; este es
+  // todo o nada). Con el pacing de REQUEST_DELAY_MS (1500 ms) esto tarda
+  // ~53 s.
   const heroes = []
   for (const row of HERO_CARDS) {
     heroes.push(await extractHero(row))
