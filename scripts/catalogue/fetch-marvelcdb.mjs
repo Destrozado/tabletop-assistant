@@ -177,23 +177,41 @@ function extractHero({ code, expectedName }) {
     if (!card.linked_card) {
       throw new Error(`Código ${code} ("${card.name}"): la carta no trae linked_card embebido (¿es una forma alternativa sin identidad secreta, como Giant-Man/Wasp-sin-linked_card? usa el sufijo "a", no "c")`)
     }
-    const { health, hand_size: handSize } = card.linked_card
+    const { health } = card.linked_card
+    const handSizeHero = card.hand_size
+    const handSizeAlterEgo = card.linked_card.hand_size
     if (!Number.isInteger(health) || health <= 0) {
       throw new Error(`Código ${code} ("${card.name}"): linked_card.health no es un entero positivo (${health})`)
     }
-    if (!Number.isInteger(handSize) || handSize <= 0) {
-      throw new Error(`Código ${code} ("${card.name}"): linked_card.hand_size no es un entero positivo (${handSize})`)
+    if (!Number.isInteger(handSizeHero) || handSizeHero <= 0) {
+      throw new Error(`Código ${code} ("${card.name}"): hand_size del lado héroe no es un entero positivo (${handSizeHero})`)
     }
-    // D-09: health y handSize SIEMPRE del linked_card (carta de alter ego),
-    // nunca del lado héroe — el hand_size del lado héroe es un modificador de
-    // habilidad (mismo nombre de campo, dato distinto), universal en las 23
-    // cartas, no el tamaño de mano real.
+    if (!Number.isInteger(handSizeAlterEgo) || handSizeAlterEgo <= 0) {
+      throw new Error(`Código ${code} ("${card.name}"): linked_card.hand_size (lado alter ego) no es un entero positivo (${handSizeAlterEgo})`)
+    }
+    // Corrección (gap CR-01 de 05-VERIFICATION.md): este comentario reemplaza
+    // al anexo "caso concreto" de D-09, cuya premisa fáctica quedó refutada.
+    // Cada CARA de la carta de identidad imprime su propio tamaño de mano
+    // (Rules Reference v1.7, Apéndice III, anatomía de carta, punto 14; y la
+    // entrada "HAND SIZE": "Each player checks their hand size at the end of
+    // the player phase..."). Ejemplo impreso: Spider-Man 5 (cara de héroe) /
+    // Peter Parker 6 (cara de alter ego) — dos valores reales y distintos, no
+    // uno "correcto" y otro descartable. El chequeo de final de fase de
+    // jugador usa el de la cara ACTIVA en cada ronda, por eso se guardan los
+    // dos. `health` sí sale siempre de `linked_card`, eso no cambia. Un
+    // handSizeHero bajo y llamativo (Iron Man expone 1) es el valor impreso
+    // real de esa cara y NO debe "corregirse": la habilidad de la carta que
+    // lo modifica se resuelve en la interfaz de la Fase 7, nunca en el
+    // catálogo. La decisión D-09 en sí —nadie edita el JSON a mano, el fix
+    // va en el script— sigue vigente y es literalmente el procedimiento que
+    // se acaba de seguir.
     return {
       id: slugify(card.name),
       name: card.name,
       alterEgo: card.linked_card.name,
       health,
-      handSize,
+      handSizeHero,
+      handSizeAlterEgo,
     }
   })
 }

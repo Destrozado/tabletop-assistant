@@ -47,7 +47,10 @@ const HeroSchema = z.strictObject({
   name: z.string().min(1),
   alterEgo: z.string().min(1),
   health: z.number().int().positive(),
-  handSize: z.number().int().positive(),
+  // Al ser z.strictObject, un catálogo con la clave legada `handSize` falla
+  // con "Unrecognized key" — un fichero sin regenerar no puede colarse.
+  handSizeHero: z.number().int().positive(),
+  handSizeAlterEgo: z.number().int().positive(),
 })
 
 const VillainSchema = z.strictObject({

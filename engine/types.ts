@@ -129,15 +129,27 @@ export interface VillainStage {
 }
 
 // `name` es el nombre inglés de MarvelCDB verbatim, en una sola columna, sin
-// etiqueta traducida (D-07). `alterEgo` y `handSize` salen siempre de la
-// carta de alter ego (`linked_card`), nunca del lado héroe, donde
-// `hand_size` es un modificador de habilidad (D-09).
+// etiqueta traducida (D-07). `alterEgo` sale siempre de la carta de alter
+// ego (`linked_card`), igual que `health`, que no cambia con este campo.
+//
+// Cada CARA de la carta de identidad imprime su propio tamaño de mano
+// (Rules Reference v1.7, Apéndice III, anatomía de carta, punto 14): el
+// ejemplo impreso de Spider-Man trae "HAND SIZE 5" en la cara de héroe y
+// "HAND SIZE 6" en la cara de alter ego, dos valores reales y distintos, no
+// uno "correcto" y otro descartable. El chequeo de final de fase de jugador
+// (entrada "HAND SIZE" del RR v1.7) usa el tamaño de mano de la cara ACTIVA
+// en cada ronda, por eso se guardan los dos: `handSizeHero` (de
+// `card.hand_size`) y `handSizeAlterEgo` (de `card.linked_card.hand_size`).
+// El setup (Apéndice II, paso 1) arranca con la cara de alter ego boca
+// arriba, así que el número correcto DURANTE EL SETUP es
+// `handSizeAlterEgo`.
 export interface CatalogueHero {
   id: string
   name: string
   alterEgo: string
   health: number
-  handSize: number
+  handSizeHero: number
+  handSizeAlterEgo: number
 }
 
 // `name` lo declara el script, no se lee de la carta de etapa — la etapa II
