@@ -210,9 +210,13 @@ None - no external service configuration required.
 - `git diff --stat` confirma que solo se tocaron los dos ficheros de `files_modified` del plan; `content/marvel-characters.json` y `package.json` quedan exactamente como estaban.
 - Sin bloqueantes para la re-verificación de la Fase 05.
 
-## Self-Check
+## Self-Check: PASSED
 
-Ver sección final tras este bloque.
+- FOUND: engine/__tests__/characters.test.ts
+- FOUND: engine/__tests__/catalogue-isolation.test.ts
+- FOUND: .planning/phases/05-cat-logo-de-h-roes-y-villanos/05-05-SUMMARY.md
+- FOUND: commit 24f0bb7 (Task 1)
+- FOUND: commit 5b956ac (SUMMARY.md)
 
 ---
 *Phase: 05-cat-logo-de-h-roes-y-villanos*
