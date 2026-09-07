@@ -51,7 +51,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
   5. Con la wifi apagada tras `nuxt generate`, el catálogo está disponible igual que el resto del contenido — viaja dentro del bundle, nunca se pide por red en ejecución.
 **Plans**: 3 plans
 - [x] 05-01-PLAN.md — Contrato del catálogo: tipos sin zod, esquema Zod estricto y sus tests unitarios
-- [ ] 05-02-PLAN.md — Script de generación contra MarvelCDB y catálogo committeado (23 héroes + 3 villanos)
+- [x] 05-02-PLAN.md — Script de generación contra MarvelCDB y catálogo committeado (23 héroes + 3 villanos)
 - [ ] 05-03-PLAN.md — Gates de CI: validación del fichero real, guardarraíl anti-copyright y aislamiento de build
 **Verificación humana**: No bloqueante — este catálogo se verifica entero por Vitest/CI y por inspección directa del JSON; no depende de la tablet de mesa (D-36 no aplica igual que a las reglas: un valor de vida equivocado se corrige con las flechas en mesa, per decisión explícita del usuario).
 
@@ -149,7 +149,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 3. Locución por voz y pantalla siempre encendida | v1.7 | 5/5 | Complete | 2026-08-30 |
 | 03.1. Voz pregenerada en español con Gemini TTS | v1.7 | 6/6 | Complete | 2026-08-31 |
 | 4. Instalación y funcionamiento offline | v1.7 | 6/6 | Complete | 2026-08-31 |
-| 5. Catálogo de héroes y villanos | v1.8 | 1/3 | In Progress|  |
+| 5. Catálogo de héroes y villanos | v1.8 | 2/3 | In Progress|  |
 | 6. Selección de villano, héroes y jugadores | v1.8 | 0/TBD | Not started | - |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 0/TBD | Not started | - |
 | 8. Valores conocidos dentro del paso | v1.8 | 0/TBD | Not started | - |
