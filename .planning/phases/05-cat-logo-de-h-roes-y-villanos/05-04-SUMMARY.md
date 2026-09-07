@@ -118,3 +118,11 @@ Determinismo D-10: dos ejecuciones consecutivas de `npm run catalogue:generate` 
 ---
 *Phase: 05-cat-logo-de-h-roes-y-villanos*
 *Completed: 2026-09-07*
+
+## Self-Check: PASSED
+
+- FOUND: .planning/phases/05-cat-logo-de-h-roes-y-villanos/05-04-SUMMARY.md
+- FOUND commit: 5a85804 (Task 1)
+- FOUND commit: 6785e05 (Task 2)
+- FOUND commit: cb1d3de (Task 3)
+- FOUND commit: c479d80 (SUMMARY commit)
