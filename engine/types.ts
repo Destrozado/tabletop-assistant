@@ -108,3 +108,49 @@ export interface EngineSession {
   loopStartIndex?: number
   loopEndIndex?: number
 }
+
+// --- Catálogo de personajes (Fase 5) ---
+// Contrato de `content/marvel-characters.json`. El único escritor de ese
+// fichero es `scripts/catalogue/fetch-marvelcdb.mjs` (D-09): nadie lo edita a
+// mano. Estas interfaces viven aquí —y no como `z.infer` dentro de
+// `engine/catalogueSchema.ts`— para que `app/` (Fase 6) pueda tiparlas
+// importando solo `~~/engine/types`, sin que ninguna de sus importaciones
+// alcance un módulo que importa zod (T-01-19, DC-03).
+
+// Cifras tal cual las da MarvelCDB (`health` / `health_per_hero` /
+// `health_per_group`); la multiplicación por número de jugadores la hace la
+// Fase 7, nunca aquí (D-11). `stage` es entero 1..n; MarvelCDB lo sirve como
+// numeral romano en string y el script lo mapea a entero.
+export interface VillainStage {
+  stage: number
+  health: number
+  healthPerHero: boolean
+  healthPerGroup: boolean
+}
+
+// `name` es el nombre inglés de MarvelCDB verbatim, en una sola columna, sin
+// etiqueta traducida (D-07). `alterEgo` y `handSize` salen siempre de la
+// carta de alter ego (`linked_card`), nunca del lado héroe, donde
+// `hand_size` es un modificador de habilidad (D-09).
+export interface CatalogueHero {
+  id: string
+  name: string
+  alterEgo: string
+  health: number
+  handSize: number
+}
+
+// `name` lo declara el script, no se lee de la carta de etapa — la etapa II
+// de Kang tiene cuatro alternativas narrativas con nombres distintos y
+// cifras idénticas.
+export interface CatalogueVillain {
+  id: string
+  name: string
+  stages: VillainStage[]
+}
+
+export interface CharacterCatalogue {
+  gameId: string
+  heroes: CatalogueHero[]
+  villains: CatalogueVillain[]
+}
