@@ -1,161 +1,194 @@
 # Project Research Summary
 
-**Project:** TableGameAssistant
-**Domain:** Tablet-first, offline-capable, no-backend guided rules-flow assistant (Nuxt 4 PWA), starting with Marvel Champions LCG, Spanish TTS, later Warhammer 40.000
-**Researched:** 2026-08-28
-**Confidence:** MEDIUM-HIGH
+**Project:** TableGameAssistant — v1.8 "Elección de personajes, contadores en mesa e histórico de partidas"
+**Domain:** Feature milestone on an already-shipped Nuxt 4 SSG/PWA board-game companion (character selection, live HP counters, game-history log with cloud backup) — not a greenfield build
+**Researched:** 2026-09-07
+**Confidence:** MEDIUM-HIGH overall — codebase-grounded claims (architecture, pitfalls tied to actual files) are HIGH confidence; Firestore SDK behavior and MarvelCDB API details are MEDIUM (WebSearch/WebFetch-verified, not hands-on tested in this repo); rules claims were checked directly against the local Rules Reference v1.7 PDF and are HIGH confidence but still require the project's own D-36 human sign-off before being encoded as behavior.
 
 ## Executive Summary
 
-This is a narrow, well-precedented product category once you separate the two things it is *not*: it is not a card database/deckbuilder (MC Companion, MC Card Codex), and it is not a game-state tracker (Gloomhaven Helper, jwtr/mcc). It is a **guided phase/step narrator** — the same shape as the 40k wargame turn trackers (40K Battle Flow, Wargame Toolbox), which independently validate "tappable flowchart + jump-to-step + persistent round/phase header" as a proven pattern in an adjacent domain, but nobody has built that shape for Marvel Champions, and nobody in either domain has paired it with voice narration done well. All four research tracks (stack, features, architecture, pitfalls) converge, unprompted, on the same build order: build a pure, framework-free step-flow engine first and prove its correctness (round-boundary wrap, jump-to-any-step, stale-save fallback) against a small fake fixture game, author real content and scaffold Nuxt in parallel, then wire up the Vue component layer, with speech synthesis, wake lock, and PWA/offline treated throughout as feature-detected progressive enhancements that must never block the core "Siguiente" flow. The recommended stack — Nuxt 4 + `nuxt generate` (not SPA mode), `@vite-pwa/nuxt` with `registerType: 'prompt'`, `@vueuse/core` for TTS/localStorage/wake-lock, Zod-validated JSON content instead of `@nuxt/content`, a plain composable instead of Pinia — is all off-the-shelf and low-risk; there is no exotic technology here.
+This milestone bolts three genuinely new capabilities onto a working, in-active-use app: per-player hero/villain selection with a filtered picker, a fixed on-screen HP counter band (villain + up to 4 heroes) with prefilled starting values, and a persistent win/loss history with a free Firestore backup and a two-metric stats screen. None of this is a rewrite — all four research files converge on the same finding: almost everything slots into existing seams (`SessionContext`'s open index signature, the existing debounced-save/resume machinery, the existing `text`/`speech` separation, the existing single-localStorage-seam composable) with additive, non-breaking changes. The stack is settled (`firebase` 12.18.0 modular SDK, no `vuefire`, no charting library, no stepper library, a plain dev-time Node script against MarvelCDB's real public API) and the feature scope is disciplined (two stats percentages, not a rating system; villain HP + hero HP only, not threat/status tracking; a soft warning not a hard block on duplicate heroes).
 
-The single biggest risk this project carries is not technical, it is **rules fidelity**. The pitfalls researcher went further than a literature review: it directly cross-checked the user's own hand-written Marvel Champions summary against the local official Rules Reference v1.7 PDF and found concrete, specific errors already baked into the draft content — the villain phase is 6 official steps, not 4; obligations are "one or more per identity," not exactly one per player; only the villain (and minions with the Villainous keyword) draw boost cards, not all minions; and the user's premise that "Expert Mode" changes villain-phase structure is itself wrong — that behavior belongs to Heroic Mode, a separate, combinable difficulty axis. Because this app's entire value proposition is "never open the rulebook," a confidently wrong step is worse than no app at all. This means rules verification cannot be a late QA pass bolted onto finished content — it must be its own dedicated phase, and the content schema must carry a per-step `source`/citation field (rules-reference page + section) from the very first version of the schema, not retrofitted later once dozens of steps already exist without provenance.
+The single largest open architectural question — and the one place research disagrees with itself — is **how Firestore's offline durability should be implemented**: enable Firestore's own built-in IndexedDB offline queue (STACK.md's recommendation, less code) or hand-roll a `syncedToFirestore` retry flag in localStorage and never touch Firestore's own persistence (ARCHITECTURE.md's recommendation, no new IndexedDB store, full control). This is a named decision below, not smoothed over — see "Decision Required" in Roadmap Implications. Independent of which option wins, one constraint holds unconditionally and is the single most dangerous default to get wrong: Firestore write promises resolve only on server ACK, never on local cache write, so `await`ing one in the end-of-game handler hangs forever offline — the write must be fire-and-forget, always, with localStorage as the synchronous, blocking source of truth.
 
-The recommended mitigation shape, synthesized across all four docs: Phase 1 builds and unit-tests the flow engine against a throwaway fixture (not real content) so the hardest correctness problem — round-boundary wrap-around, jump re-entry into the loop, and persistence fallback on a stale/mismatched save — is solved cheaply and fast, in parallel with a dedicated rules-verification pass over the existing draft using the checklist the pitfalls research already produced. TTS must be designed as a first-class content field (a short curated spoken line distinct from the long displayed text) from the schema's inception, because retrofitting "don't re-read the whole paragraph" and "don't repeat on back-navigation" onto content that already conflates displayed and spoken text is expensive — and because the closest real-world analog (Dized) is disliked specifically for getting this wrong. Several platform behaviors (Web Speech es-ES voice availability and the iOS gesture requirement, Wake Lock support/reliability, service-worker update flow) are well-documented in general but must be verified on the actual iPad the group owns, not assumed from desktop testing — and the target device/OS version is currently unknown, which the roadmap should resolve early. Finally, all of the user's Out of Scope decisions (no calculators, no live counters, no in-app rules lookup, no content editor, no multi-language) are independently corroborated by the features research as correct anti-features to hold the line on; the main scope-discipline risk is a natural pull toward adding "just a little" state tracking, or generalizing the engine for Warhammer 40k, before Marvel Champions has been validated end-to-end in a real playthrough.
+The second-largest risk isn't technical at all: the counter band is new UI competing for the exact screen real estate the app's entire core value (large, readable text at arm's length) depends on, and it needs an explicit height budget decided before implementation, not eyeballed against a laptop mockup. Close behind are two rules-fidelity traps that are easy to get backwards from what "feels right": a hero at 0 HP does **not** end a Marvel Champions game (confirmed directly against the local Rules Reference), and blocking duplicate hero picks is **not** a written rule (the RR is silent — recommend a soft warning per this project's own D-32 pattern, never a hard block). FEATURES.md closes with 17 concrete undecided behavior questions that gate real implementation choices; four of them — what happens at 0 HP, whether duplicate heroes are blocked, when the duration clock starts, and whether "Partida terminada" always forces a win/loss/abandoned choice — change the shape of entire phases and should be resolved before roadmap phases are locked, not discovered mid-build.
 
 ## Key Findings
 
 ### Recommended Stack
 
-Nuxt 4.5.2 (Nuxt 3 reached end-of-life 2026-07-31, so 4.x is now mandatory, not just a preference) built with `nuxi generate` (full static prerender), not `ssr: false` SPA mode — prerendering gives instant first paint and a clean, stable set of files for the service worker to precache, which matters directly for the offline requirement. `@vite-pwa/nuxt` (1.1.1) handles PWA/offline caching, configured with `registerType: 'prompt'` (never `'autoUpdate'`, which would silently reload mid-round) plus explicit `Cache-Control: no-cache` on `/sw.js` at the hosting layer to avoid the well-documented "stuck on a stale cached build" trap. `@vueuse/core`/`@vueuse/nuxt` (14.4.0) supplies SSR-safe reactive wrappers for the three hard browser-API requirements (`useSpeechSynthesis`, `useLocalStorage`, `useWakeLock`) without hand-rolling them, though the platform gotchas underneath (iOS gesture requirement, empty `getVoices()`, Wake Lock's release-on-hide behavior) are not solved by any wrapper and must be handled explicitly in app code. Content is plain typed JSON validated by Zod (4.4.3) in a Vitest suite that runs in CI — deliberately *not* `@nuxt/content`, whose validation is documented to skip in CI/non-interactive environments, the opposite of "fail loudly at build." State management is a single composable over `useLocalStorage`, not Pinia — this is one shallow, single-consumer state machine, and Pinia's value (multiple stores, devtools time-travel) has no payoff here. Recommended host: Netlify, for zero-config atomic static deploys and header control needed to defeat stale-service-worker caching (GitHub Pages is explicitly ruled out — it cannot set custom response headers at all).
+The existing stack (Nuxt 4.5.2, `@vite-pwa/nuxt`, `@vueuse/core`, Tailwind v4, Zod, Vitest/Playwright) is unchanged. Three new pieces are added, all confirmed via npm registry / official docs / live API calls:
 
 **Core technologies:**
-- Nuxt 4 (`nuxt generate`) — static, backend-less app framework; SSG output is what makes offline PWA caching clean
-- `@vite-pwa/nuxt` + Workbox — offline caching with `registerType: 'prompt'` to avoid mid-session silent updates
-- `@vueuse/core` (`useSpeechSynthesis`, `useLocalStorage`, `useWakeLock`) — reactive wrappers around the three hard browser APIs this app needs
-- Zod + Vitest — build/CI-time content schema validation, so malformed game JSON fails the build, never reaches the table
-- Plain composable (no Pinia) — the step-session state is a single shallow machine, not a multi-store app
+- `firebase` 12.18.0, bare modular SDK (`firebase/app` + `firebase/firestore`, full — not `firestore/lite`, + `firebase/auth` for anonymous sign-in) — chosen because the offline mutation queue is exactly why Firestore was picked over Supabase; `firestore/lite` deliberately omits that queue and would silently defeat the whole rationale. `nuxt-vuefire`/`vuefire` are current and not abandoned, but their value (SSR reactive bindings, SSR auth requiring `firebase-admin` + a service account) targets a server-rendered app; this is `nuxt generate` with no runtime server, and the actual need is two calls (`addDoc`/`getDocs`) — bare SDK is less code. `@nuxtjs/firebase` is abandoned (last release 2022) and must not be used.
+- Firestore Security Rules (`rules_version = '2'`), deployed via `firebase-tools` CLI (dev-only, not a project dependency) — the real security boundary; the public API key in the bundle is not a secret and is safe to commit.
+- No new dependency for the counter UI (plain Vue `ref`/`computed` + Tailwind) and none for the stats screen (a `reduce()` over a small array + Tailwind bars) — a charting library or stepper library would be pure bytes for a dataset of dozens of rows and single-digit HP swings.
+- A plain, zero-dependency Node script (`scripts/marvelcdb/fetch-catalogue.mjs`, Node 18+ global `fetch`) hits MarvelCDB's real public API (`/api/public/cards/{pack}.json`, no key required, confirmed live) and writes a committed, Zod-validated catalogue JSON — never a runtime fetch, which would break the offline constraint outright.
+
+Both Firebase pieces must be **client-only and lazy-loaded** (dynamic `import()` inside a `.client.ts`-suffixed file, triggered only when a game ends or the stats screen opens) — never a static top-level import, and never touched during the SSG prerender pass, since the full Firestore slice is a non-trivial ~61 KB gzipped and does nothing for first paint of the setup screen.
 
 ### Expected Features
 
-No existing product does exactly this — the closest analogs are 40k wargame phase-trackers (validating the guided-flow shape) and Dized (a cautionary tale on nearly every risk axis: intrusive monetization, robotic full-paragraph TTS, clunky multi-game navigation). Every dedicated Marvel Champions fan tool in the wild is either a card database/deckbuilder or a stat/HP/threat tracker — confirming that "just a narrator, not a tracker" is a real, deliberate fork in this ecosystem, not an oversight.
-
 **Must have (table stakes):**
-- Next/Back + jump-to-any-step with correct loop re-entry — validated directly by 40K Battle Flow's tappable-flowchart precedent
-- Persistent, always-visible round + phase + step orientation header — no product studied gets away without this in a forever-looping flow
-- Progress persistence across reload/lock — directly targets Gloomhaven Helper's most-cited failure (losing state)
-- Large text, big tap targets, locked landscape, dark mode, wake lock — the single most-complained-about miss (Gloomhaven Helper, Descent app) when absent
-- Offline PWA — matches the explicit wifi-can-drop-mid-session constraint
+- Tap-a-slot → modal → filtered list picker for villain (3, no filter) and hero (18, filter by name **and** alter-ego, accent-insensitive) — reuses the existing `WarningDetailModal.vue` interaction shape, no new UI language
+- Optional editable player name, default "Jugador N"
+- Fixed always-visible counter band, ▲▼ steppers only, no keyboard, 44–48px touch targets, disable (not hide) at bounds, prefilled from the catalogue + selection + player count
+- Parenthetical known values in step text ("…al valor indicado (14)") — this is new engine/schema surface (no existing value-slot concept), not a content-only edit
+- Win/loss result capture with the full field set (villano, héroes, nombres, fecha, dificultad, nº jugadores, duración, rondas), persisted to localStorage, backed up to Firestore
+- Basic stats screen: win % per hero, win % per villain
+- Edit/delete a mis-logged history entry — not named explicitly in the milestone but cheap and expected by every comparable app (BG Stats, Board Games Tracker)
 
-**Should have (differentiators):**
-- TTS narration scoped to a short curated line per step, with an obvious mute toggle and cancel-never-queue on navigation — genuinely unattempted elsewhere; the standard to beat is Dized's badly-done version (robotic, repeats full paragraphs, no easy off switch)
-- Difficulty/player-count-aware step text — no competitor personalizes text this way
-- Content explicitly verified against the official Rules Reference before shipping — directly targets the "app disagrees with the rulebook" trust-killer
+**Should have (near-zero marginal cost once result-capture UI exists):**
+- Loss reason captured (scheme completed vs. all heroes eliminated) — a genuine, RAW-grounded differentiator no comparable app tracks
+- Distinct "abandoned/unfinished" outcome for a session that never reached a real win/loss
+- Soft, dismissible warning (not a hard block) on duplicate hero selection, once the rules question gets human sign-off
 
 **Defer (v2+):**
-- In-app rules/keyword quick-reference — add only if users still reach for the physical rulebook for things outside the turn structure
-- Hero/scenario/modular-set selection in mini-setup
-- Pre-generated high-quality audio, multi-language, any form of state/counter tracking — the last of these is rejected outright, not merely deferred
+- Per-player win rate / streaks / per-difficulty breakdown — for a fixed 4-person co-op group, this is nearly identical to overall win rate and reads as vanity metrics
+- Recently-used ordering in the picker, press-and-hold stepper repeat — real but minor polish, safe to add after first ship
+- Module/aspect selection with auto-filtering, deck-builder features, live multi-device sync, gamification/badges/ELO, a numeric-keyboard counter fallback, freeform hero/villain text entry — all explicitly identified as anti-features for this app's scope and constraints
 
 ### Architecture Approach
 
-A two-layer flow model: authors write a nested `game → section (repeats?) → phase → step` JSON tree (auditable line-by-line against the PDF), which a pure `flatten()` + `expand()` transformation turns into a flat, ordered runtime array with two precomputed integers (`loopStartIndex`/`loopEndIndex`) — navigation (`next`/`prev`/`jumpTo`) then operates only on that flat array, reducing the entire round-boundary/wrap correctness question to two `if` statements, fully unit-testable with plain objects and no framework. Player-count/difficulty adaptation is done via literal token substitution and variant text blocks — deliberately no formula evaluator or condition language, matching the "no calculation" philosophy and keeping content auditable. An `engine/` directory lives outside Nuxt's `app/` srcDir entirely (zero Vue/Nuxt/DOM imports), a thin composable layer is the only seam that knows both the engine and Vue reactivity exist, and presentational components stay dumb. Adding Warhammer 40k later is designed to require zero engine changes — just a new content file conforming to the same schema and a registry flip — as long as it fits the "one setup, one repeating round" shape already assumed (a documented, currently-hypothetical limitation).
+Almost nothing needs a new subsystem. New game-in-progress state (`selection`, `counters`, `startedAt`) extends `SessionContext`'s existing open index signature and rides the existing debounced-save/resume machinery for free — no new persistence plumbing. A new optional `showsValue` field on `TextBlock`/`StepDefinition`, resolved by a brand-new pure `engine/valueDisplay.ts` and surfaced only through a new `displayText` computed, keeps the number-in-parentheses feature structurally invisible to the voice pipeline and the voice-drift test gate, because it never touches `text` or `speech`. History gets a new, separate, append-only localStorage key (extending `usePersistedSession.ts`, the app's one declared localStorage seam) that survives "Partida terminada" clearing the game-session key, exactly mirroring how the existing `VOICE_KEY` already survives it. The hero/villain catalogue is a new, statically-imported, Zod-validated committed JSON file (`content/marvel-characters.json`) — same pattern as the existing game content, automatically covered by the existing Workbox glob with zero new PWA configuration. Firestore sits behind a new, lazily-imported, client-only composable invoked only at the history-write hook — a one-directional, write-only boundary; the app never reads Firestore at runtime in this milestone.
 
-**Major components:**
-1. `engine/` (pure TypeScript: schema validation, flatten, expand, navigator, persistence/resume logic) — framework-free, unit-tested against a hand-written fixture game, not real content
-2. `content/*.json` (hand-authored game definitions with per-step `citation`/`source` fields) — the auditable source of truth
-3. `app/composables/` (`useGameContent`, `useGameSession`, `usePersistedSession`, `useSpeech`) — the sole seam between the pure engine and Vue reactivity
-4. `app/components/` (`StepDisplay`, `NextPrevControls`, `StepIndexOverlay`, `MiniSetupForm`, `SpeechToggle`) — dumb, presentational, tablet-first
+**Major components (new):**
+1. `content/marvel-characters.json` + `engine/catalogueSchema.ts` + `useCharacterCatalogue.ts` — the numeric ground truth for pickers and counters
+2. `HeroVillainPicker.vue` + `SessionContext.selection` — per-player identity selection, feeding everything downstream
+3. `CounterBand.vue` + `SessionContext.counters` — the fixed HP band, depends on (2)
+4. `engine/valueDisplay.ts` + `showsValue` schema field — parenthetical numbers, depends on (1)+(2), independent of (3)
+5. `engine/history.ts` + `usePersistedSession.ts` extensions + `estadisticas.vue` — result capture and stats, entirely functional offline before Firestore is touched
+6. `useHistorySync.client.ts` — lazy Firestore mirror, strictly last, app remains fully functional if this chunk fails or is deferred
 
 ### Critical Pitfalls
 
-1. **Rules-fidelity errors already present in the hand-written draft summary** — verified directly against the official Rules Reference v1.7 (villain phase is 6 steps not 4; obligations are one-or-more per identity, not one-per-player; only the villain/Villainous-keyword minions draw boost cards; "Expert Mode" does not change villain-phase structure, Heroic Mode does). Avoid by treating a dedicated line-by-line rules-verification phase (using the research's own checklist) as a hard prerequisite before content is considered fixed.
-2. **No per-step provenance/citation** — without a `source: {doc, page, section}` field designed into the schema from day one, a wrong step becomes untraceable and expensive to retrofit later. Build this into the content schema in the same phase the schema itself is designed, not after content exists.
-3. **Wrong step granularity for a one-tap flow** — too fine becomes an annoying tap-fest, too coarse buries the one forgettable detail inside a paragraph, recreating the exact problem the app exists to solve. Design one step = one unmistakable physical action, validated with a real playtest before content is called final.
-4. **Web Speech API fails silently on the real tablet, not the dev laptop** — iOS requires the first `speak()` inside a user gesture; `getVoices()` can return empty; repeated calls queue instead of replace. Avoid by treating TTS as a progressive enhancement (app fully usable text-only if it fails), always calling `cancel()` before `speak()`, and testing specifically on the target iPad in Safari — not just desktop Chrome.
-5. **Stale PWA cache stranding users on a broken/old build, and silent resume of a stale saved session** — both require explicit design: `registerType: 'prompt'` plus a deploy-v1-then-v2 acceptance test for the former; an explicit "continuar vs. empezar nueva" prompt (never silent auto-resume) plus content-version-aware fallback-to-session-start for the latter.
+1. **Interpolating the known number directly into `step.text`/`speech`** instead of a separate render-time overlay — the "obvious" fix breaks the voice-drift test and, if "fixed" by regenerating clips, spends real money regenerating a clip for a number that's only known after hero/villain selection and can never be pregenerated correctly. Avoid by adding a genuinely separate `showsValue`-driven display layer that `engine/audio.ts` and `resolveText()` never read.
+2. **`await`ing a Firestore write in a UI click handler** hangs the end-of-game confirmation forever when offline, because Firestore write promises resolve only on server ACK, never on local cache write. Always fire-and-forget with `.catch()`; localStorage is the synchronous source of truth.
+3. **Extending the persisted session shape without a version bump** silently corrupts or blank-defaults an in-progress saved game on a currently-in-use tablet the moment v1.8 ships alongside a v1.7-shaped save. Treat counters/selection persistence as a `formatVersion: 2` change with an explicit old-shape-through-`resume()` test, not an incremental patch.
+4. **The counter band shrinking the big step text** — the single biggest threat to the app's stated core value, because nothing in the existing layout has a "never exceed N% of viewport" concept for a new persistent-chrome element. Needs an explicit, tested height budget before implementation, not an eyeballed one.
+5. **Open Firestore security rules** (`if true` on write) on a public repo turn "no auth" into a quota-exhaustion and junk-data risk (bounded, not a data breach, but real) — ship shape-validated, create-only rules from day one, never `update`/`delete`.
+6. **The dual-source-of-truth trap**: the moment any screen reads from Firestore even partially, every classic sync-engine problem (duplication, ordering, partial sync) reappears without anyone deciding to build a sync engine. **The stats screen must read localStorage only, never Firestore** — this should be a phase success criterion, not a footnote.
+
+## Decision Required: Firestore Offline Persistence Mechanism
+
+**This is the single most consequential open technical decision of this milestone, and the two research files disagree on it. Present here for the user/roadmapper to decide explicitly — do not let it default silently to either option.**
+
+| | Option A — Firestore's built-in offline queue (STACK.md) | Option B — Hand-rolled retry flag (ARCHITECTURE.md) |
+|---|---|---|
+| **Mechanism** | `initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() }) })`. Firestore's SDK queues offline writes in its own IndexedDB store and auto-flushes on reconnect, surviving a page reload. | Never call `persistentLocalCache`/`enableIndexedDbPersistence`. Add a `syncedToFirestore: boolean` flag to each localStorage history entry; a fire-and-forget mirror write attempts the sync at write time; an opportunistic `flushPending()` (triggered by an `online` event or the next app start) retries unsynced entries. |
+| **Code owned by this project** | Minimal — one config object, trust the SDK | The retry/flush logic itself — small but real, and now a thing this project must get right and test |
+| **New browser storage** | A second IndexedDB store, living alongside the existing Workbox service worker's own caches | None — stays consistent with the project's existing explicit "no IndexedDB" stance (already rejected for the app's own progress persistence) |
+| **Bundle/runtime cost** | Pulls in Firestore's persistence machinery for a feature that writes a handful of tiny documents per month | No additional SDK surface beyond the bare write/read calls |
+| **Failure mode if it silently doesn't work** | Firestore's own persistence can fail to initialize (private/incognito mode, multi-tab contention, first-cold-load-offline) and silently fall back to memory-only cache — an offline queued write is then lost on tab close, with no error surfaced, unless the init promise's rejection is explicitly checked (PITFALLS.md Pitfall 7) | A missed `flushPending()` trigger just means a `syncedToFirestore: false` entry sits unsynced longer — visible, inspectable, no silent data loss since localStorage already has it |
+| **Testability** | Requires mocking/exercising a real SDK persistence layer | Trivially unit-testable as plain functions (mirrors this project's existing pure-function-testing philosophy) |
+
+**What both agree on, unconditionally:** Firestore write promises resolve only on server ACK, never on local cache write — `await`ing one in the end-of-game handler hangs forever offline (Critical Pitfall 2 above). This holds regardless of which option is chosen; the write must always be fire-and-forget.
+
+**Recommendation, stated as a recommendation, not a settled fact:** lean toward **Option B (hand-rolled flag)** for this specific milestone, because it keeps the project's own explicit "no IndexedDB, no dependency for a job this small" philosophy internally consistent (the same reasoning already used to reject IndexedDB for the app's own progress and to reject Pinia), it fails visibly rather than silently, and Firestore here is explicitly a low-volume, best-effort backup — not a feature that needs the SDK's full sync-engine sophistication. Option A is the better choice only if minimizing new code is weighted above architectural consistency with the app's existing storage philosophy. **This should be confirmed with the user before Chunk 6 (Firestore Backup) is planned in detail** — both are defensible, and the roadmapper should not silently pick one.
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure:
+Based on combined research (ARCHITECTURE.md's dependency graph and PITFALLS.md's phase groupings converge on the same order), suggested phase structure:
 
-### Phase 1: Flow Engine Core (framework-free)
-**Rationale:** All three of the stack, architecture, and pitfalls research independently converge on this as the starting point — the round-boundary wrap, jump-to-step re-entry, and stale-save fallback logic are the highest-risk correctness problems in the whole project, and they are fully solvable and testable in isolation, in hours, against a hand-written 6-step fixture, before any real content or UI exists.
-**Delivers:** `engine/` (types, Zod schema, flatten, expand, navigator, persistence/resume) with an exhaustive Vitest suite covering round-wrap, jump navigation, and version-mismatch/stale-save fallback.
-**Addresses:** Jump-to-any-step navigation, round-loop correctness, persistence fallback (FEATURES.md P1 items).
-**Avoids:** Pitfall 7 (SSR/hydration — decide client-only handling for stateful pieces early), Pitfall 8 (silent resume of stale session — build the resume-vs-new-game decision into `persistence.ts` from the start).
+### Phase 1: Catalogue & Data Foundation
+**Rationale:** Everything else (picker contents, counter prefill values, parenthetical numbers) reads from this; it has zero dependency on session state or UI and is fully testable via Vitest alone.
+**Delivers:** `content/marvel-characters.json`, `engine/catalogueSchema.ts`, `engine/__tests__/characters.test.ts`, `useCharacterCatalogue.ts`, the re-runnable `scripts/marvelcdb/fetch-catalogue.mjs`.
+**Addresses:** "Catálogo de datos de los 18 héroes y 3 villanos" from PROJECT.md.
+**Avoids:** Pitfall 10 (flattened villain HP — schema must model stage × player-count from the start), Pitfall 11 (non-reproducible one-off scrape), Pitfall 12 (accidentally committing copyrighted card text/art via a wholesale API-response dump — explicit field allow-list required), Pitfall 9 (must be a static import, never a runtime `fetch()`, to stay Workbox-covered and offline-safe).
 
-### Phase 2: Rules Verification + Content Authoring (parallel to Phase 1/3)
-**Rationale:** The project's core risk is rules fidelity, not code; PROJECT.md's own requirement ("contenido verificado antes de fijarlo") and the pitfalls research's line-by-line PDF cross-check make this non-negotiable and separable from engine/UI work — it can run in parallel with Phase 1's fixture-based engine work since it doesn't depend on the engine being done.
-**Delivers:** A verified Marvel Champions content JSON (conforming to the schema designed in Phase 1/3) with a `source`/citation on every rule-bearing step, checked against the specific corrections already identified (villain phase step count, boost-card eligibility, obligation cadence, Expert vs. Heroic Mode, nemesis-set handling, player/encounter deck depletion asymmetry, status-card timing).
-**Addresses:** "Content verified against official rulebook" (FEATURES.md differentiator); directly resolves Pitfall 1 and Pitfall 2.
-**Avoids:** Pitfall 10 (copyrighted verbatim text — author original short imperative steps, cite but don't quote).
+### Phase 2: Character Selection
+**Rationale:** Depends on Phase 1 for names/ids to populate the picker; everything downstream (counters, parenthetical values, history) needs to know who's playing before it can do anything.
+**Delivers:** `SessionContext.selection`, selection mutator functions in `useGameSession.ts`, `HeroVillainPicker.vue`, wiring at `setup.heroes.01`.
+**Addresses:** Villano/héroe picker with filter-by-name-and-alter-ego, accent-insensitive matching, optional player names.
+**Avoids:** Scope creep into scenario/modular-set selection (explicitly deferred per PROJECT.md); asserting duplicate-hero blocking as a hard rule when the Rules Reference is silent (soft warning only, per D-32 pattern).
+**Requires a decision before this phase starts:** can the group proceed past `setup.heroes.01` with slots unpicked, and is duplicate-hero picking blocked, warned, or unrestricted?
 
-### Phase 3: Nuxt Scaffold + Schema Wiring
-**Rationale:** Needs Phase 1's schema/types to exist so the content shape is settled, but the routing/build skeleton itself is independent grunt work that can start immediately alongside Phase 1.
-**Delivers:** Nuxt 4 project scaffold (`nuxi generate` target), `/` game-picker page, `/[game]` dynamic runner route, `nitro.prerender.routes` wired to `content/games-index.ts`, Tailwind v4 styling baseline.
-**Uses:** Nuxt 4.5.2, `@tailwindcss/vite`, static JSON imports (not runtime fetch).
-**Implements:** The routing/component-boundary shape from ARCHITECTURE.md §4.
+### Phase 3: Counter Band (can run in parallel with Phase 4 once Phase 2 lands)
+**Rationale:** Needs the selection (who/how many players) and the catalogue (starting HP values) to prefill correctly.
+**Delivers:** `SessionContext.counters`, counter mutator, `CounterBand.vue`, wiring into the round-loop rendering, an explicit measured height budget.
+**Addresses:** "Banda de contadores fija durante la partida" with ▲▼, no keyboard, prefilled values.
+**Avoids:** Pitfall 4 (counter band shrinking step text — needs a real-device/reference-viewport check before done), Pitfall 13 (touch-UX regressions: mis-taps, runaway hold-repeat, ghost double-counts on iOS Safari — reuse `NavBand.vue`'s existing press-state/action split), Pitfall 3 (persisted-shape version bump required for counters to survive resume correctly).
+**Requires decisions before this phase starts:** behavior at 0 HP for heroes (does NOT end the game per Rules Reference — must not trigger game-over) and for villain HP (passive stop, or a prompt?); clamping behavior at 0 and at max; whether press-and-hold repeat is in scope for launch.
 
-### Phase 4: Composable/State Layer + Presentational Components
-**Rationale:** Needs both the proven engine (Phase 1) and a scaffold to mount into (Phase 3); this is where the pure engine becomes an actual playable app.
-**Delivers:** `useGameContent`, `useGameSession`, `usePersistedSession` composables; `StepDisplay`, `NextPrevControls`, `MiniSetupForm` components; a fully playable text-only Marvel Champions setup + round loop, walkable start to finish with real (verified) content from Phase 2.
-**Addresses:** Persistent orientation header, mini-setup, tablet-first baseline (large text, tap targets, locked landscape, dark mode) — all FEATURES.md P1 items.
-**Avoids:** Pitfall 3 (step granularity — this is the phase to playtest and adjust before content is "final").
+### Phase 4: Parenthetical Known Values (can run in parallel with Phase 3 once Phase 2 lands)
+**Rationale:** Depends on Phase 1 (catalogue numbers) and Phase 2 (selection), not on Phase 3 — the three concrete steps this applies to all read static setup-time values, not live counters.
+**Delivers:** New `showsValue` field on `TextBlock`/`StepDefinition`, `engine/valueDisplay.ts` + tests, `displayText` computed in `useGameSession.ts`, `StepScreen` prop rebind.
+**Addresses:** "los pasos que citan un valor lo muestran entre paréntesis."
+**Avoids:** Pitfall 1 (the single most expensive mistake in this milestone — never touch `text`/`speech`, verify `voice-drift.test.ts` and `collectSpeechEntries()` output are byte-identical before/after).
+**Requires a decision before this phase starts:** `setup.heroes.03` and `ronda.jugadores.02` are shared steps whose value differs per player — the milestone's own "(14)" example only covers the single-shared-value villain-health case; the per-player display format (e.g. "Jugador 1: 10 · Jugador 2: 8") is unresolved and must be pinned down here, not discovered mid-implementation.
 
-### Phase 5: Progressive Enhancements — Speech, Wake Lock, Offline PWA
-**Rationale:** All three (features research, architecture, stack) explicitly flag these as feature-detected additive layers that must never block the core flow, and each has real platform gotchas that only surface on the actual target hardware — so they belong after the core text-only flow is proven, and each needs its own hands-on-device verification rather than desktop-only testing.
-**Delivers:** `useSpeech()` wired to a short curated per-step spoken field with mute toggle and cancel-before-speak; Wake Lock with visibility-based re-acquire; `@vite-pwa/nuxt` configured with `registerType: 'prompt'` and a verified deploy-v1-then-v2 update-prompt test; jump/index overlay (`StepIndexOverlay`).
-**Addresses:** TTS differentiator, offline PWA, wake lock (FEATURES.md P1/differentiator items).
-**Avoids:** Pitfall 4 (Web Speech silent failures), Pitfall 5 (stale cached build), Pitfall 6 (Wake Lock gaps on older/un-updated iPads).
+### Phase 5: History & Statistics
+**Rationale:** Depends on Phases 2/3 for the data it records, but the pure functions (`buildHistoryEntry`, aggregation) can be built and unit-tested against hand-built fixtures before the UI is fully wired — don't block this on the others' UI work. Must ship and be fully verified **entirely offline, zero Firestore involvement**, before Phase 6 is touched.
+**Delivers:** `HISTORY_KEY` + `appendHistoryEntry`/`loadHistory` in `usePersistedSession.ts`, the outcome-choice UI inserted into the existing `onEndGameConfirm` flow, `engine/history.ts`, `engine/statistics.ts`, `app/pages/estadisticas.vue`.
+**Addresses:** Result capture (win/loss/+recommended loss-reason/+recommended abandoned), persistent history, basic stats screen.
+**Avoids:** Pitfall 8's stats-screen half (stats reads localStorage only — this is the phase where that rule must be enforced structurally, not just documented) and Pitfall 3's history-adjacent shape risk.
+**Requires decisions before this phase starts:** does "Partida terminada" always force a win/loss/abandoned choice, or can it be dismissed? Is loss reason required, optional, or v2? When does the duration clock start, and does "rondas jugadas" report the in-progress round as N or N-1 if the game ends mid-round? Is edit/delete of a past entry in scope for launch (research recommends yes — cheap, and a permanently wrong entry is worse UX than the build cost)?
+
+### Phase 6: Firestore Backup
+**Rationale:** Strictly last; depends only on Phase 5's `appendHistoryEntry` call site existing as the hook point. If deferred or if it fails entirely in production, Phases 1-5 remain fully functional — this is the one chunk touching network/third-party config.
+**Delivers:** `firebase` dependency (dynamically imported only), `useHistorySync.client.ts`, Firestore Security Rules, runtime config, the resolved offline-persistence mechanism from the Decision Required section above.
+**Addresses:** "Firebase Firestore gratis como respaldo duradero."
+**Avoids:** Pitfall 2 (never `await` the write), Pitfall 5 (open security rules — write rules before the first real deploy, not after "it works"), Pitfall 6 (eager SDK import blocking first paint), Pitfall 7 (silent persistence-init failure, if Option A is chosen), Pitfall 8's write-idempotency half (client-generated ids + `setDoc`, not `addDoc`, to make retried writes idempotent regardless of which offline-persistence option is chosen).
+**Requires the Decision Required resolved** before implementation, and a manual/e2e offline check (extending `e2e/offline-flow.spec.ts`) confirming no stall on the end-of-game confirmation with wifi off.
 
 ### Phase Ordering Rationale
 
-- The engine (Phase 1) and rules-verification/content (Phase 2) are independent research/implementation tracks that can run in parallel — neither blocks the other, and both must land before Phase 4 can produce a real, correct, playable experience. All three research docs (STACK, ARCHITECTURE, PITFALLS) independently arrived at this same "engine-first, content-parallel" ordering, which is a strong signal, not a coincidence.
-- Progressive enhancements (speech, wake lock, offline) are deliberately sequenced last and treated as optional layers throughout, per explicit convergence across FEATURES, STACK, and PITFALLS research that none of these may become a hard blocker to the core "Siguiente" flow — this also means their platform-specific gotchas (iOS gesture requirement, Wake Lock's 16.4+/18.4-bugfix history, stale service-worker caching) don't threaten the critical path if they slip.
-- Warhammer 40k content and any engine generalization beyond what Marvel Champions needs are explicitly excluded from this initial phase set — PITFALLS.md's Pitfall 9 recommends a hard milestone gate ("Marvel Champions engine validated via a real playthrough") before that work begins at all, and it is not part of the roadmap implications above by design.
+- Catalogue-first is forced by data dependency: nothing else can prefill a real number without it.
+- Selection before counters/values is forced by the same logic one level up: you can't prefill a hero's HP before you know which hero was picked.
+- Counters and parenthetical values are architecturally independent of each other (verified by reading the actual content — the three `showsValue` steps read static setup values, not live counters) and can be built in parallel once selection lands, shortening the critical path.
+- History/stats is deliberately sequenced to be fully correct and verified **offline before Firestore exists at all** — this directly avoids Pitfall 8 (dual-source-of-truth) by construction: the localStorage-only stats screen is built and tested before there's even a Firestore write to accidentally read from.
+- Firestore is last and isolated specifically so that a failure, delay, or scope cut on that one phase cannot regress anything else — matches this project's own established pattern of never letting an enhancement become a blocker for core function.
+- Every phase should restate the standing "don't add threat/status counters, don't add scenario selection, don't add accounts, don't add a catalogue editor UI" exclusions (Pitfall 14) — these are the natural, feature-adjacent temptations of exactly the infrastructure each phase builds, not a one-time reminder.
 
 ### Research Flags
 
-Needs research (`/gsd:plan-phase --research-phase <N>`):
-- **Phase 2 (Rules Verification):** Domain-specific research already substantially done by PITFALLS.md's checklist, but each additional rules corner not yet covered (or any FAQ/errata beyond v1.7) will need the same PDF-grounded verification method repeated.
-- **Phase 5 (Progressive Enhancements):** Needs on-device verification (target iPad model/OS currently unknown) for Web Speech es-ES voice availability, the iOS user-gesture requirement, Wake Lock support (16.4+, installed-PWA bug fixed only in 18.4), and the service-worker deploy-v1-then-v2 update flow — none of this can be confirmed on a development laptop.
+Phases likely needing deeper research during planning:
+- **Phase 4 (Parenthetical Known Values):** the per-player-list display format is a genuine, unresolved UX/content design question (not just an implementation detail) — needs its own small design pass before content-JSON tagging begins.
+- **Phase 6 (Firestore Backup):** the Decision Required (built-in queue vs. hand-rolled flag) must be resolved with the user first; whichever option is chosen, the specific retry/flush design or the `persistentLocalCache` failure-handling design needs to be worked out in phase planning, not assumed from this summary.
 
-Standard patterns (skip research-phase):
-- **Phase 1 (Flow Engine Core):** Fully specified in ARCHITECTURE.md with pseudocode, TypeScript types, and a Zod schema sketch — implementation-ready.
-- **Phase 3 (Nuxt Scaffold):** Documented, current, verified-live Nuxt 4/Tailwind v4/@vite-pwa/nuxt integration paths — standard, well-trodden setup.
-- **Phase 4 (Composable/Component layer):** Straightforward Vue/Nuxt composable and component work following the architecture's documented component-boundary rules.
+Phases with standard, well-documented patterns (research-phase during planning likely unnecessary):
+- **Phase 1 (Catalogue):** MarvelCDB API shape is directly verified (live `curl` calls), the Zod/Vitest content-validation pattern already exists in this codebase and is being copied, not invented.
+- **Phase 2 (Character Selection) and Phase 3 (Counter Band):** touch-target sizing, filter/picker UX, and stepper interaction patterns are extremely well-documented (HIG/Material/NN-g convergence) and the codebase already has directly reusable precedent (`WarningDetailModal.vue`, `NavBand.vue`'s press/action split).
+- **Phase 5 (History & Statistics):** the field set and localStorage-seam extension pattern are both already established in this exact codebase; only the specific product-behavior decisions (listed above) need resolving, not further research.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | MEDIUM-HIGH | Package versions verified live via `npm view` and official docs on 2026-08-28; TTS/Wake Lock platform gotchas and the Netlify-vs-alternatives hosting call are WebSearch-derived and explicitly flagged as such within STACK.md |
-| Features | MEDIUM-HIGH | Marvel Champions competitor landscape confirmed directly from app stores/GitHub (HIGH for named products); table-stakes tablet UX and TTS patterns cross-verified across multiple product categories; some app-store review sentiment is WebSearch-derived (MEDIUM) |
-| Architecture | HIGH | Nuxt 4 structure/prerendering verified against current official docs (HIGH); the flow-model/schema design itself is original engineering synthesis, not a copied precedent — internally consistent and traced through explicit pseudocode, but no third-party reference implementation exists to benchmark against (flagged MEDIUM specifically for that novelty, not for correctness) |
-| Pitfalls | HIGH | Rules-fidelity findings verified directly against the local official Rules Reference v1.7 PDF (HIGH, primary source); Web Speech/service-worker/Wake Lock pitfalls verified against MDN, Chromium/WebKit bug trackers, and multiple corroborating GitHub issues (HIGH/MEDIUM); Nuxt-specific hydration pitfalls verified against official docs + GitHub discussions (MEDIUM); legal/copyright section explicitly advisory only, not legal advice (LOW) |
+| Stack | HIGH for versions/API shape (npm registry + official docs + live MarvelCDB API calls); MEDIUM for exact bundle-size figures (single 2023-dated source, not re-measured this session) |
+| Features | MEDIUM-HIGH — UX/stepper/picker patterns cross-verified across multiple sources; Marvel Champions rules claims checked directly against the local Rules Reference v1.7 PDF (HIGH); direct MC-specific competitor apps only reachable via search-result summaries, not live-tested (MEDIUM) |
+| Architecture | HIGH — every claim grounded in a direct read of this repo's actual files with cited path:line references; Firestore SDK behavioral claims are MEDIUM (reasoned/WebSearch-verified, not hands-on tested in this repo) |
+| Pitfalls | Mixed by pitfall — codebase-grounded pitfalls (voice-drift, persistence versioning, layout) are HIGH; Firestore behavioral pitfalls are MEDIUM (cross-checked GitHub issues + official docs); MarvelCDB legal/API pitfalls are MEDIUM (one official page, no hands-on API test of edge cases) |
 
-**Overall confidence:** MEDIUM-HIGH
+**Overall confidence:** MEDIUM-HIGH — high enough to roadmap directly, with the Firestore persistence mechanism, the per-player value-display format, and the 17 open behavior questions flagged as items to resolve during phase/requirements planning rather than research gaps.
 
 ### Gaps to Address
 
-- **Target tablet model/OS version is unknown.** This blocks confident verification of Web Speech es-ES voice availability, the iOS TTS gesture requirement, Wake Lock support (a real functional gap exists before iOS 18.4 for installed PWAs), and general tap-target/legibility assumptions. Resolve early — ideally before or during Phase 5 planning — by identifying the actual iPad model and current OS version the group uses.
-- **PROJECT.md's own content draft is known-inaccurate.** PROJECT.md states the existing summary has "Fase del villano (4 pasos)" — the pitfalls research confirms this is wrong (6 official steps) and flags several other concrete corrections (see Critical Pitfalls above and the full checklist in PITFALLS.md). The roadmap and PROJECT.md itself should be updated to reflect that the "existing summary" is a rough draft requiring correction, not a validated map of the flow, before content work treats it as ground truth.
-- **Whether Marvel Champions has exactly one repeating round loop with no nested independent cycles** is assumed by the architecture and appears correct for the game as currently understood, but should be explicitly reconfirmed during Phase 2's rules verification, since the engine's `loopStartIndex`/`loopEndIndex` model depends on this holding.
-- **Hosting choice (Netlify) is a reasoned trade-off, not a single-sourced fact** — fine to proceed on, but worth a quick sanity check (e.g., a throwaway deploy) early in Phase 5 rather than assuming zero friction.
-- **`@vite-pwa/nuxt` compatibility with Nuxt 4.5.x** is inferred from version ranges rather than directly confirmed (STACK.md flags this as "verify in a throwaway `nuxi init` before committing if this becomes a blocker") — worth a five-minute spike at the start of Phase 3.
+- **Firestore offline-persistence mechanism (built-in queue vs. hand-rolled flag):** genuine, named disagreement between STACK.md and ARCHITECTURE.md — must be decided with the user before Phase 6 is planned in detail (see Decision Required section above).
+- **`setup.heroes.03` / `ronda.jugadores.02` per-player value display format:** no existing pattern in this app or in the milestone's own "(14)" example covers a per-player-varying value read once for the whole table — needs a small design decision before Phase 4.
+- **`contentVersion`/`formatVersion` resume-gate blind spot:** confirmed as a real gap in already-shipped code, not hypothetical — `isValidContext` only checks `playerCount`/`difficulty`, so a resumed session (old-shape or freshly-created-but-not-yet-selected) can return with `selection`/`counters` undefined regardless of version bumps. Every UI that reads these fields (picker, counter band, `displayText`) must render defensively by construction, and this should be an explicit test case, not an assumption.
+- **17 open behavior questions in FEATURES.md** (full list in that file) — the four with the largest scope impact are: (1) does a hero/villain HP counter hitting 0 do anything beyond stopping there, (2) is duplicate-hero selection blocked/warned/unrestricted, (3) does "Partida terminada" always force an outcome choice or can it be dismissed, (4) when does the duration clock start and how is an in-progress round counted at game-end. These should be resolved during requirements/roadmap definition, not left for implementers to guess.
+- **Counter band height budget:** no number exists yet ("≤15% of viewport" is this research's suggestion, not a decided constraint) — needs to be decided and tested against a reference tablet viewport before Phase 3 implementation, given the actual target tablet model remains unknown (carried-over v1.7 debt).
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- `mc_rulesreference_v17-compressed.pdf` (Marvel Champions Rules Reference v1.7), read directly via `pdftotext` — all rules-fidelity findings in PITFALLS.md
-- npm registry (`npm view <pkg> version`), checked live 2026-08-28 — all package versions in STACK.md
-- https://nuxt.com/docs/4.x/directory-structure, /getting-started/prerendering, /getting-started/deployment, /guide/best-practices/hydration — Nuxt 4 structure, SSG behavior, hydration guidance
-- https://caniuse.com/wake-lock — Screen Wake Lock browser support table
-- jwtr/mcc GitHub README — direct confirmation of the stat-tracker anti-feature category
+- Local Rules Reference v1.7 PDF (`~/Downloads/mc_rulesreference_v17-compressed.pdf`), consulted directly via `pdftotext -layout` + grep — Player Elimination, Winning the Game, Villain Defeat, Unique/deck-building rules.
+- Direct repo reads: `engine/types.ts`, `engine/persistence.ts`, `engine/resolve.ts`, `engine/audio.ts`, `engine/__tests__/voice-drift.test.ts`, `usePersistedSession.ts`, `useGameSession.ts`, `app/pages/[game]/index.vue`, `app/components/NavBand.vue`, `nuxt.config.ts`, `.planning/PROJECT.md`.
+- `npm view firebase/vuefire/nuxt-vuefire/@nuxtjs/firebase` (versions, dist-tags, dependencies) — 2026-09-07.
+- Live `curl` calls against `marvelcdb.com/api/public/packs/` and `.../cards/core.json` — verified JSON shape (hero `hand_size`/`health`, villain `stage`/`health`/`health_per_hero`/`health_per_group`, linked alter-ego cards), response headers, no-auth-required.
+- `firebase.google.com/docs/firestore/manage-data/enable-offline`, `.../auth/web/anonymous-auth`, `.../firestore/security/rules-structure` — official API shape, fetched 2026-09-07.
 
 ### Secondary (MEDIUM confidence)
-- vite-pwa-org.netlify.app, tailwindcss.com framework guides, vueuse.org — module/integration configuration details (WebFetch/WebSearch summarized)
-- GitHub issues/discussions: `vite-pwa/vite-plugin-pwa`, `nuxt-community/pwa-module`, `vite-pwa/nuxt`, `nuxt/nuxt` #25500 — stale-service-worker and hydration-mismatch corroboration
-- Chromium issue tracker, Mozilla Bugzilla #1522074, WebKit developer forum, weboutloud.io — Web Speech API cross-browser/platform gotchas
-- App store listings and aggregated reviews for Dized, Gloomhaven Helper, Descent: Legends of the Dark, Mansions of Madness — competitor UX failure-mode evidence
-- 2026 hosting comparison articles (danubedata.ro, pandastack.io, bootstrap.build) — Netlify/Cloudflare Pages/GitHub Pages trade-off synthesis
+- `firebase.blog` Firestore Lite bundle-size comparison post (2023-dated, not independently re-measured this session).
+- `firebase/firebase-js-sdk` GitHub issues #6515/#1497/#8696 — write-promise-resolves-on-server-ack behavior, cross-confirmed across multiple issues.
+- BoardGameGeek "Duplicate character question" thread — community consensus, not official errata.
+- WebSearch on BG Stats / MC Digital Tracker / M Champions Deck Builder / jwtr-mcc — app-store/marketing-copy summaries, none independently installed/tested.
+- Google Cloud Firestore quotas doc (Spark plan: 50k reads/20k writes/20k deletes per day, 1 GiB storage) — WebSearch summary of official docs, not re-verified against a live console.
 
 ### Tertiary (LOW confidence)
-- MC Companion / MC Card Codex app-store listings — limited page content retrieved, title/description-level only
-- Marvel Champions Digital (kitze.io) prototype page — not publicly released, described secondhand
-- Legal/copyright guidance in PITFALLS.md — explicitly advisory, not legal advice; revisit before any wider public distribution
+- General 2026 hosting/security write-ups on Firebase API-key public-by-design consensus (used only for corroboration; the official Firebase "API keys" doc is the primary source for that specific claim).
 
 ---
-*Research completed: 2026-08-28*
+*Research completed: 2026-09-07*
 *Ready for roadmap: yes*

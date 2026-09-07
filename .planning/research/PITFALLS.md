@@ -1,369 +1,405 @@
-# Pitfalls Research
+# Pitfalls Research — v1.8 (Selección de héroes, contadores en mesa, histórico)
 
-**Domain:** Tablet-first offline PWA that guides players step-by-step through Marvel Champions LCG rules, with Spanish Web Speech TTS, built on Nuxt 4, no backend, JSON content
-**Researched:** 2026-08-28
-**Confidence:** HIGH for rules-fidelity (verified directly against local official PDF `mc_rulesreference_v17-compressed.pdf`, Rules Reference v1.7); HIGH/MEDIUM for Web Speech, service worker and Wake Lock behavior (verified against MDN, Chrome/WebKit docs, and multiple corroborating community reports); MEDIUM for Nuxt 4-specific pitfalls (official docs + GitHub issues); LOW/advisory for legal section (not legal advice).
+**Domain:** Adding character selection, live counters, and a Firestore-backed history log to an existing, shipped, offline-first Nuxt 4 SSG/PWA board-game assistant.
+**Researched:** 2026-09-07
+**Confidence:** Mixed — see per-pitfall tags. Codebase-grounded claims (marked CODE) are HIGH confidence because they cite an actual file/test in this repo. Firestore behavioral claims are MEDIUM (WebSearch cross-checked against GitHub issues + official docs, not hands-on verified in this repo). MarvelCDB claims are MEDIUM (one official page found, no hands-on test of the API).
+
+## How to read this file
+
+Each pitfall is ranked by **expected cost × likelihood** within its group. "Phase to address" uses descriptive phase labels tied to the v1.8 feature list in `.planning/PROJECT.md` (Catalogue & Selection, Counter Band, History & Persistence, Firestore Backup, Stats Screen) — the roadmapper should map these onto actual phase numbers, but the grouping and ordering signal is deliberate: catalogue-and-selection pitfalls must be closed before counters can be built on top of them, and history/Firestore pitfalls must be closed before stats can trust the data they read.
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Rules-fidelity errors inherited from the hand-written summary
+### Pitfall 1: Interpolating the known number directly into `step.text` instead of a render-time overlay
 
 **What goes wrong:**
-The existing Marvel Champions summary (drafted with another AI) is used as-is to author JSON content, silently carrying forward plausible-but-wrong mental models of the villain phase, boost cards, acceleration, minion activation, obligations, the nemesis set, and status-card timing. Because the app's whole value proposition is "never open the rulebook," a wrong step is worse than no app — the group will follow it confidently and misplay.
+A developer implementing "show the number in parentheses" does the obviously-simplest thing: edits `content/marvel-champions.json`, appends `" (14)"` to the `text` field of the relevant steps, or builds the string in `engine/resolve.ts`'s `resolveText()` by concatenating a value onto `variant?.text ?? node.step.text`. Either change mutates the exact string that `engine/__tests__/voice-drift.test.ts` fingerprints against `scripts/voice/manifest.json`. The build goes red (`Audio desactualizado para: ...`), and if someone "fixes" the red build by running `npm run voice:generate` to match, real money is spent regenerating a clip for text that is now player-count/hero-dependent and can never be pregenerated correctly — the parenthetical number is only known once heroes/villain are chosen, downstream of the audio pipeline.
 
 **Why it happens:**
-Rules summaries written by an LLM or from memory tend to average together several editions/FAQ answers, over-simplify multi-step sequences into round numbers ("4 steps of the villain phase" when the reference lists 6), and conflate mechanically similar but distinct card flows (e.g., "boost cards" vs "encounter cards dealt to players").
+The path of least resistance for "add text to a step" in this codebase IS editing `step.text` — that's exactly what every phase so far has done for real content changes. Nothing about the step JSON shape currently distinguishes "narrated text" from "on-screen-only text." The feature ask ("shown in parentheses... without touching stored text or clips") requires a *new* concept (a display-only annotation) that doesn't exist yet in `TextBlock`/`StepDefinition` (`engine/types.ts`), so it's easy to bolt the number onto the field that already exists instead of adding the field that should.
 
 **How to avoid:**
-Treat every step of the JSON content as a claim that must cite its source in the official Rules Reference v1.7 (page + section name) before being marked "verified." Do a dedicated verification phase (see checklist below) that goes line-by-line through the hand-written summary against the PDF, not a spot check.
+Add a genuinely separate, optional field to `TextBlock`/`StepDefinition` (e.g. `knownValue` or a small structured placeholder token list) that `StepScreen.vue` renders next to/after `actionText` but that `resolveAudioId`/the voice pipeline never reads. Concretely: `engine/resolve.ts` must keep computing `speech`/audio id exactly as today (unchanged), and a *new*, separate resolver (e.g. `resolveDisplayText()` in a new `engine/knownValues.ts`) composes `text + " (" + value + ")"` only for on-screen rendering in `StepScreen.vue`, never touching what flows into `collectSpeechEntries`/`fingerprint()`. Add an explicit unit test asserting `collectSpeechEntries(marvelChampions)` output is byte-identical before and after the catalogue/counters feature lands — a regression here should fail a test *before* it ever reaches `voice-drift.test.ts`, since that test only catches drift in already-changed text, not the fact that a field was touched.
 
 **Warning signs:**
-- Any step whose wording doesn't map to a specific page/section of the Rules Reference.
-- Round numbers in the summary ("4 steps", "one obligation per player") that don't match the reference's actual enumeration.
-- Any step that was written from "how we've been playing it" rather than the rulebook.
+- Any diff to `content/marvel-champions.json` touching a `"text"` or `"speech"` key during this milestone.
+- `npm run voice:generate` invoked at all during this milestone outside of a genuine rules-text correction.
+- `voice-drift.test.ts`'s "hay exactamente 35 entradas" count test needs updating to a new number that isn't explained by an actual new *spoken* step.
 
-**Phase to address:**
-A dedicated "Rules verification" phase, before or tightly coupled to the content-authoring phase for Marvel Champions (matches the existing `PROJECT.md` requirement: "Contenido de Marvel Champions verificado contra el reglamento oficial antes de fijarlo").
+**Phase to address:** Catalogue & Selection / Parenthetical Numbers phase (this must be designed before any step-text change is made) — with a regression test added to the same phase, not deferred.
 
 ---
 
-### Pitfall 2: No provenance/citation per step — a wrong step can't be traced or fixed
+### Pitfall 2: `await` on a Firestore write in a click handler hangs "Siguiente"/end-of-game confirmation when offline
 
 **What goes wrong:**
-Months later, someone at the table says "the app told us to do X, but the rulebook says Y." Without a citation trail, fixing it means re-deriving where that step's wording came from, whether it was deliberate paraphrasing or a bug, and whether other steps share the same wrong assumption.
+Firestore's write methods (`setDoc`, `addDoc`, `updateDoc`) return a promise that resolves **only once the server has acknowledged the write** — not when the local IndexedDB cache is updated. This is documented, cross-confirmed Firestore behavior (see `firebase/firebase-js-sdk` issues #6515, #1497, #8696) and it surprises nearly everyone who assumes "offline persistence" means the promise resolves locally. If a developer writes `await addDoc(historyCollection, entry)` inside the end-of-game "record win/loss" handler — the single most natural place to put it — that `await` will simply never resolve while the wifi is down, because this app's core constraint is "must work with the wifi caved mid-game." The confirmation dialog spins forever, or the app appears frozen, on the exact device/scenario (offline, mid-table, tablet) this whole project exists to handle correctly.
 
 **Why it happens:**
-JSON content that's just `{ "text": "..." }` has no way to answer "why does this step say this?" — the provenance lived only in the author's head or in AI chat history that's since been discarded.
+Every other write in this app (`usePersistedSession.ts`'s `save()`) is synchronous and fire-and-forget by design — there is no precedent in the codebase for an async, potentially-hanging write, so nothing about the existing patterns warns against `await`ing here. The natural instinct writing new async code is to `await` it so errors can be caught with try/catch, which is correct practice everywhere else in typical web dev and wrong specifically here.
 
 **How to avoid:**
-Give every step (or at least every step that encodes a rule, not just flavor/UX text) a `source` field: `{ doc: "rules-reference-v1.7", page: 45, section: "Villain Phase" }`, plus an optional `note` field for anything paraphrased or inferred rather than quoted. Store the exact reference version (`v1.7`) the content was checked against as metadata on the game file itself, so a future re-verification pass after an errata update knows exactly what changed underneath it.
+Never `await` the Firestore write in the UI event path. Fire it (`addDoc(...).catch(() => {})` or equivalent) and immediately proceed with the UI flow using the localStorage write as the actual "did it save" signal — Firestore is a backup, not a gate. Concretely: the win/loss capture handler should call `usePersistedSession`'s (or a new `useHistoryLog`'s) synchronous localStorage write first, update UI/navigate away immediately, and kick off the Firestore write as an untracked side effect afterward, same shape as `useVoiceAnnouncer.ts`'s existing rule (comment in `useStepShortcuts.ts`: synchronous call, no `await`, no `setTimeout` in the hot path) applied to a new context. Add a test/manual check: simulate offline (`context.setOffline(true)`, same tool already used in `e2e/offline-flow.spec.ts`) and confirm the "game ended" screen still advances instantly.
 
 **Warning signs:**
-- Steps added or edited without updating/adding a `source` field.
-- No changelog or version marker in the game JSON indicating which Rules Reference version it was last checked against.
+- Any `await` directly preceding a Firestore SDK call inside a component's click handler or a composable function invoked synchronously from one.
+- No `.catch()` on a fire-and-forget Firestore call (an unhandled rejection from a queued-then-failed write should never surface as an uncaught error).
+- Manual test: turn off wifi, finish a game, tap "confirm result" — if there's a visible stall, this pitfall has been hit.
 
-**Phase to address:**
-Content schema design phase (before or alongside the JSON authoring phase) — the `source` field must exist in the schema from the start; retrofitting it onto already-written content is much more expensive.
+**Phase to address:** Firestore Backup phase (and re-verified in an offline e2e test, extending the existing `e2e/offline-flow.spec.ts` pattern).
 
 ---
 
-### Pitfall 3: Steps sliced at the wrong granularity for a one-button "Siguiente" flow
+### Pitfall 3: Bumping the persisted session shape without bumping `formatVersion`, corrupting or silently losing in-progress saved games
 
 **What goes wrong:**
-Two failure modes, both real at a physical table:
-- **Too fine:** each micro-action (draw a card, then draw another, then flip it) becomes its own tap, turning the assistant into an annoying tap-fest that competes with actually playing cards.
-- **Too coarse:** several distinct actions get merged into one paragraph of prose, so the one detail someone forgets (e.g., "pass the first player token") is buried mid-paragraph and skipped anyway — reproducing the exact problem the app exists to solve.
+`engine/persistence.ts`'s `resume()` gate is deliberately strict: it checks `formatVersion` first, then `contentVersion`, and only trusts a persisted session if both match *and* the `runtimeId` is still found in the freshly-expanded sequence — anything else falls back to `contentChangedFallback` (fresh start, keeping only `context`). Adding selected-hero/villain/counter state to what gets persisted per game session is a natural, tempting place to extend `PersistedPosition` (`engine/persistence.ts`) or `SessionContext` (`engine/types.ts`) with new fields — but if those new fields are added without incrementing `formatVersion` (still hardcoded `1` today) or without updating `isPersistedPosition()`'s shape guard in `usePersistedSession.ts`, one of two bad things happens: (a) an old save from before v1.8 gets read as if it already has the new fields (`undefined` counters silently propagate into the counter band with no default, producing `NaN`/blank steppers on live TV-sized text at the table), or (b) a v1.8 save with the new shape, read by `isPersistedPosition()`'s current guard (which only checks `formatVersion`/`contentVersion`/`runtimeId`/`round`/`context` keys are *present*, not the new ones) gets accepted as valid even though the new fields it expects are missing, again producing undefined counter state mid-resume. Because "the app is in real use right now," a group whose tablet has an in-progress paused session on v1.7's shape when v1.8 ships is the realistic reproduction case, not a hypothetical.
 
 **Why it happens:**
-Step granularity was designed for reading, not for standing at a table glancing at a tablet an arm's length away mid-turn. It's tempting to mirror the Rules Reference's own bullet structure (which is written for lookup, not for sequential execution) rather than deriving an "instruction size" appropriate for one tap = one unmistakable physical action.
+`formatVersion` is a compile-time-literal-typed constant (`formatVersion: 1`) that nothing forces a developer to touch — TypeScript won't complain if a new optional field is added to `PersistedPosition` without changing that literal, because optional fields are optional. The existing test suite tests `resume()`'s branching logic against the *current* shape; a new field added to the interface without a corresponding test for "old-shape save + new-shape expectations" will not fail any existing test.
 
 **How to avoid:**
-Design steps around **one player-visible physical action or single decision point** per step (e.g., "Coloca la amenaza indicada" is one step; "El villano activa contra [Jugador]" is a separate step per player, in player order, even though the Rules Reference presents it as one bullet). Use bold/short imperative sentences, not descriptive rulebook prose. Where the reference bundles multiple sub-actions (e.g., boost card resolution: flip → resolve Boost ability → add ATK → discard), collapse them into one step only if they are truly a single atomic beat with no independent forgettable action — otherwise split.
+Treat "counters/selection persist across resume" as a `formatVersion: 2` change from day one of the Counter Band phase, not an incremental patch to `formatVersion: 1`. Update `isPersistedPosition()` in `usePersistedSession.ts` to require the new fields explicitly when `formatVersion === 2`, and update `resume()` in `engine/persistence.ts` so that a `formatVersion !== <current>` mismatch (already-existing branch) is the *only* path that handles a v1.7 save meeting v1.8 code — verify this with a dedicated test that hand-constructs a `formatVersion: 1`-shaped object (no counters/selection fields) and asserts `resume()` returns `outcome: 'content-changed'` with sane, fully-defined defaults for the new fields, never `undefined`. This mirrors the exact discipline already documented in `engine/persistence.ts`'s comments about "Anti-Patrón 4... una coincidencia casual de id tras una reestructuración es peor que un reinicio honesto" — apply the same honesty to a shape change, not just a content change.
 
 **Warning signs:**
-- A step with more than ~2 sentences or more than one imperative verb doing unrelated things.
-- A play-test group taps through 10+ steps for a single round with visible frustration ("just let us play").
-- A play-test group skips a sub-clause inside a paragraph step because they didn't re-read the whole thing.
+- A PR that adds fields to `PersistedPosition`/`SessionContext` without touching the `formatVersion` literal or `isPersistedPosition()`.
+- Counter/hero-selection UI code anywhere doing `session.context.counters ?? someDefault` — a defensive fallback at the *render* site is a sign the *resume* site didn't guarantee the invariant, and the fallback value picked ad hoc at render time can silently differ from the one picked at resume time.
+- No test in `engine/__tests__/` constructing an old-shaped persisted object and feeding it through `resume()`.
 
-**Phase to address:**
-Content/step-model design phase, validated in a "phase 1 playtest" milestone with the actual group before content is considered final.
+**Phase to address:** History & Persistence / Counter Band phase, whichever lands first (counters likely need session-shape changes before history does) — this is the single highest-risk phase for regressing a live, in-use app.
 
 ---
 
-### Pitfall 4: Web Speech API fails silently on the real tablet, not in the demo
+### Pitfall 4: Fixed counter band shrinks the big step text, undermining the app's core value
 
 **What goes wrong:**
-The feature works perfectly in a desktop browser during development, then at the table: iPadOS Safari refuses to speak anything because `speak()` wasn't called from within a user gesture; `getVoices()` returns an empty array on first paint so the Spanish voice is never selected; navigating to the next step queues a second utterance instead of replacing the first, so two steps get read aloud on top of each other; or the app is read out for 30+ seconds because it's speaking the same long text that's on screen, which is unbearable at a game table.
+`StepScreen.vue` currently renders the step's `actionText` at `text-display` scale, centered, as effectively the entire screen's content between a header and a 96px-tall (`h-24`) `NavBand.vue` footer. Adding "a fixed counter band during play" (villain HP + HP1..HP4 with ▲/▼ steppers) as a naive additional fixed-height bar (header + counter band + step text + NavBand, all stacked) eats into the exact vertical space the text-at-arm's-length requirement depends on. The project's own stated core value is text large enough to read from a tablet lying next to the table — a counter band is explicitly a *secondary* concern (v1.8 goal says the app should "know your game," not that it should compete with the primary instruction for pixels) but is easy to build as if it were equally important, because it's the newest, most visually interesting piece of UI in the milestone.
 
 **Why it happens:**
-The Web Speech API's real-world behavior differs by browser/OS in ways that don't show up in casual desktop testing:
-- Safari (iOS/iPadOS) enforces that `speechSynthesis.speak()` must be triggered by a user gesture (tap), or WebKit silently drops it — no error is thrown. (Verified: WebKit forum reports, community writeups.)
-- Voice lists load **synchronously in Safari** but **asynchronously in Chrome/Edge/Firefox** — `getVoices()` can return `[]` on the very first call in Chromium browsers, and the `voiceschanged` event that's supposed to fix this is documented by MDN and reported in the wild as unreliable, firing inconsistently across browsers.
-- On Android Chrome, `getVoices()` can list a Spanish voice that has no actual installed voice pack on that device; if the OS voice pack for that exact locale/region isn't installed, TTS silently falls back to an English voice instead of erroring.
-- `speechSynthesis` is a global, single, cancel-and-queue system: calling `speak()` again without first calling `cancel()` **appends** to a queue rather than replacing, so a rapid step change (double-tap "Siguiente", or a Vue re-render firing the watcher twice) produces overlapping/queued speech; conversely, calling `cancel()` immediately followed by `speak()` on Chrome is known to sometimes silently swallow the new utterance (Chromium bug reports: `speaking` becomes true but the `start` event never fires).
+Nothing in the existing component tree has a concept of "persistent chrome that must never grow past N% of viewport height" — `AppHeader.vue` and `NavBand.vue` are both small, fixed, and were sized once, early, and never revisited under pressure from a competing element. A counter band with 5 numbers × 2 buttons each, laid out to be tappable at arm's length (large touch targets, per pitfall 12 below), naturally wants more space than a developer estimates from a design mockup on a laptop screen.
 
 **How to avoid:**
-- Always trigger the very first `speak()` call from directly inside a tap handler (the "Siguiente"/"Comenzar" button), never from a `watch`/`onMounted` timer — this satisfies the iOS gesture requirement and should be treated as a hard rule for the entire session, since some browsers only "unlock" audio after the first in-gesture call.
-- On mount, call `getVoices()`; if it returns `[]`, attach a one-time `voiceschanged` listener AND a short-interval fallback poll (a few hundred ms, a handful of retries) to grab voices once available — do not assume the event alone is sufficient.
-- Explicitly search the returned voice list for an `es-ES`/`es-*` voice; if none is found, do not throw — fall back to text-only silently (see below) rather than speaking in a wrong-language default voice.
-- On every navigation (step change, back, jump), call `speechSynthesis.cancel()` **before** `speak()`, and guard against firing twice from the same render (Vue watcher/`onUpdated` re-entrancy) by tracking "last spoken step id" and no-op'ing repeats.
-- Speak a **shorter, purpose-written utterance** distinct from the on-screen text where the on-screen text is long (e.g., on-screen shows the full conditional text for both Hero/Alter-Ego branches; speech should only read the one branch relevant "now," or a short summary, never the raw paragraph). Treat "what to speak" as a separate content field from "what to display," not a TTS-of-the-DOM.
-- Stop speech immediately on `visibilitychange`/tab backgrounding and on route change/unmount (`speechSynthesis.cancel()` in the relevant lifecycle hook) so it doesn't keep talking into a locked screen or after leaving the step.
-- Always design the UI so that voice is a nice-to-have layer over a fully readable/usable text-only interface — if speech synthesis is unsupported, blocked, or silently fails, the app must remain 100% functional through text and the "Siguiente" button alone.
+Set an explicit, tested height/viewport-percentage budget for the counter band *before* building it (e.g. "counter band ≤ 15% of the 100dvh viewport in landscape on a reference tablet size," enforced as a Playwright/visual check, not just eyeballed), and make it collapsible/dismissible or auto-hidden during setup steps (it has no value before heroes/villain are chosen and HP is initialized) so it isn't stealing space during the setup section where step text is often longer. Route this through the existing `AppHeader`/`StepScreen`/`NavBand` layout as a fourth fixed-height flex child with `shrink-0`, exactly like `NavBand`'s own `h-24 shrink-0` pattern, so `StepScreen`'s `flex-1` text area is what shrinks/grows around it, never the reverse. Get a real tablet screenshot review (the project's own precedent: v1.7's Fase 03.1 human-test-on-real-device caught what code review couldn't) before considering this phase done.
 
 **Warning signs:**
-- Works on a laptop Chrome dev session, never actually tested on the target iPad in Safari before end of a phase.
-- No fallback path exists if `window.speechSynthesis` is undefined or `getVoices()` stays empty.
-- Reports of "it read the previous step and the new step at the same time."
-- Long paragraphs read verbatim by TTS during a playtest, making players tune it out or mute the tablet.
+- The counter band is coded as `flex-1` or without an explicit height cap alongside `StepScreen`'s existing `flex-1`.
+- No design/measurement decision recorded before implementation (compare to how `04-04` in v1.7 explicitly measured and documented the workbox precache size — this milestone should have an equivalent explicit space budget for the counter band).
+- The counter band is visible during setup-section steps where it has no value yet.
 
-**Phase to address:**
-A dedicated TTS integration phase, tested specifically on the target iPad/tablet hardware (not just desktop browser), with an explicit "no speech = still playable" acceptance criterion.
+**Phase to address:** Counter Band phase.
 
 ---
 
-### Pitfall 5: Users stuck on a stale/broken cached build after a deploy
+### Pitfall 5: Open Firestore security rules on a public repo — quota exhaustion and junk data, not "leaked API key"
 
 **What goes wrong:**
-After a content fix or bug fix is deployed, players opening the installed PWA at the table keep seeing the old (possibly wrong) version because the service worker is still serving previously cached assets, sometimes indefinitely, because nothing ever told the waiting worker to activate. In the worst case, a broken build gets fully precached before anyone notices, and offline mode then makes it hard to escape the broken version.
+Firebase's web config object (API key, project id, etc.) is not a secret — it's meant to ship in a public client bundle, and this project's own `.gitignore` already anticipates the repo being public ("El repositorio es PÚBLICO: nada de esto debe salir nunca" — for actual secrets, not this). The real risk is **security rules**, and the fastest way to get Firestore "working" during development is `allow read, write: if true;` (or the default open-test-mode rules Firebase's console offers, which expire after 30 days but are trivially easy to leave in place or copy verbatim into production rules). With a public GitHub repo, the Firebase project id and collection names are discoverable by anyone reading the source — reproducing the exact write call from devtools/a script is a five-minute exercise, not a sophisticated attack. Realistic abuse surface for a hobby app with no auth: (a) a bored visitor or script kiddie hammering the write endpoint until the 20,000 writes/day free-tier quota (Spark plan, MEDIUM confidence, WebSearch-sourced against Google Cloud's own quotas page) is exhausted for the day, silently breaking the backup feature for the actual group until the next day; (b) junk documents polluting the `history` collection, which the stats screen would then read and display as real game results, corrupting the win/loss percentages the whole stats feature exists to show accurately; (c) in the worst case, hitting the 1 GiB storage cap with junk writes, requiring manual cleanup.
 
 **Why it happens:**
-The default service worker lifecycle keeps an old worker "in control" until all its tabs close, and workbox/vite-pwa's `generateSW`/`injectManifest` strategies precache the app shell aggressively by design — that's what makes offline work, but it's also what makes updates invisible unless explicitly handled. This is a widely reported issue in Nuxt PWA projects specifically (persisted root-page precache surviving new deploys; `updateServiceWorker()` not taking effect).
+"No auth, no backend to administer" is a deliberate project constraint, and adding real user auth just to gate Firestore writes would violate that constraint's spirit — so there's a real temptation to reach for "open rules, ship it" as the path that doesn't reintroduce the auth complexity the project has twice explicitly avoided. Firebase's own quickstart/console tooling nudges toward test-mode rules that are open by default.
 
 **How to avoid:**
-- Use `@vite-pwa/nuxt` with `registerType: 'prompt'` (not silent `autoUpdate` for a rules-critical app) so the user is shown an explicit "Nueva versión disponible — Actualizar" affordance rather than being silently upgraded mid-session (which could invalidate in-progress state) or silently stuck on the old one.
-- Implement the `skipWaiting`/`clientsClaim` message-based update flow explicitly, and call `cleanupOutdatedCaches()` so stale precache entries don't linger.
-- Version the cache name/build id so a new deploy always produces a distinct cache, guaranteeing old caches are eventually evicted rather than reused.
-- Never trigger the update prompt while mid-round with unsaved position risk — offer it, but let the group choose when (e.g., between rounds, or accept it may wait until app reopen).
+Minimum non-embarrassing rule set for this exact shape (no auth, single trusted group, backup-only data): validate the *shape* of writes even without validating *identity* — e.g. `allow create: if request.resource.data.keys().hasOnly([...expected fields...]) && request.resource.data.gameId is string && request.resource.data.result in ['win', 'loss'] && request.resource.data.timestamp is timestamp;`, `allow read: if true` (stats need to be readable, and there's nothing sensitive in it), **never `allow update, delete`** (history entries are append-only — closing the update/delete surface means even a hostile writer can only add junk rows, never corrupt or erase real ones), and a hard field-count/size cap in the rule to make spam at least bounded per document. This does not require auth and does not require a backend to administer — it's a static rules file (`firestore.rules`) committed alongside the app. Additionally: since the free tier hard-stops (not overages-bills) on Spark plan, document in the app that the *worst case* of quota exhaustion is "history stops syncing for the rest of the day," never a surprise bill — this is worth stating explicitly in `PROJECT.md`'s Key Decisions so a future contributor doesn't panic and reach for the Blaze (pay-as-you-go) plan to "fix" a self-solving problem.
 
 **Warning signs:**
-- After deploying a fix, the tablet (already installed/cached) still shows the bug until a hard reload or reinstall.
-- No visible "update available" UI exists anywhere in the app.
-- Testing was only ever done via `npm run dev`, never against a built + served + then-redeployed PWA.
+- `firestore.rules` (or the console's rule editor) contains `if true` on `write` or `update`/`delete` allowed at all.
+- No field-shape validation in the rules — any object shape is accepted.
+- The Firestore console's default 30-day test-mode rules are still active past the point the feature "worked."
 
-**Phase to address:**
-PWA/offline infrastructure phase — must include an explicit "deploy a v1, then deploy a v2, verify the update prompt appears and works while offline-cache is warm" test as an acceptance criterion, not just "it installs and works offline once."
+**Phase to address:** Firestore Backup phase — the rules file should be written and reviewed *before* the first real write ships, not retrofitted after "it works."
 
 ---
 
-### Pitfall 6: Screen sleeps or dims mid-game because Wake Lock isn't (fully) working
+### Pitfall 6: Firestore SDK loaded eagerly, blocking first paint of a prerendered page
 
 **What goes wrong:**
-The tablet screen times out and locks mid-villain-phase because Wake Lock either isn't requested, isn't supported on that OS/browser version, or silently drops the moment the tab loses focus (e.g., user briefly swipes to another app, or the browser itself backgrounds the tab), and nothing re-acquires it.
+This app's entire rendering strategy (`nuxt generate`, SSG) exists so the tablet gets instant first paint from static, hashed HTML/JS before the service worker or any network call is involved (documented rationale in `CLAUDE.md`). Firebase's modular SDK (`firebase/app`, `firebase/firestore`) is not huge, but importing it at the top level of a plugin that runs on every page load (rather than lazily, only when history/stats screens are actually visited) adds parse/init cost to the boot path of every screen, including the setup/step screens that have nothing to do with history — directly working against the reason SSG was chosen over `ssr: false` in the first place.
 
 **Why it happens:**
-The Screen Wake Lock API is release-happy by design: a wake lock is automatically released whenever `document.visibilityState` becomes hidden, and there's no way to "keep it locked while backgrounded" — that's intentional browser behavior, not a bug to route around. Additionally, iOS/iPadOS Safari only gained Wake Lock support in iOS 16.4+, and installed (home-screen) PWAs specifically had a further bug where Wake Lock silently didn't work at all inside the installed-app context until it was fixed in iOS 18.4 — meaning an older iPad or an iPad not yet updated may behave as if Wake Lock doesn't exist, with zero error surfaced to the app.
+The standard Firebase web quickstart pattern is "initialize once at app startup" via a top-level `initializeApp()` call in a global plugin — this is correct advice for most SPAs but wrong for a project whose explicit, documented architectural goal is minimal, static-first boot.
 
 **How to avoid:**
-- Request the wake lock on the first user gesture (same "Siguiente"/setup tap that unlocks TTS) and re-request it on every `visibilitychange` event where `document.visibilityState === 'visible'` — treat "was released" as the expected steady state to recover from, not an error.
-- Feature-detect (`'wakeLock' in navigator`) and degrade gracefully — the app must remain usable if Wake Lock is entirely unavailable (older/un-updated iPads); consider also documenting to the user "desactiva el bloqueo automático de pantalla en Ajustes" as a manual fallback rather than promising this always works.
-- Do not treat Wake Lock as a substitute for the persistence work in Pitfall 8 — the screen **will** sleep on some devices regardless; surviving that gracefully via saved position matters more than fighting the OS.
+Initialize Firestore inside a Nuxt client-only plugin (`.client.ts` suffix, following the SSR-safety pattern `usePersistedSession.ts` already hand-rolls with `typeof window === 'undefined'` guards) and import the Firebase modules with a dynamic `await import('firebase/app')`/`await import('firebase/firestore')` triggered only when a write or the stats screen is actually reached — not at module top-level. Verify with the build's own bundle output (`nuxt generate` + inspect `.output/public/_nuxt/*.js` chunk sizes, the same kind of check the project already did for the audio precache budget in Fase 4) that the initial route chunks for `/` and `/marvel-champions` don't grow materially from this milestone.
 
 **Warning signs:**
-- Testing wake lock only on a modern, fully-updated tablet; never testing on the specific iPad model/OS version the group actually owns.
-- No re-acquire logic on `visibilitychange`, only a one-time request at page load.
+- `import { initializeApp } from 'firebase/app'` (or `firestore`) appears as a static top-level import in any file that's part of the app's initial/shared chunk (e.g., `app.vue`, a non-`.client` plugin, or a composable imported from the step-play page).
+- Lighthouse/first-paint timing on the setup screen regresses after this milestone with no counters/selection UI even visible yet.
 
-**Phase to address:**
-Tablet-at-the-table UX phase, alongside the persistence phase (Pitfall 8) since both exist to solve the same underlying problem (the screen will sleep) from two complementary angles.
+**Phase to address:** Firestore Backup phase.
 
 ---
 
-### Pitfall 7: SSR/hydration mismatches from reading browser-only state unguarded
+### Pitfall 7: Silent Firestore persistence failure mirrors the localStorage failure mode this codebase already knows about — but nobody wires the same defense
 
 **What goes wrong:**
-A step position restored from `localStorage` renders differently on the server (which has no `localStorage`, no `window`, no `speechSynthesis`) than on the client during hydration, producing a Vue hydration mismatch warning/error, a flash of the wrong step, or an outright SSR crash if the code assumes `window` exists.
+`usePersistedSession.ts` already documents, in detail, that `window.localStorage` can throw (private browsing, quota, restricted context) and treats that as "absence of data, never an error that breaks the interaction" (`writeRaw`/`removeRaw`'s try/catch comments). Firestore's `persistentLocalCache` (or the older `enableIndexedDbPersistence`) has the *exact same* failure shape — it can fail to open IndexedDB (private/incognito mode, browser storage restrictions, a second tab already holding single-tab persistence, or the very first cold load on a device offline before persistence ever successfully initialized) and falls back to a memory-only cache. Memory-only cache means: any queued offline write is lost the moment the tab/PWA is closed or reloaded, with no error surfaced anywhere — the "durable backup" silently isn't durable at all in exactly the scenario (tablet at the table, wifi down, page reload after the tablet auto-locks) this project's other layer (localStorage/progress) was explicitly hardened against.
 
 **Why it happens:**
-Nuxt 4 (like Nuxt 3) still runs an initial render pass in a Node/Nitro SSR context where none of these browser globals exist; naively reading `localStorage.getItem(...)` in a `<script setup>` top-level or in a Pinia store initializer executes during SSR and throws or returns a default that then "flips" once the client rehydrates with the real value — this is a very well-documented Nuxt hydration-mismatch class of bug, not specific to this project, but especially relevant here because the entire app's state (current step, round, player count, difficulty) is meant to live only in the browser.
+Firestore's offline persistence is opt-in but "just works" in the common case, so it's easy to enable it once, see it work in a normal dev-machine Chrome tab, and never test the private-mode/multi-tab/first-cold-load-offline paths — the same class of gap this project's own precedent (VOZ-08, the untested silent-fallback path called out as known debt in v1.7) already shows this team is honest about but has been bitten by before.
 
 **How to avoid:**
-- Given this project has **no server-rendered content that depends on saved progress** (it's a private, offline, no-SEO tool), the simplest and most robust choice is **`ssr: false`** for the interactive app shell, or at minimum wrap all persisted-state reads in `onMounted`/`import.meta.client` guards and never read `localStorage`/`speechSynthesis`/`window` during setup()'s synchronous body.
-- If any SSR/prerendering is kept (e.g., for a static marketing/landing shell), isolate it strictly from the stateful game-runner component, which should be `<ClientOnly>` or client-only-rendered.
-- Treat "restore saved position" as a **post-mount** operation that always starts from a neutral/loading placeholder, never as something baked into the first paint.
+Explicitly call the persistence-enable function and **check its resolution/rejection** rather than assuming success (`persistentLocalCache`'s failure surfaces as a thrown/rejected promise from `initializeFirestore`, or `enableIndexedDbPersistence`'s well-known `'failed-precondition'`/`'unimplemented'` rejection codes) — on failure, fall back explicitly to `memoryLocalCache()` and, critically, **do not claim to the user that history has a durable backup** if persistence failed to initialize (a quiet internal flag is enough; this is a backup feature, not core value, so no UI is strictly required, but the code should know the difference). Because localStorage is the source of truth per the Key Decision in `PROJECT.md`, the actual safety net here is: never treat a successful `localStorage` write to history as insufficient — Firestore is best-effort on top, and its failure must never be allowed to imply the local record was also lost.
 
 **Warning signs:**
-- Any direct `localStorage`/`window`/`speechSynthesis` reference outside `onMounted`, an event handler, or an `import.meta.client` guard.
-- Console warnings about hydration mismatch during dev, especially around the step-position component.
-- A visible "flash" of step 1 before the real saved step appears.
+- `initializeFirestore`/`enableIndexedDbPersistence` called without a `.catch()`/try-catch around it.
+- No test or manual check for "open the stats/history screen in a second browser tab while the installed PWA also has it open" (multi-tab persistence contention).
+- No manual check for "install the PWA on a device that has never had network access, log a game result, reload" — mirrors the "first cold load with no network" scenario this document was asked to dig into.
 
-**Phase to address:**
-Framework/architecture setup phase (very early) — decide `ssr: false` vs. hybrid rendering **before** building the persistence and step-engine logic, since retrofitting SSR-safety onto code that assumes client-only globals is disruptive.
+**Phase to address:** Firestore Backup phase.
 
 ---
 
-### Pitfall 8: A stale save from a previous session is silently resumed
+### Pitfall 8: The dual-source-of-truth trap — same game logged twice, or lost silently, with no reconciliation
 
 **What goes wrong:**
-The group finishes (or abandons) a game, and a week later opens the same URL to start a **new** game — but the app silently jumps back into the old saved position (e.g., "Ronda 4, Fase del villano, paso 2") because that's what's in `localStorage`, with no prompt. This is worse than losing progress: it actively misleads the group into thinking they're further into a new game than they are, or resuming rules state (villain stage, player count, difficulty) that no longer matches the physical table.
+Enumerated concretely for this app's shape (single tablet, occasionally multiple browser contexts):
+1. **Double-logging:** if the "record result" action writes to localStorage *and* fires the Firestore write, and the user double-taps the confirm button (a mis-tap at arm's length, see Pitfall 12) before the button disables, two near-identical history entries land in both stores with different timestamps — the stats screen then shows an inflated game count with no way to tell which entry is the duplicate.
+2. **Silent write failure, never retried:** per Pitfall 2/7, an offline Firestore write is queued by the SDK, but if the tab/PWA is closed before the SDK reconnects and flushes it (device auto-locks, app is force-closed, browser storage was memory-only per Pitfall 7), the queued write is gone — with no error, no retry, and nothing in localStorage recording "this entry hasn't synced yet," a future stats-vs-Firestore reconciliation has no way to tell "this entry never made it" from "this entry was never meant to sync."
+3. **Clock skew on timestamps:** if `Timestamp.now()`/server timestamp semantics on the Firestore side and `new Date().toISOString()` on the localStorage side (the same pattern already used in `engine/persistence.ts`'s `toPersistedPosition`) are captured at different moments — write time vs. server-ack time, which per Pitfall 2 can be much later when reconnecting after an offline session — a history entry's Firestore timestamp can end up hours after its actual localStorage timestamp, making a stats screen that sorts/dedupes by "most recent by timestamp" silently pick the wrong source of truth for ordering.
+4. **Partial sync leaving stats looking wrong:** if the stats screen reads from Firestore (or merges Firestore + localStorage) rather than exclusively from localStorage, any of the above produces a stats screen whose numbers don't match what a user remembers playing.
 
 **Why it happens:**
-Persistence was built to solve "the tablet locked itself" (a same-session interruption), but the exact same storage mechanism also silently answers "did we start a new game?" — these are different questions that naive `localStorage`-on-load code cannot distinguish.
+"Firestore as backup, localStorage as source of truth" sounds like it avoids needing a sync engine, but the moment *any* screen (the stats screen, explicitly, per this milestone) reads from Firestore even partially, all the classic sync-engine problems (idempotency, ordering, conflict resolution) reappear without anyone having decided to build a sync engine.
 
 **How to avoid:**
-On app load, if a saved position exists, **always ask**: "Se detectó una partida guardada en Ronda X, paso Y — ¿Continuar o empezar una partida nueva?" rather than silently restoring. Only skip the prompt if there is no saved state at all (fresh browser/first ever use). Persist a minimal position (round number + step id + setup answers: player count, difficulty), not derived/redundant state, so the "what would we be resuming" summary shown in the prompt is trivial to construct and always accurate.
+Enforce, as a hard design rule for the whole Stats Screen phase: **the stats screen only ever reads localStorage. Firestore is write-only from the app's perspective, in the running lifetime of this milestone.** This one rule collapses nearly all four failure modes above into "who cares if Firestore missed an entry or has a stray duplicate — the user never looks at it directly, it's disaster recovery for 'the tablet was lost/reset,' not a live data source." Give every history entry a client-generated stable id (e.g. a UUID or a hash of gameId+timestamp+context) at the moment it's created in localStorage, and write that *same* id as the Firestore document id (`setDoc(doc(col, id), ...)` rather than `addDoc`) — this makes the Firestore write naturally idempotent: a retried/duplicated write with the same id overwrites rather than duplicates, closing failure mode 1 for free without building retry logic. Use `serverTimestamp()` for a `syncedAt` field distinct from the entry's own `playedAt` (captured once, locally, at game end) — never conflate "when this was played" with "when this happened to sync."
 
 **Warning signs:**
-- Reloading the tab after "finishing" a game still shows the old step with no prompt.
-- The persistence code is a single `watch` that writes on every step change and a single `onMounted` that reads and applies it with no branching for "is this actually a resume or should we ask."
+- Any code path where the Stats Screen phase reads from `getDocs`/`onSnapshot` on the Firestore history collection.
+- `addDoc()` (auto-generated id) used instead of `setDoc(doc(col, clientGeneratedId), ...)`.
+- No single, obviously-named `playedAt`/`recordedAt` field set once at creation time in localStorage, separate from anything Firestore stamps.
 
-**Phase to address:**
-Persistence/state phase — this must be a designed interaction (a resume/new-game prompt), not an afterthought bolted onto whatever `localStorage` shape the step engine happens to produce.
+**Phase to address:** History & Persistence phase (id scheme + local-only stats read designed together) and Firestore Backup phase (idempotent write).
 
 ---
 
-### Pitfall 9: Scope creep toward full game-state tracking, or building game #2 before game #1 is proven
+### Pitfall 9: Service-worker precache glob misses new static assets, stranding the offline hero/villain catalogue or a new prerendered route
 
 **What goes wrong:**
-Several closely related temptations, each individually reasonable-sounding, each explicitly excluded in `PROJECT.md`:
-- Adding "just a little" villain HP / threat tracking because "it's already showing the number from the setup formula, why not just track the subtraction too" — this reintroduces exactly the state-desync-with-the-physical-table risk the project deliberately avoided.
-- Starting the generic step-engine abstraction (phases, loops, conditionals) designed for **both** Marvel Champions and Warhammer 40k before a single real playthrough of Marvel Champions has validated that the engine's model (linear setup + repeating round loop) actually holds up at the table.
-- Building an in-app content editor "since we'll need it eventually" — this is explicitly out of scope; content is meant to stay hand-authored JSON in the repo.
+`nuxt.config.ts`'s `pwa.workbox.globPatterns` is an explicit, hand-curated list (`'**/*.{js,css,html}'`, `'audio/*.m4a'`, `'icons/*.png'`, `'fonts/*.woff2'`, `'favicon.ico'`, `'manifest.webmanifest'`) — it is not a catch-all. The project's own comments show this has already bitten the team once (the 04-04 pitfall about `audio/**` vs `audio/*.m4a` recursion, and the note that Workbox `generateSW` doesn't scan `.output/public` at all without the `workbox` block). If the hero/villain catalogue is served as a runtime-fetched static JSON file under `public/data/` (rather than statically imported like `content/marvel-champions.json` already is, per `useGameContent.ts`), it will not match any existing glob pattern and will not be precached — meaning the very first time the app is opened fully offline after an update, the hero-selection modal's data fails to load, breaking the single scariest scenario this project exists to survive ("la wifi puede caerse en mitad de la partida").
 
 **Why it happens:**
-These are all natural extensions of work already in progress, and each one individually seems small — the risk is compounding, not any single instance.
+Fetching a JSON file at runtime *feels* more natural for "a data catalogue" than a static TS/JSON import, especially since the catalogue is generated by a separate scraping script and might feel like it "belongs" in `public/` as a data asset rather than in `content/` as bundled content.
 
 **How to avoid:**
-Re-read the `Out of Scope` list in `PROJECT.md` at the start of each phase that touches the step engine or content model, and treat "does this require the app to track game-state numbers" or "does this only make sense once we have a second game" as hard stop questions. Sequence work so that Marvel Champions plays start-to-finish with real users **before** any Warhammer 40k content or further engine generalization begins — the roadmap should have an explicit milestone boundary here ("engine validated with one real playthrough") rather than parallelizing engine-generalization with content-authoring.
+Follow the exact existing precedent, not a new pattern: put the catalogue at `content/heroes.json` (or `content/marvel-champions-catalogue.json`) and import it statically into a new `app/composables/useCharacterCatalogue.ts`, the same way `useGameContent.ts` statically imports `content/marvel-champions.json`. A statically-imported JSON module gets compiled into the JS bundle and is automatically covered by the existing `'**/*.{js,css,html}'` glob — zero new Workbox configuration needed, and the file is protected by the exact same offline guarantee the game content already has. If a new prerendered route is added for the stats screen (`/marvel-champions/estadisticas` or similar), it must be added to `nitro.prerender.routes` in `nuxt.config.ts` exactly like `/marvel-champions` was — `crawlLinks: false` means it will not be auto-discovered.
 
 **Warning signs:**
-- A PR/commit that adds any numeric game-state field (HP, threat, counters) to the step/session model.
-- Engine code with hooks, config, or abstractions that only make sense for Warhammer 40k's turn structure, added before Marvel Champions has been played end-to-end with the app.
-- Any UI surface for "edit this step's text" appearing in the deployed app rather than in the repo/JSON files.
+- Any `fetch('/data/...')` or `fetch('/heroes.json')` call anywhere in `app/`.
+- A new route added to the app without a corresponding new entry in `nitro.prerender.routes`.
+- Testing the hero-selection modal only ever happens with network available / service worker not yet installed (i.e., in `nuxt dev`, where the project's own devOptions comment says the service worker is deliberately disabled) — this pitfall only shows up in a `nuxt generate` + offline test, same as the rest of the PWA verification the project already does.
 
-**Phase to address:**
-Roadmap sequencing itself (this is a cross-phase concern) — explicitly gate "generalize the engine" and "start Warhammer 40k content" behind a completed, played, real-world Marvel Champions milestone.
+**Phase to address:** Catalogue & Selection phase (for the catalogue file itself) and Stats Screen phase (for the new route), verified by extending `e2e/offline-flow.spec.ts`.
 
 ---
 
-### Pitfall 10: Reproducing copyrighted rules text or card text verbatim
+### Pitfall 10: Villain HP encoded as a single number when it varies per stage AND per player count
 
 **What goes wrong:**
-Content JSON ends up containing large verbatim excerpts of the official Rules Reference or "Aprende a jugar" PDF (or scanned/typed card text), which is a straightforward copyright concern once the app is reachable at a public URL — even if unlisted, a public URL is still public distribution, not private use, in copyright terms.
+Marvel Champions villains have multi-stage fights (Stage I / II / III, or module-based multi-stage in some scenarios) where each stage has its own HP, and that HP is *also* scaled by player count (typically per-player HP values that get summed or use a scaling table, not a flat total). A catalogue schema that stores `villainHealth: number` (one number per villain) will be wrong for every player count except whichever one the scraper happened to capture, and wrong for every stage past the first. Because the app pre-fills the counter band's initial value from this table, a flattened schema doesn't just display a wrong number in a parenthetical (low stakes, per the project's own explicit decision) — it pre-loads the *live counter* wrong, which is the actual feature deliverable, and does so silently and consistently (the same wrong number every time that hero/villain/player-count combo is chosen), unlike a one-off manual mistake that a group would notice and shrug off.
 
 **Why it happens:**
-It's fast and "safe" (in the sense of rules-accuracy) to copy-paste the official wording directly rather than rewrite it as a short imperative instruction — especially under this project's very rules-fidelity-anxious verification process, which can push toward "just quote it exactly to be safe."
+"Villain HP" sounds like a single fact when scraping a card's front face casually — the per-stage, per-player-count structure is a rules detail, not a UI detail, and is easy to under-model if the catalogue schema is designed by looking at one card image rather than by cross-checking the Rules Reference's stage-health rules.
 
 **How to avoid:**
-Write every step as an original, short, procedural instruction derived from the rule, not a copy of the rulebook's prose — this is also better UX (Pitfall 3) since rulebook prose is written for reference, not for a single tap-through instruction. Cite the source (page/section, per Pitfall 2) internally for verification, but the **displayed/spoken text itself should never be a verbatim quote** of Marvel/FFG/Asmodee's copyrighted rulebook text, card text, or any card art/imagery. This is `PROJECT.md`'s own stated constraint ("no se reproducen cartas, arte ni textos extensos con copyright") — treat it as a hard content-review gate, not just a stated intention.
-This is not legal advice; if the project ever moves beyond "shared with friends" toward any wider/public/monetized distribution, get real legal review before that transition — the tolerance for a private hobby tool used by a known group of friends is meaningfully different from a publicly promoted or monetized product using the same IP names, terminology, and derived rules text.
+Model the catalogue schema as `villainHealth: Record<stageId, Record<playerCount, number>>` (or an equivalent nested structure) from the start — even if the initial scrape only fully populates stage I accurately, the *shape* should not need a breaking change when stage II/III data is added later. Cross-check the schema shape itself (not the individual numbers — the project's own decision explicitly deprioritizes number-perfection, "un valor de vida equivocado no es un fallo crítico") against the Rules Reference's villain setup section before writing the scraper, the same discipline `.planning/PROJECT.md` already applies to rules *text* — this is a one-time structural check, not the full D-36 human-review ceremony for every number.
 
 **Warning signs:**
-- Any step's `text` field that reads like it was copy-pasted rather than rewritten (long sentences, rulebook connective phrasing like "however" / "unless otherwise specified").
-- Card names/villain names used as plain identifiers (generally fine, akin to referencing a product by name) vs. reproduced card ability text or flavor text (not fine).
-- The URL being shared beyond the immediate friend group without revisiting this pitfall first.
+- The catalogue schema (wherever it's defined — likely a Zod schema alongside `engine/schema.ts`'s pattern) has a flat `number` field for villain health with no stage or player-count dimension.
+- The counter band's pre-fill logic does a single lookup with no player-count parameter.
 
-**Phase to address:**
-Content-authoring phase (ongoing content-review discipline) and again explicitly at any future "make this more public" milestone transition.
+**Phase to address:** Catalogue & Selection phase.
 
 ---
 
-## Marvel Champions Rules Verification Checklist
+### Pitfall 11: One-off manual scrape that nobody can reproduce, and no path for a 19th hero
 
-This is a working checklist for the rules-verification phase. Each row states **what the official Rules Reference v1.7 actually says** (verified directly against the local PDF `mc_rulesreference_v17-compressed.pdf`), the exact page/section to re-check, and what to look for as a mismatch in the hand-written summary.
+**What goes wrong:**
+"Scraped once from MarvelCDB" is easy to do as a one-time manual copy-paste into a JSON file, verified by eye, and then never touched again — which technically satisfies the milestone's literal ask but leaves the project unable to add hero #19 (a real, near-certain future event — new Marvel Champions hero packs release regularly) without someone reverse-engineering what the original process even was. This is exactly the class of debt the project has explicitly flagged as unacceptable elsewhere (contrast with `scripts/voice/generate.mjs`, a real, re-runnable, documented script for a similarly "generate once" task).
 
-| # | Rules corner | What the Rules Reference v1.7 actually says | Source | Verification target for the hand-written summary |
-|---|---|---|---|---|
-| 1 | Villain phase step count/order | The villain phase has **6** numbered steps, not 4: (1) Place Threat, (2) Enemies Activate, (3) Deal Encounter Cards, (4) Reveal Encounter Cards, (5) Pass First Player Token, (6) End of Villain Phase and Round. | p.45, "Villain Phase" | Check whether the summary's "4 steps" collapses (5) and (6) into implicit bookkeeping, or actually omits/misorders one of them. Confirm token pass and end-of-round/end-of-phase delayed-effect resolution are both present as explicit steps, not skipped. |
-| 2 | Acceleration: per-player or flat | Acceleration adds threat equal to the number of acceleration **icons/tokens currently in play**, added once during step 1 — it is **not** multiplied by number of players. Acceleration tokens are added when the encounter deck empties/reshuffles, or by specific card effects; they are functionally equivalent to icons but tracked separately. | p.5, "Acceleration Icon ()" / "Acceleration Token" | Confirm the summary does not scale accel threat by player count. Separately confirm it doesn't conflate this with **Heroic Mode**, which is the mechanic that actually scales with a chosen "heroic level" (extra encounter cards dealt in step 3, not extra threat in step 1). |
-| 3 | Boost cards: dealt vs revealed vs discarded | Boost cards are a **different card flow** from "encounter cards dealt to players." When the villain (or a minion with the villainous keyword) attacks: give it **one facedown boost card** from the encounter deck at the start of the attack resolution (step 1 of "Attack (Enemy Activation)"), then during boost resolution, flip each boost card faceup one at a time in the order dealt, resolve any "Boost" ability (star icon), add ATK equal to boost icons, then **discard**. This entire cycle happens inside a single enemy activation, separate from the "Deal Encounter Cards"/"Reveal Encounter Cards" villain-phase steps (which deal cards to *players*, not to the attacking enemy). | p.8–9, "Attack (Enemy Activation)"; p.10, "Boost, Boost Icon" | Confirm the summary doesn't merge "boost cards to the villain" with "encounter cards dealt to players" as if they were the same deal/reveal cycle — they are mechanically and temporally distinct. |
-| 4 | "Deal 1 encounter card each" vs revealing | Villain phase step 3 (Deal) gives every player their card(s) facedown, in player order, **before any revealing happens** (one card each, plus one additional per hazard icon in play, additional cards dealt to one player at a time in player order — not one extra to every player per icon). Step 4 (Reveal) is a **separate pass**: the first player reveals and fully resolves each of their dealt cards one at a time in the order dealt, then the next player does the same, and so on. | p.45, "Villain Phase" steps 3–4; p.21, "Hazard Icon" | Check that the summary models this as two distinct passes (deal-to-all, then reveal-per-player-in-order), not a single-pass "deal and immediately reveal" loop. Check the hazard-icon detail: extra cards go to specific players in player order, not "everyone gets +1." |
-| 5 | Minion activation and boost cards | During step 2, minions engaged with a player activate **after** the villain, in the order that player chooses if multiple. Minions attack if the engaged player is in hero form, scheme if in alter-ego form — same branch as the villain. Critically: **only the villain, or a minion with the villainous keyword, receives a boost card when attacking** — an ordinary minion without that keyword gets **no** boost card (explicitly: "skip this step"). | p.6, "Activation"; p.8, "Attack (Enemy Activation)" step 1 | Confirm the summary doesn't state that all minions draw/receive boost cards — this is very likely a plausible-sounding but incorrect generalization from "the villain gets a boost card." |
-| 6 | Obligation cards: "one per player" | An identity is associated with **one or more** obligation cards (not necessarily exactly one), all of which are **shuffled into the encounter deck** during setup (setup step 4 sets them aside temporarily just to gather them; setup step 10 shuffles them into the encounter deck alongside the scenario's listed encounter sets). Obligations then surface like any other encounter card via normal draws/reveals — they are not a separate deterministic "one extra card per player per round" mechanic. | p.29, "Obligation"; p.48, Appendix II Setup steps 4 & 10 | Confirm the summary doesn't claim exactly one obligation card per player, or that obligations are dealt on a fixed schedule rather than surfacing via normal encounter-deck shuffling/reveals. |
-| 7 | Nemesis/"Archenemy" set removed from the encounter deck | The official term is **Nemesis Encounter Set** (not "Archenemy"). At setup, each played identity's nemesis set (including its "nemesis minion" and "nemesis side scheme") is **set aside out of play entirely** — it is explicitly **not** included when the encounter deck is built (setup step 10 only shuffles the main scheme's listed sets + obligations). Nemesis cards enter play only when a specific card effect instructs it. | p.29, "Nemesis Encounter Set"; p.48, Appendix II Setup steps 5 & 10 | Confirm the summary's terminology and mechanism match "set aside, not shuffled in, enters later only via a trigger" — not "shuffled in then later removed," and not just "unused." |
-| 8 | Player-deck depletion vs encounter-deck depletion | These are **asymmetric**, not mirror-image mechanics. **Encounter deck empty:** immediately reshuffle its discard pile into a new deck and place **one acceleration token** next to the main scheme — no penalty to any specific player. If both the encounter deck and its discard pile are simultaneously empty, an infinite acceleration loop occurs and **the players lose the game**. **Player deck empty:** that player shuffles their own discard pile into a new deck **and immediately deals themself one facedown encounter card** from the top of the encounter deck — a personal penalty. If a player's discard pile is also empty, their deck doesn't reset until it has ≥1 card, then the encounter-card penalty still applies. | p.17, "Encounter Deck"; p.32, "Player Deck" | Confirm the summary doesn't describe these as symmetric, and doesn't omit the "deal yourself 1 facedown encounter card" penalty on player-deck reshuffle — this is a frequently-missed detail. |
-| 9 | Hero vs Alter-Ego during the villain phase | During step 2, for **each player** in player order: if their identity is in **hero form**, the villain (and any engaged minions) **attacks** that player's hero; if in **alter-ego form**, it **schemes** instead (uses SCH against the main/side scheme) — the player is never simply "skipped." Separately: a player may voluntarily flip hero/alter-ego only **once per round, during their own turn** in the player phase — form is locked for the rest of that round by the time the villain phase begins. | p.6, "Activation"; p.20, "Form, Change Form"; p.45, "Villain Phase" | Confirm the summary states the hero/alter-ego branch correctly for both villain **and** minion activation, and correctly states that form can't be changed after the player phase ends to dodge an attack/scheme. |
-| 10 | End-of-player-phase order | Confirmed as: (1) in player order, each player **may** discard any number and **must** discard down to hand size if over it; (2) **simultaneously**, each player draws up to hand size; (3) **simultaneously**, each player readies all their cards (and exhausted encounter cards are readied too); (4) "until end of player phase" effects end; (5) "when/after phase ends" effects resolve. | p.16–17, "End of Player Phase" | This one is likely already correct in the summary (discard → draw → ready) — verify specifically that draw and ready are simultaneous across players (not sequential per player), and that discard allows discarding any number voluntarily, not only exactly down to hand size. |
-| 11 | Villain-phase start in Normal vs Expert | **Likely a wrong premise to begin with.** The Rules Reference shows **no structural difference** in the villain phase's steps/order between Standard and Expert Mode. Expert Mode only changes: (a) which villain stage cards are used (the scenario's listed "expert mode villain stages"), and (b) that the Expert encounter set is added to the encounter deck at setup. The mechanic that actually changes villain-phase **step 3** quantitatively (extra encounter cards per player) is **Heroic Mode** — a separate, combinable difficulty mode based on a chosen "heroic level," not "Expert" itself. | p.28ish, "Modes of Play" (Standard Mode / Expert Mode / Heroic Mode) | Treat this as the single highest-value correction to surface: check whether the hand-written summary invented a villain-phase-order difference for Expert that doesn't exist, and/or conflated "Expert" with "Heroic." |
-| 12 | Stun / Confuse / Tough resolution timing | These are **replacement effects triggered at the moment of the specific action**, not passive pre-skips: a stunned character that **attempts** to attack **discards the stunned card instead of attacking** (costs like exhausting are still paid); a confused character that attempts to scheme/thwart discards the confused card instead; **Tough** prevents damage entirely when damage would be dealt, and status-card effects have **timing priority over all triggered abilities, including interrupts** — an interrupt cannot save a Tough card by reducing damage after the fact; only a constant ability, or DEF reducing an attack's damage to exactly 0 via basic defense, preserves Tough (per official FAQ). Characters with the **steady** keyword need **two** stacked stun/confuse cards before they're actually affected. | p.39–40, "Status Cards" / "Stun, Stunned" / "Confuse, Confused" / "Steady"; p.55, Appendix IV FAQ ("tough status card... interrupt ability") | Confirm the summary frames stun/confuse as replacing the specific action (attack/scheme/thwart) at the moment it's attempted, not as "this character does nothing this activation" — a stunned minion, for example, is still present/engaged, only its attack itself is replaced. |
+**Why it happens:**
+The milestone description says "obtenido de MarvelCDB con el procedimiento documentado en el repo," which already anticipates this — but "documented" is easy to satisfy with a paragraph of prose describing manual steps rather than an actual script, especially under time pressure, since a script has to handle edge cases (network errors, HTML structure changes) that a one-off manual pass doesn't.
 
-**How to keep this in sync with official errata over time:** FFG/Asmodee periodically republish the Rules Reference with a "Summary of Notable Changes" page (v1.7's own front page lists exactly this, e.g. "Page 12: Revised rules around choosing an option on a card," "Page 63–67: Added entries to Appendix V: Errata"). Store the exact reference version each game's JSON was verified against as a top-level metadata field (e.g. `rulesVersion: "1.7"`), and when a new Rules Reference PDF is released, diff its "Summary of Notable Changes" page against the citations already recorded in the JSON's `source` fields (Pitfall 2) to see exactly which steps need re-checking — this turns a full re-read into a targeted diff.
+**How to avoid:**
+MarvelCDB has a public API (`https://marvelcdb.com/api/` — public endpoints need no registration; OAuth2 endpoints exist for more but aren't needed here) rather than only raw HTML — write a small, committed, re-runnable Node script (`scripts/catalogue/fetch-marvelcdb.mjs`, mirroring the existing `scripts/voice/generate.mjs` pattern of a documented, invocable-from-`package.json` script) that hits the public API's card/pack endpoints, extracts *only* numeric fields (health, hand size, per-stage villain health) and names, and writes `content/heroes.json` deterministically. This makes "add hero #19" a matter of re-running the script and reviewing the diff, not repeating archaeology. Document the exact API endpoints used and any manual cross-referencing against the Rules Reference for per-player-count scaling (which may not be a raw field on the card) directly in the script's header comment, the same way `voice-drift.test.ts`'s header comments explain its own constraints.
+
+**Warning signs:**
+- No script exists anywhere in `scripts/` for regenerating the catalogue — only a JSON file appeared in a commit.
+- The only "documentation" of the procedure is prose in a planning doc, not an executable command.
+- The catalogue JSON has no `generatedAt`/source-version metadata (contrast with `scripts/voice/manifest.json`'s `generatedAt` field, which this milestone should mirror).
+
+**Phase to address:** Catalogue & Selection phase.
+
+---
+
+### Pitfall 12: Accidentally pulling card/flavor text or art into the committed, public repo
+
+**What goes wrong:**
+MarvelCDB's own card data ("All texts are copyrighted by Fantasy Flight Games," confirmed on their API page) includes ability text, flavor text, and card images alongside the numeric stats this milestone actually needs. A scraper (or a careless manual copy-paste) that captures the full API/HTML response and stores it wholesale — rather than deliberately projecting out only `name`, `health`, `handSize`, per-stage HP fields, etc. — will commit copyrighted card text or image URLs/binaries into a **public** repository, directly violating this project's own stated legal constraint ("no se reproducen cartas, arte ni textos extensos con copyright").
+
+**Why it happens:**
+The path of least resistance when scraping/calling an API is to store the whole response object "in case it's useful later" — deliberately discarding fields takes an explicit design decision that's easy to skip when the immediate goal is just "get the numbers I need."
+
+**How to avoid:**
+Write an explicit allow-list projection in the fetch script (per Pitfall 11) — map the API response to a narrow, hand-defined interface (`{ name, alterEgo, health, handSize, ... }`) rather than spreading/passing through the raw response. Add a lightweight content check (even a simple grep/test asserting the committed `content/heroes.json` contains none of a small blocklist of known long-text field names like `text`, `flavor`, `imagesrc` from the MarvelCDB API shape) as a cheap CI guard, the same spirit as the schema's `z.strictObject` decision in Phase 2 of v1.7 ("el esquema de contenido rechaza claves desconocidas, no las descarta") — apply that same "reject unknown/unwanted keys" discipline to the catalogue schema.
+
+**Warning signs:**
+- The catalogue-fetch script does `JSON.stringify(apiResponse)` or similar wholesale-object writes rather than an explicit field projection.
+- Any `image`/`imagesrc`/`text`/`flavor` key present in `content/heroes.json`.
+- Committed catalogue file size is much larger than "18 heroes × ~6 numbers + 3 villains × per-stage table" would suggest.
+
+**Phase to address:** Catalogue & Selection phase.
+
+---
+
+### Pitfall 13: Touch-UX regressions on the counter band — mis-taps, runaway hold-repeat, ghost double-counts, and keyboard-shortcut interaction
+
+**What goes wrong:**
+Several distinct failure modes bundled into one new UI surface:
+- **Mis-taps at arm's length with no undo:** a single ▲/▼ tap that's easy to fat-finger, with no confirmation or easy correction, is more annoying on a life-total counter than elsewhere in this app because HP tracking accumulates error over many taps across a long session — unlike a `next()`/`prev()` step navigation, which the existing `resume()`/`content-changed` machinery already treats as fully reversible.
+- **Press-and-hold repeat running away:** if a "hold to repeat-decrement fast" interaction is added (natural for a counter that might need to move from 14 to 2 in one hit), an unbounded `setInterval`-style repeat that doesn't stop cleanly on `touchend`/`pointercancel` (common bug: `touchend` doesn't fire reliably if the finger slides off the button, or a background tab throttles timers unpredictably) can send a counter far past the intended value with no easy way to notice until it's absurd.
+- **Ghost double-counting on iOS Safari:** `NavBand.vue`'s existing pattern deliberately separates the *visual* press-state (`@touchstart`/`@touchend`/`@mousedown`/`@mouseup` toggling a `ref`) from the *actual* action (`@click` only). A counter button that instead wires the actual increment/decrement to `@touchstart` directly (for perceived lower latency) risks the classic mobile-Safari double-fire where both the touch handler and the subsequent synthesized `click` (or a second touch event from a slightly-off double-tap) both increment, especially since counters have no natural "settle" state the way navigation does.
+- **State loss on reload mid-game:** per Pitfall 3, if counter values aren't included correctly in the persisted session shape, a tablet auto-lock/reload mid-game silently resets HP trackers to their pre-filled defaults, which is worse than not having live counters at all (a player would trust a wrong-because-reset number more than they'd trust their own memory).
+- **Keyboard-shortcut interaction:** `useStepShortcuts.ts`'s global `keydown` listener maps Space/Enter to `next()` and treats *any* focused control the same way (its `isEditableTarget` guard only excludes `INPUT`/`TEXTAREA`/`SELECT`/`contenteditable`, not buttons) — a counter ▲/▼ `<button>` retaining focus after a tap, followed by a Space press on an attached Bluetooth keyboard, will correctly trigger "next" (not double-decrement, since `preventDefault()` already suppresses the focused button's native activation per `useStepShortcuts.ts`'s own D-Q1 comment) — but this means a keyboard user has no way to keyboard-operate the counters at all, silently. That's an acceptable gap for a touch-first tablet app, but only if it's a *deliberate* decision, not an accident nobody noticed because the whole team tests on touch devices.
+
+**Why it happens:**
+The counter band is the first genuinely new *interactive* (as opposed to navigational) widget type in the app — every existing tappable element (`NavBand`, `WarningDetailModal`'s trigger, `StepScreen`'s options list) is a one-shot action with an obvious, single correct outcome. Counters are the first thing in this codebase where "how many times did that actually register" matters and accumulates.
+
+**How to avoid:**
+Reuse `NavBand.vue`'s established split between press-state (visual only, `@touchstart`/`@touchend`) and action (`@click` only, fired exactly once per confirmed tap) for every counter button — do not wire increments to `touchstart`. If hold-to-repeat is built, cap it with a hard maximum duration/step count and clear the interval defensively on `pointercancel`/`pointerleave`/component unmount, not just `touchend`/`mouseup`. Give every counter a visible, always-available way to see (and ideally briefly undo) the last change — even a simple "long-press to reset to the pre-filled default" satisfies "no undo" cheaply without building a full history/undo stack. Explicitly decide and document (a one-line comment, same style as the rest of this codebase) that keyboard shortcuts do not operate the counters, so it reads as a decision rather than an oversight next time someone touches `useStepShortcuts.ts`. Test state survival with the same "reload mid-step" manual check the project already applies to session resume.
+
+**Warning signs:**
+- Any `@touchstart` handler on a counter button that also increments/decrements state (not just toggles a visual press ref).
+- A `setInterval`/`requestAnimationFrame` repeat loop with no maximum bound and only a `touchend`/`mouseup` cleanup path (missing `pointercancel`).
+- No test exercising "reload the page mid-game, counters should show the last value, not the pre-filled default."
+
+**Phase to address:** Counter Band phase.
+
+---
+
+### Pitfall 14: Scope creep — the four reverted exclusions become a wedge for the ones that weren't reverted
+
+**What goes wrong:**
+`.planning/PROJECT.md`'s "Out of Scope" section is explicit that v1.8 reverts *exactly* four prior exclusions (live counters for HP only, known-number display, hero/villain selection, and Firestore-as-backup-only) and explicitly keeps several adjacent things out: threat/amenaza counters, per-player status-effect tracking (Aturdido/Confundido/Duro), scenario/modular-set selection, real backend/user accounts, and a rules-lookup screen beyond the existing `⚠` detail modal. Once the counter band exists for HP, "just add a threat counter too, it's the same component" is an extremely natural mid-build suggestion — it uses the exact same UI pattern (▲/▼ stepper) already being built, so the *marginal* engineering cost looks small even though the project explicitly separated it out as still-excluded. Similarly, once Firestore is wired for history, "let's add simple auth so stats could be per-player-account" or "let's make the catalogue editable from a web UI" are the kind of small-sounding asks that directly reopen constraints ("sin backend," "editor de juegos desde la web") this project has twice already decided against.
+
+**Why it happens:**
+Feature-adjacency bias: once the infrastructure for X exists (a stepper component, a Firestore connection, a hero data model), every feature that reuses that infrastructure feels nearly free — but "nearly free to build" is not the same as "in scope," and each of these adjacent asks was excluded for a load-bearing reason (amenaza/status tracking was excluded because it multiplies the counter surface and touch-target crowding problem from Pitfall 4; scenario selection was excluded because modular sets are a much larger data-modeling problem than heroes/villains; accounts/backend were excluded to keep "nothing to administer or pay for" true).
+
+**How to avoid:**
+Name the specific temptations explicitly in the roadmap/phase plans so they can be recognized and declined in the moment, rather than relying on general discipline: (1) a threat/amenaza counter alongside the HP steppers — decline, it's explicitly still out of scope; (2) status-effect (Aturdido/Confundido/Duro) tracking as toggle chips near the counter band — decline, same reason; (3) any UI to add/edit a hero or villain from within the app — decline, content stays developer-authored data per the standing "editor de juegos desde la web" exclusion; (4) authentication/per-player accounts once Firestore exists — decline, "sin backend... nada que administrar ni pagar" and "cuentas de usuario" both remain explicitly excluded even after the Firestore revision; (5) scenario/modular-set selection riding along with hero/villain selection in the same setup-step UI — decline, `CONF-02/03` are explicitly deferred to a later milestone in `PROJECT.md`'s "Candidatos para hitos posteriores."
+
+**Warning signs:**
+- Any PR/plan touching the counter band that adds a second counter type beyond villain HP + HP1..4.
+- Any UI control that writes to `content/heroes.json`/the catalogue from within the running app.
+- Any Firestore security rule or schema field referencing a user/account/login concept.
+
+**Phase to address:** All phases — this is a standing constraint the roadmapper should restate at the top of each v1.8 phase, not a single phase's job.
 
 ---
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|-----------------|-----------------|
-| Skip `source`/citation fields on steps "for now, add later" | Faster initial content authoring | Provenance is much harder to reconstruct after the fact; a wrong step becomes untraceable | Never for Marvel Champions rules-encoding steps; acceptable only for pure flavor/UX text with no rule content |
-| Copy rulebook prose verbatim into step text "to be sure it's exact" | Zero risk of mis-paraphrasing a rule | Copyright exposure once public; also worse UX (Pitfall 3) since rulebook prose isn't instruction-shaped | Never — always paraphrase, cite the source separately |
-| Use `autoUpdate` service-worker registration instead of `prompt` | Simpler code, no UI needed | Silent mid-session upgrades can invalidate in-progress state unpredictably | Only acceptable pre-launch/dev; switch to `prompt` before real use at the table |
-| Read `localStorage` directly in component setup instead of guarding with `onMounted`/`ssr:false` | Slightly less boilerplate | Hydration mismatches, possible SSR crashes | Never once any SSR/prerendering is enabled; fine only if `ssr: false` globally |
-| Persist the entire step/session object instead of a minimal position (round + step id + setup answers) | Nothing to compute on resume | Restoring a saved position that points at a step ID which no longer exists after a content edit; drift between saved shape and current schema | Never for production; acceptable only during early prototyping before content is versioned |
+|----------|-------------------|-----------------|------------------|
+| Manual one-off MarvelCDB scrape, no script | Faster to ship the first 18 heroes/3 villains | No way to add hero #19 without re-deriving the process; no `generatedAt`/provenance metadata | Never — the milestone explicitly asks for a documented, repeatable procedure |
+| Flat villain HP number (no stage/player-count dimension) | Simpler schema, faster first pass | Wrong pre-filled counter for every stage/player-count except one; a schema migration later touches every catalogue entry | Never for the schema shape; acceptable to leave stage II/III numbers *unpopulated* (with the shape ready) if time is short |
+| `allow read, write: if true` Firestore rules during local development | Unblocks development immediately without writing rules first | Trivial to forget to tighten before the first real deploy; repo is public, so the project id is discoverable | Acceptable only inside the Firebase emulator suite / a local-only project, never against the real project id that ships in the deployed bundle |
+| Reading Firestore directly from the stats screen instead of localStorage-only | Feels like "real" cloud-backed stats, marginally fresher across devices | Reopens every dual-source-of-truth problem (Pitfall 8) the project explicitly tried to avoid by calling Firestore "backup, not source of truth" | Never, for this milestone's stated architecture — revisit only if a real multi-device sync feature is later scoped deliberately |
+| Bumping `PersistedPosition` fields without `formatVersion` | Avoids writing a migration/fallback test | Corrupts or silently defaults a currently-in-progress saved game on a live user's tablet | Never — this app is in active use right now |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
-|-------------|----------------|-------------------|
-| Web Speech API (`speechSynthesis`) | Calling `speak()` from a lifecycle hook/watcher instead of a user gesture; assuming `getVoices()` is populated on first call | First `speak()` must originate from the initial tap; poll/`voiceschanged`-listen for voices with a timeout fallback to text-only |
-| Web Speech API voice selection | Assuming an `es-ES` voice always exists because `getVoices()` lists a Spanish-labeled entry | Verify the voice actually produces audio (or accept some devices will use a fallback Spanish variant/region); never hard-fail the app if the exact voice is missing |
-| Service Worker / `@vite-pwa/nuxt` | Using default `generateSW`/`autoUpdate` and assuming updates "just work" | Explicit `registerType: 'prompt'`, `skipWaiting` message flow, `cleanupOutdatedCaches()`, and a real deploy-then-redeploy test |
-| Screen Wake Lock API | Requesting once at page load and never re-acquiring | Re-request on every `visibilitychange` to `visible`; feature-detect and degrade gracefully on unsupported/buggy iOS versions |
-| `localStorage` | Reading/writing without guarding for SSR context or multi-tab races | Client-only guarded reads/writes; treat resume as an explicit user choice, not silent |
+|-------------|-----------------|-------------------|
+| Firestore writes | `await`ing a write inside a UI click handler, hanging offline (Pitfall 2) | Fire-and-forget with `.catch()`; localStorage write is the synchronous, blocking source of truth |
+| Firestore offline persistence | Assuming `enableIndexedDbPersistence`/`persistentLocalCache` always succeeds silently | Check the returned promise; fall back explicitly to memory cache and don't claim durability if it failed (Pitfall 7) |
+| Firestore multi-tab | Default single-tab persistence throws/degrades silently if a second tab/context opens Firestore | Configure `persistentMultipleTabManager()` explicitly if any scenario opens the app in two contexts at once (installed PWA + a browser tab checking stats), or accept and document single-tab-only support |
+| Firestore write ids | `addDoc()` auto-ids create duplicates on retried/duplicated writes | `setDoc(doc(col, clientGeneratedId), ...)` for idempotent writes keyed by a locally-generated id (Pitfall 8) |
+| MarvelCDB | Scraping raw HTML/full API responses and passing them through wholesale | Use MarvelCDB's public API (`marvelcdb.com/api/`) with an explicit field allow-list projection, discarding text/art fields (Pitfalls 11–12) |
+| Workbox precache | Serving new catalogue/data as a runtime `fetch()` from `public/`, missing existing `globPatterns` | Statically import new content the same way `content/marvel-champions.json` already is, so it's covered by the existing `**/*.{js,css,html}` glob for free (Pitfall 9) |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|-----------------|
-| Importing the entire game's JSON content as a single client bundle chunk | Slightly larger initial JS payload; slower first load especially on a middling tablet CPU | Keep per-game JSON reasonably small (this is a rules-flow, not a card database) and code-split by game (only load the selected game's JSON) | Noticeable once a second game (Warhammer 40k) is added and both are eagerly bundled |
-| Long, unbounded TTS utterances | Speech takes 20–30+ seconds per step, players mute or ignore it | Author a separate, short "spoken" field distinct from the displayed text | Immediately, at first playtest, for any step with conditional branch text |
-| Precaching every asset indiscriminately in the service worker | Slow/heavy install step on first PWA install, harder update diffs | Precache only the app shell + current game's JSON; avoid caching every possible future game's content by default | Once a second/third game's content exists and isn't gated behind selection |
+| Firebase SDK imported eagerly at module top-level | First paint on `/` and `/marvel-champions` regresses; larger shared JS chunk | Dynamic `import()` inside a `.client.ts` plugin, only loaded when history/stats is actually used (Pitfall 6) | Noticeable at the very first milestone build; won't "grow" further, but starts wrong if done wrong |
+| Firestore free-tier quota exhaustion from open/abusable writes | Backup silently stops working for the rest of the day, resets at Pacific midnight | Tight, shape-validated, append-only security rules (Pitfall 5) | As soon as anyone (bored visitor, bot, or accidental double-write loop) sends >20,000 writes/day |
+| Counter-band hold-to-repeat with unbounded interval | HP counter races far past intended value, especially if a touch event is missed | Hard step/time cap on repeat, defensive cleanup on `pointercancel` (Pitfall 13) | On the very first real hold-and-slide-finger-off interaction, not a scale issue |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Publishing scanned card art or lengthy verbatim rulebook excerpts to a public URL | Copyright/IP exposure from Marvel/FFG/Asmodee-owned content | Only original, short procedural text; no card scans or art assets in the repo or served content |
-| Treating "unlisted URL" as equivalent to "private" | A public URL is still public distribution; search engines/crawlers or accidental sharing can expose it | Don't rely on obscurity for anything that matters; if ever shared more widely, do a fresh legal review before that transition (not legal advice) |
-| Storing nothing sensitive, but still worth checking: no accidental PII in analytics/error logging if any is ever added | Low risk here since there's no backend/accounts, but easy to introduce later without noticing | Keep the "no backend, no accounts" constraint explicit in any future tooling decisions (e.g., don't bolt on a hosted analytics/error-tracking SaaS without re-checking this) |
+| Open Firestore security rules (`if true` on write/update/delete) | Junk data corrupting the stats screen's win/loss percentages; quota exhaustion breaking the backup feature for the day | Shape-validated, create-only rules; never allow `update`/`delete` from the client (Pitfall 5) |
+| Treating the public Firebase config as if it needed hiding | Wasted effort trying to "protect" a non-secret, while the actual risk (rules) goes unaddressed | Understand and document that the API key is not the security boundary — the rules are |
+| Committing copyrighted card text/art into the public repo via a careless scrape | Legal exposure under this project's own stated constraint; embarrassing since MarvelCDB itself states "All texts are copyrighted by Fantasy Flight Games" | Explicit field allow-list in the fetch script; a cheap CI grep-guard against known long-text field names (Pitfall 12) |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-------------------|
-| Steps sliced too finely (tap-fest) | Players get annoyed, start ignoring/rushing through the app | One step = one unmistakable physical action or decision point (see Pitfall 3) |
-| Steps too coarse (paragraph wall) | The one forgettable detail gets buried and skipped anyway | Split any step with more than one imperative action; write instructions, not rulebook prose |
-| Losing your place / no way to go back | Players stop trusting the app and revert to memory/rulebook, defeating its purpose | Persistent, always-visible "Atrás" alongside "Siguiente"; visible round/step indicator |
-| Disorienting loop boundary (end of round → start of next round) | Players lose track of which round they're on, especially after a tablet-sleep interruption | Explicit "Ronda N" header always visible; a distinct, unmistakable "start of round" step, not an invisible wrap-around |
-| Conditional branches shown as dense text | The relevant branch (Hero vs Alter-Ego, e.g.) gets lost among the irrelevant one | Visually separate/label each branch clearly (not just comma-separated prose) even though both are always shown as text per the project's zero-tap design decision |
-| App demanding attention the game needs | Reading a whole paragraph aloud or requiring multi-step navigation interrupts the physical flow of play | Short spoken text distinct from displayed text (Pitfall 4); minimize required taps to resume the loop after checking a rule |
-| Silent resume of a stale/previous game session | Group is misled about actual game state; may misplay believing they're further along | Always prompt "continuar vs. empezar nueva" when a saved position exists (Pitfall 8) |
+| Counter band crowds out the large step text | Undermines the single thing this app exists to do — readable text at arm's length | Explicit height budget, `shrink-0` fixed band, hidden during setup steps that don't need it (Pitfall 4) |
+| No undo/confirmation on counter taps | Small mis-taps accumulate into a wrong HP total nobody trusts, worse than the physical dial it replaced | Long-press-to-reset-to-default as a cheap undo; consider a brief "±1" visual flash to confirm each tap registered |
+| Counter state lost on reload mid-game | Silent reset to pre-filled defaults reads as a bug, is worse than not having live counters | Persist counters in the same session shape as everything else, versioned correctly (Pitfall 3) |
+| Stats screen reads a partially-synced or duplicated Firestore history | Numbers don't match what the group remembers playing, eroding trust in the whole history feature | Stats screen reads localStorage only, never Firestore, for the lifetime of this milestone (Pitfall 8) |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Rules content "verified":** Often missing a `source` citation per rule-bearing step — verify every step that encodes a rule (not just flavor text) has a page/section reference into the Rules Reference v1.7.
-- [ ] **Offline support:** Often missing a real "kill the wifi mid-session and keep playing" test — verify by actually toggling airplane mode on the target tablet mid-round, not just checking DevTools' offline throttle in a desktop browser.
-- [ ] **TTS "working":** Often only tested on a desktop browser — verify specifically on the target iPad in Safari, with a real tap-triggered first utterance, and confirm the app remains fully usable with speech disabled/unsupported.
-- [ ] **Service worker update flow:** Often only tested once (install and it works) — verify by deploying a v1, then a v2, and confirming the update prompt appears and the new version loads correctly, including while previously offline-cached.
-- [ ] **Persistence "just works":** Often missing the resume-vs-new-game prompt — verify that reopening the app after a completed/abandoned game asks before jumping back into the old position.
-- [ ] **Step engine handles both setup (linear) and round (looping) correctly:** Often only tested by walking forward once — verify jump-to-any-step, then continuing normally, returns to the correct point in the loop (not back to setup) per the explicit `PROJECT.md` requirement.
-- [ ] **Wake Lock "working":** Often only tested on the developer's own up-to-date device — verify on the actual tablet hardware/OS version the group owns, and confirm graceful behavior if Wake Lock is entirely unsupported there.
+- [ ] **Parenthetical known values:** Often missing a genuine separation from `speech`/audio text — verify `collectSpeechEntries(marvelChampions)` output is unchanged by diffing against the pre-milestone baseline, not just that `voice-drift.test.ts` passes (it only catches drift in text that's already changed, not the fact that the wrong field was touched).
+- [ ] **Session resume after v1.8:** Often missing a test for "a v1.7-shaped save opened by v1.8 code" — verify by hand-constructing an old-shape `PersistedPosition` object and asserting `resume()` degrades gracefully with fully-defined new-field defaults, not `undefined`.
+- [ ] **Firestore write path:** Often missing an offline test — verify by running the existing offline e2e pattern (`context.setOffline(true)`) against the end-of-game confirmation flow and confirming no stall.
+- [ ] **Firestore security rules:** Often missing shape validation and an explicit `update`/`delete` deny — verify by reading the actual deployed `firestore.rules` content, not just "it works when I write from the app."
+- [ ] **Catalogue reproducibility:** Often missing an actual re-runnable script — verify a documented npm script exists and running it twice on the same source data produces byte-identical output.
+- [ ] **Catalogue legal scope:** Often missing a check for accidentally-included text/art fields — verify by grepping the committed catalogue JSON for long-text or image-URL-shaped values.
+- [ ] **Counter band layout:** Often missing a real-device or realistic-viewport check — verify the step text area doesn't shrink below its pre-milestone size in landscape at the target tablet aspect ratio.
+- [ ] **PWA offline catalogue access:** Often missing an update to the offline e2e test — verify the hero-selection modal has its data available with the service worker installed and network disabled.
+- [ ] **Villain HP schema:** Often missing the per-stage/per-player-count dimension — verify the schema shape (not just the populated numbers) against the Rules Reference's stage/scaling rules.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|-----------------|
-| A wrong rules step reaches "verified" content without a citation | MEDIUM | Re-derive against the Rules Reference using the verification checklist above; retroactively add `source` fields; treat it as a signal to audit nearby steps for the same class of error |
-| Stale service-worker cache stuck on a broken build | LOW–MEDIUM | Bump the cache/build version to force cache invalidation; as an emergency user-facing fallback, provide a documented "how to force-refresh this PWA" note (clear site data / reinstall) for the group |
-| Persisted position points at a step ID removed by a content edit | LOW | On load, validate the saved step id against the current content; if missing, fall back to the nearest valid step (e.g., start of current round) and show the resume prompt rather than crashing |
-| Engine over-generalized for Warhammer 40k before Marvel Champions validated it | HIGH | Willing to revert/simplify the engine abstraction back to what Marvel Champions actually needs once real usage reveals the wrong generalization; avoid sunk-cost pressure to keep unused flexibility |
+|---------|----------------|-----------------|
+| Voice-drift/audio orphaned by a text change | LOW | Revert the `content/marvel-champions.json` text change; the parenthetical value belongs in a separate display-only field, not in `text`/`speech` — no audio needs regenerating if this is caught before merge |
+| In-progress saved game corrupted by a shape change | MEDIUM | Bump `formatVersion`, ship a fix so old shapes fall back to `content-changed` (fresh setup context preserved) rather than crashing or showing undefined counters — acceptable one-time loss of *mid-round position* (not context) for whoever is affected, consistent with the existing `contentChangedFallback` philosophy |
+| Firestore quota exhausted for the day | LOW | Nothing to do but wait for the Pacific-midnight reset; localStorage (source of truth) is unaffected — this is why "backup, not source of truth" matters |
+| Junk data in Firestore from open rules discovered post-launch | MEDIUM | Tighten `firestore.rules` immediately (append-only, shape-validated); manually delete junk documents via the console; since the stats screen reads localStorage only (Pitfall 8's prevention), user-visible stats were never affected |
+| Catalogue accidentally includes copyrighted text/art | MEDIUM–HIGH | Force-push a history-scrubbing rewrite is disproportionate for a hobby repo; at minimum, remove the offending fields in a follow-up commit immediately and treat it as a genuine incident given the explicit legal constraint, not routine cleanup |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
-|---------|------------------|---------------|
-| Rules-fidelity errors from the hand-written summary (Pitfall 1) | Dedicated rules-verification phase | Every step in the Marvel Champions JSON has a `source` citation and passes the checklist above |
-| No per-step provenance (Pitfall 2) | Content schema design phase | Schema includes `source`/`rulesVersion` fields from the start; spot-check a sample of steps for citations |
-| Wrong step granularity (Pitfall 3) | Content/step-model design + first real playtest milestone | Playtest feedback shows no "tap-fest" complaints and no missed sub-detail inside a step |
-| Web Speech failures (Pitfall 4) | TTS integration phase | Manual test on the actual target iPad/tablet in Safari: gesture-triggered first utterance, no double-speak, graceful text-only fallback |
-| Stale PWA cache after deploy (Pitfall 5) | PWA/offline infrastructure phase | Deploy v1 → v2 test; confirm update prompt and successful transition while previously offline |
-| Screen sleep / Wake Lock gaps (Pitfall 6) | Tablet-at-the-table UX phase | Test on the actual owned tablet hardware/OS version; confirm re-acquire on visibility change |
-| SSR/hydration mismatches (Pitfall 7) | Framework/architecture setup phase (early) | No hydration warnings in dev/build; `ssr: false` (or equivalent guarding) decided before persistence logic is built |
-| Silent resume of stale session (Pitfall 8) | Persistence/state design phase | Reopening after a finished/abandoned game always shows a resume-or-new prompt |
-| Scope creep (state tracking, W40k-first, in-app editor) (Pitfall 9) | Roadmap sequencing (cross-phase) | Milestone boundary exists: "Marvel Champions engine validated via real playthrough" gates any engine generalization or W40k content work |
-| Copyrighted content reproduction (Pitfall 10) | Content-authoring phase (ongoing) + any future "go more public" milestone | Content review confirms no verbatim rulebook/card text or art; revisit before any wider distribution |
+|---------|-------------------|--------------|
+| 1. Text/audio drift from parenthetical numbers | Catalogue & Selection / Parenthetical Numbers | `voice-drift.test.ts` stays green with zero content diffs; new test diffs `collectSpeechEntries` output byte-for-byte |
+| 2. `await`ed Firestore write hangs offline | Firestore Backup | Offline e2e test on the end-of-game confirmation flow, `context.setOffline(true)` |
+| 3. Persisted session shape breaks resume | Counter Band / History & Persistence (whichever lands first) | New `engine/persistence.test.ts` case: old-shape object through `resume()` |
+| 4. Counter band shrinks step text | Counter Band | Explicit height-budget check against a reference tablet viewport, real-device screenshot review |
+| 5. Open Firestore security rules | Firestore Backup | Manual read of deployed `firestore.rules`; confirm no `if true` on write, no `update`/`delete` allowed |
+| 6. Firebase SDK blocks first paint | Firestore Backup | Bundle-size diff on `.output/public/_nuxt` for the `/` and `/marvel-champions` chunks before/after |
+| 7. Silent Firestore persistence failure | Firestore Backup | Manual check: private-mode tab, and second-tab-while-installed-PWA-open, confirm no crash and no false "synced" claim |
+| 8. Dual-source-of-truth desync | History & Persistence + Firestore Backup + Stats Screen | Code review rule: stats screen has zero Firestore reads; idempotent `setDoc` with client-generated id |
+| 9. Service-worker glob misses new assets | Catalogue & Selection + Stats Screen | Extend `e2e/offline-flow.spec.ts` to open the hero-selection modal and the stats route fully offline |
+| 10. Villain HP flattened incorrectly | Catalogue & Selection | Schema review against Rules Reference stage/scaling section before scraper is written |
+| 11. Non-reproducible scrape | Catalogue & Selection | A committed, documented npm script exists (`scripts/catalogue/fetch-marvelcdb.mjs`) with a `generatedAt` manifest field |
+| 12. Copyrighted text/art in repo | Catalogue & Selection | Grep-guard test on `content/heroes.json` for disallowed field names; manual review before merge |
+| 13. Counter touch-UX regressions | Counter Band | Manual real-device test: rapid taps, hold-repeat, reload mid-game, Bluetooth keyboard Space press |
+| 14. Scope creep into excluded features | All phases | Each phase plan restates the specific excluded adjacent features from `PROJECT.md`'s Out of Scope section |
 
 ## Sources
 
-- `mc_rulesreference_v17-compressed.pdf` (Marvel Champions Rules Reference, Version 1.7) — local copy at `~/Downloads/mc_rulesreference_v17-compressed.pdf`, read directly via `pdftotext`; all rules-fidelity citations above reference specific pages/sections of this document (HIGH confidence, primary official source).
-- `Marvel-Champions_aprende_a_jugar.pdf` (Aprende a jugar / Learn to Play) — local copy at `~/Downloads/Marvel-Champions_aprende_a_jugar.pdf`, available as a secondary official source (not deeply excerpted here since the Rules Reference is authoritative for edge cases).
-- MDN, `SpeechSynthesis: voiceschanged event` — https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis/voiceschanged_event
-- WebKit developer forum, "Web Speech Synthesis API: not all voices installed listed" — https://developer.apple.com/forums/thread/723503
-- weboutloud.io, "The State of Speech Synthesis in Safari" — https://weboutloud.io/bulletin/speech_synthesis_in_safari/
-- Chromium issue tracker, `SpeechSynthesis ignores language/voice setting` — https://issues.chromium.org/issues/331977824
-- Mozilla Bugzilla #1522074, "speechSynthesis cancel wipes out speak calls following directly after" — https://bugzilla.mozilla.org/show_bug.cgi?id=1522074
-- GitHub, `nuxt-community/pwa-module` issues #149 and #381 (stale precache after deploy) — https://github.com/nuxt-community/pwa-module/issues/149, https://github.com/nuxt-community/pwa-module/issues/381
-- GitHub, `vite-pwa/vite-plugin-pwa` issue #772 (`updateServiceWorker()` not applying) — https://github.com/vite-pwa/vite-plugin-pwa/issues/772
-- GitHub, `vite-pwa/nuxt` issues #79 and #140 (dynamic route / offline navigation issues) — https://github.com/vite-pwa/nuxt/issues/79, https://github.com/vite-pwa/nuxt/issues/140
-- Chrome for Developers, "Stay awake with the Screen Wake Lock API" — https://developer.chrome.com/docs/capabilities/web-apis/wake-lock
-- MDN, "Screen Wake Lock API" — https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API
-- WebKit blog, "Updates to Storage Policy" (iOS storage eviction) — https://webkit.org/blog/14403/updates-to-storage-policy/
-- GitHub, `nuxt/nuxt` discussion #25500, "Hydration Mismatch Using localStorage" — https://github.com/nuxt/nuxt/discussions/25500
-- Nuxt official docs, "Nuxt and Hydration · Best Practices v4" — https://nuxt.com/docs/4.x/guide/best-practices/hydration
-- Nuxt official docs, "Prerendering · Get Started with Nuxt v4" — https://nuxt.com/docs/4.x/getting-started/prerendering
-- Project context: `.planning/PROJECT.md` (explicit Out of Scope list, constraints, and local PDF source-of-truth paths)
+- `.planning/PROJECT.md` — v1.8 scope, explicit Out-of-Scope reversions, Key Decisions (CODE, direct read).
+- `CLAUDE.md` — stack decisions, `registerType: 'prompt'` rationale, "What NOT to Use" table (CODE, direct read).
+- `app/composables/usePersistedSession.ts`, `engine/persistence.ts`, `engine/types.ts`, `engine/resolve.ts` — persisted session shape, resume gate, text/speech resolution (CODE, direct read, HIGH confidence).
+- `engine/__tests__/voice-drift.test.ts`, `scripts/voice/manifest.json` pattern — voice-drift gate mechanics (CODE, direct read, HIGH confidence).
+- `nuxt.config.ts` — Workbox `globPatterns`/`globIgnores`, `nitro.prerender.routes`, route-rule cache headers (CODE, direct read, HIGH confidence).
+- `app/composables/useStepShortcuts.ts`, `app/components/NavBand.vue`, `app/components/StepScreen.vue` — keyboard-shortcut/touch-press patterns already established in this codebase (CODE, direct read, HIGH confidence).
+- `app/composables/useGameContent.ts` — static-import content pattern, confirms game JSON is bundled into JS, not runtime-fetched (CODE, direct read, HIGH confidence).
+- `firebase/firebase-js-sdk` GitHub issues #6515, #1497, #8696 — Firestore write-promise-resolves-on-server-ack behavior (WebSearch, MEDIUM confidence, cross-confirmed across multiple issues and official-docs-adjacent blog summaries).
+- Firebase/Google Cloud Firestore documentation (`firebase.google.com/docs/firestore/manage-data/enable-offline`, `docs.cloud.google.com/firestore/quotas`) — `persistentLocalCache`/`persistentMultipleTabManager` API shape, Spark plan quotas (50k reads/day, 20k writes/day, 20k deletes/day, 1 GiB storage) (WebSearch summary of official docs, MEDIUM confidence — not independently re-verified against the live console in 2026).
+- `https://marvelcdb.com/api/` — MarvelCDB public API existence, OAuth2 vs public endpoints, explicit copyright statement on card text (WebFetch-adjacent WebSearch summary of an official first-party page, MEDIUM confidence).
+- `.planning/phases/01-motor-de-flujo-selector-y-preparaci-n-de-mesa/01-RESEARCH.md` — origin of "Anti-Patrón 3/4" referenced in code comments (CODE, direct grep match, HIGH confidence for the fact these anti-patterns are an established project vocabulary).
 
 ---
-*Pitfalls research for: tablet-first offline Nuxt 4 PWA guiding Marvel Champions rules with Spanish TTS*
-*Researched: 2026-08-28*
+*Pitfalls research for: TableGameAssistant v1.8 milestone*
+*Researched: 2026-09-07*
