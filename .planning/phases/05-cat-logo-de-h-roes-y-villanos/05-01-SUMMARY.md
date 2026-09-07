@@ -112,6 +112,17 @@ El contrato del catálogo (tipos + esquema + tests) queda cerrado y ejecutable:
 - La Fase 6 puede tipar componentes de `app/` importando solo `~~/engine/types`, sin que ninguna importación suya alcance un módulo que importe zod — verificado (`grep -c "from 'zod'" engine/types.ts` devuelve 0).
 - Ningún bloqueo conocido. `npm run test` cierra en verde con 314 tests (294 preexistentes + 20 nuevos).
 
+## Self-Check: PASSED
+
+- FOUND: engine/types.ts
+- FOUND: engine/schema.ts
+- FOUND: engine/catalogueSchema.ts
+- FOUND: engine/__tests__/catalogueSchema.test.ts
+- FOUND: .planning/phases/05-cat-logo-de-h-roes-y-villanos/05-01-SUMMARY.md
+- FOUND commit 014baa1 (Task 1)
+- FOUND commit 765eba6 (Task 2)
+- FOUND commit cb3c27a (Task 3)
+
 ---
 *Phase: 05-cat-logo-de-h-roes-y-villanos*
 *Completed: 2026-09-07*
