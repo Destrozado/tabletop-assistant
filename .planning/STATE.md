@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
 status: planning
-last_updated: "2026-09-07T12:45:27.398Z"
+last_updated: "2026-09-07T14:30:00.000Z"
 last_activity: 2026-09-07
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-28)
 
 **Core value:** Que un grupo pueda jugar una partida completa de Marvel Champions de principio a fin sin abrir el reglamento y sin olvidarse de ningún paso.
-**Current focus:** Phase 04 — instalaci-n-y-funcionamiento-offline
+**Current focus:** Phase 5 — catálogo-de-héroes-y-villanos
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-09-07 — Milestone v1.8 started
+Phase: 5 of 10 (Catálogo de héroes y villanos) — numeración continua del proyecto; es la Fase 1 de las 6 de v1.8
+Plan: — (fase sin planificar todavía)
+Status: Roadmap creado, listo para planificar
+Last activity: 2026-09-07 — Roadmap v1.8 creado: 6 fases (5-10), 58/58 requisitos v1.8 mapeados, sin huérfanos
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Last activity: 2026-09-07 — Milestone v1.8 started
 
 ### Roadmap Evolution
 
+- v1.8 roadmap creado (2026-09-07): 6 fases (5 Catálogo, 6 Selección, 7 Contadores+compatibilidad, 8 Valores conocidos, 9 Histórico y estadísticas, 10 Firestore) — una fase más que el rango típico de la granularidad "coarse" configurada, deliberado: Histórico (9) y Firestore (10) se separan a propósito porque el histórico debe quedar verificado 100% offline antes de que Firestore exista en el código (evita el problema de doble fuente de verdad de raíz). COMP-01/COMP-02 (compatibilidad con sesiones de v1.7 ya desplegadas) se asignaron a la Fase 7, no a la 6, porque es ahí donde termina de fijarse la forma completa de `SessionContext` (selección + contadores) que debe convivir con el formato antiguo. COMP-03 (actualización de PWA ya instalada) se asignó a la Fase 10 por ser el cierre del hito. Decisión de arquitectura registrada en el propio ROADMAP.md: Firestore usa una marca `syncedToFirestore` propia en localStorage, no la persistencia offline integrada del SDK (`persistentLocalCache`) — mantiene la postura ya explícita del proyecto de no sumar IndexedDB para un trabajo de este tamaño.
 - Phase 03.1 inserted after Phase 3: Voz pregenerada en español con Gemini TTS — la voz TTS del dispositivo se juzgó inaceptable en la prueba humana de la Fase 3 (URGENT)
 
 ### Decisions

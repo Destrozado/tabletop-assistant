@@ -133,17 +133,72 @@
 
 ## Trazabilidad
 
-Se rellena al crear el roadmap.
-
 | Requisito | Fase | Estado |
 |-----------|------|--------|
-| — | — | Pendiente de roadmap |
+| CAT-01 | Fase 5 | Pendiente |
+| CAT-02 | Fase 5 | Pendiente |
+| CAT-03 | Fase 5 | Pendiente |
+| CAT-04 | Fase 5 | Pendiente |
+| CAT-05 | Fase 5 | Pendiente |
+| CAT-06 | Fase 5 | Pendiente |
+| CAT-07 | Fase 5 | Pendiente |
+| SEL-01 | Fase 6 | Pendiente |
+| SEL-02 | Fase 6 | Pendiente |
+| SEL-03 | Fase 6 | Pendiente |
+| SEL-04 | Fase 6 | Pendiente |
+| SEL-05 | Fase 6 | Pendiente |
+| SEL-06 | Fase 6 | Pendiente |
+| SEL-07 | Fase 6 | Pendiente |
+| SEL-08 | Fase 6 | Pendiente |
+| SEL-09 | Fase 6 | Pendiente |
+| HP-01 | Fase 7 | Pendiente |
+| HP-02 | Fase 7 | Pendiente |
+| HP-03 | Fase 7 | Pendiente |
+| HP-04 | Fase 7 | Pendiente |
+| HP-05 | Fase 7 | Pendiente |
+| HP-06 | Fase 7 | Pendiente |
+| HP-07 | Fase 7 | Pendiente |
+| HP-08 | Fase 7 | Pendiente |
+| HP-09 | Fase 7 | Pendiente |
+| HP-10 | Fase 7 | Pendiente |
+| COMP-01 | Fase 7 | Pendiente |
+| COMP-02 | Fase 7 | Pendiente |
+| VAL-01 | Fase 8 | Pendiente |
+| VAL-02 | Fase 8 | Pendiente |
+| VAL-03 | Fase 8 | Pendiente |
+| VAL-04 | Fase 8 | Pendiente |
+| VAL-05 | Fase 8 | Pendiente |
+| VAL-06 | Fase 8 | Pendiente |
+| HIST-01 | Fase 9 | Pendiente |
+| HIST-02 | Fase 9 | Pendiente |
+| HIST-03 | Fase 9 | Pendiente |
+| HIST-04 | Fase 9 | Pendiente |
+| HIST-05 | Fase 9 | Pendiente |
+| HIST-06 | Fase 9 | Pendiente |
+| HIST-07 | Fase 9 | Pendiente |
+| HIST-08 | Fase 9 | Pendiente |
+| HIST-09 | Fase 9 | Pendiente |
+| STAT-01 | Fase 9 | Pendiente |
+| STAT-02 | Fase 9 | Pendiente |
+| STAT-03 | Fase 9 | Pendiente |
+| STAT-04 | Fase 9 | Pendiente |
+| STAT-05 | Fase 9 | Pendiente |
+| SYNC-01 | Fase 10 | Pendiente |
+| SYNC-02 | Fase 10 | Pendiente |
+| SYNC-03 | Fase 10 | Pendiente |
+| SYNC-04 | Fase 10 | Pendiente |
+| SYNC-05 | Fase 10 | Pendiente |
+| SYNC-06 | Fase 10 | Pendiente |
+| SYNC-07 | Fase 10 | Pendiente |
+| SYNC-08 | Fase 10 | Pendiente |
+| SYNC-09 | Fase 10 | Pendiente |
+| COMP-03 | Fase 10 | Pendiente |
 
 **Cobertura:**
 - Requisitos v1.8: 58 en total
-- Mapeados a fases: 0
-- Sin mapear: 58 ⚠️
+- Mapeados a fases: 58
+- Sin mapear: 0 ✓
 
 ---
 *Requisitos definidos: 2026-09-07*
-*Última actualización: 2026-09-07 tras la definición inicial del hito v1.8*
+*Última actualización: 2026-09-07 tras crear el roadmap del hito v1.8 (fases 5-10, cobertura 58/58)*
