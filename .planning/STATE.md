@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
-status: ready_to_plan
-stopped_at: Phase 05 complete (6/6) — ready to discuss Phase 6
-last_updated: 2026-09-07T21:28:51.059Z
-last_activity: 2026-09-07 -- Phase 05 execution started
+status: planning
+stopped_at: Phase 6 context gathered
+last_updated: "2026-09-07T23:59:18.400Z"
+last_activity: 2026-09-07
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 6
-  completed_plans: 36
-  percent: 0
+  completed_plans: 6
+  percent: 17
 ---
 
 # Project State
@@ -153,6 +153,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-07T15:23:34.081Z
-Stopped at: Phase 5 gap-closure plans ready (05-04, 05-05) — verificados por gsd-plan-checker
-Resume file: .planning/phases/05-cat-logo-de-h-roes-y-villanos/05-04-PLAN.md
+Last session: 2026-09-07T23:59:18.396Z
+Stopped at: Phase 6 context gathered
+Resume file: .planning/phases/06-selecci-n-de-villano-h-roes-y-jugadores/06-CONTEXT.md
