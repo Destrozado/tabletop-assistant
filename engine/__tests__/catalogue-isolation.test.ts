@@ -12,6 +12,18 @@
 // procesos hijos, nunca escribe en disco. Solo lee ficheros ya
 // versionados y compara en memoria — CI corre en ubuntu-latest sin acceso
 // a marvelcdb.com y este gate no lo necesita.
+//
+// CR-02 (05-VERIFICATION.md): antes, las cinco lecturas/parseos de fichero
+// (packageJsonText/packageJson/ciWorkflowText/catalogueScriptText/
+// catalogueContentText) se ejecutaban en ámbito de módulo. Un `package.json`
+// ilegible o inválido lanzaba al evaluar el módulo, y Vitest reportaba
+// `Test Files 1 failed` / `Tests no tests`: los tests de CAT-06 (sin
+// referencias remotas), CAT-07 (marcador documentado) y el barrido de
+// app/ — que no dependen en absoluto de package.json — desaparecían de la
+// colección junto con los que sí lo usan. Por eso cada lector vive ahora
+// perezoso, invocado dentro del cuerpo de un `it()`: un `package.json` roto
+// hace fallar SÓLO los tests que lo leen; el resto se sigue colectando y
+// ejecutando por separado, y cada uno reporta su propio nombre y mensaje.
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
@@ -23,11 +35,29 @@ const catalogueScriptPath = fileURLToPath(new URL('../../scripts/catalogue/fetch
 const catalogueContentPath = fileURLToPath(new URL('../../content/marvel-characters.json', import.meta.url))
 const appDirPath = fileURLToPath(new URL('../../app', import.meta.url))
 
-const packageJsonText = readFileSync(packageJsonPath, 'utf-8')
-const packageJson = JSON.parse(packageJsonText) as { scripts?: Record<string, string> }
-const ciWorkflowText = readFileSync(ciWorkflowPath, 'utf-8')
-const catalogueScriptText = readFileSync(catalogueScriptPath, 'utf-8')
-const catalogueContentText = readFileSync(catalogueContentPath, 'utf-8')
+// Lectores perezosos, uno por fichero: cada uno lee/parsea SOLO cuando un
+// it() lo llama, nunca al evaluar este módulo ni el cuerpo de un describe()
+// (el callback de describe también corre en tiempo de colección — moverlos
+// ahí reproduciría el mismo defecto).
+function readPackageJsonText(): string {
+  return readFileSync(packageJsonPath, 'utf-8')
+}
+
+function loadPackageJson(): { scripts?: Record<string, string> } {
+  return JSON.parse(readPackageJsonText()) as { scripts?: Record<string, string> }
+}
+
+function readCiWorkflowText(): string {
+  return readFileSync(ciWorkflowPath, 'utf-8')
+}
+
+function readCatalogueScriptText(): string {
+  return readFileSync(catalogueScriptPath, 'utf-8')
+}
+
+function readCatalogueContentText(): string {
+  return readFileSync(catalogueContentPath, 'utf-8')
+}
 
 // Función pura local compartida entre el gate real y el test de "el gate
 // muerde" (mismo patrón que findStaleAudio en engine/__tests__/voice-drift.test.ts):
@@ -63,6 +93,7 @@ describe('gate de aislamiento del script de catálogo (D-06 heredado)', () => {
     const guardedEntries = ['build', 'generate', 'preview', 'dev', 'postinstall', 'test']
 
     it.each(guardedEntries)('package.json scripts["%s"] no referencia el script de catálogo', (entryName) => {
+      const packageJson = loadPackageJson()
       const value = packageJson.scripts?.[entryName] ?? ''
       expect(
         referencesCatalogueScript(value),
@@ -75,6 +106,7 @@ describe('gate de aislamiento del script de catálogo (D-06 heredado)', () => {
     // CI corre en ubuntu-latest y no debe depender de una API de terceros
     // para pasar: si marvelcdb.com estuviera caído, la build no puede
     // verse afectada porque nada del pipeline la consulta.
+    const ciWorkflowText = readCiWorkflowText()
     expect(ciWorkflowText.length).toBeGreaterThan(0)
     expect(referencesCatalogueScript(ciWorkflowText)).toBe(false)
   })
@@ -86,11 +118,14 @@ describe('gate de aislamiento del script de catálogo (D-06 heredado)', () => {
   })
 
   it('CAT-03: package.json declara catalogue:generate y el script existe en esa ruta', () => {
+    const packageJson = loadPackageJson()
+    const catalogueScriptText = readCatalogueScriptText()
     expect(packageJson.scripts?.['catalogue:generate']).toBe('node scripts/catalogue/fetch-marvelcdb.mjs')
     expect(catalogueScriptText.length).toBeGreaterThan(0)
   })
 
   it('CAT-07: el script documenta el procedimiento de una fila para añadir un héroe o villano', () => {
+    const catalogueScriptText = readCatalogueScriptText()
     expect(catalogueScriptText).toContain('CÓMO AÑADIR UN HÉROE O VILLANO NUEVO')
     expect(catalogueScriptText).toContain('npm run catalogue:generate')
   })
@@ -99,6 +134,7 @@ describe('gate de aislamiento del script de catálogo (D-06 heredado)', () => {
     // El catálogo viaja como fichero estático dentro del bundle (su
     // importación estática llega en la Fase 6) y no lleva ninguna URL ni
     // referencia de red que resolver en tiempo de ejecución.
+    const catalogueContentText = readCatalogueContentText()
     expect(catalogueContentText).not.toContain('http')
     expect(catalogueContentText).not.toContain('marvelcdb')
     expect(catalogueContentText).not.toContain('api')
