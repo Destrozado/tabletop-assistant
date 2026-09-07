@@ -170,3 +170,7 @@ El contrato que la Fase 6 va a importar (`engine/types.ts`) ya declara `expert` 
 ---
 *Phase: 05-cat-logo-de-h-roes-y-villanos*
 *Completed: 2026-09-07*
+
+## Self-Check: PASSED
+
+Todos los 8 ficheros de `files_modified` + SUMMARY.md existen en disco; los 4 hashes de commit (`7da47ac`, `580dde7`, `c383a29`, `64423b4`) aparecen en `git log`.
