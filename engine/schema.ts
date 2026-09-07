@@ -1,5 +1,6 @@
 // engine/schema.ts
-// Único fichero del repo (fuera de node_modules) que importa `zod`. `zod` es
+// engine/schema.ts y engine/catalogueSchema.ts son los dos únicos ficheros
+// del repo (fuera de node_modules) que importan `zod`. `zod` es
 // devDependency y no debe cruzar nunca a `app/` — este esquema corre solo en
 // Node/CI (Vitest), nunca en el navegador (T-01-19).
 import { z } from 'zod'
