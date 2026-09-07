@@ -89,12 +89,23 @@ describe('content/marvel-characters.json', () => {
       }
     })
 
-    it('todo héroe tiene health y handSize enteros mayores que 0', () => {
+    it('todo héroe tiene health, handSizeHero y handSizeAlterEgo enteros mayores que 0', () => {
       for (const hero of catalogue.heroes) {
         expect(Number.isInteger(hero.health), `hero ${hero.id} health no es entero`).toBe(true)
         expect(hero.health, `hero ${hero.id} health no es positivo`).toBeGreaterThan(0)
-        expect(Number.isInteger(hero.handSize), `hero ${hero.id} handSize no es entero`).toBe(true)
-        expect(hero.handSize, `hero ${hero.id} handSize no es positivo`).toBeGreaterThan(0)
+        expect(Number.isInteger(hero.handSizeHero), `hero ${hero.id} handSizeHero no es entero`).toBe(true)
+        expect(hero.handSizeHero, `hero ${hero.id} handSizeHero no es positivo`).toBeGreaterThan(0)
+        expect(Number.isInteger(hero.handSizeAlterEgo), `hero ${hero.id} handSizeAlterEgo no es entero`).toBe(true)
+        expect(hero.handSizeAlterEgo, `hero ${hero.id} handSizeAlterEgo no es positivo`).toBeGreaterThan(0)
+      }
+    })
+
+    // CR-01: regresión del gap — ningún héroe del catálogo lleva la clave
+    // legada handSize, ahora que el contrato guarda los dos tamaños de mano
+    // por separado (handSizeHero / handSizeAlterEgo).
+    it('ningún héroe lleva la clave legada handSize', () => {
+      for (const hero of catalogue.heroes) {
+        expect(Object.keys(hero), `hero ${hero.id} todavía lleva la clave legada handSize`).not.toContain('handSize')
       }
     })
 
