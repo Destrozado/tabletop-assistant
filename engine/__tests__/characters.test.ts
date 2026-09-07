@@ -12,20 +12,47 @@ import { describe, expect, it } from 'vitest'
 import { validateCharacterCatalogue } from '../catalogueSchema'
 
 const contentPath = fileURLToPath(new URL('../../content/marvel-characters.json', import.meta.url))
-const rawText = readFileSync(contentPath, 'utf-8')
-const rawCatalogue: unknown = JSON.parse(rawText)
-const catalogue = validateCharacterCatalogue(rawCatalogue)
 
-// CR-01 (heredado de engine/__tests__/content.test.ts, comentario junto a
-// findRawStep): un gate que afirma la AUSENCIA de una clave debe operar
-// sobre el string CRUDO del fichero, nunca sobre el objeto ya validado por
-// Zod. Con el esquema en modo estricto la clave desconocida ya lanzaría al
-// parsear, pero si algún día se relajara el esquema (o hubiera un bug en
-// él), un gate que mirase el objeto validado sería estructuralmente
-// incapaz de fallar — la clave ya habría sido descartada antes de llegar
-// a la aserción. Operar sobre `rawText` hace que este gate sea una
-// segunda barrera INDEPENDIENTE de z.strictObject, no un duplicado suyo.
+// CR-02 (05-VERIFICATION.md): antes, la lectura del fichero, el JSON.parse y
+// la validación con Zod se ejecutaban en ámbito de módulo (líneas 14-17 de
+// la versión previa). El verificador reprodujo que, si esa llamada lanzaba
+// —por ejemplo un catálogo con un id duplicado—, Vitest reportaba
+// `Test Files 1 failed` pero `Tests no tests`: ninguno de los 20 tests
+// `it.each(FORBIDDEN_KEYS)` llegaba siquiera a colectarse, y con ellos
+// desaparecía la única barrera capaz de nombrar una fuga de clave con
+// copyright. Mover la llamada al cuerpo de un `describe()` no lo arregla:
+// el callback de `describe` también se evalúa en tiempo de colección y
+// reproduce el mismo síntoma. El único sitio seguro es el cuerpo de un
+// `it()`, que se ejecuta en tiempo de test y convierte un throw en el
+// fallo de ESE test, con su propio nombre y mensaje — nunca en un error
+// genérico de colección que se traga la suite entera.
 //
+// Por eso el guardarraíl anti-copyright de más abajo depende SÓLO de
+// `readRawCatalogueText()`: un lector perezoso y memoizado que hace el
+// `readFileSync` la primera vez que se le llama, dentro de un `it()`,
+// nunca al evaluar este módulo ni al evaluar un `describe`. No pasa nunca
+// por `JSON.parse` ni por el esquema — es una segunda barrera
+// estructuralmente INDEPENDIENTE de z.strictObject, no un duplicado suyo:
+// si el esquema se relajara algún día (o tuviera un bug), este gate seguiría
+// pudiendo fallar por su cuenta, porque nunca mira el objeto ya validado.
+let cachedRawText: string | undefined
+
+function readRawCatalogueText(): string {
+  if (cachedRawText === undefined) {
+    cachedRawText = readFileSync(contentPath, 'utf-8')
+  }
+  return cachedRawText
+}
+
+// Cargador perezoso: parsea y valida en cada llamada (26 entradas, barato).
+// No memoiza el resultado ni cachea el error — así cada test que necesite
+// el catálogo validado reporta su propio fallo con su propio mensaje si el
+// esquema no se cumple, en vez de compartir un estado ya roto de una
+// llamada anterior.
+function loadValidatedCatalogue() {
+  return validateCharacterCatalogue(JSON.parse(readRawCatalogueText()))
+}
+
 // Las 20 claves de la blocklist son las claves reales devueltas por la API
 // pública de MarvelCDB (05-RESEARCH.md §"Code Examples"), en su forma
 // exacta de clave JSON (con comillas y dos puntos) para evitar falsos
@@ -62,11 +89,12 @@ function findForbiddenKey(text: string, keys: string[]): string | undefined {
 
 describe('content/marvel-characters.json', () => {
   it('valida contra CharacterCatalogueSchema', () => {
-    expect(() => validateCharacterCatalogue(rawCatalogue)).not.toThrow()
+    expect(() => loadValidatedCatalogue()).not.toThrow()
   })
 
   describe('CAT-04: guardarraíl anti-copyright sobre el string crudo', () => {
     it.each(FORBIDDEN_KEYS)('el fichero committeado no contiene la clave %s de la API de MarvelCDB', (key) => {
+      const rawText = readRawCatalogueText()
       expect(rawText, `Se encontró la clave prohibida ${key} en content/marvel-characters.json`).not.toContain(key)
     })
 
@@ -79,10 +107,12 @@ describe('content/marvel-characters.json', () => {
 
   describe('invariantes de forma sobre héroes (sin enumerar ids a mano)', () => {
     it('heroes no está vacío', () => {
+      const catalogue = loadValidatedCatalogue()
       expect(catalogue.heroes.length).toBeGreaterThan(0)
     })
 
     it('todo héroe tiene name y alterEgo no vacíos tras trim()', () => {
+      const catalogue = loadValidatedCatalogue()
       for (const hero of catalogue.heroes) {
         expect(hero.name.trim().length, `hero ${hero.id} tiene name vacío`).toBeGreaterThan(0)
         expect(hero.alterEgo.trim().length, `hero ${hero.id} tiene alterEgo vacío`).toBeGreaterThan(0)
@@ -90,6 +120,7 @@ describe('content/marvel-characters.json', () => {
     })
 
     it('todo héroe tiene health, handSizeHero y handSizeAlterEgo enteros mayores que 0', () => {
+      const catalogue = loadValidatedCatalogue()
       for (const hero of catalogue.heroes) {
         expect(Number.isInteger(hero.health), `hero ${hero.id} health no es entero`).toBe(true)
         expect(hero.health, `hero ${hero.id} health no es positivo`).toBeGreaterThan(0)
@@ -104,12 +135,14 @@ describe('content/marvel-characters.json', () => {
     // legada handSize, ahora que el contrato guarda los dos tamaños de mano
     // por separado (handSizeHero / handSizeAlterEgo).
     it('ningún héroe lleva la clave legada handSize', () => {
+      const catalogue = loadValidatedCatalogue()
       for (const hero of catalogue.heroes) {
         expect(Object.keys(hero), `hero ${hero.id} todavía lleva la clave legada handSize`).not.toContain('handSize')
       }
     })
 
     it('los id de héroe son únicos', () => {
+      const catalogue = loadValidatedCatalogue()
       const ids = catalogue.heroes.map(h => h.id)
       expect(new Set(ids).size).toBe(ids.length)
     })
@@ -117,16 +150,19 @@ describe('content/marvel-characters.json', () => {
 
   describe('invariantes de forma sobre villanos (sin enumerar ids a mano)', () => {
     it('villains no está vacío', () => {
+      const catalogue = loadValidatedCatalogue()
       expect(catalogue.villains.length).toBeGreaterThan(0)
     })
 
     it('todo villano tiene al menos una etapa', () => {
+      const catalogue = loadValidatedCatalogue()
       for (const villain of catalogue.villains) {
         expect(villain.stages.length, `villano ${villain.id} no tiene etapas`).toBeGreaterThan(0)
       }
     })
 
     it('las etapas de cada villano son consecutivas desde 1 y en orden', () => {
+      const catalogue = loadValidatedCatalogue()
       for (const villain of catalogue.villains) {
         villain.stages.forEach((s, i) => {
           expect(s.stage, `villano ${villain.id} etapa en posición ${i} tiene stage ${s.stage}, se esperaba ${i + 1}`).toBe(i + 1)
@@ -135,6 +171,7 @@ describe('content/marvel-characters.json', () => {
     })
 
     it('toda etapa tiene health entero mayor que 0 y healthPerHero/healthPerGroup booleanos', () => {
+      const catalogue = loadValidatedCatalogue()
       for (const villain of catalogue.villains) {
         for (const s of villain.stages) {
           expect(Number.isInteger(s.health), `villano ${villain.id} etapa ${s.stage} health no es entero`).toBe(true)
@@ -146,6 +183,7 @@ describe('content/marvel-characters.json', () => {
     })
 
     it('los id de villano son únicos', () => {
+      const catalogue = loadValidatedCatalogue()
       const ids = catalogue.villains.map(v => v.id)
       expect(new Set(ids).size).toBe(ids.length)
     })
@@ -157,6 +195,7 @@ describe('content/marvel-characters.json', () => {
   // añadiera un campo extra (p. ej. `healthByPlayerCount`), este test debe
   // fallar.
   it('D-11: ninguna etapa de villano lleva claves distintas a stage/health/healthPerHero/healthPerGroup', () => {
+    const catalogue = loadValidatedCatalogue()
     const expectedKeys = ['stage', 'health', 'healthPerHero', 'healthPerGroup'].sort()
     for (const villain of catalogue.villains) {
       for (const s of villain.stages) {
@@ -173,6 +212,7 @@ describe('content/marvel-characters.json', () => {
   // todo este fichero son estas dos comprobaciones de "no vacío" — jamás
   // una longitud fija de héroes ni de villanos.
   it('CAT-07: ningún test de este fichero fija un recuento de personajes, solo que las listas no estén vacías', () => {
+    const catalogue = loadValidatedCatalogue()
     expect(catalogue.heroes.length).toBeGreaterThan(0)
     expect(catalogue.villains.length).toBeGreaterThan(0)
   })
