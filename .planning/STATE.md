@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.7
-milestone_name: milestone
-status: milestone_complete
-stopped_at: v1.7 archivado y etiquetado
-last_updated: "2026-08-31T12:06:33.054Z"
-last_activity: 2026-08-31 -- milestone v1.7 cerrado (60/61 requisitos, deuda documentada)
+milestone: v1.8
+milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
+status: planning
+last_updated: "2026-09-07T12:45:27.398Z"
+last_activity: 2026-09-07
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 30
-  completed_plans: 30
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,12 +24,10 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 
 ## Current Position
 
-Phase: 04 (instalaci-n-y-funcionamiento-offline) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 04
-Last activity: 2026-09-02 -- Completed quick task 260902-0oz: renombrar las referencias a la carta/mazo de escenario como Plan Principal (pendiente escucha humana de los 5 clips regenerados)
-
-Progress: [██████████] 96%
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-09-07 — Milestone v1.8 started
 
 ## Performance Metrics
 

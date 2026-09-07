@@ -26,14 +26,27 @@ El hito se entregó en 5 fases (1, 2, 3, 03.1, 4 — 30 planes en total) a lo la
 
 Esta deuda se acepta por decisión explícita del usuario: *"no vamos a tener el tablet a corto plazo"*. No bloquea el uso real de la app, que ya está en marcha.
 
-## Next Milestone Goals
+## Current Milestone: v1.8 Elección de personajes, contadores en mesa e histórico de partidas
 
-Sin definir formalmente todavía — a decidir en la próxima sesión de planificación. Candidatos visibles desde el cierre de v1.7, en orden aproximado de lo que más directamente cierra la deuda conocida frente a lo que amplía alcance:
+**Goal:** Que la app deje de ser solo un guion y pase a conocer *vuestra* partida — quién lleva a quién, cuánta vida queda, y quién ganó la última vez.
+
+**Target features:**
+- Selectores de Villano y de Héroe por jugador en el paso «Decidid, como grupo…» (`setup.heroes.01`), con modal y filtro de texto por nombre de héroe y de alter ego, y nombre de jugador opcional (por defecto «Jugador 1…4»)
+- Catálogo de datos de los 18 héroes y 3 villanos disponibles, obtenido de MarvelCDB con el procedimiento documentado en el repo (solo nombres y cifras: vida, tamaño de mano, vida de villano por etapa y por jugador)
+- Banda de contadores fija durante la partida: «Vida villano» y HP1…HP4, con flechas ▲▼ y sin teclado, precargados con el valor correcto según la selección y el nº de jugadores
+- Los pasos que citan un valor lo muestran entre paréntesis cuando se conoce («…al valor indicado (14)»), sin tocar el texto base ni los 37 clips de voz ya generados
+- Registro de resultado (ganado/perdido) al terminar la partida, con villano, héroes, nombres, fecha, dificultad, nº de jugadores, duración y nº de rondas
+- Histórico persistente: localStorage como fuente de verdad + Firebase Firestore gratis como respaldo duradero, aprovechando su cola offline
+- Pantalla de estadísticas: % de victorias por héroe y por villano
+
+**Cambio de rumbo declarado:** este hito revierte deliberadamente cuatro exclusiones de v1 (contadores en vivo, cálculo de cifras, selección de héroes/escenario, sin base de datos) y relaja el constraint «Sin backend». Ver Key Decisions.
+
+## Candidatos para hitos posteriores
 
 - **Cerrar la deuda de dispositivo real**: obtener por fin el modelo/SO de la tablet de mesa y ejecutar en ella el guion de pruebas pendiente (VOZ-08, foco del modal, control de silencio con audio pregenerado, instalación PWA) en cuanto el tablet esté disponible.
 - **Warhammer 40.000** (W40K-01/02): el segundo juego que motivó diseñar el motor de forma genérica desde el principio.
 - **Ampliar la consulta de reglas** (REF-01/REF-02 de v2): palabras clave enlazadas dentro del texto de un paso y búsqueda por término, más allá del recorte acotado que ya cubre UI-09.
-- **Configuración avanzada** (CONF-01/02/03): selección de héroes/escenario/conjuntos modulares y el Modo Heroico como eje de dificultad independiente.
+- **Configuración avanzada restante** (CONF-02/03): escenario y conjuntos modulares concretos, y el Modo Heroico como eje de dificultad independiente. CONF-01 (selección de héroes) la entrega v1.8.
 - Revisar si AUDIO-01 (audio pregenerado) puede darse ya por completado en `REQUIREMENTS.md` de v2, dado que la Fase 03.1 lo entregó de facto durante v1.7.
 
 ## Requirements
@@ -44,19 +57,19 @@ Ver el archivo completo de resultados por requisito en `.planning/milestones/v1.
 
 ### Active
 
-(Ninguno activo fuera del hito v1.7 ya cerrado — la próxima sesión de planificación definirá el siguiente conjunto de requisitos activos a partir de "Next Milestone Goals" arriba.)
+Hito v1.8 en definición — los requisitos activos con sus REQ-IDs viven en `.planning/REQUIREMENTS.md`.
 
 ### Out of Scope
 
-- Cálculo automático de cifras (vida del villano, amenaza) — el usuario prefiere ver la fórmula tal cual y hacer la cuenta en la mesa; menos estado, menos errores
-- Contadores en vivo de vida / amenaza / estado de cada jugador — la app guía, no sustituye a los diales y fichas físicas
+- ~~Cálculo automático de cifras (vida del villano, amenaza)~~ — **revertido en v1.8**: la app precarga la vida inicial conocida y la muestra entre paréntesis en el paso. Sigue fuera la amenaza y cualquier cifra que la app tuviera que recalcular sola durante la partida
+- ~~Contadores en vivo de vida / amenaza / estado de cada jugador~~ — **revertido en v1.8** para vida de villano y de héroes (banda fija con ▲▼). Siguen fuera los contadores de amenaza y de estados; los diales físicos dejan de ser la única fuente para la vida
 - Warhammer 40.000 jugable en v1 — aparecerá en el selector, pero el contenido llega después de validar el motor con Marvel Champions
 - Pantalla de consulta de reglas (estados Aturdido/Confundido/Duro, agotamiento de mazos, límites de cartas) — no entra en v1; el foco es el flujo guiado. **Excepción acotada (D-32, Fase 2):** el aviso `⚠` de un paso concreto es clicable y muestra su consecuencia detallada en v1; lo que queda fuera es la pantalla de consulta como tal, las palabras clave enlazadas dentro del texto del paso y la búsqueda por término
 - Editor de juegos/pasos desde la web — el contenido lo escribe el desarrollador como datos versionados
 - Audio pregenerado de calidad — **superado durante v1.7**: la Fase 03.1 lo entregó de facto con Gemini TTS; se mantiene la línea aquí como registro histórico de la decisión original de v1
-- Backend, base de datos y cuentas de usuario — no hay nada que sincronizar entre dispositivos
+- ~~Backend, base de datos y cuentas de usuario~~ — **revertido en parte en v1.8**: Firebase Firestore como respaldo duradero del histórico. Siguen fuera el backend propio y las cuentas de usuario; localStorage sigue siendo la fuente de verdad y la app funciona entera sin red
 - Multiidioma — solo español en v1, aunque sin cerrar la puerta a añadir más después
-- Selección de héroes, escenario y conjuntos modulares concretos — el mini-setup se queda en jugadores y dificultad
+- ~~Selección de héroes, escenario y conjuntos modulares concretos~~ — **revertido en parte en v1.8**: se eligen villano y héroe por jugador dentro del paso de setup (no en el mini-setup). Siguen fuera el escenario y los conjuntos modulares
 
 ## Context
 
@@ -103,6 +116,12 @@ Ver el archivo completo de resultados por requisito en `.planning/milestones/v1.
 | El esquema de contenido rechaza claves desconocidas (`z.strictObject`), no las descarta (Fase 2, CR-01) | En modo *strip* el objeto que validaba CI y el que renderiza la tablet eran objetos distintos, y un `warningDetail` mal escrito daba build verde y un aviso silenciosamente no pulsable. La validación sigue siendo Node/test-time: `zod` nunca entra en el bundle cliente | Completado (Fase 2) |
 | La superficie de detalle es reutilizable (Fase 2) | `warningDetail` (un aviso) y `options[]` (una lista de elecciones) comparten `WarningDetailModal.vue`, que distingue registro con `tone: 'warning' \| 'neutral'` — una opción no es una trampa. Un recordatorio sin consecuencia no lleva afordancia de toque | Completado (Fase 2) |
 
+| v1.8 — La app pasa a llevar estado de partida (vida de villano y héroes) | El usuario constató que sobra espacio en pantalla y que los diales físicos son el punto donde más se despista el grupo. Revierte la exclusión original de contadores en vivo | Nuevo en v1.8 |
+| v1.8 — Firebase Firestore como respaldo del histórico, localStorage como fuente de verdad | El histórico debe sobrevivir a que se borren los datos del navegador, pero la partida no puede depender de la red (constraint offline). Firestore es gratis, no se pausa por inactividad y su SDK ya trae la cola offline; escribirla a mano sobre Supabase era más trabajo | Nuevo en v1.8 |
+| v1.8 — MarvelCDB como fuente de las cifras de héroes y villanos | Los valores no están en el Rules Reference sino impresos en las cartas; MarvelCDB los tiene con las FAQ posteriores ya aplicadas. Se toman solo nombres y cifras, nunca texto de carta ni arte (constraint legal). El procedimiento de obtención se documenta en el repo | Nuevo en v1.8 |
+| v1.8 — Un valor de vida equivocado no es un fallo crítico | Decisión explícita del usuario: si un número sale mal se corrige con las flechas en la mesa. D-36 (revisión humana bloqueante) sigue aplicando al texto de reglas, no a esta tabla de cifras | Nuevo en v1.8 |
+| v1.8 — El número concreto se añade entre paréntesis, sin reescribir el texto del paso | Hay 37 clips de voz pregenerada que costaron dinero real; un número variable no se puede pregenerar. Mostrar «…al valor indicado (14)» gana precisión en pantalla sin invalidar ni un solo clip ni el gate de deriva de voz | Nuevo en v1.8 |
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
@@ -121,4 +140,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-31 after closing milestone v1.7 (5 phases, 30 plans, 60/61 requirements)*
+*Last updated: 2026-09-07 — inicio del hito v1.8 (elección de personajes, contadores e histórico)*
