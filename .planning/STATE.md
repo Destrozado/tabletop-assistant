@@ -2,9 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
-status: planning
-last_updated: "2026-09-07T14:30:00.000Z"
-last_activity: 2026-09-07
+status: Roadmap creado, listo para planificar
+stopped_at: Phase 5 context gathered
+last_updated: "2026-09-07T15:23:34.091Z"
+last_activity: "2026-09-07 — Roadmap v1.8 creado: 6 fases (5-10), 58/58 requisitos v1.8 mapeados, sin huérfanos"
 progress:
   total_phases: 6
   completed_phases: 0
@@ -151,6 +152,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-31T11:07:17.776Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-instalaci-n-y-funcionamiento-offline/04-CONTEXT.md
+Last session: 2026-09-07T15:23:34.081Z
+Stopped at: Phase 5 context gathered
+Resume file: .planning/phases/05-cat-logo-de-h-roes-y-villanos/05-CONTEXT.md
