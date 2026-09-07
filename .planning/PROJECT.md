@@ -32,7 +32,7 @@ Esta deuda se acepta por decisión explícita del usuario: *"no vamos a tener el
 
 **Target features:**
 - Selectores de Villano y de Héroe por jugador en el paso «Decidid, como grupo…» (`setup.heroes.01`), con modal y filtro de texto por nombre de héroe y de alter ego, y nombre de jugador opcional (por defecto «Jugador 1…4»)
-- Catálogo de datos de los 18 héroes y 3 villanos disponibles, obtenido de MarvelCDB con el procedimiento documentado en el repo (solo nombres y cifras: vida, tamaño de mano, vida de villano por etapa y por jugador)
+- Catálogo de datos de los 23 héroes y 3 villanos disponibles, obtenido de MarvelCDB con el procedimiento documentado en el repo (solo nombres y cifras: vida, tamaño de mano, vida de villano por etapa y por jugador)
 - Banda de contadores fija durante la partida: «Vida villano» y HP1…HP4, con flechas ▲▼ y sin teclado, precargados con el valor correcto según la selección y el nº de jugadores
 - Los pasos que citan un valor lo muestran entre paréntesis cuando se conoce («…al valor indicado (14)»), sin tocar el texto base ni los 37 clips de voz ya generados
 - Registro de resultado (ganado/perdido) al terminar la partida, con villano, héroes, nombres, fecha, dificultad, nº de jugadores, duración y nº de rondas

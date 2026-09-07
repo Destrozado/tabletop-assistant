@@ -13,7 +13,7 @@
 
 ### CAT — Catálogo de héroes y villanos
 
-- [ ] **CAT-01**: El repo contiene un catálogo versionado de los 18 héroes disponibles con, por cada uno: nombre de héroe, nombre de alter ego, vida inicial y tamaño de mano
+- [ ] **CAT-01**: El repo contiene un catálogo versionado de los 23 héroes disponibles con, por cada uno: nombre de héroe, nombre de alter ego, vida inicial y tamaño de mano
 - [ ] **CAT-02**: El repo contiene un catálogo versionado de los 3 villanos disponibles (Rhino, Ultron, Kang) con su vida por etapa, indicando explícitamente si esa cifra es por jugador o total
 - [ ] **CAT-03**: Un script committeado regenera el catálogo desde la API pública de MarvelCDB, y su uso está documentado de forma que otra persona pueda re-ejecutarlo
 - [ ] **CAT-04**: El script extrae únicamente una lista blanca de campos (nombres y cifras); ningún texto de carta, cita de sabor ni referencia a imagen entra en el repo
@@ -26,7 +26,7 @@
 - [ ] **SEL-01**: En el paso «Decidid, como grupo, qué villano vais a enfrentar…» hay un selector de Villano
 - [ ] **SEL-02**: Tocar el selector de villano abre un modal con los 3 villanos y permite elegir uno
 - [ ] **SEL-03**: Hay un selector de héroe por jugador, tantos como el nº de jugadores elegido en el mini-setup
-- [ ] **SEL-04**: Tocar un selector de héroe abre un modal con los 18 héroes
+- [ ] **SEL-04**: Tocar un selector de héroe abre un modal con los 23 héroes
 - [ ] **SEL-05**: El modal de héroes tiene un filtro de texto arriba que busca a la vez por nombre de héroe y por nombre de alter ego, insensible a mayúsculas y a acentos
 - [ ] **SEL-06**: Cada jugador tiene un nombre editable y opcional, con valor por defecto «Jugador 1»…«Jugador 4»
 - [ ] **SEL-07**: Si dos jugadores eligen el mismo héroe se marca visualmente como repetido, pero se puede continuar — la app no bloquea una regla que el Rules Reference no escribe

@@ -29,7 +29,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 
 ### Phases
 
-- [ ] **Phase 5: Catálogo de héroes y villanos** - Datos versionados, reproducibles y legales de los 18 héroes y 3 villanos, sin salir nunca del bundle
+- [ ] **Phase 5: Catálogo de héroes y villanos** - Datos versionados, reproducibles y legales de los 23 héroes y 3 villanos, sin salir nunca del bundle
 - [ ] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente
 - [ ] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7
 - [ ] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz
@@ -40,11 +40,11 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 
 ### Phase 5: Catálogo de héroes y villanos
 
-**Goal**: El repo tiene un catálogo fiable, reproducible y legal de los 18 héroes y 3 villanos disponibles —nombres y cifras, nunca texto de carta ni arte— validado en CI y disponible sin red, listo para alimentar la selección y los contadores de las fases siguientes.
+**Goal**: El repo tiene un catálogo fiable, reproducible y legal de los 23 héroes y 3 villanos disponibles —nombres y cifras, nunca texto de carta ni arte— validado en CI y disponible sin red, listo para alimentar la selección y los contadores de las fases siguientes.
 **Depends on**: Nada nuevo — se apoya en el motor y el esquema de contenido de v1.7 ya en producción (primera fase de este hito).
 **Requirements**: CAT-01, CAT-02, CAT-03, CAT-04, CAT-05, CAT-06, CAT-07
 **Success Criteria** (what must be TRUE):
-  1. Un test de Vitest en CI valida el catálogo completo (18 héroes + 3 villanos) contra un esquema Zod y falla la build si el contenido está malformado.
+  1. Un test de Vitest en CI valida el catálogo completo (23 héroes + 3 villanos) contra un esquema Zod y falla la build si el contenido está malformado.
   2. La vida de cada villano está modelada por etapa y por nº de jugadores desde el principio, no como una cifra plana que solo sirve para un caso.
   3. Existe un script committeado y documentado que regenera el catálogo desde la API pública de MarvelCDB; volver a ejecutarlo sobre el mismo origen produce el mismo resultado, y el propio fichero documenta cómo añadir un héroe o villano nuevo en una sola fila.
   4. El catálogo committeado no contiene ningún texto de carta, cita de sabor ni referencia a imagen — el script proyecta explícitamente una lista blanca de campos, nunca la respuesta completa de la API.
@@ -59,7 +59,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 **Requirements**: SEL-01, SEL-02, SEL-03, SEL-04, SEL-05, SEL-06, SEL-07, SEL-08, SEL-09
 **Success Criteria** (what must be TRUE):
   1. Un grupo puede tocar el selector de Villano en «Decidid, como grupo…» y elegir uno de los 3 villanos en un modal.
-  2. Un grupo puede tocar un selector de héroe por jugador (tantos como el nº elegido en el mini-setup) y filtrar los 18 héroes escribiendo el nombre del héroe o del alter ego, insensible a mayúsculas y a acentos.
+  2. Un grupo puede tocar un selector de héroe por jugador (tantos como el nº elegido en el mini-setup) y filtrar los 23 héroes escribiendo el nombre del héroe o del alter ego, insensible a mayúsculas y a acentos.
   3. Cada jugador tiene un nombre editable con valor por defecto «Jugador 1»…«Jugador 4», y elegir el mismo héroe en dos huecos se marca visualmente como repetido sin bloquear la partida.
   4. Recargar la página a mitad de partida conserva exactamente la selección hecha (villano, héroes, nombres).
   5. Un grupo que no toca ningún selector juega exactamente como en v1.7, sin ningún hueco ni exigencia nueva.
