@@ -63,6 +63,9 @@ const API_BASE = 'https://marvelcdb.com/api/public'
 const CATALOGUE_PATH = 'content/marvel-characters.json'
 const GAME_ID = 'marvel-champions'
 const STAGE_MAP = { I: 1, II: 2, III: 3 }
+// Pausa fija entre peticiones HTTP sucesivas (ver comentario junto a
+// fetchCard más abajo) — pacing, no reintento ante fallo.
+const REQUEST_DELAY_MS = 1500
 
 // Nota deliberada: no existe ninguna constante de espera/reintento aquí, a
 // diferencia de scripts/voice/generate.mjs. MarvelCDB no tiene cuota ni 429
@@ -139,6 +142,10 @@ function slugify(name) {
     .replace(/^-+|-+$/g, '')
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 async function fetchCard(code) {
   const response = await fetch(`${API_BASE}/card/${code}.json`)
   if (!response.ok) {
@@ -147,7 +154,16 @@ async function fetchCard(code) {
     const bodyText = await response.text().catch(() => '')
     throw new Error(`Código ${code}: MarvelCDB respondió HTTP ${response.status}. Cuerpo (primeros 200 caracteres): ${bodyText.slice(0, 200)}`)
   }
-  return response.json()
+  const json = await response.json()
+  // Espaciado fijo entre peticiones secuenciales, no un reintento: sin esta
+  // pausa, ráfagas de conexiones sucesivas a marvelcdb.com empezaron a
+  // agotar el tiempo de conexión (nunca un HTTP 500) tras las primeras ~9
+  // peticiones durante la verificación de este script. No es la puerta
+  // D-05/D-06 (esa sigue abortando ante cualquier respuesta no-ok, sin
+  // reintentar); esto solo evita disparar ese límite de conexión en primer
+  // lugar.
+  await sleep(REQUEST_DELAY_MS)
+  return json
 }
 
 function extractHero({ code, expectedName }) {
