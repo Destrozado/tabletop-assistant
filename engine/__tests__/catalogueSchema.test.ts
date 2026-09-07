@@ -8,7 +8,7 @@ function baseCatalogue() {
   return {
     gameId: 'marvel-champions',
     heroes: [
-      { id: 'spider-man', name: 'Spider-Man', alterEgo: 'Peter Parker', health: 10, handSize: 6 },
+      { id: 'spider-man', name: 'Spider-Man', alterEgo: 'Peter Parker', health: 10, handSizeHero: 5, handSizeAlterEgo: 6 },
     ],
     villains: [
       {
@@ -56,6 +56,15 @@ describe('CharacterCatalogueSchema', () => {
       ;(catalogue.villains[0].stages[0] as any).illustrator = 'Some Artist'
       expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
     })
+
+    // CR-01: la clave legada handSize ya no existe en el contrato — un
+    // héroe que la traiga (además de los dos campos nuevos) tiene que
+    // rechazarse, para que un catálogo sin regenerar no pase CI en silencio.
+    it('lanza ZodError con la clave handSize legada en un héroe', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.heroes[0] as any).handSize = 6
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
   })
 
   describe('tipos y rangos', () => {
@@ -71,9 +80,15 @@ describe('CharacterCatalogueSchema', () => {
       expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
     })
 
-    it('lanza ZodError con handSize negativo', () => {
+    it('lanza ZodError con handSizeHero negativo', () => {
       const catalogue = baseCatalogue()
-      catalogue.heroes[0].handSize = -1
+      catalogue.heroes[0].handSizeHero = -1
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con handSizeAlterEgo negativo', () => {
+      const catalogue = baseCatalogue()
+      catalogue.heroes[0].handSizeAlterEgo = -1
       expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
     })
 
@@ -99,7 +114,7 @@ describe('CharacterCatalogueSchema', () => {
 
     it('no lanza con name "Ms. Marvel" e id "ms-marvel"', () => {
       const catalogue = baseCatalogue()
-      catalogue.heroes[0] = { id: 'ms-marvel', name: 'Ms. Marvel', alterEgo: 'Kamala Khan', health: 10, handSize: 5 }
+      catalogue.heroes[0] = { id: 'ms-marvel', name: 'Ms. Marvel', alterEgo: 'Kamala Khan', health: 10, handSizeHero: 5, handSizeAlterEgo: 6 }
       expect(() => CharacterCatalogueSchema.parse(catalogue)).not.toThrow()
     })
   })
@@ -161,7 +176,7 @@ describe('CharacterCatalogueSchema', () => {
   describe('unicidad de ids', () => {
     it('lanza ZodError si dos héroes comparten id', () => {
       const catalogue = baseCatalogue()
-      catalogue.heroes.push({ id: 'spider-man', name: 'Spider-Man', alterEgo: 'Peter Parker', health: 10, handSize: 6 })
+      catalogue.heroes.push({ id: 'spider-man', name: 'Spider-Man', alterEgo: 'Peter Parker', health: 10, handSizeHero: 5, handSizeAlterEgo: 6 })
       expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
     })
 
