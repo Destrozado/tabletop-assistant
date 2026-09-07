@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
-status: executing
-stopped_at: Phase 5 gap-closure plans ready (05-04, 05-05) — verificados por gsd-plan-checker
-last_updated: "2026-09-07T20:53:29.206Z"
+status: ready_to_plan
+stopped_at: Phase 05 complete (6/6) — ready to discuss Phase 6
+last_updated: 2026-09-07T21:28:51.059Z
 last_activity: 2026-09-07 -- Phase 05 execution started
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 36
   percent: 0
 ---
 
@@ -21,20 +21,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-28)
 
 **Core value:** Que un grupo pueda jugar una partida completa de Marvel Champions de principio a fin sin abrir el reglamento y sin olvidarse de ningún paso.
-**Current focus:** Phase 05 — cat-logo-de-h-roes-y-villanos
+**Current focus:** Phase 6 — selección de villano, héroes y jugadores
 
 ## Current Position
 
-Phase: 05 (cat-logo-de-h-roes-y-villanos) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 05
-Last activity: 2026-09-07 -- Phase 05 execution started
+Phase: 6
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-07
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 18
+- Total plans completed: 24
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -45,6 +45,7 @@ Last activity: 2026-09-07 -- Phase 05 execution started
 | 01 | 8 | - | - |
 | 02 | 5 | - | - |
 | 03 | 5 | - | - |
+| 05 | 6 | - | - |
 
 **Recent Trend:**
 

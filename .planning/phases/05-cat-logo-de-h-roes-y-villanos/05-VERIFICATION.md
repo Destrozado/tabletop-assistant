@@ -1,166 +1,140 @@
 ---
 phase: 05-cat-logo-de-h-roes-y-villanos
-verified: 2026-09-07T22:05:00Z
-status: gaps_found
-score: 6/8 must-haves verificados
+verified: 2026-09-07T23:40:00Z
+status: passed
+score: 8/8 must-haves verificados
 overrides_applied: 0
 re_verification:
   previous_status: gaps_found
-  previous_score: 5/7
+  previous_score: 6/8
   gaps_closed:
-    - "CR-01: el campo handSize del catálogo distingue lado héroe (handSizeHero) y lado alter ego (handSizeAlterEgo), Spider-Man 5/6 confirmado contra el Rules Reference v1.7"
-    - "CR-02: el guardarraíl anti-copyright y el gate de aislamiento leen/validan de forma perezosa dentro de cada it(), reproducido con una mutación real: 34 tests siguen colectándose, la clave prohibida se nombra en su propio fallo, sin 'no tests'"
+    - "CR-01 (05-VERIFICATION.md original): handSize por cara (handSizeHero/handSizeAlterEgo), Spider-Man 5/6 confirmado contra el RR v1.7 — ya cerrado en la ronda anterior, reconfirmado aquí sin regresión"
+    - "CR-02 (05-VERIFICATION.md original): gate anti-copyright y gate de aislamiento estructuralmente independientes, con carga perezosa dentro de it() — ya cerrado en la ronda anterior, reconfirmado aquí sin regresión (estructura de characters.test.ts intacta tras la oleada 6)"
+    - "Truth #8 / CAT-02 (gap nuevo de la ronda anterior): el catálogo de villanos ahora representa la salud de Kang en modo Experto (expert 15/22/25 por etapa, sub-objeto opcional), Rhino y Ultron correctamente sin la clave — verificado de forma independiente contra el código, los datos committeados y una regeneración en vivo desde la API"
   gaps_remaining: []
   regressions: []
-gaps:
-  - truth: "El catálogo committeado de villanos representa fielmente todas las cifras que el propio contenido de la app ya instruye usar, incluida la salud de Kang en modo Experto (CLAUDE.md §Constraints — fidelidad de reglas; CAT-02)"
-    status: failed
-    reason: >
-      Confirmado de forma independiente contra `05-REVIEW.md` (hallazgo CR-01 de esa
-      revisión, verificado en vivo por el revisor contra la propia API de MarvelCDB, y
-      recontrastado aquí leyendo `content/marvel-champions.json` y
-      `scripts/catalogue/fetch-marvelcdb.mjs`): `VillainStage`/`VillainSchema` modelan una
-      única tabla de etapas por villano, sin ninguna dimensión de dificultad. El pack
-      `toafk` trae un segundo conjunto paralelo de Kang bajo `card_set_code: exp_kang`
-      (15/22/25 en vez de 12/18/20 committeados), y el script lo excluye a propósito
-      (`scripts/catalogue/fetch-marvelcdb.mjs:123-126`). El problema no es teórico:
-      `content/marvel-champions.json` (variante `expert` del escenario de Kang) ya
-      instruye literalmente "Sustituid las cartas de villano numeradas por las del modo
-      Experto de este escenario" — y la app pide la dificultad al usuario desde el propio
-      mini-setup (`Difficulty = 'normal' | 'expert'`, `engine/types.ts:6`). En cuanto la
-      Fase 6/7 lea este catálogo en una partida en modo Experto, narrará 12/18/20 cuando
-      la mesa tiene físicamente las cartas de 15/22/25 — exactamente "un asistente que guía
-      mal", el fallo que CLAUDE.md declara peor que no tener asistente.
-      `05-RESEARCH.md:445` sí registró la existencia de `exp_kang` ("fuera de alcance de
-      D-02/D-03 salvo decisión futura explícita"), pero esa deferencia **no llegó al
-      contrato**: ni el esquema, ni `engine/types.ts`, ni un solo test dejan constancia de
-      que `stages` es solo modo estándar. Revisado el ROADMAP.md completo: el objetivo y
-      los criterios de éxito de la Fase 7 ("Vida de villano y héroes en pantalla... según
-      villano, héroe y nº de jugadores cuando se conoce") no mencionan dificultad en
-      absoluto — ninguna fase posterior reclama explícitamente resolver este hueco. No es
-      un diferido válido: es una limitación conocida que se quedó fuera del contrato de
-      datos sin ningún marcador, lista para congelarse en la forma que la Fase 6 va a
-      importar.
-    artifacts:
-      - path: "content/marvel-characters.json"
-        issue: "villains[kang].stages solo lleva la tabla estándar (12/18/20); no existe ningún campo ni fila para el modo Experto (15/22/25)."
-      - path: "engine/catalogueSchema.ts"
-        issue: "VillainStageSchema (líneas 34-39) no declara ninguna dimensión de dificultad; nada distingue 'esto es solo modo estándar'."
-      - path: "engine/types.ts"
-        issue: "VillainStage (líneas ~124-129) no documenta ni modela la limitación de alcance a modo estándar."
-      - path: "scripts/catalogue/fetch-marvelcdb.mjs"
-        issue: "líneas 123-126: el comentario presenta la exclusión de los códigos exp_kang como una protección, no como un hueco de alcance del contrato."
-    missing:
-      - "Salida buena: modelar la dificultad en la etapa (campo opcional `expert` con health/healthPerHero/healthPerGroup) y añadir las filas exp_kang (11034/11035/11039) al generador, regenerando el catálogo."
-      - "Mínimo aceptable si se difiere: renombrar el campo a algo que no se lea como universal (p. ej. `standardStages`) y añadir un test ejecutable que fije la limitación, para que la Fase 7 no pueda pintar salud de villano en partidas Expertas sin tropezar con un aviso explícito."
+gaps: []
+deferred: []
 human_verification: []
 ---
 
-# Fase 5: Catálogo de héroes y villanos — Informe de re-verificación
+# Fase 5: Catálogo de héroes y villanos — Informe de re-verificación (tras oleada 6)
 
 **Objetivo de la fase:** El repo tiene un catálogo fiable, reproducible y legal de los 23 héroes y 3 villanos disponibles —nombres y cifras, nunca texto de carta ni arte— validado en CI y disponible sin red, listo para alimentar la selección y los contadores de las fases siguientes.
-**Verificado:** 2026-09-07T22:05:00Z
-**Estado:** gaps_found
-**Re-verificación:** Sí — tras cierre de gaps CR-01 (05-04) y CR-02 (05-05)
+**Verificado:** 2026-09-07T23:40:00Z
+**Estado:** passed
+**Re-verificación:** Sí — tras el cierre del gap de truth #8 (plan 05-06, dimensión de dificultad en la etapa de villano)
 
 ## Contexto de esta re-verificación
 
-La verificación inicial (05-VERIFICATION.md previo) encontró 2 gaps BLOCKER (CR-01,
-CR-02) sobre 7 truths. Se ejecutaron dos planes de cierre (05-04, 05-05). Esta
-re-verificación reproduce empíricamente ambos cierres (no se acepta la palabra de los
-SUMMARY) y además incorpora los hallazgos de una revisión de código fresca
-(`05-REVIEW.md`, 1 crítico / 7 warnings / 9 info) que se ejecutó después del cierre de
-gaps, evaluando cada uno contra el objetivo de fase y el propio `05-RESEARCH.md` para
-decidir si son gaps reales de la Fase 05 o alcance correctamente diferido.
+La re-verificación anterior (`05-VERIFICATION.md`, `score: 6/8`) dejó cerrados de forma
+reproducida los dos gaps originales (CR-01 tamaño de mano, CR-02 gate anti-copyright
+estructural) y encontró un gap nuevo: el catálogo de villanos modelaba una única tabla
+de etapas, sin dimensión de dificultad, mientras `content/marvel-champions.json` ya
+instruye sustituir cartas de villano en modo Experto. El plan 05-06 (oleada de cierre)
+implementó la "salida buena" indicada por esa verificación: un sub-objeto `expert`
+opcional por etapa. Esta re-verificación:
 
-## Gaps cerrados (verificados de forma independiente, no solo leídos en el SUMMARY)
+1. No acepta la palabra del SUMMARY de 05-06: reconstruye la evidencia leyendo el
+   código y los datos directamente, y reproduce una mutación propia.
+2. Hace un chequeo de regresión rápido sobre los dos gaps ya cerrados en la ronda
+   anterior (CR-01, CR-02), que no fueron tocados por la oleada 6 salvo
+   `characters.test.ts` (sí modificado; se revisó su estructura completa).
+3. Lee `05-REVIEW.md` (revisión de código del estado final, 1 crítico / 15 warnings /
+   13 info) y evalúa cada hallazgo relevante contra los must-haves de esta fase, sin
+   heredar automáticamente su veredicto de severidad.
 
-### CR-01 — tamaño de mano por cara ✓ CERRADO
+## Verificación independiente del cierre del gap de truth #8 (CAT-02, dificultad en la etapa de villano)
 
-- **Contrato:** `engine/types.ts` y `engine/catalogueSchema.ts` declaran `handSizeHero` +
-  `handSizeAlterEgo`; la clave legada `handSize` ya no existe en ningún fichero del repo
-  (`grep -n handSize` no devuelve ningún campo sin cualificar).
-- **Datos:** `content/marvel-characters.json` guarda los 23 héroes con los dos campos.
-  Spider-Man: `handSizeHero: 5`, `handSizeAlterEgo: 6`.
-- **Verificación independiente contra el PDF oficial:** `pdftotext -layout
-  reference/mc_rulesreference_v17-compressed.pdf -` → línea 3679: `HAND SIZE 5 / HIT
-  POINTS 10 ... HAND SIZE 6 / HIT POINTS 10` (ejemplo impreso de la carta de Spider-Man,
-  Apéndice III) — coincide exactamente con 5/6. Confirma que el fix es correcto, no solo
-  que compila.
-- **Comentario D-09:** corregido en `scripts/catalogue/fetch-marvelcdb.mjs:197-210`; ya
-  no afirma que el hand_size del lado héroe sea "un modificador de habilidad, no el
-  tamaño de mano real" — cita el RR v1.7 y explica por qué se guardan los dos valores.
-- **Esquema rechaza la clave legada:** `engine/__tests__/catalogueSchema.test.ts:63-67`
-  inserta `handSize` en un héroe sintético y confirma `ZodError` (probado en la suite
-  verde, 239/239).
+- **Contrato de tipos** (`engine/types.ts:144-154`): `VillainStage` conserva
+  `stage/health/healthPerHero/healthPerGroup` sin cambios y añade
+  `expert?: { health, healthPerHero, healthPerGroup }` como quinto campo opcional —
+  confirmado leyendo el fichero directamente, no citando el SUMMARY.
+- **Esquema Zod** (`engine/catalogueSchema.ts:45-57`): `ExpertVillainStageSchema` es un
+  `z.strictObject` de los tres campos (quinto `z.strictObject` del fichero — confirmado
+  con `grep -c "z.strictObject("` → 5), referenciado como
+  `expert: ExpertVillainStageSchema.optional()` sin `.default()`.
+- **Datos committeados** (`content/marvel-characters.json`, leídos con Python, no con
+  grep superficial): Kang lleva `expert` en sus tres etapas con
+  `{15,true,false} / {22,false,false} / {25,true,false}` — coincide exactamente con la
+  tabla de la API citada en el plan. Rhino y Ultron no llevan la clave `expert` en
+  ninguna etapa.
+- **Generador** (`scripts/catalogue/fetch-marvelcdb.mjs`): las tres filas de Kang
+  declaran `expertCode: '11034'/'11035'/'11039'` y `expectedExpertSetCode: 'exp_kang'`;
+  `extractVillainStage` valida que `expertCode`/`expectedExpertSetCode` viajen juntos y
+  que `expertCode !== code`.
+- **Regeneración en vivo ejecutada por este verificador** (no solo citada del SUMMARY):
+  `npm run catalogue:generate` contra la API pública de MarvelCDB → `git status
+  --porcelain content/marvel-characters.json` vacío tras la regeneración. Esto
+  reconfirma D-10 (determinismo byte a byte) **y** que la API en vivo sigue devolviendo
+  las mismas cifras 15/22/25 hoy, no solo en el momento de la planificación.
+- **Mutación propia reproducida por este verificador** (no aceptada del SUMMARY): se
+  borró `kang.stages[0].expert` de `content/marvel-characters.json` y se ejecutó
+  `npx vitest run --project engine engine/__tests__/characters.test.ts`:
+  - Resultado: `Test Files 1 failed (1)`, `Tests 1 failed | 36 passed (37)`.
+  - El test falla individualmente por nombre (`Kang: expert.health y sus banderas son
+    15/22/25...`) con el mensaje `kang etapa 1: no lleva expert: expected undefined to
+    be defined` — exactamente lo documentado en 05-06-SUMMARY.md, reproducido de forma
+    independiente.
+  - Fichero revertido con éxito (`git status --porcelain` vacío tras revertir).
+- **Suite completa reconfirmada por este verificador:** `npx vitest run --project
+  engine` → `Test Files 12 passed (12)`, `Tests 251 passed (251)` (239 previos + 12
+  nuevos: 9 en `catalogueSchema.test.ts` describe `expert`, 3 en `characters.test.ts`
+  describe `CAT-02`). `npm run test` (suite completa del repo) → `Test Files 17 passed
+  (17)`, `Tests 374 passed (374)`, coincide con lo declarado en el contexto de esta
+  tarea.
 
-### CR-02 — gate anti-copyright estructuralmente independiente ✓ CERRADO
+**Conclusión: el gap de truth #8 está cerrado de verdad**, con evidencia reproducida de
+forma independiente por este verificador (código, datos, regeneración en vivo y
+mutación), no solo citada del SUMMARY de 05-06.
 
-- **Código:** ninguna lectura de fichero, `JSON.parse` ni llamada a
-  `validateCharacterCatalogue()` ocurre en ámbito de módulo o de `describe()` en
-  `engine/__tests__/characters.test.ts` ni en `engine/__tests__/catalogue-isolation.test.ts`
-  — confirmado leyendo los dos ficheros completos. Toda la carga vive dentro de
-  `loadValidatedCatalogue()` (no memoizada) o de lectores perezosos por-fichero, llamados
-  únicamente dentro de cuerpos de `it()`.
-- **Reproducción propia de la mutación (no se aceptó la palabra del SUMMARY):** se
-  insertó en `content/marvel-characters.json` una copia mutada de Spider-Man con
-  `"flavor": "cita de sabor con copyright"` (violación de copyright) y un `id` duplicado
-  respecto a otro héroe ya presente (violación de esquema no relacionada), y se ejecutó
-  `npx vitest run --project engine engine/__tests__/characters.test.ts` directamente
-  desde este verificador:
-  - Resultado: `Test Files 1 failed (1)`, `Tests 14 failed | 20 passed (34)`.
-  - **Sin ningún "no tests"** — se colectan y ejecutan los 34 tests, igual que en el
-    baseline.
-  - El test `el fichero committeado no contiene la clave "flavor": de la API de
-    MarvelCDB` falla **individualmente**, con mensaje `Se encontró la clave prohibida
-    "flavor": en content/marvel-characters.json` — exactamente el comportamiento que CR-02
-    exige.
-  - Fichero revertido con éxito (`git status --porcelain content/marvel-characters.json`
-    vacío tras revertir); `npm run test`/`vitest --project engine` vuelven a 239/239 verde.
-- **Prueba B (aislamiento de `package.json`) reproducida de forma independiente:** se
-  corrompió `package.json` (quitando la llave de cierre) y se ejecutó Vitest
-  directamente. Resultado idéntico al documentado en 05-05-SUMMARY.md: Vite/rolldown
-  falla al arrancar (`[UNHANDLEABLE_ERROR]... JSONError ... at bundleConfigFile ...
-  createVitest`) **antes** de colectar ningún test — confirma que la limitación
-  documentada en el SUMMARY es real, no una excusa fabricada, y que el límite de fallo
-  está en la cadena de herramientas (Vite necesita parsear `package.json` para arrancar
-  su propio config), no en el gate que este plan reestructuró. `package.json` restaurado
-  y verificado limpio (`git status --porcelain` vacío).
+## Chequeo de regresión de los gaps ya cerrados en la ronda anterior
 
-**Conclusión sobre los dos gaps originales: ambos cerrados de verdad, con evidencia
-reproducida por este verificador, no solo citada del SUMMARY.**
+- **CR-01 (handSize por cara):** `engine/types.ts` y `engine/catalogueSchema.ts` siguen
+  declarando `handSizeHero`/`handSizeAlterEgo`; ningún cambio de la oleada 6 tocó estos
+  campos. Sin regresión.
+- **CR-02 (gate estructuralmente independiente):** la oleada 6 sí modificó
+  `engine/__tests__/characters.test.ts` (añadió el describe `CAT-02` y reescribió el
+  gate D-11). Se releyó el fichero completo: `readFileSync`/`JSON.parse`/
+  `validateCharacterCatalogue(` solo aparecen dentro de los cuerpos de
+  `readRawCatalogueText()` y `loadValidatedCatalogue()`, ambas invocadas únicamente
+  dentro de `it()` — la estructura de CR-02 sigue intacta. `engine/__tests__/
+  catalogue-isolation.test.ts` no está en `files_modified` de ninguno de los planes de
+  la oleada 6; se releyó igualmente y su estructura de lectores perezosos no cambió.
 
-## Hallazgo nuevo de `05-REVIEW.md`: ¿gap de Fase 05 o alcance diferido?
+Sin regresiones.
 
-El crítico de la revisión (CR-01 de `05-REVIEW.md`, distinto del CR-01 de gap-closure ya
-cerrado) señala que el catálogo de villanos no puede representar la salud de Kang en modo
-Experto (15/22/25), mientras `content/marvel-champions.json` ya instruye el cambio de
-cartas para ese modo. Se ha verificado:
+## Hallazgo nuevo de `05-REVIEW.md` (revisión post-oleada-6): ¿gap de Fase 05?
 
-1. **`05-RESEARCH.md:445-448` sí documenta el hueco** como conocido, calificándolo "fuera
-   de alcance de D-02/D-03... salvo decisión futura explícita".
-2. **Pero esa deferencia nunca llegó al contrato de datos**: `VillainStage`/`VillainSchema`
-   no llevan ningún marcador de "solo modo estándar", ni existe un test que lo documente
-   o lo bloquee.
-3. **Revisado `.planning/ROADMAP.md` completo (Fases 6-10):** ninguna fase posterior
-   reclama explícitamente resolver la salud de villano por dificultad. El objetivo/success
-   criteria de la Fase 7 ("Vida de villano y héroes en pantalla... según villano, héroe y
-   nº de jugadores cuando se conoce") no menciona dificultad en ningún punto.
+`05-REVIEW.md` (revisado 2026-09-07T23:30:00Z, cubre explícitamente el estado final
+incluida la oleada 6) confirma en su propio texto que "el CR-01 del informe anterior...
+**está resuelto**" y reporta un **CR-01 nuevo** con el mismo número pero distinto
+contenido: `content/marvel-champions.json` (paso `setup.escenario.04`, variante
+`expert`) instruye **sin condición** "Sustituid las cartas de villano numeradas por las
+del modo Experto de este escenario", lo cual es falso para Rhino y Ultron (que —
+correctamente, según el catálogo de esta fase y el RR v1.7 p.28: "using the **listed**
+expert mode villain stages"— no tienen ningún set de villano Experto).
 
-**Veredicto: esto es un gap real de la Fase 05, no un diferido válido.** La diferencia
-entre "documentado como límite conocido en research" y "diferido explícitamente a una
-fase futura con criterio de éxito propio" es exactamente la que separa un diferido
-aceptable (Paso 9b de este proceso) de un hueco silencioso. Aquí no hay ninguna fase
-posterior que reclame esta responsabilidad — Phase 7 asumirá implícitamente que las
-cifras del catálogo son universales. Es además exactamente el escenario que CLAUDE.md
-declara peor que no tener asistente ("un asistente que guía mal"), y el coste de
-arreglarlo solo crece: la forma que se congele en esta fase es la que la Fase 6 va a
-importar. Se añade como gap nuevo (ver frontmatter) — no se re-abren CR-01/CR-02, que
-están cerrados.
+**Evaluado contra el alcance de la Fase 05 y desestimado como gap de esta fase:**
 
-**Nota de alcance:** el hallazgo NO afecta a Rhino ni a Ultron —ambos son pack `core`
-sin `card_set_code` alternativo conocido— y no invalida ninguno de los cierres de CR-01
-ni CR-02 verificados arriba.
+1. El propio informe de revisión etiqueta el fichero síntoma como "consumidor
+   afectado... **fuera del scope de esta revisión**" y el fix propuesto dice
+   literalmente "fichero fuera de scope, pero es donde vive el síntoma".
+2. `content/marvel-champions.json` es contenido de las Fases 1-3 (confirmado con
+   `git log --follow`: commits `feat(01-...)`, `feat(02-...)`, `content(03-01)`), no un
+   artefacto de la Fase 05. Ninguno de los requisitos CAT-01 a CAT-07 cubre el texto de
+   los pasos de escenario.
+3. El catálogo de la Fase 05 en sí **es fiel**: no afirma que Rhino/Ultron tengan set
+   Experto (el test `'Rhino y Ultron: ninguna etapa lleva la clave expert'` lo fija como
+   invariante correcta) — el defecto vive enteramente en el paso narrado por otra fase,
+   que no cruza su afirmación contra este catálogo.
+
+Por tanto **no se cuenta como gap de la Fase 05** (instrucción explícita de esta
+verificación: no heredar automáticamente el veredicto de severidad de la revisión
+quirúrgica cuando el propio hallazgo señala alcance fuera de fase). Se deja constancia
+en la sección de anti-patrones como nota informativa de calidad cruzada entre fases,
+recomendable para una fase de contenido de escenario (Fase 2/3) o para la Fase 6/7 antes
+de narrar el paso en una partida real de Rhino/Ultron en modo Experto.
 
 ## Goal Achievement
 
@@ -168,50 +142,49 @@ ni CR-02 verificados arriba.
 
 | # | Truth | Estado | Evidencia |
 |---|-------|--------|-----------|
-| 1 | Un test de Vitest en CI valida el catálogo completo contra un esquema Zod y falla la build si el contenido está malformado | ✓ VERIFICADO | `npx vitest run --project engine` → 239/239 en verde sobre datos actuales; mutación propia (flavor + id duplicado) → `Test Files 1 failed`, CI (`ci.yml`) ejecuta `npm run test` en cada push/PR. |
-| 2 | La vida de cada villano está modelada por etapa y por nº de jugadores desde el principio, no como cifra plana | ✓ VERIFICADO | `content/marvel-characters.json`: cada etapa `{stage, health, healthPerHero, healthPerGroup}`; Kang confirmado con flags que varían por etapa (12/true, 18/false, 20/true) — la forma nunca es una cifra plana. (Nota: esto no cubre el hueco de dificultad, ver gap nuevo arriba — la truth tal como está literalmente escrita en el ROADMAP sí se cumple). |
-| 3 | Script committeado y documentado regenera el catálogo desde MarvelCDB; reproducible; documenta cómo añadir una fila | ✓ VERIFICADO | `scripts/catalogue/fetch-marvelcdb.mjs` existe, `package.json` registra `catalogue:generate`; marcador `CÓMO AÑADIR UN HÉROE O VILLANO NUEVO` presente; determinismo D-10 reconfirmado en 05-04-SUMMARY.md (dos ejecuciones, mismo hash) y por la revisión de código independiente (byte-idéntico contra la API en vivo). |
-| 4 | El catálogo committeado no contiene texto de carta/cita/arte; el script proyecta lista blanca explícita | ✓ VERIFICADO | `grep -Ec` de 20 claves prohibidas sobre `content/marvel-characters.json` → 0; `z.strictObject` en los 4 niveles de anidamiento (`grep -c "z.strictObject("` → 4); mutación propia confirma que insertar `flavor` hace fallar el gate nombrando la clave. |
-| 5 | Con la wifi apagada tras `nuxt generate`, el catálogo está disponible igual que el resto del contenido | ✓ VERIFICADO (con alcance esperado) | `content/marvel-characters.json` no contiene subcadenas `http`/`marvelcdb`/`api` (`grep -c` → 0); `catalogue-isolation.test.ts` confirma que ningún fichero de `app/` referencia el script generador. No hay consumidor en `app/` todavía — esperado, la Fase 6 aún no existe. |
-| 6 (derivada, CAT-01) | El campo de tamaño de mano refleja correctamente el RR v1.7 para lado héroe y lado alter ego | ✓ VERIFICADO (CR-01 cerrado) | Ver sección "Gaps cerrados" arriba — reverificado contra el PDF oficial de forma independiente. |
-| 7 (05-03-PLAN.md must-have) | El guardarraíl anti-copyright es estructuralmente independiente del objeto validado por Zod | ✓ VERIFICADO (CR-02 cerrado) | Ver sección "Gaps cerrados" arriba — mutación reproducida por este verificador, sin "no tests". |
-| 8 (derivada, CLAUDE.md fidelidad de reglas + CAT-02) | El catálogo de villanos representa fielmente todas las cifras que el contenido de la app ya instruye usar, incluida la salud de Kang en modo Experto | ✗ FALLIDO | Ver gap nuevo en frontmatter — confirmado contra `05-REVIEW.md`, `content/marvel-champions.json` y el ROADMAP completo de fases posteriores. |
+| 1 | Un test de Vitest en CI valida el catálogo completo contra un esquema Zod y falla la build si el contenido está malformado | ✓ VERIFICADO | `npx vitest run --project engine` → 251/251 verde; `ci.yml` ejecuta `npm run test` en cada push/PR |
+| 2 | La vida de cada villano está modelada por etapa y por nº de jugadores desde el principio, no como cifra plana | ✓ VERIFICADO | Cada etapa `{stage, health, healthPerHero, healthPerGroup}` confirmada leyendo el JSON directamente |
+| 3 | Script committeado y documentado regenera el catálogo desde MarvelCDB; reproducible; documenta cómo añadir una fila | ✓ VERIFICADO | `npm run catalogue:generate` ejecutado en vivo por este verificador → sin diff (determinismo D-10 reconfirmado con datos de la API de hoy) |
+| 4 | El catálogo committeado no contiene texto de carta/cita/arte; el script proyecta lista blanca explícita | ✓ VERIFICADO | `grep -c` de claves prohibidas → 0; `z.strictObject` en 5 niveles de anidamiento (incluido `expert`) |
+| 5 | Con la wifi apagada tras `nuxt generate`, el catálogo está disponible igual que el resto del contenido | ✓ VERIFICADO | Sin subcadenas `http`/`marvelcdb`/`api` en el JSON committeado (confirmado: 0 coincidencias) |
+| 6 (derivada, CAT-01) | El campo de tamaño de mano refleja correctamente el RR v1.7 para lado héroe y lado alter ego | ✓ VERIFICADO (sin regresión) | `handSizeHero`/`handSizeAlterEgo` intactos, no tocados por la oleada 6 |
+| 7 (05-03-PLAN.md must-have) | El guardarraíl anti-copyright es estructuralmente independiente del objeto validado por Zod | ✓ VERIFICADO (sin regresión) | Releído `characters.test.ts` completo tras la oleada 6: estructura de carga perezosa intacta |
+| 8 (derivada, CLAUDE.md fidelidad de reglas + CAT-02) | El catálogo de villanos representa fielmente todas las cifras que el contenido de la app ya instruye usar, incluida la salud de Kang en modo Experto | ✓ VERIFICADO | Gap cerrado — ver sección dedicada arriba: `expert` 15/22/25 en Kang, ausente en Rhino/Ultron, mutación propia reproducida, regeneración en vivo sin diff |
 
-**Puntuación:** 6/8 truths verificadas (2 gaps originales cerrados con evidencia
-reproducida por este verificador; 1 gap nuevo encontrado por la revisión de código y
-confirmado como no diferido a ninguna fase posterior)
+**Puntuación:** 8/8 truths verificadas
 
 ### Artefactos requeridos
 
 | Artefacto | Esperado | Estado | Detalles |
 |-----------|----------|--------|----------|
-| `engine/types.ts` | `CatalogueHero` con `handSizeHero`/`handSizeAlterEgo`, cero imports de zod | ✓ VERIFICADO | Confirmado; comentario cita RR v1.7 Apéndice III |
-| `engine/catalogueSchema.ts` | `HeroSchema` con los dos campos dentro de `z.strictObject` | ✓ VERIFICADO | Líneas 46-54; clave legada `handSize` rechazada por strictObject |
-| `scripts/catalogue/fetch-marvelcdb.mjs` | `extractHero()` lee y valida las dos caras | ✓ VERIFICADO | Líneas 181-190; D-09 corregido líneas 197-210 |
-| `content/marvel-characters.json` | 23 héroes + 3 villanos, dos tamaños de mano por héroe | ✓ VERIFICADO | 23/3 confirmado; Spider-Man 5/6 |
-| `engine/__tests__/characters.test.ts` | Guardarraíl anti-copyright con acceso perezoso | ✓ VERIFICADO (CR-02 cerrado) | Sin lecturas/validación en ámbito de módulo; reproducido con mutación propia |
-| `engine/__tests__/catalogue-isolation.test.ts` | Lectores perezosos por fichero | ✓ VERIFICADO (CR-02 cerrado) | 5 lectores perezosos, todos invocados dentro de `it()` |
-| `content/marvel-characters.json` (villanos, dimensión Experto) | Representar toda cifra que el contenido ya instruye usar | ✗ FALTA | Kang: solo tabla estándar (12/18/20); exp_kang (15/22/25) ausente sin marcador de alcance |
+| `engine/types.ts` | `CatalogueHero` con `handSizeHero`/`handSizeAlterEgo`; `VillainStage` con `expert?` opcional | ✓ VERIFICADO | Ambos confirmados leyendo el fichero |
+| `engine/catalogueSchema.ts` | `HeroSchema`/`VillainStageSchema` con los campos correctos, `ExpertVillainStageSchema` como quinto `z.strictObject` | ✓ VERIFICADO | Confirmado, `grep -c "z.strictObject("` → 5 |
+| `scripts/catalogue/fetch-marvelcdb.mjs` | `extractHero()` lee ambas caras; filas de Kang con `expertCode`/`expectedExpertSetCode` | ✓ VERIFICADO | Confirmado |
+| `content/marvel-characters.json` | 23 héroes + 3 villanos; Kang con `expert` en sus 3 etapas; Rhino/Ultron sin `expert` | ✓ VERIFICADO | Confirmado leyendo el JSON con Python |
+| `engine/__tests__/characters.test.ts` | Guardarraíl anti-copyright perezoso; describe `CAT-02` con cifras fijadas de Kang y ausencia en Rhino/Ultron | ✓ VERIFICADO | Confirmado; mutación propia reproducida |
+| `engine/__tests__/catalogueSchema.test.ts` | Tests unitarios de `expert`: acepta ausente/presente/mixto, rechaza clave desconocida/campo faltante/tipo inválido | ✓ VERIFICADO | 9 tests confirmados en el describe `expert` |
+| `engine/__tests__/catalogue-isolation.test.ts` | Lectores perezosos por fichero, sin cambios de esta oleada | ✓ VERIFICADO (sin regresión) | Estructura releída, intacta |
 
 ### Verificación de Key Links
 
 | Desde | Hacia | Vía | Estado | Detalles |
 |-------|-------|-----|--------|----------|
-| `engine/catalogueSchema.ts` | `engine/types.ts` | `import type { CharacterCatalogue }` | ✓ WIRED | Confirmado |
-| `engine/__tests__/characters.test.ts` | `engine/catalogueSchema.ts` | `import { validateCharacterCatalogue }` | ✓ WIRED | Confirmado, invocado dentro de `it()` únicamente |
-| `engine/__tests__/characters.test.ts` | `content/marvel-characters.json` | lector perezoso `readRawCatalogueText()` dentro de `it()` | ✓ WIRED | Confirmado con mutación propia |
-| `engine/__tests__/catalogue-isolation.test.ts` | `package.json` / `.github/workflows/ci.yml` | lectores perezosos por fichero dentro de `it()` | ✓ WIRED | Confirmado con corrupción propia de `package.json` |
-| `package.json` | `scripts/catalogue/fetch-marvelcdb.mjs` | `catalogue:generate` | ✓ WIRED | No referenciado desde build/dev/generate/preview/test/postinstall |
+| `scripts/catalogue/fetch-marvelcdb.mjs` | `content/marvel-characters.json` | `extractVillainStage` escribe `expert` cuando la fila declara `expertCode` | ✓ WIRED | Confirmado con regeneración en vivo, sin diff |
+| `engine/catalogueSchema.ts` | `engine/types.ts` | `VillainStageSchema`/`VillainStage` declaran el mismo `expert` opcional, campo a campo | ✓ WIRED | Confirmado |
+| `engine/__tests__/characters.test.ts` | `content/marvel-characters.json` | `loadValidatedCatalogue()` dentro de `it()`, aserciones sobre `villain.stages[n].expert` | ✓ WIRED | Confirmado con mutación propia (borrado de `expert`) |
+| `engine/__tests__/characters.test.ts` | `content/marvel-characters.json` | gate anti-copyright perezoso, `.not.toContain(key)` por clave | ✓ WIRED | Estructura intacta tras la oleada 6 (sin regresión) |
+| `package.json` | `scripts/catalogue/fetch-marvelcdb.mjs` | `catalogue:generate` | ✓ WIRED | Ejecutado en vivo por este verificador |
 
 ### Behavioral Spot-Checks (ejecutados por este verificador, no citados del SUMMARY)
 
 | Comportamiento | Comando | Resultado | Estado |
 |-----------------|---------|-----------|--------|
-| Suite completa del proyecto `engine` pasa sobre datos committeados | `npx vitest run --project engine` | `Test Files 12 passed (12)`, `Tests 239 passed (239)` | ✓ PASS |
-| Mutación de copyright + id duplicado no colapsa la colección de tests (CR-02) | mutación propia + `npx vitest run --project engine engine/__tests__/characters.test.ts` | `14 failed \| 20 passed (34)`, sin "no tests"; clave `flavor` nombrada individualmente | ✓ PASS |
-| `package.json` corrupto falla en el arranque de Vite, no en la colección del gate | corrupción propia + mismo comando contra `catalogue-isolation.test.ts` | `[UNHANDLEABLE_ERROR]` en `bundleConfigFile`/`createVitest`, antes de colectar tests | ✓ PASS (confirma la limitación documentada, no un defecto del gate) |
-| Rules Reference confirma Spider-Man 5 (héroe) / 6 (alter ego) | `pdftotext -layout reference/mc_rulesreference_v17-compressed.pdf -` + grep | Línea 3679: `HAND SIZE 5 / HIT POINTS 10 ... HAND SIZE 6 / HIT POINTS 10` | ✓ PASS |
-| Reversión limpia tras cada mutación propia | `git status --porcelain content/marvel-characters.json package.json` | Vacío en ambos casos | ✓ PASS |
+| Suite del proyecto `engine` pasa sobre datos committeados | `npx vitest run --project engine` | `Test Files 12 passed (12)`, `Tests 251 passed (251)` | ✓ PASS |
+| Suite completa del repo pasa | `npm run test` | `Test Files 17 passed (17)`, `Tests 374 passed (374)` | ✓ PASS |
+| Borrar `kang.stages[0].expert` hace fallar el test de fidelidad Experta por nombre, sin colapsar la colección | mutación propia + `npx vitest run --project engine engine/__tests__/characters.test.ts` | `1 failed \| 36 passed (37)`, mensaje `kang etapa 1: no lleva expert` | ✓ PASS |
+| Regenerar el catálogo desde la API en vivo reproduce el fichero byte a byte (D-10) | `npm run catalogue:generate` + `git status --porcelain` | Sin diferencias | ✓ PASS |
+| Reversión limpia tras la mutación propia | `git status --porcelain content/marvel-characters.json` | Vacío | ✓ PASS |
+| Sin subcadenas de red en el catálogo committeado | `grep -c -E "http|marvelcdb|api" content/marvel-characters.json` | `0` | ✓ PASS |
 
 ### Probe Execution
 
@@ -222,62 +195,73 @@ esta fase. SKIPPED — no aplica (fase de contenido/esquema, no de migración/to
 
 | Requisito | Plan(es) origen | Descripción | Estado | Evidencia |
 |-----------|------------------|-------------|--------|-----------|
-| CAT-01 | 05-01, 05-02, 05-04 | Catálogo de 23 héroes con nombre, alter ego, vida, tamaño de mano | ✓ SATISFECHO | `handSizeHero`/`handSizeAlterEgo` verificados contra RR v1.7; CR-01 cerrado |
-| CAT-02 | 05-01, 05-02 | Catálogo de 3 villanos con vida por etapa, per-jugador o total | ⚠️ PARCIAL | La forma por etapa es correcta y verificada; falta representar el modo Experto de Kang (gap nuevo) |
-| CAT-03 | 05-02 | Script committeado regenera el catálogo, uso documentado | ✓ SATISFECHO | Confirmado, determinismo D-10 reconfirmado dos veces (05-04 y revisión de código) |
-| CAT-04 | 05-01, 05-02, 05-03, 05-05 | Solo lista blanca de campos; nada de texto/cita/arte | ✓ SATISFECHO | Gate anti-copyright estructuralmente independiente, verificado con mutación propia |
-| CAT-05 | 05-01, 05-03, 05-05 | Esquema Zod en test de Vitest en CI, falla la build si malformado | ✓ SATISFECHO | Build falla verificado con mutación propia; gate específico ya no colapsa (CR-02 cerrado) |
-| CAT-06 | 05-03 | Catálogo en el bundle, nunca por red en ejecución | ✓ SATISFECHO | Sin subcadenas de red; sin consumidor en `app/` todavía (esperado) |
-| CAT-07 | 05-02, 05-03 | Añadir héroe/villano nuevo es una fila, documentado | ✓ SATISFECHO | Procedimiento documentado; `STAGE_MAP` sin `IV` es limitación menor no bloqueante (WR-03 de la revisión) |
+| CAT-01 | 05-01, 05-02, 05-04 | Catálogo de 23 héroes con nombre, alter ego, vida, tamaño de mano | ✓ SATISFECHO | Sin regresión; verificado contra RR v1.7 en la ronda anterior |
+| CAT-02 | 05-01, 05-02, 05-06 | Catálogo de 3 villanos con vida por etapa, per-jugador o total, incluida la dimensión Experta | ✓ SATISFECHO | Gap de truth #8 cerrado: `expert` presente en Kang, ausente en Rhino/Ultron, fijado por tests y verificado en vivo |
+| CAT-03 | 05-02, 05-06 | Script committeado regenera el catálogo, uso documentado | ✓ SATISFECHO | Regeneración en vivo ejecutada por este verificador, sin diff |
+| CAT-04 | 05-01, 05-02, 05-03, 05-05 | Solo lista blanca de campos; nada de texto/cita/arte | ✓ SATISFECHO | 0 claves prohibidas; `z.strictObject` en 5 niveles |
+| CAT-05 | 05-01, 05-03, 05-05, 05-06 | Esquema Zod en test de Vitest en CI, falla la build si malformado | ✓ SATISFECHO | Mutación propia (borrado de `expert`) hace fallar el test correspondiente por nombre |
+| CAT-06 | 05-03 | Catálogo en el bundle, nunca por red en ejecución | ✓ SATISFECHO | Sin subcadenas de red; sin consumidor en `app/` todavía (esperado, Fase 6 no existe aún) |
+| CAT-07 | 05-02, 05-03, 05-06 | Añadir héroe/villano nuevo es una fila, documentado | ✓ SATISFECHO | Procedimiento documentado, ampliado con el caso `expertCode` |
 
-No hay requisitos huérfanos: CAT-01 a CAT-07 están reclamados por al menos un plan.
+No hay requisitos huérfanos: CAT-01 a CAT-07 están reclamados por al menos un plan y
+todos tienen evidencia de satisfacción en el código actual.
 
-### Anti-patrones encontrados (de `05-REVIEW.md`, clasificados contra el objetivo de fase)
+**Nota de bookkeeping (no bloqueante):** `.planning/REQUIREMENTS.md` sigue marcando
+CAT-01/02/03 como checkbox sin marcar y la tabla de trazabilidad como "Pendiente" para
+las siete. Esto es una discrepancia de sincronización documental (el checklist no se
+actualizó tras el cierre de gaps), no un hueco del código — se señala para que se
+actualice junto con el cierre formal de la fase.
 
-| Fichero | Línea | Patrón | Severidad | Impacto |
+### Anti-patrones encontrados
+
+| Fichero | Línea | Patrón | Severidad | Impacto sobre esta fase |
 |---------|-------|--------|-----------|---------|
-| `content/marvel-characters.json` + `scripts/catalogue/fetch-marvelcdb.mjs` | 123-126 | Hueco de fidelidad: salud de Kang Experto no representable | 🛑 BLOCKER | Ver gap nuevo — confirmado, no diferido a ninguna fase |
-| `scripts/catalogue/fetch-marvelcdb.mjs` | 111-130 | `villainName`/`expectedSetCode` sin puerta cruzada (WR-01) | ⚠️ WARNING | No afecta a los 3 villanos actuales; riesgo latente para futuras filas |
-| `scripts/catalogue/fetch-marvelcdb.mjs` | 211 | `alterEgo` sin fijar ni acotar (WR-02) | ⚠️ WARNING | Único valor-canal sin pin; no bloquea el objetivo de esta fase |
-| `scripts/catalogue/fetch-marvelcdb.mjs` | 65, 229-232 | `STAGE_MAP` solo I/II/III (WR-03) | ⚠️ WARNING | Contradice "una fila" solo para un hipotético villano de 4 etapas; ninguno actual afectado |
-| `engine/__tests__/characters.test.ts` | 83-105 | `findForbiddenKey` no ejercitado por el gate real (WR-04) | ⚠️ WARNING | El gate real sigue mordiendo (`.not.toContain`), confirmado con mutación propia; la duplicación de lógica es un desliz de mantenimiento, no un agujero activo |
-| `engine/catalogueSchema.ts` | 121-123 | Sin typecheck en CI; doble cast `as unknown as` (WR-05) | ⚠️ WARNING | Confirmado: no existe `typescript` en `node_modules`, no hay script `typecheck`, `ci.yml` solo corre `npm run test` + Playwright. Verificado que HOY `engine/types.ts` y `engine/catalogueSchema.ts` coinciden campo a campo (sin deriva activa) — el riesgo es de proceso futuro, no un defecto presente. No bloquea SC1 (que exige el gate Zod/Vitest, presente y probado) |
-| `engine/schema.ts` | 164-201 | Duplicidad de labels no comprobada en variantes de dificultad (WR-06) | ⚠️ WARNING (fuera de alcance de Fase 5 — `engine/schema.ts` es de fases previas) | Informativo, no se re-evalúa aquí |
+| `content/marvel-champions.json` (Fase 1-3, fuera de esta fase) + step `setup.escenario.04` | ~210-213 | Instrucción incondicional de sustituir cartas de villano Experto, falsa para Rhino/Ultron | ℹ️ INFO (cross-fase) | No es un artefacto de la Fase 05; el catálogo de esta fase es fiel y no afirma lo contrario. Recomendado como seguimiento antes de que la Fase 6/7 narre este paso en una partida real. |
+| `engine/catalogueSchema.ts:56` + `engine/types.ts` | — | `expert` opcional **por etapa**, no por villano: un futuro villano con datos mixtos (algunas etapas con `expert`, otras sin) pasaría el esquema | ⚠️ WARNING | No afecta a los datos actuales (Kang: 3/3 etapas con `expert`; Rhino/Ultron: 0/3) — riesgo latente para altas futuras, no un defecto presente |
+| `scripts/catalogue/fetch-marvelcdb.mjs:275-309` | — | Nada valida que `expectedExpertSetCode` sea distinto de `expectedSetCode` | ⚠️ WARNING | No afecta a las filas actuales de Kang (sets distintos, confirmados); riesgo latente para futuras filas |
+| `engine/__tests__/characters.test.ts:83-105` | — | El test "el gate muerde" ejercita una función auxiliar (`findForbiddenKey`) distinta de la que usa el gate real (`.not.toContain`); el comentario que dice que es la misma implementación es inexacto | ⚠️ WARNING | El gate real sigue mordiendo — confirmado en la ronda anterior con mutación directa sobre el gate real (`.not.toContain`), no sobre el auxiliar. Desliz de comentario/mantenimiento, no agujero funcional |
+| — | — | Sin typecheck en CI (`tsc` no configurado) | ⚠️ WARNING (heredado, ya evaluado en la ronda anterior) | `engine/types.ts` y `engine/catalogueSchema.ts` siguen coincidiendo campo a campo hoy; riesgo de proceso futuro, no defecto presente |
+| — | — | `STAGE_MAP` solo I/II/III | ⚠️ WARNING (heredado) | Ningún villano actual tiene 4+ etapas |
 
 Sin marcadores de deuda (`TODO`/`FIXME`/`XXX`/`HACK`/`PLACEHOLDER`) en los ficheros
-tocados por esta fase, más allá de falsos positivos ya descartados en la verificación
-inicial (subcadena "TODO" dentro de "TODOS").
+modificados por la oleada 6, más allá del falso positivo ya descartado ("TODO" dentro de
+"TODOS" en un comentario de `catalogueSchema.ts`).
 
 ### Verificación humana requerida
 
 Ninguna. Todos los artefactos de esta fase (esquema, script, JSON committeado, gates de
-CI) son verificables por análisis estático, grep y ejecución de Vitest — sin UI, sin
-renderizado visual, sin integración de servicio externo que requiera un probador humano.
+CI) son verificables por análisis estático, grep, lectura directa del JSON y ejecución
+de Vitest — sin UI, sin renderizado visual, sin integración de servicio externo que
+requiera un probador humano. La única llamada de red hecha en esta verificación
+(`npm run catalogue:generate` contra la API pública de MarvelCDB) fue ejecutada por el
+propio verificador, no delegada a un humano.
 
-### Resumen de gaps
+### Resumen
 
-**Gaps originales (CR-01, CR-02): ambos cerrados y re-verificados de forma
-independiente por este verificador**, no aceptados por la palabra de los SUMMARY:
-reproducción propia de la mutación de copyright+id-duplicado (sin "no tests", 34 tests
-colectados, clave nombrada individualmente) y de la corrupción de `package.json`
-(confirmado el límite real en Vite/rolldown, no en el gate).
+**Los tres gaps de las dos rondas anteriores están cerrados con evidencia reproducida
+de forma independiente por este verificador** (no aceptada de los SUMMARY):
 
-**Gap nuevo (no numerado en el ciclo anterior, añadido en esta re-verificación):** el
-catálogo de villanos committeado no puede representar la salud de Kang en modo Experto
-(15/22/25 frente a los 12/18/20 committeados), pese a que `content/marvel-champions.json`
-ya instruye ese cambio de cartas para el escenario en dificultad Experta. `05-RESEARCH.md`
-documentó el hueco como conocido, pero esa documentación nunca llegó al contrato de
-datos (esquema/tipos/tests), y ninguna fase posterior del ROADMAP reclama resolverlo
-explícitamente en sus criterios de éxito — no califica como diferido válido según el
-criterio conservador de este proceso. Es exactamente el escenario "asistente que guía
-mal" que `CLAUDE.md` declara peor que no tener asistente, y el coste de corregirlo crece
-con cada fase que congele la forma actual del catálogo.
+- CR-01 (handSize por cara): sin regresión, campos intactos.
+- CR-02 (gate estructuralmente independiente): sin regresión, estructura de carga
+  perezosa releída completa tras la oleada 6.
+- Truth #8 / CAT-02 (dificultad en la etapa de villano): cerrado en la oleada 6,
+  reconfirmado aquí con lectura directa del código y los datos, regeneración en vivo
+  desde la API (sin diff) y una mutación propia que hace fallar el test de fidelidad de
+  Kang por su nombre.
 
-No se difirió ningún ítem a una fase posterior: se revisaron los objetivos y criterios de
-éxito de las Fases 6 a 10 en `.planning/ROADMAP.md` y ninguno menciona dificultad como
-dimensión de la salud de villano.
+El hallazgo crítico nuevo de `05-REVIEW.md` (instrucción incondicional en
+`content/marvel-champions.json`) se evaluó y se desestimó como gap de la Fase 05: el
+propio informe señala que el fichero síntoma está fuera de su alcance de revisión, es
+contenido de las Fases 1-3, y el catálogo de esta fase no afirma nada falso — es fiel a
+lo que el reglamento y los datos de MarvelCDB dicen. Se deja como nota informativa de
+seguimiento cruzado entre fases, no como bloqueante de esta verificación.
+
+**Objetivo de la Fase 05 alcanzado: el catálogo de 23 héroes y 3 villanos es fiable,
+reproducible y legal, está validado en CI, funciona sin red, y ahora también representa
+correctamente la dimensión de dificultad allí donde el juego la exige (Kang) y la omite
+correctamente donde no existe (Rhino, Ultron).**
 
 ---
 
-_Verificado: 2026-09-07T22:05:00Z_
+_Verificado: 2026-09-07T23:40:00Z_
 _Verificador: Claude (gsd-verifier)_

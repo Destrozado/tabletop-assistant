@@ -13,9 +13,9 @@
 
 ### CAT — Catálogo de héroes y villanos
 
-- [ ] **CAT-01**: El repo contiene un catálogo versionado de los 23 héroes disponibles con, por cada uno: nombre de héroe, nombre de alter ego, vida inicial y tamaño de mano
-- [ ] **CAT-02**: El repo contiene un catálogo versionado de los 3 villanos disponibles (Rhino, Ultron, Kang) con su vida por etapa, indicando explícitamente si esa cifra es por jugador o total
-- [ ] **CAT-03**: Un script committeado regenera el catálogo desde la API pública de MarvelCDB, y su uso está documentado de forma que otra persona pueda re-ejecutarlo
+- [x] **CAT-01**: El repo contiene un catálogo versionado de los 23 héroes disponibles con, por cada uno: nombre de héroe, nombre de alter ego, vida inicial y tamaño de mano
+- [x] **CAT-02**: El repo contiene un catálogo versionado de los 3 villanos disponibles (Rhino, Ultron, Kang) con su vida por etapa, indicando explícitamente si esa cifra es por jugador o total
+- [x] **CAT-03**: Un script committeado regenera el catálogo desde la API pública de MarvelCDB, y su uso está documentado de forma que otra persona pueda re-ejecutarlo
 - [x] **CAT-04**: El script extrae únicamente una lista blanca de campos (nombres y cifras); ningún texto de carta, cita de sabor ni referencia a imagen entra en el repo
 - [x] **CAT-05**: El catálogo se valida con un esquema Zod en un test de Vitest que corre en CI y falla la build si el catálogo está malformado
 - [x] **CAT-06**: El catálogo viaja dentro del bundle y nunca se consulta por red en ejecución — la app sigue funcionando entera sin conexión
@@ -135,13 +135,13 @@
 
 | Requisito | Fase | Estado |
 |-----------|------|--------|
-| CAT-01 | Fase 5 | Pendiente |
-| CAT-02 | Fase 5 | Pendiente |
-| CAT-03 | Fase 5 | Pendiente |
-| CAT-04 | Fase 5 | Pendiente |
-| CAT-05 | Fase 5 | Pendiente |
-| CAT-06 | Fase 5 | Pendiente |
-| CAT-07 | Fase 5 | Pendiente |
+| CAT-01 | Fase 5 | Satisfecho |
+| CAT-02 | Fase 5 | Satisfecho |
+| CAT-03 | Fase 5 | Satisfecho |
+| CAT-04 | Fase 5 | Satisfecho |
+| CAT-05 | Fase 5 | Satisfecho |
+| CAT-06 | Fase 5 | Satisfecho |
+| CAT-07 | Fase 5 | Satisfecho |
 | SEL-01 | Fase 6 | Pendiente |
 | SEL-02 | Fase 6 | Pendiente |
 | SEL-03 | Fase 6 | Pendiente |
