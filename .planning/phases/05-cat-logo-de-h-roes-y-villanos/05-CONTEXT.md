@@ -161,6 +161,22 @@ de éxito quedará imposible de cumplir tal como está escrito.
   romano en string (`"stage": "I" | "II" | "III"`), no como entero — hay que mapearla
   explícitamente.
 
+  **Ampliación (gap de truth #8 de `05-VERIFICATION.md`):** la vida de villano gana una
+  dimensión de dificultad: sub-objeto `expert` opcional por etapa, con la misma forma
+  base + banderas (`{ health, healthPerHero, healthPerGroup }`). Esto **no reabre** la
+  disyuntiva que D-11 cerró: `expert` sigue siendo base + banderas y sigue **prohibido**
+  precomputar `healthByPlayerCount`, dentro y fuera de `expert`; la multiplicación por
+  jugadores sigue siendo de la Fase 7 en los dos modos. Es la **decisión explícita del
+  usuario** que `05-RESEARCH.md` dejaba abierta al calificar `exp_kang` de "fuera de
+  alcance de D-02/D-03 salvo decisión futura explícita": `content/marvel-champions.json`
+  ya instruye sustituir las cartas de villano numeradas en dificultad Experta (paso
+  `setup.escenario.04`, variante `expert`), y narrar las cifras estándar en esa partida
+  sería guiar mal (CLAUDE.md §Constraints). Rhino y Ultron salen sin `expert` a
+  propósito, y esa ausencia es un hecho del dominio (villanos del Core Set cuyo
+  escenario no trae set de villano de modo Experto), no un dato pendiente. D-02 sigue
+  intacto: siguen siendo 3 villanos, no 4 — `exp_kang` no es un villano nuevo, es una
+  segunda tabla de cifras del mismo Kang.
+
 ### Claude's Discretion
 
 El usuario no quiso discutir estas y quedan a criterio de research/planning, siempre
