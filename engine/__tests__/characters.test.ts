@@ -190,18 +190,90 @@ describe('content/marvel-characters.json', () => {
   })
 
   // D-11: ninguna etapa lleva una tabla precomputada por número de
-  // jugadores. La multiplicación de health por playerCount es
-  // responsabilidad de la Fase 7, nunca de este catálogo — si alguien
-  // añadiera un campo extra (p. ej. `healthByPlayerCount`), este test debe
-  // fallar.
-  it('D-11: ninguna etapa de villano lleva claves distintas a stage/health/healthPerHero/healthPerGroup', () => {
+  // jugadores (p. ej. `healthByPlayerCount`) — dentro y fuera de `expert`.
+  // La multiplicación de health por playerCount es responsabilidad de la
+  // Fase 7 en los dos modos, nunca de este catálogo. Ampliado por el gap de
+  // truth #8 (05-VERIFICATION.md): `expert` es la única clave extra
+  // permitida por etapa, y cuando está presente sus propias claves deben
+  // ser exactamente health/healthPerHero/healthPerGroup, ni una más.
+  it('D-11: cada etapa de villano solo lleva stage/health/healthPerHero/healthPerGroup y, si aplica, expert con esas mismas tres claves', () => {
     const catalogue = loadValidatedCatalogue()
-    const expectedKeys = ['stage', 'health', 'healthPerHero', 'healthPerGroup'].sort()
+    const requiredKeys = ['stage', 'health', 'healthPerHero', 'healthPerGroup']
+    const allowedKeys = new Set([...requiredKeys, 'expert'])
+    const expertKeys = ['health', 'healthPerHero', 'healthPerGroup'].sort()
     for (const villain of catalogue.villains) {
       for (const s of villain.stages) {
-        expect(Object.keys(s).sort(), `villano ${villain.id} etapa ${s.stage} tiene claves inesperadas`).toEqual(expectedKeys)
+        const keys = Object.keys(s)
+        for (const required of requiredKeys) {
+          expect(keys, `villano ${villain.id} etapa ${s.stage} no lleva la clave obligatoria ${required}`).toContain(required)
+        }
+        for (const key of keys) {
+          expect(allowedKeys.has(key), `villano ${villain.id} etapa ${s.stage} tiene una clave no permitida: ${key}`).toBe(true)
+        }
+        if ('expert' in s) {
+          expect(Object.keys((s as any).expert).sort(), `villano ${villain.id} etapa ${s.stage} tiene claves inesperadas dentro de expert`).toEqual(expertKeys)
+        }
       }
     }
+  })
+
+  // Gap de truth #8 (05-VERIFICATION.md): dimensión de dificultad Experta
+  // en la etapa de villano, fijada por test ejecutable en vez de solo en
+  // prosa de research (CAT-02).
+  describe('CAT-02: modo Experto en la etapa de villano', () => {
+    // Estas cifras vienen del set card_set_code: exp_kang del pack toafk
+    // (códigos 11034/11035/11039), y son las que
+    // content/marvel-champions.json manda poner en mesa en la variante
+    // expert de setup.escenario.04. Si una regeneración las cambia, es un
+    // cambio del origen que hay que revisar a mano, no un test que ajustar.
+    it('Kang: expert.health y sus banderas son 15/22/25 con true/false/true por etapa, per-group siempre false', () => {
+      const catalogue = loadValidatedCatalogue()
+      const kang = catalogue.villains.find(v => v.id === 'kang')
+      expect(kang, 'no se encontró el villano kang en el catálogo').toBeDefined()
+      expect(kang!.stages.length).toBe(3)
+
+      const wantHealth = [12, 18, 20]
+      const wantExpertHealth = [15, 22, 25]
+      const wantExpertHealthPerHero = [true, false, true]
+
+      kang!.stages.forEach((s, i) => {
+        expect(s.health, `kang etapa ${s.stage}: health estándar esperado ${wantHealth[i]}, obtenido ${s.health}`).toBe(wantHealth[i])
+        expect(s.expert, `kang etapa ${s.stage}: no lleva expert`).toBeDefined()
+        expect(s.expert!.health, `kang etapa ${s.stage}: expert.health esperado ${wantExpertHealth[i]}, obtenido ${s.expert!.health}`).toBe(wantExpertHealth[i])
+        expect(s.expert!.healthPerHero, `kang etapa ${s.stage}: expert.healthPerHero esperado ${wantExpertHealthPerHero[i]}, obtenido ${s.expert!.healthPerHero}`).toBe(wantExpertHealthPerHero[i])
+        expect(s.expert!.healthPerGroup, `kang etapa ${s.stage}: expert.healthPerGroup esperado false, obtenido ${s.expert!.healthPerGroup}`).toBe(false)
+      })
+    })
+
+    // Rhino y Ultron son villanos del Core Set cuyo escenario no trae set
+    // de villano de modo Experto: la ausencia de expert es un hecho del
+    // dominio, no un dato pendiente. Esta lista de dos ids no rompe CAT-07:
+    // lo que este test prohíbe es fabricar cifras de Experto para estos
+    // dos, no que un villano futuro que sí traiga set Experto la tenga.
+    it('Rhino y Ultron: ninguna etapa lleva la clave expert', () => {
+      const catalogue = loadValidatedCatalogue()
+      for (const id of ['rhino', 'ultron']) {
+        const villain = catalogue.villains.find(v => v.id === id)
+        expect(villain, `no se encontró el villano ${id} en el catálogo`).toBeDefined()
+        for (const s of villain!.stages) {
+          expect('expert' in s, `villano ${id} etapa ${s.stage} lleva la clave expert y no debería`).toBe(false)
+        }
+      }
+    })
+
+    it('invariante de forma general: todo expert presente tiene health entero > 0 y banderas booleanas', () => {
+      const catalogue = loadValidatedCatalogue()
+      for (const villain of catalogue.villains) {
+        for (const s of villain.stages) {
+          if (s.expert) {
+            expect(Number.isInteger(s.expert.health), `villano ${villain.id} etapa ${s.stage} expert.health no es entero`).toBe(true)
+            expect(s.expert.health, `villano ${villain.id} etapa ${s.stage} expert.health no es positivo`).toBeGreaterThan(0)
+            expect(typeof s.expert.healthPerHero, `villano ${villain.id} etapa ${s.stage} expert.healthPerHero no es booleano`).toBe('boolean')
+            expect(typeof s.expert.healthPerGroup, `villano ${villain.id} etapa ${s.stage} expert.healthPerGroup no es booleano`).toBe('boolean')
+          }
+        }
+      }
+    })
   })
 
   // CAT-07: el catálogo es "una fila = un héroe/villano nuevo" en el

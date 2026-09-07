@@ -173,6 +173,73 @@ describe('CharacterCatalogueSchema', () => {
     })
   })
 
+  // Gap de truth #8 (05-VERIFICATION.md): dimensión de dificultad en la
+  // etapa de villano, sub-objeto `expert` opcional. baseCatalogue() ya
+  // prueba la ausencia (Rhino sin `expert` en ninguna etapa); este describe
+  // cubre presencia, mixto por etapa y rechazo.
+  describe('expert: dimensión de dificultad en la etapa de villano', () => {
+    it('no lanza con una etapa que lleva un expert válido', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.villains[0].stages[0] as any).expert = { health: 15, healthPerHero: true, healthPerGroup: false }
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).not.toThrow()
+    })
+
+    it('no lanza con un villano mixto: etapa 1 con expert, etapa 2 sin él', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.villains[0].stages[0] as any).expert = { health: 15, healthPerHero: true, healthPerGroup: false }
+      // stages[1] se queda sin expert a propósito: la opcionalidad es por
+      // etapa, no por villano.
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).not.toThrow()
+    })
+
+    it('lanza ZodError con una clave "flavor" dentro de expert', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.villains[0].stages[0] as any).expert = { health: 15, healthPerHero: true, healthPerGroup: false, flavor: 'Texto de sabor con copyright.' }
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con una clave "illustrator" dentro de expert', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.villains[0].stages[0] as any).expert = { health: 15, healthPerHero: true, healthPerGroup: false, illustrator: 'Some Artist' }
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError si a expert le falta healthPerGroup', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.villains[0].stages[0] as any).expert = { health: 15, healthPerHero: true }
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con expert.health a 0', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.villains[0].stages[0] as any).expert = { health: 0, healthPerHero: true, healthPerGroup: false }
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con expert.health no entero', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.villains[0].stages[0] as any).expert = { health: 15.5, healthPerHero: true, healthPerGroup: false }
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con expert.healthPerHero como string en vez de booleano', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.villains[0].stages[0] as any).expert = { health: 15, healthPerHero: 'true', healthPerGroup: false }
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con un expert anidado dentro de expert', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.villains[0].stages[0] as any).expert = {
+        health: 15,
+        healthPerHero: true,
+        healthPerGroup: false,
+        expert: { health: 15, healthPerHero: true, healthPerGroup: false },
+      }
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+  })
+
   describe('unicidad de ids', () => {
     it('lanza ZodError si dos héroes comparten id', () => {
       const catalogue = baseCatalogue()

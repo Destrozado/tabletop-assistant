@@ -35,11 +35,25 @@ function slugifyCharacterName(name: string): string {
 // Base + banderas tal cual la API, sin precomputar por jugadores (D-11).
 // `healthPerHero` varía entre etapas del mismo villano (Kang I true, II
 // false, III true), por eso vive en la etapa y no en el villano.
+//
+// `expert` (gap de truth #8, 05-VERIFICATION.md): sub-objeto opcional con la
+// misma tripleta base+banderas, para el set de villano de modo Experto
+// cuando el escenario trae uno real (Kang, `card_set_code: exp_kang`). Al
+// ser también `z.strictObject` en este quinto nivel de anidamiento, una
+// clave `text`/`flavor`/`imagesrc` colada dentro de `expert` lanza en vez de
+// descartarse en silencio (CAT-04), y un `expert` incompleto también lanza.
+const ExpertVillainStageSchema = z.strictObject({
+  health: z.number().int().positive(),
+  healthPerHero: z.boolean(),
+  healthPerGroup: z.boolean(),
+})
+
 const VillainStageSchema = z.strictObject({
   stage: z.number().int().positive(),
   health: z.number().int().positive(),
   healthPerHero: z.boolean(),
   healthPerGroup: z.boolean(),
+  expert: ExpertVillainStageSchema.optional(),
 })
 
 const HeroSchema = z.strictObject({

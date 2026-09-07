@@ -121,11 +121,36 @@ export interface EngineSession {
 // `health_per_group`); la multiplicación por número de jugadores la hace la
 // Fase 7, nunca aquí (D-11). `stage` es entero 1..n; MarvelCDB lo sirve como
 // numeral romano en string y el script lo mapea a entero.
+//
+// Los cuatro campos planos (`stage`, `health`, `healthPerHero`,
+// `healthPerGroup`) son las cifras del set de villano ESTÁNDAR del
+// escenario. `expert` —quinto campo, opcional y al final— lleva las cifras
+// del set de villano de MODO EXPERTO cuando el escenario trae uno (Kang:
+// `card_set_code` `exp_kang`, 15/22/25 frente a 12/18/20 estándar). Su
+// ausencia es un hecho del dominio, no un dato pendiente: significa que el
+// modo Experto de ese escenario no sustituye las cartas de villano
+// numeradas (caso de Rhino y Ultron, villanos del Core Set).
+//
+// `expert` vive en la ETAPA y no en el villano porque las banderas difieren
+// por etapa dentro del mismo villano en los dos sets (Kang I true / II
+// false / III true) — la misma asimetría por etapa que ya justifica D-11.
+//
+// Quien consuma este catálogo en la Fase 6/7 debe leer `expert` cuando la
+// sesión está en `difficulty: 'expert'` y hay `expert` disponible, porque
+// `content/marvel-champions.json` (paso `setup.escenario.04`, variante
+// `expert`) ya instruye al grupo sustituir esas cartas físicas en la mesa.
+// La multiplicación por número de jugadores sigue siendo de la Fase 7,
+// nunca de aquí, también para `expert` (D-11 intacto).
 export interface VillainStage {
   stage: number
   health: number
   healthPerHero: boolean
   healthPerGroup: boolean
+  expert?: {
+    health: number
+    healthPerHero: boolean
+    healthPerGroup: boolean
+  }
 }
 
 // `name` es el nombre inglés de MarvelCDB verbatim, en una sola columna, sin
