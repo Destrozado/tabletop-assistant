@@ -16,10 +16,10 @@
 - [ ] **CAT-01**: El repo contiene un catálogo versionado de los 23 héroes disponibles con, por cada uno: nombre de héroe, nombre de alter ego, vida inicial y tamaño de mano
 - [ ] **CAT-02**: El repo contiene un catálogo versionado de los 3 villanos disponibles (Rhino, Ultron, Kang) con su vida por etapa, indicando explícitamente si esa cifra es por jugador o total
 - [ ] **CAT-03**: Un script committeado regenera el catálogo desde la API pública de MarvelCDB, y su uso está documentado de forma que otra persona pueda re-ejecutarlo
-- [ ] **CAT-04**: El script extrae únicamente una lista blanca de campos (nombres y cifras); ningún texto de carta, cita de sabor ni referencia a imagen entra en el repo
-- [ ] **CAT-05**: El catálogo se valida con un esquema Zod en un test de Vitest que corre en CI y falla la build si el catálogo está malformado
-- [ ] **CAT-06**: El catálogo viaja dentro del bundle y nunca se consulta por red en ejecución — la app sigue funcionando entera sin conexión
-- [ ] **CAT-07**: Añadir un héroe o villano nuevo cuando se compre una caja está documentado como un procedimiento de una sola fila
+- [x] **CAT-04**: El script extrae únicamente una lista blanca de campos (nombres y cifras); ningún texto de carta, cita de sabor ni referencia a imagen entra en el repo
+- [x] **CAT-05**: El catálogo se valida con un esquema Zod en un test de Vitest que corre en CI y falla la build si el catálogo está malformado
+- [x] **CAT-06**: El catálogo viaja dentro del bundle y nunca se consulta por red en ejecución — la app sigue funcionando entera sin conexión
+- [x] **CAT-07**: Añadir un héroe o villano nuevo cuando se compre una caja está documentado como un procedimiento de una sola fila
 
 ### SEL — Selección de villano, héroes y jugadores
 
