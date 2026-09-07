@@ -26,6 +26,8 @@ El hito se entregó en 5 fases (1, 2, 3, 03.1, 4 — 30 planes en total) a lo la
 
 Esta deuda se acepta por decisión explícita del usuario: *"no vamos a tener el tablet a corto plazo"*. No bloquea el uso real de la app, que ya está en marcha.
 
+**v1.8 en curso — Fase 5 completa (2026-09-07).** El repo tiene ya un catálogo versionado, reproducible y legal de los 23 héroes y 3 villanos: solo nombres y cifras (vida, tamaño de mano por cara, vida de villano por etapa con su dimensión de dificultad Experta), regenerable con `npm run catalogue:generate` de forma determinista byte a byte, validado por Zod en CI y viajando dentro del bundle sin ninguna petición de red en ejecución. Es el cimiento de datos que las Fases 6, 7 y 8 consumen.
+
 ## Current Milestone: v1.8 Elección de personajes, contadores en mesa e histórico de partidas
 
 **Goal:** Que la app deje de ser solo un guion y pase a conocer *vuestra* partida — quién lleva a quién, cuánta vida queda, y quién ganó la última vez.
@@ -55,9 +57,11 @@ Esta deuda se acepta por decisión explícita del usuario: *"no vamos a tener el
 
 Ver el archivo completo de resultados por requisito en `.planning/milestones/v1.7-REQUIREMENTS.md`. Resumen: 60/61 requisitos v1 satisfechos y verificados contra el código y, donde aplica, contra pruebas humanas en dispositivo real.
 
+Validated in Phase 5 (catálogo de héroes y villanos): CAT-01, CAT-02, CAT-03, CAT-04, CAT-05, CAT-06, CAT-07 — los 7 requisitos del catálogo, verificados 8/8 must-haves contra el código, los datos committeados y una regeneración en vivo desde MarvelCDB (`05-VERIFICATION.md`).
+
 ### Active
 
-Hito v1.8 en definición — los requisitos activos con sus REQ-IDs viven en `.planning/REQUIREMENTS.md`.
+Hito v1.8 en curso — los requisitos activos con sus REQ-IDs viven en `.planning/REQUIREMENTS.md`. El bloque CAT (catálogo) ya está cerrado; siguen activos SEL, HP, COMP, VAL, HIST y FIRE.
 
 ### Out of Scope
 
@@ -140,4 +144,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-07 — inicio del hito v1.8 (elección de personajes, contadores e histórico)*
+*Last updated: 2026-09-07 — Fase 5 del hito v1.8 completa (catálogo de héroes y villanos)*
