@@ -29,7 +29,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 
 ### Phases
 
-- [x] **Phase 5: Catálogo de héroes y villanos** - Datos versionados, reproducibles y legales de los 23 héroes y 3 villanos, sin salir nunca del bundle (completed 2026-09-07)
+- [ ] **Phase 5: Catálogo de héroes y villanos** - Datos versionados, reproducibles y legales de los 23 héroes y 3 villanos, sin salir nunca del bundle
 - [ ] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente
 - [ ] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7
 - [ ] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz
@@ -149,7 +149,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 3. Locución por voz y pantalla siempre encendida | v1.7 | 5/5 | Complete | 2026-08-30 |
 | 03.1. Voz pregenerada en español con Gemini TTS | v1.7 | 6/6 | Complete | 2026-08-31 |
 | 4. Instalación y funcionamiento offline | v1.7 | 6/6 | Complete | 2026-08-31 |
-| 5. Catálogo de héroes y villanos | v1.8 | 3/3 | Complete   | 2026-09-07 |
+| 5. Catálogo de héroes y villanos | v1.8 | 3/3 | Verification gaps | - |
 | 6. Selección de villano, héroes y jugadores | v1.8 | 0/TBD | Not started | - |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 0/TBD | Not started | - |
 | 8. Valores conocidos dentro del paso | v1.8 | 0/TBD | Not started | - |
