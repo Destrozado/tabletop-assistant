@@ -49,12 +49,13 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
   3. Existe un script committeado y documentado que regenera el catálogo desde la API pública de MarvelCDB; volver a ejecutarlo sobre el mismo origen produce el mismo resultado, y el propio fichero documenta cómo añadir un héroe o villano nuevo en una sola fila.
   4. El catálogo committeado no contiene ningún texto de carta, cita de sabor ni referencia a imagen — el script proyecta explícitamente una lista blanca de campos, nunca la respuesta completa de la API.
   5. Con la wifi apagada tras `nuxt generate`, el catálogo está disponible igual que el resto del contenido — viaja dentro del bundle, nunca se pide por red en ejecución.
-**Plans**: 5 plans (los dos últimos son cierre de gaps de 05-VERIFICATION.md)
+**Plans**: 6 plans (los tres últimos son cierre de gaps de 05-VERIFICATION.md)
 - [x] 05-01-PLAN.md — Contrato del catálogo: tipos sin zod, esquema Zod estricto y sus tests unitarios
 - [x] 05-02-PLAN.md — Script de generación contra MarvelCDB y catálogo committeado (23 héroes + 3 villanos)
 - [x] 05-03-PLAN.md — Gates de CI: validación del fichero real, guardarraíl anti-copyright y aislamiento de build
 - [x] 05-04-PLAN.md — Cierre del gap CR-01: tamaño de mano por cara (handSizeHero / handSizeAlterEgo) contrastado con el Rules Reference v1.7
 - [x] 05-05-PLAN.md — Cierre del gap CR-02: carga perezosa en los gates para que el guardarraíl anti-copyright pueda fallar por sí solo
+- [ ] 05-06-PLAN.md — Cierre del gap de truth #8 (CAT-02): dimensión de dificultad en la etapa de villano — salud de Kang en modo Experto (exp_kang 15/22/25) en tipos, esquema, generador y tests
 **Verificación humana**: No bloqueante — este catálogo se verifica entero por Vitest/CI y por inspección directa del JSON; no depende de la tablet de mesa (D-36 no aplica igual que a las reglas: un valor de vida equivocado se corrige con las flechas en mesa, per decisión explícita del usuario).
 
 ### Phase 6: Selección de villano, héroes y jugadores
