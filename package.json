@@ -12,6 +12,7 @@
     "voice:generate": "node scripts/voice/generate.mjs",
     "voice:probe": "node scripts/voice/generate.mjs --probe",
     "icons:generate": "node scripts/pwa/generate-icons.mjs",
+    "catalogue:generate": "node scripts/catalogue/fetch-marvelcdb.mjs",
     "e2e": "playwright test",
     "e2e:install": "playwright install chromium"
   },
