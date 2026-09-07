@@ -472,17 +472,29 @@ Esto es redundante con `z.strictObject` (que ya rechazaría cualquiera de estas 
 | A4 | Recomendación de nombrar el script `scripts/catalogue/fetch-marvelcdb.mjs` (no `scripts/marvelcdb/`) | Recommended Project Structure | Ninguno funcional — es una preferencia de naming consistente con `scripts/voice/`, ambas opciones ya estaban propuestas por CONTEXT.md como discrecionales |
 | A5 | "No hay Terms of Use dedicado en marvelcdb.com que restrinja este uso más allá de lo que ya cubre la restricción legal propia del proyecto" | Trampas de la API, punto 5 | Bajo-Medio — ninguna sesión de research (esta ni la de `STACK.md`) ha localizado una página de ToS dedicada; si existiera y prohibiera scraping automatizado de nombres/cifras, habría que revisar el enfoque. Recomendado: si surge duda legal real, es una pregunta para el usuario, no una que este research pueda cerrar por sí solo |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **¿El esquema debe fijar `stages` como array de longitud exactamente 3, o algo más flexible?**
+Ambas preguntas quedaron cerradas durante la planificación; se conservan aquí con su
+razonamiento original para trazabilidad.
+
+1. **RESOLVED — ver DC-01 en `05-01-PLAN.md`.** ¿El esquema debe fijar `stages` como array de longitud exactamente 3, o algo más flexible?
    - What we know: los 3 villanos de esta fase tienen exactamente 3 etapas cada uno.
    - What's unclear: si un futuro villano comprado (fuera del alcance actual, pero CAT-07 anticipa "comprar una caja") tuviera 2 o 4 etapas, `z.array(VillainStageSchema).length(3)` fallaría y habría que tocar el esquema, no solo añadir una fila — matiz menor a D-04's "una sola fila", inherente al dominio (algunos villanos de Marvel Champions sí tienen recuentos de etapa distintos de 3 en general, aunque no estos 3).
    - Recommendation: aceptarlo como matiz documentado del script/esquema (comentario explícito), no bloqueante para esta fase — los 3 villanos actuales son homogéneos.
+   - **Resolución (DC-01, `05-01-PLAN.md`):** el esquema NO fija la longitud a 3. Usa
+     `.min(1)` más una invariante de consecutividad (`stages[i].stage === i + 1`), con tests
+     positivos de villanos de 2 y de 4 etapas. Motivo: CAT-07 exige que un villano futuro sea
+     una fila más en el script, no una edición del esquema; la proteccion real contra huecos,
+     duplicados y desorden se conserva íntegra.
 
-2. **¿Se debe verificar el `expectedName` contra el nombre real devuelto por la API, o basta con el código?**
+2. **RESOLVED — ver la puerta `expectedName` en `05-02-PLAN.md` Task 1.** ¿Se debe verificar el `expectedName` contra el nombre real devuelto por la API, o basta con el código?
    - What we know: el patrón propuesto (Pattern 1) incluye una aserción `card.name !== expectedName` como salvaguarda contra un código mal transcrito que por azar exista pero sea de otra carta.
    - What's unclear: si esto debe ser parte del gate de D-05 (abortar) o solo un aviso.
    - Recommendation: parte del gate de D-05 — un nombre inesperado es exactamente el tipo de "algo cambió y nadie lo decidió" que D-05 quiere capturar en vez de escribir en silencio.
+   - **Resolución (DC-02, `05-02-PLAN.md` Task 1):** sí, forma parte del gate de aborto de
+     D-05, y se amplía con `type_code` y `card_set_code` esperado. Esa última aserción es la
+     que atrapa un código de `exp_kang` colado por error, ya que la etapa II de Kang no admite
+     `expectedName` (sus 4 alternativas narrativas tienen nombres distintos).
 
 ## Environment Availability
 
