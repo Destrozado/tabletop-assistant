@@ -118,6 +118,17 @@ de éxito quedará imposible de cumplir tal como está escrito.
   (Iron Man expone `hand_size: 1`, que es "+1 por mejora Tech"; Tony Stark expone el
   6 real). El script debe leer el `linked_card`.
 
+  **Corrección (gap CR-01 de 05-VERIFICATION.md):** la premisa fáctica del "caso
+  concreto" de arriba —que el `hand_size` del lado héroe sería un modificador de
+  habilidad y no un tamaño de mano real— quedó refutada contra el Rules Reference
+  v1.7 (Apéndice III, anatomía de carta, punto 14; y la entrada "HAND SIZE"). El
+  ejemplo impreso de Spider-Man trae `HAND SIZE 5` en la cara de héroe y
+  `HAND SIZE 6` en la cara de alter ego: los dos son valores reales y distintos, no
+  uno "correcto" y otro descartable. El catálogo pasa a guardar los dos como
+  `handSizeHero` y `handSizeAlterEgo`. La decisión D-09 en sí sigue vigente y sin
+  cambios: el fix se aplicó en el script y se regeneró el fichero, que es
+  literalmente el procedimiento que D-09 exige.
+
 - **D-10:** El fichero es **determinista puro: sin `generatedAt` ni ninguna marca
   temporal**. Re-ejecutar el script sin cambios en MarvelCDB debe dejar `git diff`
   **vacío**. Motivo: eso hace la reproducibilidad del criterio de éxito nº 3
