@@ -68,6 +68,13 @@ Inherited verbatim from `01-UI-SPEC.md` — no new tokens.
 - **Modal panel: `max-w-[640px]`, `max-h-[80vh]`.** Same max-width already used by
   `WarningDetailModal`; the height cap is new (this phase's modals scroll a list,
   `WarningDetailModal` did not) — see Layout.
+- **Text-input focus border: `border-b-2` (2px).** NEW and canonical. These are the
+  first text inputs in the app, so there was no precedent to inherit. The convention is
+  `border-b-2 border-transparent focus:border-accent outline-none` — a 2px bottom border
+  that is transparent at rest and takes the accent color on focus, so the input's height
+  never shifts between states. **Any future text input (Phase 7+) reuses this exact
+  treatment** rather than inventing a second one; it is recorded here as the
+  design-system addition of this phase.
 
 ---
 
@@ -223,9 +230,9 @@ passes WCAG 1.4.11's 3:1 non-text floor) — no new hex, so no new math.
 - **Never a `<button>`.** No border, no chevron, not `cursor-pointer` — D-16's explicit
   rule, same mechanism D-32 already established in Phase 2 for a `⚠` with no detail.
   Does **not** open `WarningDetailModal` or anything else.
-- **Position:** directly below the row block, `gap-lg`? — no, reuse the **exact** spacing
-  the existing non-clickable `optionsWarningText` fallback already uses (`gap-sm`, 8px,
-  inside the same flex column as the rows) so this doesn't invent a new rhythm either.
+- **Position:** directly below the row block, at `gap-sm` (8px) inside the same flex
+  column as the rows — the **exact** spacing the existing non-clickable
+  `optionsWarningText` fallback already uses, so this doesn't invent a new rhythm.
 - **Visible only when at least one hero is duplicated across player slots** (villains
   can't duplicate — one slot). Absent entirely otherwise — no empty placeholder line.
 - **Copy formula (computed, not authored — see Copywriting Contract for exact strings).**
