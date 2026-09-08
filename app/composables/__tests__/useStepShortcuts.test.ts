@@ -160,6 +160,9 @@ describe('isEditableTarget (trampa 4: no robar la tecla a un campo de texto)', (
     expect(isEditableTarget({ tagName: 'DIV', isContentEditable: true })).toBe(true)
   })
 
+  // D-17 (Fase 7): este es también el test que fija que los botones ▼/▲ de
+  // la banda de contadores (CounterBand.vue) no quedan excluidos por esta
+  // guarda — cruce de trazabilidad con D-Q1, no una aserción duplicada.
   it('BUTTON -> false (no es editable; el doble avance lo resuelve preventDefault, D-Q1)', () => {
     expect(isEditableTarget({ tagName: 'BUTTON' })).toBe(false)
   })
