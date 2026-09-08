@@ -35,16 +35,21 @@
 
 ### HP — Banda de contadores
 
-- [ ] **HP-01**: Durante la partida hay una banda de contadores fija y siempre visible
+- [x] **HP-01**: Durante la partida hay una banda de contadores fija y siempre visible
 - [x] **HP-02**: La banda ocupa como máximo ~15% de la altura de la pantalla, presupuesto fijado antes de implementarla y verificado en el viewport objetivo
-- [ ] **HP-03**: La banda contiene un contador «Vida villano» y un contador por jugador (HP1…HPN según el nº de jugadores)
+- [x] **HP-03**: La banda contiene un contador «Vida villano» y un contador por jugador (HP1…HPN según el nº de jugadores)
 - [x] **HP-04**: Cada contador se ajusta con ▲ y ▼, sin teclado y sin escribir cifras
-- [ ] **HP-05**: Los contadores arrancan precargados con el valor correcto según villano, héroe y nº de jugadores cuando ese valor se conoce
+- [x] **HP-05**: Los contadores arrancan precargados con el valor correcto según villano, héroe y nº de jugadores cuando ese valor se conoce
 - [x] **HP-06**: Un contador de héroe que llega a 0 marca a ese jugador como «derrotado» visualmente, no baja de 0, y **no** termina la partida ni abre ningún diálogo — el Rules Reference v1.7 dice que los demás jugadores continúan
 - [x] **HP-07**: Un jugador marcado como derrotado puede volver a subir por encima de 0
 - [x] **HP-08**: El valor de todos los contadores se persiste con la sesión y sobrevive a recargar la página a mitad de partida
 - [x] **HP-09**: Ajustar un contador nunca avanza el paso, y los atajos de teclado ya existentes (Espacio, Enter, ←) siguen comportándose igual que en v1.7
 - [x] **HP-10**: Los contadores son legibles y accionables a un brazo de distancia en tablet horizontal (cifras grandes, objetivos táctiles suficientes, sin repetición descontrolada al mantener pulsado)
+
+> **Evidencia de los requisitos reabiertos por `07-VERIFICATION.md` (CR-01) y cerrados en el cierre de huecos de la Fase 7:**
+> - **HP-03** — matriz de solapamiento/hit-test `e2e/counter-band-overlap.spec.ts` (5 viewports × 4 nº de jugadores, `elementFromPoint`), plan 07-08; firma humana del plan 07-11 (Task 1) sobre 1024x768/412x915/700x800 con 4 jugadores.
+> - **HP-04** — mismas dos evidencias que HP-03: el mecanismo ▲/▼ ya era correcto en aislamiento, lo que fallaba era el hit-test de la celda, cerrado por la misma matriz y la misma firma humana.
+> - **HP-10** — firma humana del plan 07-11 (Task 1), acotada a 1024x768/412x915/700x800; ámbito real del objetivo táctil tras el arreglo: **96px de alto siempre** (D-02, incondicional) y **44px de ancho desde 760px de ancho de viewport** (por debajo, la flecha encoge a propósito — ~38px a 700x800, ~34px a 660x800, ~27,5px a 412x915), ver la viñeta «Touch targets» enmendada en `07-UI-SPEC.md`.
 
 ### VAL — Valores conocidos dentro del paso
 
@@ -89,8 +94,8 @@
 
 ### COMP — Compatibilidad con lo ya desplegado
 
-- [ ] **COMP-01**: Añadir los campos nuevos a la sesión persistida no corrompe ni pierde una partida en curso guardada por la versión desplegada de v1.7
-- [ ] **COMP-02**: La interfaz renderiza selección y contadores de forma defensiva cuando la sesión reanudada no trae los campos nuevos — el gate `contentVersion`/`formatVersion` no cubre este caso, verificado en `engine/persistence.ts`
+- [x] **COMP-01**: Añadir los campos nuevos a la sesión persistida no corrompe ni pierde una partida en curso guardada por la versión desplegada de v1.7
+- [x] **COMP-02**: La interfaz renderiza selección y contadores de forma defensiva cuando la sesión reanudada no trae los campos nuevos — el gate `contentVersion`/`formatVersion` no cubre este caso, verificado en `engine/persistence.ts`
 - [ ] **COMP-03**: Una PWA ya instalada recibe la actualización por el camino existente (`registerType: 'prompt'`, banda descartable), sin recarga forzada a mitad de ronda
 
 ---
@@ -151,18 +156,18 @@
 | SEL-07 | Fase 6 | Pendiente |
 | SEL-08 | Fase 6 | Pendiente |
 | SEL-09 | Fase 6 | Pendiente |
-| HP-01 | Fase 7 | Pendiente |
-| HP-02 | Fase 7 | Pendiente |
-| HP-03 | Fase 7 | Pendiente |
-| HP-04 | Fase 7 | Pendiente |
-| HP-05 | Fase 7 | Pendiente |
-| HP-06 | Fase 7 | Pendiente |
-| HP-07 | Fase 7 | Pendiente |
-| HP-08 | Fase 7 | Pendiente |
-| HP-09 | Fase 7 | Pendiente |
-| HP-10 | Fase 7 | Pendiente |
-| COMP-01 | Fase 7 | Pendiente |
-| COMP-02 | Fase 7 | Pendiente |
+| HP-01 | Fase 7 | Satisfecho |
+| HP-02 | Fase 7 | Satisfecho |
+| HP-03 | Fase 7 | Satisfecho |
+| HP-04 | Fase 7 | Satisfecho |
+| HP-05 | Fase 7 | Satisfecho |
+| HP-06 | Fase 7 | Satisfecho |
+| HP-07 | Fase 7 | Satisfecho |
+| HP-08 | Fase 7 | Satisfecho |
+| HP-09 | Fase 7 | Satisfecho |
+| HP-10 | Fase 7 | Satisfecho |
+| COMP-01 | Fase 7 | Satisfecho |
+| COMP-02 | Fase 7 | Satisfecho |
 | VAL-01 | Fase 8 | Pendiente |
 | VAL-02 | Fase 8 | Pendiente |
 | VAL-03 | Fase 8 | Pendiente |
