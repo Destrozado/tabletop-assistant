@@ -105,8 +105,17 @@ const shellHeightClass = computed(() => rowGroups.value.length === 1 ? 'h-24' : 
         ]"
       >
         <div class="h-24 flex items-stretch">
+          <!--
+            D-17 (Fase 7): estas flechas se operan con el dedo, no con el
+            teclado (HP-09) — sacarlas del recorrido de tabulación hace
+            coherente esa decisión de arriba abajo, en vez de dejarlas como
+            paradas de tabulación que ninguna tecla puede activar. Siguen
+            siendo botones nativos y siguen recibiendo foco puesto por
+            código.
+          -->
           <button
             type="button"
+            tabindex="-1"
             class="flex-1 min-w-0 h-24 flex items-end justify-center pb-xs text-heading font-bold leading-none text-accent transition-[transform,filter] duration-75"
             :class="pressedKey === `${entry.cell.key}:down` ? 'brightness-95 scale-[0.98]' : ''"
             :aria-label="`Bajar vida de ${entry.cell.label}`"
@@ -128,6 +137,7 @@ const shellHeightClass = computed(() => rowGroups.value.length === 1 ? 'h-24' : 
 
           <button
             type="button"
+            tabindex="-1"
             class="flex-1 min-w-0 h-24 flex items-end justify-center pb-xs text-heading font-bold leading-none text-accent transition-[transform,filter] duration-75"
             :class="pressedKey === `${entry.cell.key}:up` ? 'brightness-95 scale-[0.98]' : ''"
             :aria-label="`Subir vida de ${entry.cell.label}`"

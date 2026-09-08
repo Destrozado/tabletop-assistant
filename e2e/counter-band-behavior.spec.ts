@@ -371,4 +371,39 @@ test.describe('Contadores de vida — comportamiento de extremo a extremo (D-12/
     const afterHold = await getCellValue(page, 'VILLANO').innerText()
     expect(Number(afterHold) - Number(baseline), 'mantener pulsado ~1s y soltar sobre el botón debe producir exactamente +1').toBe(1)
   })
+
+  test('las flechas de la banda quedan fuera del recorrido de tabulación, sin llevarse por delante el resto del teclado (WR-03, D-17)', async ({ page }) => {
+    await goToRoundLoop(page)
+
+    // (a) medido en el navegador: los 8 botones de contador (VILLANO + 3
+    // jugadores × 2 flechas) tienen tabIndex === -1.
+    const arrowLabels = ['VILLANO', 'Jugador 1', 'Jugador 2', 'Jugador 3']
+    for (const label of arrowLabels) {
+      expect(await downButton(page, label).evaluate(el => el.tabIndex), `tabIndex de «Bajar vida de ${label}»`).toBe(-1)
+      expect(await upButton(page, label).evaluate(el => el.tabIndex), `tabIndex de «Subir vida de ${label}»`).toBe(-1)
+    }
+
+    // (b)+(c): partiendo del body, 15 tabulaciones nunca dejan el foco en
+    // una flecha de contador, y en esa misma pasada el foco SÍ llega en
+    // algún momento al botón «SIGUIENTE» de NavBand — guardia contra
+    // llevarse por delante la navegación por teclado del resto de la
+    // pantalla.
+    await page.evaluate(() => document.body.focus())
+
+    let reachedNext = false
+    for (let i = 0; i < 15; i++) {
+      await page.keyboard.press('Tab')
+      const focused = await page.evaluate(() => {
+        const el = document.activeElement
+        return { ariaLabel: el?.getAttribute('aria-label') ?? null, textContent: el?.textContent?.trim() ?? null }
+      })
+      expect(
+        focused.ariaLabel?.startsWith('Bajar vida de') || focused.ariaLabel?.startsWith('Subir vida de'),
+        `la tabulación nº ${i + 1} no debe dejar el foco en una flecha de contador (aria-label: ${focused.ariaLabel})`,
+      ).toBeFalsy()
+      if (focused.textContent?.includes('SIGUIENTE')) reachedNext = true
+    }
+
+    expect(reachedNext, 'el foco debe llegar al botón SIGUIENTE en algún momento de las 15 tabulaciones').toBe(true)
+  })
 })
