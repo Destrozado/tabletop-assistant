@@ -73,6 +73,10 @@ const {
   setVillain,
   setHero,
   setPlayerName,
+  showsCounterBand,
+  counterCells,
+  incrementCounter,
+  decrementCounter,
 } = useGameSession()
 
 const { load, save, clear } = usePersistedSession()
@@ -671,6 +675,22 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         :voice-state="voiceState"
         @index-open="onIndexOpen"
         @voice-toggle="toggleVoice"
+      />
+      <!--
+        D-03: la banda va justo bajo AppHeader, NUNCA junto a NavBand, para
+        que ningún ▼/▲ quede a menos de 96px de SIGUIENTE. El aviso de voz
+        que sigue es un elemento condicional y de altura variable ajeno a los
+        contadores (Fases 6/7), así que se coloca la banda delante de él: su
+        posición queda estable exista o no aviso de voz, sin reestilar ni
+        mover VoiceUnavailableNotice. El bloque de overlays superpuestos del
+        final sigue pintando por encima de la banda sin tocar su apilamiento,
+        misma disciplina D-U3 de orden en el DOM ya documentada más abajo.
+      -->
+      <CounterBand
+        v-if="showsCounterBand"
+        :cells="counterCells"
+        @increment="incrementCounter"
+        @decrement="decrementCounter"
       />
       <VoiceUnavailableNotice
         v-if="showVoiceUnavailableNotice"
