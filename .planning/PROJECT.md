@@ -26,7 +26,17 @@ El hito se entregó en 5 fases (1, 2, 3, 03.1, 4 — 30 planes en total) a lo la
 
 Esta deuda se acepta por decisión explícita del usuario: *"no vamos a tener el tablet a corto plazo"*. No bloquea el uso real de la app, que ya está en marcha.
 
-**v1.8 en curso — Fase 5 completa (2026-09-07).** El repo tiene ya un catálogo versionado, reproducible y legal de los 23 héroes y 3 villanos: solo nombres y cifras (vida, tamaño de mano por cara, vida de villano por etapa con su dimensión de dificultad Experta), regenerable con `npm run catalogue:generate` de forma determinista byte a byte, validado por Zod en CI y viajando dentro del bundle sin ninguna petición de red en ejecución. Es el cimiento de datos que las Fases 6, 7 y 8 consumen.
+**v1.8 en curso — Fases 5, 6 y 7 completas (2026-09-08).**
+
+- **Fase 5 (catálogo).** El repo tiene un catálogo versionado, reproducible y legal de los 23 héroes y 3 villanos: solo nombres y cifras (vida, tamaño de mano por cara, vida de villano por etapa con su dimensión de dificultad Experta), regenerable con `npm run catalogue:generate` de forma determinista byte a byte, validado por Zod en CI y viajando dentro del bundle sin ninguna petición de red en ejecución. Es el cimiento de datos que las Fases 6, 7 y 8 consumen.
+- **Fase 6 (selección).** Un grupo puede elegir villano y qué héroe lleva cada jugador dentro del paso «Decidid, como grupo…», con nombre de jugador opcional, sin que elegir sea obligatorio y sin perder la selección al recargar.
+- **Fase 7 (contadores + compatibilidad).** Durante la partida hay una banda fija de contadores de vida —«Vida villano» y uno por jugador— operada solo con ▲/▼, precargada desde el catálogo según villano, héroe y nº de jugadores, dentro de un presupuesto de altura de 96px que se midió contra el viewport objetivo *antes* de construir el componente. Las partidas guardadas por la v1.7 ya desplegada se reanudan sin corromperse, y la interfaz nueva se renderiza de forma defensiva cuando la sesión reanudada no trae los campos nuevos. 11 planes, de los cuales los 4 últimos fueron cierre de huecos: la verificación inicial encontró un fallo bloqueante (CR-01) por el que, en viewports por debajo de ~760px con 3-4 jugadores, las celdas se solapaban y un toque cambiaba la vida del jugador equivocado. Cerrado y protegido por una matriz medida de 5 viewports × 4 nº de jugadores con prueba de impacto (`elementFromPoint`).
+
+**Deuda conocida de la Fase 7, sin suavizar** (detalle en `07-REVIEW.md`, 0 bloqueantes / 9 avisos):
+1. La guarda anti-NaN de vida quedó asimétrica: `computeInitialVillainHealth` la tiene, `computeInitialHeroHealth` no. Inalcanzable hoy —el esquema Zod exige `int().positive()` y un test de CI valida el fichero real—, pero el catálogo se regenera desde una API de terceros, que es el razonamiento que justificó la guarda del villano.
+2. El arreglo del pulsado pegado y de la animación se aplicó a 2 de los 8 botones que comparten el patrón. Quedan `ConfirmDialog.vue` (×2), `ResumePrompt.vue` (×2), `GameSelectorScreen.vue` y `ContentChangedNotice.vue`; en el del selector la clase pegada añade `border-accent`, así que un toque cancelado deja una carta con aspecto de seleccionada.
+3. No hay aserción automática de anchura de flecha por debajo de 1024×768: las cifras de `07-UI-SPEC.md` (~38/~34/~27,5px) son derivadas de la fórmula del arreglo, no medidas en navegador, y solo las respalda el veredicto humano.
+4. La firma humana de la Fase 7 se hizo sobre viewports **simulados** en navegador (1024×768, 412×915 y 700×800 con 4 jugadores), no sobre la tablet real de mesa — cuyo modelo y SO siguen sin identificarse, bloqueante abierto desde la Fase 1.
 
 ## Current Milestone: v1.8 Elección de personajes, contadores en mesa e histórico de partidas
 
@@ -146,4 +156,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-08 — Fase 6 del hito v1.8 completa (selección de villano, héroes y jugadores)*
+*Last updated: 2026-09-09 — Fase 7 del hito v1.8 completa (banda de contadores y compatibilidad de sesión), verificada 5/5 tras cierre de huecos*
