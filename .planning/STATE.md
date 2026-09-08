@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
 status: planning
-stopped_at: Phase 6 context gathered
-last_updated: "2026-09-07T23:59:18.400Z"
+stopped_at: Phase 6 wave 1 complete (06-01, 06-02)
+last_updated: "2026-09-08T01:19:16.329Z"
 last_activity: 2026-09-07
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 13
+  completed_plans: 8
   percent: 17
 ---
 
@@ -153,6 +153,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-07T23:59:18.396Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-selecci-n-de-villano-h-roes-y-jugadores/06-CONTEXT.md
+Last session: 2026-09-08T01:19:16.324Z
+Stopped at: Phase 6 wave 1 complete (06-01, 06-02)
+Resume file: .planning/phases/06-selecci-n-de-villano-h-roes-y-jugadores/06-04-PLAN.md
