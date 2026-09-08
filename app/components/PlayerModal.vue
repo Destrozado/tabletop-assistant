@@ -73,6 +73,23 @@ function onNameInput(event: Event) {
   draftName.value = value
   emit('name-input', value)
 }
+
+// Petición del usuario en la verificación humana del plan 06-07: al enfocar
+// el campo se selecciona todo, de modo que escribir SUSTITUYE el valor en
+// vez de añadirse a él. El valor por defecto («Jugador 1») se comporta
+// entonces como el placeholder que en realidad es, y nadie tiene que borrar
+// antes de escribir — que era la fricción concreta que reportó.
+//
+// El `setTimeout(0)` no es supersticioso: en Safari de iOS un `select()`
+// llamado DENTRO del propio manejador de focus lo deshace después el gesto
+// táctil que provocó ese focus, y la selección se pierde. Aplazarlo un tick
+// lo coloca después de ese gesto. En escritorio da igual, así que se hace
+// siempre en vez de ramificar por navegador. Sigue **pendiente de confirmar
+// en la tablet real**, como el resto del comportamiento táctil de la fase.
+function onNameFocus(event: FocusEvent) {
+  const input = event.target as HTMLInputElement
+  setTimeout(() => input.select(), 0)
+}
 </script>
 
 <template>
@@ -115,6 +132,7 @@ function onNameInput(event: Event) {
             :maxlength="nameMaxLength"
             autocomplete="off"
             class="w-full min-h-12 px-md bg-background text-body font-normal text-primary-text placeholder:text-secondary-text border-b-2 border-transparent focus:border-accent outline-none"
+            @focus="onNameFocus"
             @input="onNameInput"
           >
           <!-- Cifra fijada por 06-UI-SPEC.md §Typography cerrando el rango
