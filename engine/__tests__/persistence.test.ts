@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { resolveCounters, resolveCounterValues } from '../counters'
 import { expand } from '../expand'
 import { next } from '../navigator'
 import { resume, toPersistedPosition } from '../persistence'
@@ -8,6 +9,7 @@ import type { PersistedPosition } from '../persistence'
 import { validateGameDefinition } from '../schema'
 import { resolvePlayerSlots, resolveVillainId } from '../selection'
 import type { GameDefinition, SessionContext } from '../types'
+import type { CharacterCatalogue } from '../types'
 
 const fixturePath = fileURLToPath(new URL('./fixtures/tiny-game.json', import.meta.url))
 const tinyGame: GameDefinition = JSON.parse(readFileSync(fixturePath, 'utf-8'))
@@ -21,6 +23,12 @@ const context: SessionContext = { playerCount: 3, difficulty: 'normal' }
 const contentPath = fileURLToPath(new URL('../../content/marvel-champions.json', import.meta.url))
 const rawMarvelChampions: unknown = JSON.parse(readFileSync(contentPath, 'utf-8'))
 const marvelChampions: GameDefinition = validateGameDefinition(rawMarvelChampions)
+
+// D-21: catálogo real cargado igual que el contenido de arriba, sin
+// validador de esquema (eso ya lo cubre engine/__tests__/catalogueSchema.test.ts).
+const cataloguePath = fileURLToPath(new URL('../../content/marvel-characters.json', import.meta.url))
+const rawCatalogue: unknown = JSON.parse(readFileSync(cataloguePath, 'utf-8'))
+const catalogue = rawCatalogue as CharacterCatalogue
 
 function basePersisted(overrides: Partial<PersistedPosition> = {}): PersistedPosition {
   return {
@@ -207,5 +215,74 @@ describe('D-20: resume() de una sesión persistida sin `selection` (Fase 6)', ()
     expect(slots[2]).toEqual({ heroId: null, playerName: 'Bruno' }) // heroId vacío cae a null
 
     expect(resolveVillainId(session.context)).toBeNull()
+  })
+})
+
+describe('D-21: resume() de una sesión persistida con forma de v1.7 (sin selection, sin counters)', () => {
+  const fresh = expand(marvelChampions, { playerCount: 3, difficulty: 'normal' })
+
+  it('una partida de v1.7 se reanuda y la banda pintaría «—» en todas las celdas', () => {
+    // Forma v1.7 literal: ni `selection` ni `counters` existían todavía en
+    // `context` cuando esta partida se guardó en la tablet real del grupo.
+    // Este caso NO lo cubre el gate `contentVersion`/`formatVersion` de
+    // `resume()` (esos dos campos coinciden con la build actual), así que
+    // se prueba aparte, exactamente como D-20 probó `selection` aparte.
+    const persisted: PersistedPosition = {
+      formatVersion: 1,
+      gameId: 'marvel-champions',
+      contentVersion: marvelChampions.contentVersion,
+      runtimeId: fresh.sequence[0].runtimeId,
+      round: 1,
+      context: { playerCount: 3, difficulty: 'normal' },
+      updatedAt: '2026-09-08T00:00:00.000Z',
+    }
+
+    const { session, outcome } = resume(persisted, fresh)
+    expect(outcome).toBe('resumed')
+
+    expect(session.context.counters).toBeUndefined()
+
+    const counters = resolveCounters(session.context)
+    expect(counters).toEqual({ villainHealth: null, heroHealth: [null, null, null] })
+
+    const counterValues = resolveCounterValues(session.context, catalogue)
+    expect(counterValues).toEqual({ villainHealth: null, heroHealth: [null, null, null] })
+
+    // La aserción por la que existe el test: ningún valor devuelto es
+    // `undefined` ni `NaN` — sin villano ni héroes elegidos no hay nada que
+    // calcular, y eso es el estado NORMAL de SEL-09, no un fallo.
+    expect(counterValues.villainHealth === null || Number.isInteger(counterValues.villainHealth)).toBe(true)
+    expect(counterValues.heroHealth.every(v => v === null || Number.isInteger(v))).toBe(true)
+  })
+
+  it('`localStorage` manipulado: un `counters` corrupto se normaliza sin lanzar', () => {
+    const persisted: PersistedPosition = {
+      formatVersion: 1,
+      gameId: 'marvel-champions',
+      contentVersion: marvelChampions.contentVersion,
+      runtimeId: fresh.sequence[0].runtimeId,
+      round: 1,
+      context: {
+        playerCount: 3,
+        difficulty: 'normal',
+        counters: {
+          villainHealth: 'muchos' as unknown as number,
+          heroHealth: [42, Number.NaN, '12' as unknown as number, -7],
+        },
+      },
+      updatedAt: '2026-09-08T00:00:00.000Z',
+    }
+
+    expect(() => resume(persisted, fresh)).not.toThrow()
+    const { session, outcome } = resume(persisted, fresh)
+    expect(outcome).toBe('resumed')
+
+    const counters = resolveCounters(session.context)
+    expect(counters.heroHealth).toHaveLength(3) // la cuarta entrada se descarta: la longitud la manda playerCount
+    expect(counters.villainHealth).toBeNull()
+    expect(counters.heroHealth[0]).toBe(42)
+    counters.heroHealth.forEach((entry) => {
+      expect(entry === null || (Number.isInteger(entry) && !Number.isNaN(entry) && entry >= 0)).toBe(true)
+    })
   })
 })
