@@ -10,39 +10,38 @@
 // (`CatalogueHero.name`) y esto nunca rompe la lista ni el filtro — ver
 // `resolveHeroSpanishName` en `app/composables/useHeroSearch.ts`.
 //
-// ⚠ PENDIENTE DE REVISIÓN HUMANA (D-07, plan 06-03) ⚠
-// Los alias de esta tabla los ha propuesto Claude a partir del nombre
-// habitual en español de cada personaje de Marvel Comics. El usuario debe
-// revisarlos contra las cartas físicas del grupo antes de darlos por
-// definitivos — un alias equivocado solo cuesta una búsqueda fallida (nunca
-// rompe nada), pero no son fiables hasta esa revisión. Las líneas marcadas
-// con `// D-07: confirmar` son las que más dudas admiten (traducción no
-// literal o variante conocida); las no marcadas coinciden con el nombre en
-// inglés del catálogo y no necesitan confirmación. NO retirar esta marca de
-// PENDIENTE: es el plan 06-03, no este fichero, quien la retira tras el
-// veredicto del usuario.
+// Revisión humana D-07 — hecha el 2026-09-08.
+// El usuario contrastó las 23 filas contra las cartas físicas del grupo y las
+// aprobó, con una sola corrección: `she-hulk` pasa de «She-Hulk» a «Hulka»,
+// que es lo que dice literalmente el lado de héroe de su carta (su alter ego,
+// «Jennifer Walters», ya coincidía con el catálogo). Palabras suyas sobre esa
+// fila: «me da igual She-hulk que Hulka, lo importante es saber a quién nos
+// referimos» — se eligió «Hulka» por ser lo que se lee en la mesa, que es
+// justo para lo que existe este mapa (D-06: el nombre español es el rótulo
+// dominante de cada fila del modal). Las otras 22 quedaron tal cual se
+// propusieron. Ya no hay nada pendiente de confirmar en este fichero.
 export const spanishHeroAliases: Record<string, string> = {
-  'spider-man': 'Spider-Man', // D-07: confirmar
-  'captain-marvel': 'Capitana Marvel', // D-07: confirmar
-  'she-hulk': 'She-Hulk', // D-07: confirmar
+  'spider-man': 'Spider-Man',
+  'captain-marvel': 'Capitana Marvel',
+  'she-hulk': 'Hulka',
   'iron-man': 'Iron Man',
-  'black-panther': 'Pantera Negra', // D-07: confirmar
-  'captain-america': 'Capitán América', // D-07: confirmar
-  'ms-marvel': 'Ms. Marvel', // D-07: confirmar
+  'black-panther': 'Pantera Negra',
+  'captain-america': 'Capitán América',
+  'ms-marvel': 'Ms. Marvel',
   'thor': 'Thor',
-  'black-widow': 'Viuda Negra', // D-07: confirmar
-  'doctor-strange': 'Doctor Extraño', // D-07: confirmar
+  'black-widow': 'Viuda Negra',
+  'doctor-strange': 'Doctor Extraño',
   'hulk': 'Hulk',
-  'ant-man': 'Ant-Man', // D-07: confirmar
-  'wasp': 'Avispa', // D-07: confirmar
-  'quicksilver': 'Mercurio', // D-07: confirmar
-  'scarlet-witch': 'Bruja Escarlata', // D-07: confirmar
+  'ant-man': 'Ant-Man',
+  'wasp': 'Avispa',
+  'quicksilver': 'Mercurio',
+  'scarlet-witch': 'Bruja Escarlata',
   'drax': 'Drax',
-  'valkyrie': 'Valquiria', // D-07: confirmar
-  'vision': 'Visión', // D-07: confirmar
+  'valkyrie': 'Valquiria',
+  'vision': 'Visión',
   'nova': 'Nova',
-  'storm': 'Tormenta', // D-07: confirmar
-  'deadpool': 'Masacre', // D-07: confirmar
-  'iceman': 'Hombre de Hielo', // D-07: confirmar
-  'jubilee': 'Jubilee', // D-07: confirmar
+  'storm': 'Tormenta',
+  'deadpool': 'Masacre',
+  'iceman': 'Hombre de Hielo',
+  'jubilee': 'Jubilee',
 }
