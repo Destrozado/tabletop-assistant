@@ -14,6 +14,11 @@ import { computed, onMounted, ref } from 'vue'
 import { collectAudioIds } from '~~/engine/audio'
 import { expand } from '~~/engine/expand'
 import { resume } from '~~/engine/persistence'
+// WR-01 (06-REVIEW.md): el tope de caracteres del nombre de jugador tiene una
+// sola fuente, la constante del motor. Esta página la enlaza a PlayerModal por
+// prop para que el componente siga siendo tonto (sin importar `~~/engine/*`) y
+// para que no exista una segunda copia del número que pueda desincronizarse.
+import { PLAYER_NAME_MAX_LENGTH } from '~~/engine/selection'
 import { tableOfContents } from '~~/engine/toc'
 import { useCharacterCatalogue } from '~/composables/useCharacterCatalogue'
 import { useGameContent } from '~/composables/useGameContent'
@@ -738,6 +743,7 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         :heroes="heroOptions"
         :selected-hero-id="activePlayerHeroId"
         :taken-by="activePlayerTakenBy"
+        :name-max-length="PLAYER_NAME_MAX_LENGTH"
         @name-input="onPlayerNameInput"
         @select-hero="onSelectHero"
         @dismiss="onDismissSelectionModal"

@@ -17,6 +17,13 @@ const props = defineProps<{
   heroes: { id: string, spanishName: string, catalogueName: string, alterEgo: string }[]
   selectedHeroId: string | null
   takenBy: Record<string, string>
+  // WR-01 (06-REVIEW.md): el tope de caracteres llega SIEMPRE por prop, nunca
+  // como cifra escrita a mano en la plantilla. La fuente única es
+  // PLAYER_NAME_MAX_LENGTH en el motor, y quien monta este componente la
+  // enlaza. Este componente sigue siendo tonto (no importa `~~/engine/*`),
+  // pero ya no puede desincronizarse del límite que el motor reimpone al
+  // guardar: antes eran dos copias del 14 sin nada que las atara.
+  nameMaxLength: number
 }>()
 
 const emit = defineEmits<{
@@ -105,15 +112,17 @@ function onNameInput(event: Event) {
             id="player-modal-name-input"
             type="text"
             :value="draftName"
-            maxlength="14"
+            :maxlength="nameMaxLength"
             autocomplete="off"
             class="w-full min-h-12 px-md bg-background text-body font-normal text-primary-text placeholder:text-secondary-text border-b-2 border-transparent focus:border-accent outline-none"
             @input="onNameInput"
           >
           <!-- Cifra fijada por 06-UI-SPEC.md §Typography cerrando el rango
-               12-16 de D-15; el motor reimpone el mismo límite como
-               constante propia al guardar la sesión, como defensa de
-               escritura por si este límite del cliente se sortea. -->
+               12-16 de D-15, recibida por prop desde la constante única del
+               motor (WR-01 de 06-REVIEW.md) en vez de escrita aquí a mano.
+               El motor reimpone además el mismo límite al guardar la sesión,
+               como defensa de escritura por si este límite del cliente se
+               sortea. -->
         </div>
 
         <div class="flex flex-col gap-xs">
