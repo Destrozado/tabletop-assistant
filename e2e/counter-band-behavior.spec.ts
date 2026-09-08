@@ -296,4 +296,114 @@ test.describe('Contadores de vida — comportamiento de extremo a extremo (D-12/
     await expect(getCellValue(page, 'Jugador 1'), 'Thor debería precargar 14 sin tocar ninguna flecha').toHaveText('14')
     await expect(getCellValue(page, 'VILLANO'), 'Rhino con 3 jugadores debería precargar 42 sin tocar ninguna flecha').toHaveText('42')
   })
+
+  test('separador visible entre celdas, ausente solo en la primera de la banda (WR-01, medido)', async ({ page }) => {
+    await goToRoundLoop(page)
+
+    // El viewport por defecto de este fichero es 1024x768 (test.use arriba):
+    // desde `sm:` las dos filas colapsan en una sola visualmente, así que
+    // solo la celda global 0 (VILLANO) debe medir 0px de borde izquierdo.
+    for (const [label, expected] of [
+      ['VILLANO', '0px'],
+      ['Jugador 1', '1px'],
+      ['Jugador 2', '1px'],
+      ['Jugador 3', '1px'],
+    ] as const) {
+      const borderLeftWidth = await getCell(page, label).evaluate(el => getComputedStyle(el).borderLeftWidth)
+      expect(borderLeftWidth, `borderLeftWidth de la celda «${label}» a 1024x768`).toBe(expected)
+    }
+
+    // A 400x800 las dos filas vuelven a ser cajas independientes: la primera
+    // celda de CADA fila (VILLANO y Jugador 1) mide 0px, no solo la global.
+    await page.setViewportSize({ width: 400, height: 800 })
+
+    for (const [label, expected] of [
+      ['VILLANO', '0px'],
+      ['Jugador 1', '0px'],
+      ['Jugador 2', '1px'],
+      ['Jugador 3', '1px'],
+    ] as const) {
+      const borderLeftWidth = await getCell(page, label).evaluate(el => getComputedStyle(el).borderLeftWidth)
+      expect(borderLeftWidth, `borderLeftWidth de la celda «${label}» a 400x800`).toBe(expected)
+    }
+  })
+
+  test('el estado de pulsado se limpia al soltar fuera y al cancelar el toque; la acción sigue solo en el clic completo (WR-02, D-14)', async ({ page }) => {
+    await goToRoundLoop(page)
+
+    const villainUp = upButton(page, 'VILLANO')
+    const isPressed = () => villainUp.evaluate(el => el.className.includes('scale-[0.98]'))
+
+    // Punto de partida numérico (arranca en «—»): un toque completo lo lleva
+    // a 1 y deja una base sobre la que medir «no cambió».
+    await villainUp.click()
+    const baseline = await getCellValue(page, 'VILLANO').innerText()
+
+    // Secuencia 1: apretar el ratón, comprobar que el estado de pulsado se
+    // aplica, moverlo FUERA del botón y soltar ahí — el botón debe volver a
+    // reposo antes incluso de soltar, y el valor no debe haber cambiado.
+    const box = await villainUp.boundingBox()
+    if (!box) throw new Error('el botón ▲ de VILLANO no tiene boundingBox')
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.mouse.down()
+    expect(await isPressed(), 'tras apretar el botón debe mostrar el estado de pulsado').toBe(true)
+    await page.mouse.move(box.x + box.width + 40, box.y + box.height / 2)
+    expect(await isPressed(), 'salir del botón con el puntero apretado debe limpiar el estado de pulsado').toBe(false)
+    await page.mouse.up()
+    expect(await getCellValue(page, 'VILLANO').innerText(), 'soltar fuera del botón no debe cambiar el valor').toBe(baseline)
+
+    // Secuencia 2: el disparador realista en una tablet — el sistema cancela
+    // el toque en curso (notificación, rechazo de palma, gesto propio).
+    await villainUp.dispatchEvent('touchstart')
+    expect(await isPressed(), 'tras un touchstart el botón debe mostrar el estado de pulsado').toBe(true)
+    await villainUp.dispatchEvent('touchcancel')
+    expect(await isPressed(), 'un touchcancel debe limpiar el estado de pulsado').toBe(false)
+    expect(await getCellValue(page, 'VILLANO').innerText(), 'un touchcancel no debe cambiar el valor').toBe(baseline)
+
+    // Secuencia 3 (D-13, sin temporizador): mantener el ratón apretado ~1s
+    // sobre el propio botón y soltar ahí — el valor debe cambiar en
+    // exactamente +1, nunca en más, aunque la acción quede atada solo al
+    // clic completo.
+    await villainUp.hover()
+    await page.mouse.down()
+    await page.waitForTimeout(1000)
+    await page.mouse.up()
+    const afterHold = await getCellValue(page, 'VILLANO').innerText()
+    expect(Number(afterHold) - Number(baseline), 'mantener pulsado ~1s y soltar sobre el botón debe producir exactamente +1').toBe(1)
+  })
+
+  test('las flechas de la banda quedan fuera del recorrido de tabulación, sin llevarse por delante el resto del teclado (WR-03, D-17)', async ({ page }) => {
+    await goToRoundLoop(page)
+
+    // (a) medido en el navegador: los 8 botones de contador (VILLANO + 3
+    // jugadores × 2 flechas) tienen tabIndex === -1.
+    const arrowLabels = ['VILLANO', 'Jugador 1', 'Jugador 2', 'Jugador 3']
+    for (const label of arrowLabels) {
+      expect(await downButton(page, label).evaluate(el => el.tabIndex), `tabIndex de «Bajar vida de ${label}»`).toBe(-1)
+      expect(await upButton(page, label).evaluate(el => el.tabIndex), `tabIndex de «Subir vida de ${label}»`).toBe(-1)
+    }
+
+    // (b)+(c): partiendo del body, 15 tabulaciones nunca dejan el foco en
+    // una flecha de contador, y en esa misma pasada el foco SÍ llega en
+    // algún momento al botón «SIGUIENTE» de NavBand — guardia contra
+    // llevarse por delante la navegación por teclado del resto de la
+    // pantalla.
+    await page.evaluate(() => document.body.focus())
+
+    let reachedNext = false
+    for (let i = 0; i < 15; i++) {
+      await page.keyboard.press('Tab')
+      const focused = await page.evaluate(() => {
+        const el = document.activeElement
+        return { ariaLabel: el?.getAttribute('aria-label') ?? null, textContent: el?.textContent?.trim() ?? null }
+      })
+      expect(
+        focused.ariaLabel?.startsWith('Bajar vida de') || focused.ariaLabel?.startsWith('Subir vida de'),
+        `la tabulación nº ${i + 1} no debe dejar el foco en una flecha de contador (aria-label: ${focused.ariaLabel})`,
+      ).toBeFalsy()
+      if (focused.textContent?.includes('SIGUIENTE')) reachedNext = true
+    }
+
+    expect(reachedNext, 'el foco debe llegar al botón SIGUIENTE en algún momento de las 15 tabulaciones').toBe(true)
+  })
 })
