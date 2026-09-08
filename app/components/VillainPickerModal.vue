@@ -55,7 +55,7 @@ onUnmounted(() => {
       necesita su propio límite vertical y flex-col para poder ceder la zona
       de scroll al cuerpo.
     -->
-    <div class="w-full max-w-[640px] max-h-[80vh] bg-surface flex flex-col">
+    <div class="w-full max-w-[640px] max-h-[80dvh] bg-surface flex flex-col">
       <div class="h-16 shrink-0 flex items-center justify-between px-lg border-b border-background">
         <h1 id="villain-picker-heading" class="text-heading font-bold text-primary-text truncate">
           VILLANO
@@ -84,11 +84,15 @@ onUnmounted(() => {
           <span v-if="selectedId === null" class="text-accent">✓</span>
         </button>
 
+        <!-- 06-UI-REVIEW.md: mismo criterio que en PlayerModal — el `✓` es
+             estado transmitido sólo por un glifo, así que el aria-label lo
+             enuncia. -->
         <button
           v-for="villain in villains"
           :key="villain.id"
           type="button"
           class="w-full min-h-12 px-md py-sm flex items-center justify-between text-left text-body font-normal text-primary-text transition-transform duration-75 active:brightness-95"
+          :aria-label="villain.id === selectedId ? `${villain.name}, elegido actualmente` : villain.name"
           @click="emit('select', villain.id)"
         >
           <span>{{ villain.name }}</span>

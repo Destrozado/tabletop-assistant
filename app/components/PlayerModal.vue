@@ -83,7 +83,7 @@ function onNameInput(event: Event) {
     class="fixed inset-0 z-50 bg-background/80 flex items-center justify-center px-xl"
     @click.self="emit('dismiss')"
   >
-    <div class="w-full max-w-[640px] max-h-[80vh] bg-surface flex flex-col">
+    <div class="w-full max-w-[640px] max-h-[80dvh] bg-surface flex flex-col">
       <div class="h-16 shrink-0 flex items-center justify-between px-lg border-b border-background">
         <!-- El título es el número de hueco fijo, nunca el nombre tecleado
              — sigue diciendo "JUGADOR 1" incluso después de escribir un
@@ -172,11 +172,22 @@ function onNameInput(event: Event) {
           Ningún héroe coincide con «{{ query }}»
         </p>
 
+        <!-- 06-UI-REVIEW.md: los glifos `✓` y el rótulo `ya:` transmiten
+             estado sólo visualmente; un lector de pantalla los leería como
+             texto suelto pegado al nombre. El aria-label los enuncia, igual
+             que la spec ya exigía para las filas de la rejilla exterior. Se
+             compone aquí y no en la capa de datos porque es texto de
+             accesibilidad de ESTA superficie, no un rótulo de dominio. -->
         <button
           v-for="hero in visibleHeroes"
           :key="hero.id"
           type="button"
           class="w-full min-h-12 px-md py-sm flex flex-col items-start gap-xs text-left transition-transform duration-75 active:brightness-95"
+          :aria-label="[
+            hero.spanishName,
+            hero.id === selectedHeroId ? 'elegido actualmente' : '',
+            takenBy[hero.id] ? `ya lo lleva ${takenBy[hero.id]}` : '',
+          ].filter(Boolean).join(', ')"
           @click="emit('select-hero', hero.id)"
         >
           <div class="w-full flex items-baseline justify-between gap-sm">

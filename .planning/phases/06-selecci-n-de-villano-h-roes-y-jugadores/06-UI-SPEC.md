@@ -639,7 +639,7 @@ directly — listed here for review. None reopens or contradicts D-01..D-20.
 - [x] Dimension 5 Spacing: PASS
 - [x] Dimension 6 Registry Safety: PASS
 
-**Amendments after approval (2026-09-08, same day, from `06-REVIEW.md`):**
+**Amendments after approval (2026-09-08, same day, from `06-REVIEW.md` and `06-UI-REVIEW.md`):**
 - **IN-01** — `PlayerModal`'s `takenBy` was specified as `Record<string, string[]>`
   (array of labels, joined in the template). The implementation pre-joins into
   `Record<string, string>` so the component composes nothing, which is strictly
@@ -647,6 +647,21 @@ directly — listed here for review. None reopens or contradicts D-01..D-20.
   philosophy. The Component Inventory row above has been corrected to match the
   code. This is a spec correction, not a code deviation to fix — Phase 7 should
   read the corrected shape.
+- **IN-02** — the hero list now has TWO empty states, not one. `Ningún héroe
+  coincide con «{query}»` covers "the filter matched nothing"; the new
+  `Este juego todavía no tiene catálogo de héroes` covers "this game has no
+  catalogue at all", which is unreachable for Marvel Champions but becomes
+  reachable with a second game. Both belong to the Copywriting Contract.
+- **UI-REVIEW-01** — both modal panels moved from `max-h-[80vh]` to
+  `max-h-[80dvh]`. `dvh` is already this codebase's established unit (`h-dvh` in
+  four screens) and, unlike `vh`, it shrinks when a tablet's on-screen keyboard
+  appears — which matters because `PlayerModal` is the app's first surface with a
+  text field. **Still requires real-device confirmation** (see the outstanding
+  tablet debt); this change reduces the risk but does not prove it away.
+- **UI-REVIEW-02** — hero rows and villain rows gained `aria-label`s that spell out
+  the `✓` ("elegido actualmente") and `ya:` ("ya lo lleva …") state, which was
+  previously conveyed by glyph alone. Matches the treatment the spec already
+  required for the outer grid rows.
 - **WR-01** — `nameMaxLength` added to the same row: the 14-character cap is now
   passed by prop from `PLAYER_NAME_MAX_LENGTH`, instead of being written twice
   (once in the engine constant, once as a bare `maxlength="14"` literal).
