@@ -131,8 +131,8 @@ Plans:
 
 **Wave 7** *(cierre de huecos — `/gsd:execute-phase 07 --gaps-only`)*
 
-- [ ] 07-08-PLAN.md — Celdas que ya no se solapan: spec de regresión con prueba de impacto (`elementFromPoint`) sobre 5 viewports × 1-4 jugadores, y arreglo del layout de la celda (ola 7)
-- [ ] 07-09-PLAN.md — Endurecimiento del motor: una sola definición de `playerCount` válido y guardas por tipo, para que un `localStorage` manipulado no descarte vidas ni pinte «NaN» (ola 7)
+- [x] 07-08-PLAN.md — Celdas que ya no se solapan: spec de regresión con prueba de impacto (`elementFromPoint`) sobre 5 viewports × 1-4 jugadores, y arreglo del layout de la celda (ola 7)
+- [x] 07-09-PLAN.md — Endurecimiento del motor: una sola definición de `playerCount` válido y guardas por tipo, para que un `localStorage` manipulado no descarte vidas ni pinte «NaN» (ola 7)
 
 **Wave 8** *(blocked on Wave 7 completion)*
 
@@ -218,7 +218,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 4. Instalación y funcionamiento offline | v1.7 | 6/6 | Complete | 2026-08-31 |
 | 5. Catálogo de héroes y villanos | v1.8 | 6/6 | Complete   | 2026-09-07 |
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
-| 7. Banda de contadores y compatibilidad de sesión | v1.8 | 7/7 | Complete   | 2026-09-08 |
+| 7. Banda de contadores y compatibilidad de sesión | v1.8 | 9/11 | In Progress|  |
 | 8. Valores conocidos dentro del paso | v1.8 | 0/TBD | Not started | - |
 | 9. Histórico y estadísticas | v1.8 | 0/TBD | Not started | - |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
