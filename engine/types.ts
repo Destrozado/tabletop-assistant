@@ -44,10 +44,30 @@ export interface StepDefinition extends TextBlock {
   id: string
   title: string
   kind: 'step' | 'summary'
+  // D-02 (Fase 6): declara EN LOS DATOS que este paso pinta la rejilla de
+  // selección de villano/héroes — nunca se cablea el id `setup.heroes.01`
+  // en `app/` (TECH-04/D-24, misma disciplina que ya exige el índice de
+  // salto). Enum de un solo miembro, no booleano, para que un segundo tipo
+  // de rejilla (p. ej. Warhammer 40.000) sea aditivo en vez de un cambio
+  // incompatible. No vive dentro de `TextBlock` porque no tiene ningún
+  // campo dependiente y no debe poder variar por dificultad (Pitfall 2 de
+  // 06-RESEARCH.md).
+  selection?: 'characters'
   variants?: {
     difficulty?: Partial<Record<Difficulty, Partial<TextBlock>>>
   }
   citation?: Citation
+}
+
+// D-19 (Fase 6): la selección de la partida en curso. Vive dentro de
+// `SessionContext` y por tanto viaja entera en `toPersistedPosition` sin
+// una línea de fontanería nueva (`engine/persistence.ts` no se toca).
+// `playerName` vacío significa «sin nombre puesto» y se muestra como
+// «Jugador N» en la interfaz (D-15) — el motor nunca guarda el valor por
+// defecto, solo la interfaz lo resuelve.
+export interface HeroSelection {
+  villainId: string | null
+  heroes: { heroId: string | null, playerName: string }[]
 }
 
 export interface PhaseDefinition {
@@ -95,6 +115,11 @@ export interface RuntimeStepNode extends FlatStepNode {
 export interface SessionContext {
   playerCount: number
   difficulty: Difficulty
+  // D-19 (Fase 6): campo ADITIVO — no bumpea `formatVersion` ni
+  // `contentVersion`. `undefined` es un estado normal y permanente de la
+  // app (D-03/SEL-09: elegir villano/héroes es opcional de principio a
+  // fin), no un caso de compatibilidad con partidas antiguas.
+  selection?: HeroSelection
   [key: string]: unknown
 }
 

@@ -69,6 +69,14 @@ const StepSchema = TextBlockSchema.extend({
   id: z.string().regex(idPattern),
   title: z.string().min(1),
   kind: z.enum(['step', 'summary']).default('step'),
+  // D-02 (Fase 6): declara que este paso pinta la rejilla de selección de
+  // villano/héroes. Enum de un solo miembro (no booleano) para que un
+  // segundo valor futuro (p. ej. Warhammer 40.000) sea aditivo, no un
+  // cambio incompatible — hermana de `kind`, que ya cumple el mismo rol de
+  // "qué rama de render usar". No necesita regla en `superRefine`: a
+  // diferencia de `warningDetail`/`optionsWarningDetail`, es un flag
+  // solitario sin campo dependiente que pueda quedar huérfano.
+  selection: z.enum(['characters']).optional(),
   variants: z.strictObject({
     difficulty: z.strictObject({
       normal: TextBlockSchema.partial().optional(),
