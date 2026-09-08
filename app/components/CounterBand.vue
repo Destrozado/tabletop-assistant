@@ -18,7 +18,13 @@ const emit = defineEmits<{
 
 // D-14 (reutilizado literalmente de NavBand.vue): un único ref compartido y
 // con clave, porque a diferencia de los dos botones fijos de NavBand aquí el
-// número de botones es dinámico. Solo visual, nunca persistido.
+// número de botones es dinámico. Solo visual, nunca persistido. El estado de
+// pulsado vuelve a reposo por cuatro caminos, no solo por el de soltar sobre
+// el propio botón: salir el puntero, perder el foco, y que el sistema
+// cancele el toque (notificación, rechazo de palma, gesto propio del SO) —
+// en una tablet este último es el disparador realista, y con un número
+// dinámico de botones una flecha podía quedarse hundida una ronda entera. La
+// acción sigue atada solo al clic completo, nunca a estos manejadores.
 const pressedKey = ref<string | null>(null)
 
 // D-05/D-06: dos filas en viewport estrecho (villano arriba, jugadores
@@ -101,13 +107,16 @@ const shellHeightClass = computed(() => rowGroups.value.length === 1 ? 'h-24' : 
         <div class="h-24 flex items-stretch">
           <button
             type="button"
-            class="flex-1 min-w-0 h-24 flex items-end justify-center pb-xs text-heading font-bold leading-none text-accent transition-transform duration-75"
+            class="flex-1 min-w-0 h-24 flex items-end justify-center pb-xs text-heading font-bold leading-none text-accent transition-[transform,filter] duration-75"
             :class="pressedKey === `${entry.cell.key}:down` ? 'brightness-95 scale-[0.98]' : ''"
             :aria-label="`Bajar vida de ${entry.cell.label}`"
             @mousedown="pressedKey = `${entry.cell.key}:down`"
             @mouseup="pressedKey = null"
+            @mouseleave="pressedKey = null"
+            @blur="pressedKey = null"
             @touchstart="pressedKey = `${entry.cell.key}:down`"
             @touchend="pressedKey = null"
+            @touchcancel="pressedKey = null"
             @click="emit('decrement', entry.cell.key)"
           >
             ▼
@@ -119,13 +128,16 @@ const shellHeightClass = computed(() => rowGroups.value.length === 1 ? 'h-24' : 
 
           <button
             type="button"
-            class="flex-1 min-w-0 h-24 flex items-end justify-center pb-xs text-heading font-bold leading-none text-accent transition-transform duration-75"
+            class="flex-1 min-w-0 h-24 flex items-end justify-center pb-xs text-heading font-bold leading-none text-accent transition-[transform,filter] duration-75"
             :class="pressedKey === `${entry.cell.key}:up` ? 'brightness-95 scale-[0.98]' : ''"
             :aria-label="`Subir vida de ${entry.cell.label}`"
             @mousedown="pressedKey = `${entry.cell.key}:up`"
             @mouseup="pressedKey = null"
+            @mouseleave="pressedKey = null"
+            @blur="pressedKey = null"
             @touchstart="pressedKey = `${entry.cell.key}:up`"
             @touchend="pressedKey = null"
+            @touchcancel="pressedKey = null"
             @click="emit('increment', entry.cell.key)"
           >
             ▲

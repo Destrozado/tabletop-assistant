@@ -327,4 +327,48 @@ test.describe('Contadores de vida — comportamiento de extremo a extremo (D-12/
       expect(borderLeftWidth, `borderLeftWidth de la celda «${label}» a 400x800`).toBe(expected)
     }
   })
+
+  test('el estado de pulsado se limpia al soltar fuera y al cancelar el toque; la acción sigue solo en el clic completo (WR-02, D-14)', async ({ page }) => {
+    await goToRoundLoop(page)
+
+    const villainUp = upButton(page, 'VILLANO')
+    const isPressed = () => villainUp.evaluate(el => el.className.includes('scale-[0.98]'))
+
+    // Punto de partida numérico (arranca en «—»): un toque completo lo lleva
+    // a 1 y deja una base sobre la que medir «no cambió».
+    await villainUp.click()
+    const baseline = await getCellValue(page, 'VILLANO').innerText()
+
+    // Secuencia 1: apretar el ratón, comprobar que el estado de pulsado se
+    // aplica, moverlo FUERA del botón y soltar ahí — el botón debe volver a
+    // reposo antes incluso de soltar, y el valor no debe haber cambiado.
+    const box = await villainUp.boundingBox()
+    if (!box) throw new Error('el botón ▲ de VILLANO no tiene boundingBox')
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.mouse.down()
+    expect(await isPressed(), 'tras apretar el botón debe mostrar el estado de pulsado').toBe(true)
+    await page.mouse.move(box.x + box.width + 40, box.y + box.height / 2)
+    expect(await isPressed(), 'salir del botón con el puntero apretado debe limpiar el estado de pulsado').toBe(false)
+    await page.mouse.up()
+    expect(await getCellValue(page, 'VILLANO').innerText(), 'soltar fuera del botón no debe cambiar el valor').toBe(baseline)
+
+    // Secuencia 2: el disparador realista en una tablet — el sistema cancela
+    // el toque en curso (notificación, rechazo de palma, gesto propio).
+    await villainUp.dispatchEvent('touchstart')
+    expect(await isPressed(), 'tras un touchstart el botón debe mostrar el estado de pulsado').toBe(true)
+    await villainUp.dispatchEvent('touchcancel')
+    expect(await isPressed(), 'un touchcancel debe limpiar el estado de pulsado').toBe(false)
+    expect(await getCellValue(page, 'VILLANO').innerText(), 'un touchcancel no debe cambiar el valor').toBe(baseline)
+
+    // Secuencia 3 (D-13, sin temporizador): mantener el ratón apretado ~1s
+    // sobre el propio botón y soltar ahí — el valor debe cambiar en
+    // exactamente +1, nunca en más, aunque la acción quede atada solo al
+    // clic completo.
+    await villainUp.hover()
+    await page.mouse.down()
+    await page.waitForTimeout(1000)
+    await page.mouse.up()
+    const afterHold = await getCellValue(page, 'VILLANO').innerText()
+    expect(Number(afterHold) - Number(baseline), 'mantener pulsado ~1s y soltar sobre el botón debe producir exactamente +1').toBe(1)
+  })
 })
