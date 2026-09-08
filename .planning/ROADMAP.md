@@ -69,7 +69,15 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
   3. Cada jugador tiene un nombre editable con valor por defecto «Jugador 1»…«Jugador 4», y elegir el mismo héroe en dos huecos se marca visualmente como repetido sin bloquear la partida.
   4. Recargar la página a mitad de partida conserva exactamente la selección hecha (villano, héroes, nombres).
   5. Un grupo que no toca ningún selector juega exactamente como en v1.7, sin ningún hueco ni exigencia nueva.
-**Plans**: TBD
+**Plans**: 7 plans
+Plans:
+- [ ] 06-01-PLAN.md — Contrato del motor: clave `selection` en datos/esquema/tipos y mutadores puros con reasignación (ola 1)
+- [ ] 06-02-PLAN.md — Catálogo en `app/`, mapa de 23 alias en español y funciones puras de filtro, rótulos y repetidos (ola 1)
+- [ ] 06-03-PLAN.md — Revisión humana bloqueante de los alias contra las cartas físicas (D-07) (ola 2)
+- [ ] 06-04-PLAN.md — `VillainPickerModal.vue` y `PlayerModal.vue` según el contrato de `06-UI-SPEC.md` (ola 2)
+- [ ] 06-05-PLAN.md — Rejilla de selección en `StepScreen.vue` y costura reactiva en `useGameSession.ts` (ola 2)
+- [ ] 06-06-PLAN.md — Cableado en `app/pages/[game]/index.vue`: modales, foco y supresión de atajos (D-12) (ola 3)
+- [ ] 06-07-PLAN.md — Gates mecánicos y revisión humana en navegador de las tres superficies nuevas (ola 4)
 **UI hint**: yes
 **Verificación humana**: Sí — picker/modal/filtro es superficie táctil nueva; verificable en navegador/viewport simulado (portátil o móvil), no en la tablet real de mesa porque su modelo y SO siguen sin conocerse (deuda heredada de v1.7). No es bloqueante para cerrar la fase, pero debe quedar anotado como pendiente de confirmar en dispositivo real cuando la tablet aparezca.
 
@@ -153,7 +161,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 03.1. Voz pregenerada en español con Gemini TTS | v1.7 | 6/6 | Complete | 2026-08-31 |
 | 4. Instalación y funcionamiento offline | v1.7 | 6/6 | Complete | 2026-08-31 |
 | 5. Catálogo de héroes y villanos | v1.8 | 6/6 | Complete   | 2026-09-07 |
-| 6. Selección de villano, héroes y jugadores | v1.8 | 0/TBD | Not started | - |
+| 6. Selección de villano, héroes y jugadores | v1.8 | 0/7 | Planned | - |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 0/TBD | Not started | - |
 | 8. Valores conocidos dentro del paso | v1.8 | 0/TBD | Not started | - |
 | 9. Histórico y estadísticas | v1.8 | 0/TBD | Not started | - |
