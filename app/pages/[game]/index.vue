@@ -15,8 +15,18 @@ import { collectAudioIds } from '~~/engine/audio'
 import { expand } from '~~/engine/expand'
 import { resume } from '~~/engine/persistence'
 import { tableOfContents } from '~~/engine/toc'
+import { useCharacterCatalogue } from '~/composables/useCharacterCatalogue'
 import { useGameContent } from '~/composables/useGameContent'
 import { useGameSession } from '~/composables/useGameSession'
+import {
+  buildDuplicateWarningText,
+  buildHeroOptions,
+  buildTakenByMap,
+  buildVillainOptions,
+  findHeroOption,
+  findVillainOption,
+  resolvePlayerLabel,
+} from '~/composables/useHeroSearch'
 import { usePersistedSession } from '~/composables/usePersistedSession'
 import { usePreloadedAudio } from '~/composables/usePreloadedAudio'
 import { shortcutsEnabled, useStepShortcuts } from '~/composables/useStepShortcuts'
@@ -27,6 +37,17 @@ const gameId = route.params.game as string
 
 const { getGame } = useGameContent()
 const game = getGame(gameId)
+
+// Fase 6: catálogo estático y sus listas ordenadas, calculados UNA sola vez
+// junto a `game` de arriba — ordenar 23 nombres en cada render sería
+// trabajo repetido sin motivo, y el catálogo no cambia en toda la vida de
+// la página. Un `gameId` sin catálogo (Warhammer 40.000, `coming-soon`)
+// deja las listas vacías sin romper nada — `getCatalogue` ya devuelve
+// `null` en ese caso.
+const { getCatalogue } = useCharacterCatalogue()
+const catalogue = getCatalogue(gameId)
+const heroOptions = catalogue ? buildHeroOptions(catalogue.heroes) : []
+const villainOptions = catalogue ? buildVillainOptions(catalogue.villains) : []
 
 const {
   session,
@@ -41,6 +62,12 @@ const {
   plainSectionTitle,
   position,
   sessionContextLabel,
+  showsSelectionGrid,
+  playerSlots,
+  selectedVillainId,
+  setVillain,
+  setHero,
+  setPlayerName,
 } = useGameSession()
 
 const { load, save, clear } = usePersistedSession()
@@ -209,9 +236,9 @@ function onIndexJumpTo(runtimeId: string) {
 // imposible "ambos abiertos" que dos banderas paralelas permitirían.
 // StepScreen emite sin payload de foco (componente tonto, sin acoplarse a
 // cómo la página gestiona el foco), así que la referencia al disparador se
-// captura aquí, en el sitio de la llamada, leyendo `document.activeElement`
-// en el instante del emit — el propio botón que disparó el click es el
-// elemento con foco en ese momento.
+// captura aquí, en el sitio de la llamada, leyendo el elemento activo del
+// documento en el instante del emit — el propio botón que disparó el click
+// es el elemento con foco en ese momento.
 const activeDetail = ref<{ heading: string, body: string, tone: 'warning' | 'neutral' } | null>(null)
 const detailTriggerEl = ref<HTMLElement | null>(null)
 
@@ -254,6 +281,134 @@ function onDismissDetail() {
   activeDetail.value = null
   detailTriggerEl.value?.focus()
 }
+
+// Fase 6 (D-12/D-13): un `ref` PROPIO, no se reutiliza `activeDetail` porque
+// `activeDetail` está tipado para el modal informativo de un solo botón
+// (`heading`/`body`/`tone`) y forzar ahí un modal de elección desdibujaría
+// los dos; un único `ref` para los dos modales de selección sí evita el
+// estado imposible «los dos abiertos», exactamente el mismo razonamiento
+// que el comentario de `activeDetail` de arriba ya documenta para sus dos
+// disparadores.
+const activeSelectionModal = ref<{ kind: 'villain' } | { kind: 'player', slot: number } | null>(null)
+const selectionTriggerEl = ref<HTMLElement | null>(null)
+
+// D-45: abrir un modal de selección ni locuta ni corta la locución en
+// curso — abrir un modal es mirar, no avanzar, mismo criterio que
+// onOpenWarningDetail de arriba. `StepScreen` emite sin carga de foco
+// (componente tonto), así que el disparador se captura aquí, en el sitio de
+// la llamada, leyendo el elemento activo del documento en el instante del
+// emit — mismo mecanismo que onOpenWarningDetail.
+function onSelectRow(key: string) {
+  selectionTriggerEl.value = document.activeElement as HTMLElement | null
+  if (key === 'villain') {
+    activeSelectionModal.value = { kind: 'villain' }
+    return
+  }
+  const match = /^player-(\d+)$/.exec(key)
+  if (!match) return // clave desconocida: no-op silencioso
+  const slot = Number(match[1])
+  if (!Number.isInteger(slot) || slot < 0 || slot >= playerSlots.value.length) return
+  activeSelectionModal.value = { kind: 'player', slot }
+}
+
+// Calcado de onDismissDetail: cierra y devuelve el foco a la fila que abrió
+// el modal, por cualquiera de las tres vías (✕, velo, Escape).
+function onDismissSelectionModal() {
+  activeSelectionModal.value = null
+  selectionTriggerEl.value?.focus()
+}
+
+// D-13: elegir guarda Y cierra; tocar la opción ya elegida es idempotente y
+// no necesita caso especial.
+function onSelectVillain(villainId: string | null) {
+  setVillain(villainId)
+  onDismissSelectionModal()
+}
+
+function onSelectHero(heroId: string | null) {
+  if (activeSelectionModal.value?.kind !== 'player') return
+  setHero(activeSelectionModal.value.slot, heroId)
+  onDismissSelectionModal()
+}
+
+// D-13: el nombre se guarda según se escribe; solo tocar un héroe cierra el
+// modal — este manejador NUNCA llama a onDismissSelectionModal.
+function onPlayerNameInput(value: string) {
+  if (activeSelectionModal.value?.kind !== 'player') return
+  setPlayerName(activeSelectionModal.value.slot, value)
+}
+
+// Datos del hueco que `PlayerModal` necesita mientras está abierto —
+// `null`/valores neutros cuando no hay ningún modal de jugador activo (la
+// plantilla solo monta `PlayerModal` con `v-if`, así que estas computeds
+// nunca se leen en ese caso, pero se mantienen totales por consistencia).
+const activePlayerName = computed(() =>
+  activeSelectionModal.value?.kind === 'player'
+    ? (playerSlots.value[activeSelectionModal.value.slot]?.playerName ?? '')
+    : '',
+)
+
+const activePlayerHeroId = computed(() =>
+  activeSelectionModal.value?.kind === 'player'
+    ? (playerSlots.value[activeSelectionModal.value.slot]?.heroId ?? null)
+    : null,
+)
+
+const activePlayerTakenBy = computed(() =>
+  activeSelectionModal.value?.kind === 'player'
+    ? buildTakenByMap(playerSlots.value, activeSelectionModal.value.slot)
+    : {},
+)
+
+// Fase 6 (SEL-01/02/03/04/09): filas de la rejilla de selección, resueltas
+// aquí a partir del catálogo y de la sesión. `null` en cualquier paso que no
+// declare `selection: 'characters'` en los datos — así el resto de pasos se
+// renderiza exactamente igual que en v1.7, sin comparar contra el
+// identificador fijo del paso de héroes en ningún sitio de este fichero
+// (esa decisión ya vive en `showsSelectionGrid`, que lee el dato).
+const selectionRows = computed(() => {
+  if (!showsSelectionGrid.value) return null
+
+  const villainOption = findVillainOption(villainOptions, selectedVillainId.value)
+  const rows = [
+    {
+      key: 'villain',
+      label: 'Villano',
+      valueLabel: villainOption?.name ?? '—',
+      hasValue: villainOption !== null,
+      ariaLabel: 'Elegir villano',
+    },
+  ]
+
+  playerSlots.value.forEach((slot, index) => {
+    const heroOption = findHeroOption(heroOptions, slot.heroId)
+    const label = resolvePlayerLabel(index, slot.playerName)
+    rows.push({
+      key: `player-${index}`,
+      label,
+      // '—' es un guion largo (em dash), el mismo carácter del Copywriting
+      // Contract. hasValue:false es lo que hace que el valor se pinte en
+      // texto secundario. Un heroId que no exista en el catálogo cae en
+      // findHeroOption(...) === null y por tanto se muestra como «sin
+      // elegir» — defensa ante un localStorage manipulado, no un caso
+      // imposible.
+      valueLabel: heroOption?.spanishName ?? '—',
+      hasValue: heroOption !== null,
+      // El rótulo ACTUAL de la fila (no "Jugador N" fijo), para que el
+      // aria-label siga siendo exacto cuando el jugador se ponga nombre.
+      ariaLabel: `Elegir héroe y nombre de ${label}`,
+    })
+  })
+
+  return rows
+})
+
+// SEL-07/D-16: avisa y nunca bloquea; SIGUIENTE no cambia de comportamiento
+// por esto (no se toca onNext, ni NavBand, ni se añade ninguna
+// confirmación).
+const duplicateWarningText = computed(() =>
+  showsSelectionGrid.value ? buildDuplicateWarningText(playerSlots.value) : null,
+)
 
 // D-03: la lista de repaso se deriva de los summaryLabel de las fases con al
 // menos un paso kind:step (la fase "mesa lista" queda excluida por no tener
@@ -403,7 +558,14 @@ const atajosActivos = computed(() =>
     awaitingDiscardConfirm: awaitingDiscardConfirm.value,
     awaitingEndConfirm: awaitingEndConfirm.value,
     isIndexOpen: isIndexOpen.value,
-    hasActiveDetail: activeDetail.value !== null,
+    // D-12 se cierra AQUÍ y SOLO aquí: la condición sigue viviendo entera
+    // dentro de `shortcutsEnabled` (D-Q2), lo único que cambia es qué se le
+    // pasa como argumento — `app/composables/useStepShortcuts.ts` no se
+    // toca. Esta es la segunda de las dos guardas que protegen el campo de
+    // nombre: la primera, `isEditableTarget`, ya devuelve `null` para
+    // Espacio con el foco en un `<input>`; esta cubre además `←` con el
+    // foco en el `✕` o en una fila del modal.
+    hasActiveDetail: activeDetail.value !== null || activeSelectionModal.value !== null,
   }),
 )
 
@@ -516,9 +678,12 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         :options="currentText.options ?? null"
         :options-warning-text="currentText.optionsWarning ?? null"
         :options-warning-detail-text="currentText.optionsWarningDetail ?? null"
+        :selection-rows="selectionRows"
+        :duplicate-warning-text="duplicateWarningText"
         @open-warning-detail="onOpenWarningDetail"
         @open-option-detail="onOpenOptionDetail"
         @open-options-warning-detail="onOpenOptionsWarningDetail"
+        @select-row="onSelectRow"
       />
       <NavBand @back="onBack" @next="onNext" />
       <IndexOverlay
@@ -551,6 +716,31 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         :body="activeDetail.body"
         :tone="activeDetail.tone"
         @dismiss="onDismissDetail"
+      />
+      <!--
+        D-U3: hermanos JUSTO DESPUÉS de WarningDetailModal — ambos son fixed
+        inset-0 z-50, así que el que va después en el DOM pinta encima sin
+        tocar ningún z-index (mismo apilamiento ya usado arriba entre
+        IndexOverlay y ConfirmDialog).
+      -->
+      <VillainPickerModal
+        v-if="activeSelectionModal?.kind === 'villain'"
+        :villains="villainOptions"
+        :selected-id="selectedVillainId"
+        @select="onSelectVillain"
+        @dismiss="onDismissSelectionModal"
+      />
+      <PlayerModal
+        v-if="activeSelectionModal?.kind === 'player'"
+        :key="activeSelectionModal.slot"
+        :slot-number="activeSelectionModal.slot + 1"
+        :name="activePlayerName"
+        :heroes="heroOptions"
+        :selected-hero-id="activePlayerHeroId"
+        :taken-by="activePlayerTakenBy"
+        @name-input="onPlayerNameInput"
+        @select-hero="onSelectHero"
+        @dismiss="onDismissSelectionModal"
       />
     </div>
   </ClientOnly>
