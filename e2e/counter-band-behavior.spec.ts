@@ -296,4 +296,35 @@ test.describe('Contadores de vida — comportamiento de extremo a extremo (D-12/
     await expect(getCellValue(page, 'Jugador 1'), 'Thor debería precargar 14 sin tocar ninguna flecha').toHaveText('14')
     await expect(getCellValue(page, 'VILLANO'), 'Rhino con 3 jugadores debería precargar 42 sin tocar ninguna flecha').toHaveText('42')
   })
+
+  test('separador visible entre celdas, ausente solo en la primera de la banda (WR-01, medido)', async ({ page }) => {
+    await goToRoundLoop(page)
+
+    // El viewport por defecto de este fichero es 1024x768 (test.use arriba):
+    // desde `sm:` las dos filas colapsan en una sola visualmente, así que
+    // solo la celda global 0 (VILLANO) debe medir 0px de borde izquierdo.
+    for (const [label, expected] of [
+      ['VILLANO', '0px'],
+      ['Jugador 1', '1px'],
+      ['Jugador 2', '1px'],
+      ['Jugador 3', '1px'],
+    ] as const) {
+      const borderLeftWidth = await getCell(page, label).evaluate(el => getComputedStyle(el).borderLeftWidth)
+      expect(borderLeftWidth, `borderLeftWidth de la celda «${label}» a 1024x768`).toBe(expected)
+    }
+
+    // A 400x800 las dos filas vuelven a ser cajas independientes: la primera
+    // celda de CADA fila (VILLANO y Jugador 1) mide 0px, no solo la global.
+    await page.setViewportSize({ width: 400, height: 800 })
+
+    for (const [label, expected] of [
+      ['VILLANO', '0px'],
+      ['Jugador 1', '0px'],
+      ['Jugador 2', '1px'],
+      ['Jugador 3', '1px'],
+    ] as const) {
+      const borderLeftWidth = await getCell(page, label).evaluate(el => getComputedStyle(el).borderLeftWidth)
+      expect(borderLeftWidth, `borderLeftWidth de la celda «${label}» a 400x800`).toBe(expected)
+    }
+  })
 })
