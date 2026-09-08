@@ -15,8 +15,18 @@ import { collectAudioIds } from '~~/engine/audio'
 import { expand } from '~~/engine/expand'
 import { resume } from '~~/engine/persistence'
 import { tableOfContents } from '~~/engine/toc'
+import { useCharacterCatalogue } from '~/composables/useCharacterCatalogue'
 import { useGameContent } from '~/composables/useGameContent'
 import { useGameSession } from '~/composables/useGameSession'
+import {
+  buildDuplicateWarningText,
+  buildHeroOptions,
+  buildTakenByMap,
+  buildVillainOptions,
+  findHeroOption,
+  findVillainOption,
+  resolvePlayerLabel,
+} from '~/composables/useHeroSearch'
 import { usePersistedSession } from '~/composables/usePersistedSession'
 import { usePreloadedAudio } from '~/composables/usePreloadedAudio'
 import { shortcutsEnabled, useStepShortcuts } from '~/composables/useStepShortcuts'
@@ -27,6 +37,17 @@ const gameId = route.params.game as string
 
 const { getGame } = useGameContent()
 const game = getGame(gameId)
+
+// Fase 6: catálogo estático y sus listas ordenadas, calculados UNA sola vez
+// junto a `game` de arriba — ordenar 23 nombres en cada render sería
+// trabajo repetido sin motivo, y el catálogo no cambia en toda la vida de
+// la página. Un `gameId` sin catálogo (Warhammer 40.000, `coming-soon`)
+// deja las listas vacías sin romper nada — `getCatalogue` ya devuelve
+// `null` en ese caso.
+const { getCatalogue } = useCharacterCatalogue()
+const catalogue = getCatalogue(gameId)
+const heroOptions = catalogue ? buildHeroOptions(catalogue.heroes) : []
+const villainOptions = catalogue ? buildVillainOptions(catalogue.villains) : []
 
 const {
   session,
@@ -41,6 +62,12 @@ const {
   plainSectionTitle,
   position,
   sessionContextLabel,
+  showsSelectionGrid,
+  playerSlots,
+  selectedVillainId,
+  setVillain,
+  setHero,
+  setPlayerName,
 } = useGameSession()
 
 const { load, save, clear } = usePersistedSession()
@@ -254,6 +281,56 @@ function onDismissDetail() {
   activeDetail.value = null
   detailTriggerEl.value?.focus()
 }
+
+// Fase 6 (SEL-01/02/03/04/09): filas de la rejilla de selección, resueltas
+// aquí a partir del catálogo y de la sesión. `null` en cualquier paso que no
+// declare `selection: 'characters'` en los datos — así el resto de pasos se
+// renderiza exactamente igual que en v1.7, sin comparar contra el
+// identificador fijo del paso de héroes en ningún sitio de este fichero
+// (esa decisión ya vive en `showsSelectionGrid`, que lee el dato).
+const selectionRows = computed(() => {
+  if (!showsSelectionGrid.value) return null
+
+  const villainOption = findVillainOption(villainOptions, selectedVillainId.value)
+  const rows = [
+    {
+      key: 'villain',
+      label: 'Villano',
+      valueLabel: villainOption?.name ?? '—',
+      hasValue: villainOption !== null,
+      ariaLabel: 'Elegir villano',
+    },
+  ]
+
+  playerSlots.value.forEach((slot, index) => {
+    const heroOption = findHeroOption(heroOptions, slot.heroId)
+    const label = resolvePlayerLabel(index, slot.playerName)
+    rows.push({
+      key: `player-${index}`,
+      label,
+      // '—' es un guion largo (em dash), el mismo carácter del Copywriting
+      // Contract. hasValue:false es lo que hace que el valor se pinte en
+      // texto secundario. Un heroId que no exista en el catálogo cae en
+      // findHeroOption(...) === null y por tanto se muestra como «sin
+      // elegir» — defensa ante un localStorage manipulado, no un caso
+      // imposible.
+      valueLabel: heroOption?.spanishName ?? '—',
+      hasValue: heroOption !== null,
+      // El rótulo ACTUAL de la fila (no "Jugador N" fijo), para que el
+      // aria-label siga siendo exacto cuando el jugador se ponga nombre.
+      ariaLabel: `Elegir héroe y nombre de ${label}`,
+    })
+  })
+
+  return rows
+})
+
+// SEL-07/D-16: avisa y nunca bloquea; SIGUIENTE no cambia de comportamiento
+// por esto (no se toca onNext, ni NavBand, ni se añade ninguna
+// confirmación).
+const duplicateWarningText = computed(() =>
+  showsSelectionGrid.value ? buildDuplicateWarningText(playerSlots.value) : null,
+)
 
 // D-03: la lista de repaso se deriva de los summaryLabel de las fases con al
 // menos un paso kind:step (la fase "mesa lista" queda excluida por no tener
@@ -516,9 +593,12 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         :options="currentText.options ?? null"
         :options-warning-text="currentText.optionsWarning ?? null"
         :options-warning-detail-text="currentText.optionsWarningDetail ?? null"
+        :selection-rows="selectionRows"
+        :duplicate-warning-text="duplicateWarningText"
         @open-warning-detail="onOpenWarningDetail"
         @open-option-detail="onOpenOptionDetail"
         @open-options-warning-detail="onOpenOptionsWarningDetail"
+        @select-row="onSelectRow"
       />
       <NavBand @back="onBack" @next="onNext" />
       <IndexOverlay
