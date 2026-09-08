@@ -70,6 +70,21 @@ export interface HeroSelection {
   heroes: { heroId: string | null, playerName: string }[]
 }
 
+// D-09/D-12 (Fase 7): estado de los contadores en mesa. `.planning/research/
+// ARCHITECTURE.md` §a proponía `heroHealth: number[]`; D-09 lo ensancha a
+// propósito a `(number | null)[]` porque `null` y `0` son estados DISTINTOS
+// que no se colapsan nunca: `null` significa «nadie ha pulsado ▼/▲ en este
+// contador todavía» y se pinta con el valor calculado en vivo (precarga
+// derivada del catálogo), mientras `0` significa «tocado y bajado hasta
+// cero» y marca «SIN VIDA» en la interfaz (D-11/D-15). Lo mismo aplica a
+// `villainHealth`. La validación por TIPO (no por presencia) de este campo
+// la implementa `resolveCounters` en `engine/counters.ts` (plan 02); este
+// tipo solo fija la forma.
+export interface CounterState {
+  villainHealth: number | null
+  heroHealth: (number | null)[]
+}
+
 export interface PhaseDefinition {
   id: string
   title: string
@@ -120,6 +135,14 @@ export interface SessionContext {
   // app (D-03/SEL-09: elegir villano/héroes es opcional de principio a
   // fin), no un caso de compatibilidad con partidas antiguas.
   selection?: HeroSelection
+  // D-19 (Fase 7, mismo campo aditivo): tampoco bumpea la versión del
+  // formato de persistencia (que sigue igual) ni `contentVersion`.
+  // `undefined` es un estado normal y permanente de la app (D-09/D-12: nadie
+  // ha tocado ningún contador todavía), no un caso de compatibilidad con
+  // partidas antiguas. `engine/persistence.ts` NO se modifica en esta fase:
+  // `toPersistedPosition` ya persiste `context` entero y `resume()` ya lo
+  // restaura entero.
+  counters?: CounterState
   [key: string]: unknown
 }
 
