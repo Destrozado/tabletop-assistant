@@ -32,9 +32,13 @@ export function computeInitialVillainHealth(
   if (!Number.isInteger(playerCount) || playerCount <= 0) return null
 
   const figures = difficulty === 'expert' && stage1.expert ? stage1.expert : stage1
-  if (figures.healthPerHero) return figures.health * playerCount
-  if (figures.healthPerGroup) return figures.health
-  return figures.health
+  // WR-07: el catálogo lo genera `scripts/catalogue/fetch-marvelcdb.mjs` a
+  // partir de una API de terceros (T-07-09-02); una regeneración sin `health`
+  // utilizable no puede propagar NaN hasta la banda. `healthPerGroup` no
+  // necesita su propia rama: hoy devuelve exactamente la misma expresión que
+  // el retorno por defecto, así que las dos ramas idénticas viven en una.
+  if (!Number.isFinite(figures.health)) return null
+  return figures.healthPerHero ? figures.health * playerCount : figures.health
 }
 
 // La vida del héroe es siempre plana, nunca multiplicada por jugadores.
@@ -43,19 +47,41 @@ export function computeInitialHeroHealth(hero: CatalogueHero | null): number | n
   return hero.health
 }
 
+// Única fuente de la longitud del array de vidas de héroe de todo el
+// fichero (WR-05/T-07-09-01): la usan tanto `resolveCounters` como las
+// guardas de rango de slot de `incrementHero`/`decrementHero`, para que
+// nunca puedan discrepar entre sí (causa raíz del fallo reproducido:
+// antes la guarda comparaba contra el `playerCount` CRUDO mientras la
+// longitud del array comparaba contra el validado). Un `playerCount` que
+// sea entero positivo manda, igual que en `resolveCounters`/
+// `resolvePlayerSlots`. Si NO lo es (2.5, NaN, '3', null — formas
+// alcanzables desde un `localStorage` editado a mano), el largo cae al de
+// lo que YA esté persistido en `heroHealth` en vez de a 0 sin más: un
+// `playerCount` manipulado no puede, por sí solo, descartar vidas de
+// héroe ya congeladas. Si tampoco hay nada persistido, el largo sigue
+// siendo 0 como antes.
+function resolveHeroHealthLength(context: SessionContext): number {
+  if (Number.isInteger(context.playerCount) && context.playerCount > 0) {
+    return context.playerCount
+  }
+  const raw = context.counters
+  const heroHealthRaw = raw !== null && typeof raw === 'object' && Array.isArray((raw as CounterState).heroHealth)
+    ? (raw as CounterState).heroHealth
+    : []
+  return heroHealthRaw.length
+}
+
 // Normalización defensiva de lo PERSISTIDO (COMP-02/D-12/T-07-04):
 // `localStorage` es editable a mano, así que esta función no confía en
 // NINGÚN campo persistido. Valida por TIPO, no por presencia. La longitud
-// devuelta es SIEMPRE `context.playerCount` (0 si no es un entero
-// positivo), nunca `context.counters.heroHealth.length`. `Number.isFinite`
-// (no `typeof === 'number'`, que aceptaría NaN/Infinity) + `Math.trunc` +
+// devuelta es SIEMPRE `resolveHeroHealthLength(context)`, nunca
+// `context.counters.heroHealth.length` sin más. `Number.isFinite` (no
+// `typeof === 'number'`, que aceptaría NaN/Infinity) + `Math.trunc` +
 // suelo en 0 saneen cualquier entrada manipulada en vez de propagarla. Sin
 // tope superior a propósito (D-22). Nunca lanza, nunca devuelve `undefined`
 // dentro del array.
 export function resolveCounters(context: SessionContext): CounterState {
-  const length = Number.isInteger(context.playerCount) && context.playerCount > 0
-    ? context.playerCount
-    : 0
+  const length = resolveHeroHealthLength(context)
   const raw = context.counters
   const hasRaw = raw !== null && typeof raw === 'object'
 
@@ -86,14 +112,23 @@ export function resolveCounterValues(context: SessionContext, catalogue: Charact
 
   const villainId = resolveVillainId(context)
   const villain = catalogue !== null ? catalogue.villains.find(v => v.id === villainId) ?? null : null
-  const villainHealth = persisted.villainHealth !== null
-    ? persisted.villainHealth
+  const villainHealth = Number.isFinite(persisted.villainHealth)
+    ? (persisted.villainHealth as number)
     : computeInitialVillainHealth(villain, context.playerCount, context.difficulty)
 
+  // Se itera sobre `persisted.heroHealth` (ya con la longitud de
+  // `resolveHeroHealthLength`, WR-05), NO sobre `resolvePlayerSlots(context)`
+  // directamente: con un `playerCount` manipulado ambas funciones podrían
+  // devolver longitudes distintas, y un `.map` sobre `slots` descartaría
+  // vidas ya congeladas que sí sobreviven en `persisted`. `slots[i] ?? {…}`
+  // cubre el hueco cuando `resolvePlayerSlots` es más corto, así que ningún
+  // hueco de esa discrepancia deja un slot sin resolver. `Number.isFinite`
+  // (no `!== null`) hace que un slot fuera de rango que llegase como
+  // `undefined` tome el mismo camino que uno `null`, en vez de propagarlo.
   const slots = resolvePlayerSlots(context)
-  const heroHealth = slots.map((slot, i) => {
-    const frozen = persisted.heroHealth[i]
-    if (frozen !== null) return frozen
+  const heroHealth = persisted.heroHealth.map((frozen, i) => {
+    if (Number.isFinite(frozen)) return frozen as number
+    const slot = slots[i] ?? { heroId: null, playerName: '' }
     const hero = catalogue !== null ? catalogue.heroes.find(h => h.id === slot.heroId) ?? null : null
     return computeInitialHeroHealth(hero)
   })
@@ -111,7 +146,7 @@ export function resolveCounterValues(context: SessionContext, catalogue: Charact
 // clave desconocida de un JSON manipulado se propaga hacia adelante.
 export function incrementVillain(session: EngineSession, catalogue: CharacterCatalogue | null): EngineSession {
   const base = resolveCounterValues(session.context, catalogue).villainHealth
-  const nextValue = base === null ? 1 : base + 1
+  const nextValue = Number.isFinite(base) ? (base as number) + 1 : 1
   const counters = resolveCounters(session.context)
   return {
     ...session,
@@ -124,28 +159,30 @@ export function incrementVillain(session: EngineSession, catalogue: CharacterCat
 
 export function decrementVillain(session: EngineSession, catalogue: CharacterCatalogue | null): EngineSession {
   const base = resolveCounterValues(session.context, catalogue).villainHealth
-  if (base === null) return session
+  if (!Number.isFinite(base)) return session
   if (base === 0) return session
   const counters = resolveCounters(session.context)
   return {
     ...session,
     context: {
       ...session.context,
-      counters: { villainHealth: base - 1, heroHealth: counters.heroHealth },
+      counters: { villainHealth: (base as number) - 1, heroHealth: counters.heroHealth },
     },
   }
 }
 
-// ▲/▼ sobre el héroe de un `slot`. Misma guarda de rango que `setHero`
-// (`Number.isInteger(slot) && slot >= 0 && slot < playerCount`); no-op de
-// misma referencia si falla, nunca lanza.
+// ▲/▼ sobre el héroe de un `slot`. Misma guarda de rango que `setHero`, pero
+// contra `resolveHeroHealthLength(session.context)` (WR-05) — NUNCA contra
+// `session.context.playerCount` crudo, que es precisamente la discrepancia
+// que permitía que un `playerCount` manipulado descartase vidas ya
+// congeladas. No-op de misma referencia si falla, nunca lanza.
 export function incrementHero(session: EngineSession, slot: number, catalogue: CharacterCatalogue | null): EngineSession {
-  const { playerCount } = session.context
-  if (!Number.isInteger(slot) || slot < 0 || slot >= playerCount) {
+  const length = resolveHeroHealthLength(session.context)
+  if (!Number.isInteger(slot) || slot < 0 || slot >= length) {
     return session
   }
   const base = resolveCounterValues(session.context, catalogue).heroHealth[slot]
-  const nextValue = base === null ? 1 : base + 1
+  const nextValue = Number.isFinite(base) ? (base as number) + 1 : 1
   const counters = resolveCounters(session.context)
   const heroHealth = counters.heroHealth.map((entry, i) => (i === slot ? nextValue : entry))
   return {
@@ -158,15 +195,15 @@ export function incrementHero(session: EngineSession, slot: number, catalogue: C
 }
 
 export function decrementHero(session: EngineSession, slot: number, catalogue: CharacterCatalogue | null): EngineSession {
-  const { playerCount } = session.context
-  if (!Number.isInteger(slot) || slot < 0 || slot >= playerCount) {
+  const length = resolveHeroHealthLength(session.context)
+  if (!Number.isInteger(slot) || slot < 0 || slot >= length) {
     return session
   }
   const base = resolveCounterValues(session.context, catalogue).heroHealth[slot]
-  if (base === null) return session
+  if (!Number.isFinite(base)) return session
   if (base === 0) return session
   const counters = resolveCounters(session.context)
-  const heroHealth = counters.heroHealth.map((entry, i) => (i === slot ? base - 1 : entry))
+  const heroHealth = counters.heroHealth.map((entry, i) => (i === slot ? (base as number) - 1 : entry))
   return {
     ...session,
     context: {

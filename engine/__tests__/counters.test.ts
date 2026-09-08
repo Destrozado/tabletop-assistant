@@ -19,7 +19,7 @@ import {
   resolveCounters,
   resolveCounterValues,
 } from '../counters'
-import type { CharacterCatalogue, EngineSession, GameDefinition, SessionContext } from '../types'
+import type { CatalogueVillain, CharacterCatalogue, EngineSession, GameDefinition, SessionContext } from '../types'
 
 const fixturePath = fileURLToPath(new URL('./fixtures/tiny-game.json', import.meta.url))
 const tinyGame: GameDefinition = JSON.parse(readFileSync(fixturePath, 'utf-8'))
@@ -308,5 +308,123 @@ describe('D-10 (cambio de héroe a media ronda)', () => {
 
     const changed = setHero(session, 0, 'iron-man')
     expect(resolveCounterValues(changed.context, catalogue).heroHealth[0]).toBe(9)
+  })
+})
+
+// Reproduce con cifras el fallo confirmado por el verificador en
+// 07-REVIEW.md §WR-05: un `playerCount` editado a mano en localStorage
+// (2.5, NaN, '3' en cadena, null) hace que un solo toque en el villano
+// descarte las vidas de héroe ya congeladas ([5,7] → []), porque la
+// guarda de rango de slot compara contra el `playerCount` CRUDO mientras
+// la longitud del array de `resolveCounters` se deriva del validado — dos
+// definiciones que discrepan. Estos casts son la misma técnica que ya usa
+// el bloque de `resolveCounters` — formas alcanzables desde unas
+// devtools, no desde ningún flujo normal de la app.
+describe('playerCount manipulado a mano (WR-05)', () => {
+  const manipulatedPlayerCounts = [2.5, Number.NaN, '3', null] as unknown as number[]
+
+  function frozenSession(playerCount: number): EngineSession {
+    const session = baseSession()
+    return {
+      ...session,
+      context: {
+        ...session.context,
+        playerCount,
+        counters: { villainHealth: null, heroHealth: [5, 7] },
+      },
+    }
+  }
+
+  it.each(manipulatedPlayerCounts)('incrementVillain con playerCount %s conserva intactas las dos vidas de héroe ya congeladas', (playerCount) => {
+    const session = frozenSession(playerCount)
+    const result = incrementVillain(session, catalogue)
+
+    expect(result.context.counters!.heroHealth).toEqual([5, 7])
+    expect(result.context.counters!.heroHealth.every(v => v === null || !Number.isNaN(v))).toBe(true)
+    expect(Number.isNaN(result.context.counters!.villainHealth as number)).toBe(false)
+  })
+
+  it.each(manipulatedPlayerCounts)('decrementVillain con playerCount %s conserva intactas las dos vidas de héroe ya congeladas', (playerCount) => {
+    const session = frozenSession(playerCount)
+    const result = decrementVillain(session, catalogue)
+
+    expect(result.context.counters!.heroHealth).toEqual([5, 7])
+    expect(result.context.counters!.heroHealth.every(v => v === null || !Number.isNaN(v))).toBe(true)
+  })
+
+  it.each(manipulatedPlayerCounts)('incrementHero en un slot dentro del rango real de los datos congelados (playerCount %s) no produce NaN y no toca las demás vidas', (playerCount) => {
+    const session = frozenSession(playerCount)
+    const result = incrementHero(session, 0, catalogue)
+
+    expect(result.context.counters!.heroHealth.every(v => v === null || !Number.isNaN(v))).toBe(true)
+    expect(result.context.counters!.heroHealth[1]).toBe(7)
+  })
+
+  it.each(manipulatedPlayerCounts)('decrementHero en un slot dentro del rango real de los datos congelados (playerCount %s) no produce NaN y no toca las demás vidas', (playerCount) => {
+    const session = frozenSession(playerCount)
+    const result = decrementHero(session, 0, catalogue)
+
+    expect(result.context.counters!.heroHealth.every(v => v === null || !Number.isNaN(v))).toBe(true)
+    expect(result.context.counters!.heroHealth[1]).toBe(7)
+  })
+
+  it.each(manipulatedPlayerCounts)('resolveCounterValues con playerCount %s y vidas ya congeladas nunca devuelve undefined dentro del array', (playerCount) => {
+    const session = frozenSession(playerCount)
+    const result = resolveCounterValues(session.context, catalogue)
+
+    expect(result.heroHealth.every(v => !Object.is(v, undefined))).toBe(true)
+    expect(Object.is(result.heroHealth[0], undefined)).toBe(false)
+    expect(Object.is(result.heroHealth[1], undefined)).toBe(false)
+  })
+})
+
+// Reproduce el fallo confirmado en 07-REVIEW.md §WR-07: una entrada de
+// catálogo cuya etapa I no trae una cifra de vida utilizable (regenerada
+// por scripts/catalogue/fetch-marvelcdb.mjs sin `health`, o con un valor no
+// finito) debe devolver `null`, no propagar un `NaN` hasta la banda. El
+// villano se construye a mano porque ningún villano real del catálogo hoy
+// carece de `health` — esto solo es alcanzable por una regeneración rota.
+describe('catálogo sin cifra de vida utilizable (WR-07)', () => {
+  it('computeInitialVillainHealth con `health` ausente en la etapa I devuelve null, no NaN', () => {
+    const brokenVillain = {
+      id: 'broken-no-health',
+      name: 'Broken (sin health)',
+      stages: [{ stage: 1, healthPerHero: true, healthPerGroup: false }],
+    } as unknown as CatalogueVillain
+
+    const result = computeInitialVillainHealth(brokenVillain, 3, 'normal')
+    expect(result).toBeNull()
+    expect(Number.isNaN(result as any)).toBe(false)
+  })
+
+  it('computeInitialVillainHealth con `health` no finito (NaN) en la etapa I devuelve null, no NaN', () => {
+    const brokenVillain = {
+      id: 'broken-nan-health',
+      name: 'Broken (health NaN)',
+      stages: [{ stage: 1, health: Number.NaN, healthPerHero: true, healthPerGroup: false }],
+    } as unknown as CatalogueVillain
+
+    const result = computeInitialVillainHealth(brokenVillain, 3, 'normal')
+    expect(result).toBeNull()
+    expect(Number.isNaN(result as any)).toBe(false)
+  })
+
+  it('ese null llega a resolveCounterValues como celda «—» (D-12), nunca como NaN', () => {
+    const brokenCatalogue: CharacterCatalogue = {
+      gameId: catalogue.gameId,
+      heroes: catalogue.heroes,
+      villains: [
+        {
+          id: 'broken-no-health',
+          name: 'Broken (sin health)',
+          stages: [{ stage: 1, healthPerHero: true, healthPerGroup: false }] as unknown as CatalogueVillain['stages'],
+        },
+      ],
+    }
+    const session = setVillain(baseSession(), 'broken-no-health')
+    const result = resolveCounterValues(session.context, brokenCatalogue)
+
+    expect(result.villainHealth).toBeNull()
+    expect(Number.isNaN(result.villainHealth as any)).toBe(false)
   })
 })
