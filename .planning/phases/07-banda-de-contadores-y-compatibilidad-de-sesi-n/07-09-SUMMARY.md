@@ -113,3 +113,12 @@ None - no external service configuration required.
 ---
 *Phase: 07-banda-de-contadores-y-compatibilidad-de-sesi-n*
 *Completed: 2026-09-09*
+
+## Self-Check: PASSED
+
+- FOUND: engine/counters.ts
+- FOUND: engine/__tests__/counters.test.ts
+- FOUND: .planning/phases/07-banda-de-contadores-y-compatibilidad-de-sesi-n/07-09-SUMMARY.md
+- FOUND: 592fc1a (test commit, RED)
+- FOUND: d33a25d (fix commit, GREEN)
+- FOUND: ae92db5 (docs/SUMMARY commit)
