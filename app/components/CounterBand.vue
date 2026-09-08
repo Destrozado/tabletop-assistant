@@ -36,7 +36,14 @@ const rowGroups = computed(() => {
 </script>
 
 <template>
-  <div class="h-24 shrink-0 bg-surface flex flex-col sm:flex-row">
+  <!--
+    D-05/D-06: dos filas de h-24 apiladas en flex-col por debajo de `sm`
+    suman 192px reales — el cascarón necesita `h-48` (12rem = 192px) ahí, no
+    `h-24` (96px), o la segunda fila desbordaría el cascarón y se pintaría
+    encima de `main`. Desde `sm:` las filas colapsan a `sm:contents` (una
+    sola fila visual) y el cascarón vuelve a su `sm:h-24` de siempre.
+  -->
+  <div class="h-48 sm:h-24 shrink-0 bg-surface flex flex-col sm:flex-row">
     <div
       v-for="group in rowGroups"
       :key="group.rowKey"
