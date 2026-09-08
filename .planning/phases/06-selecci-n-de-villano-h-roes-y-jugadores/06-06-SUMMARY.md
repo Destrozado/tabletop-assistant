@@ -126,3 +126,12 @@ Ninguno. La superficie nueva de este plan (validación de la clave de fila en `o
 ---
 *Phase: 06-selecci-n-de-villano-h-roes-y-jugadores*
 *Completed: 2026-09-08*
+
+## Self-Check: PASSED
+
+- FOUND: `app/pages/[game]/index.vue`
+- FOUND: `app/composables/__tests__/useStepShortcuts.test.ts`
+- FOUND: `.planning/phases/06-selecci-n-de-villano-h-roes-y-jugadores/06-06-SUMMARY.md`
+- FOUND: commit `7202d78` (Task 1)
+- FOUND: commit `4328a99` (Task 2)
+- FOUND: commit `ef348d1` (SUMMARY.md)
