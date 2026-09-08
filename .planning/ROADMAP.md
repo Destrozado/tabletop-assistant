@@ -31,7 +31,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 
 - [x] **Phase 5: Catálogo de héroes y villanos** - Datos versionados, reproducibles y legales de los 23 héroes y 3 villanos, sin salir nunca del bundle (completed 2026-09-07)
 - [x] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente (completed 2026-09-08)
-- [ ] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7 (verificación: gaps_found — CR-01 solape de zonas táctiles)
+- [x] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7 (verificación: gaps_found — CR-01 solape de zonas táctiles) (completed 2026-09-08)
 - [ ] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz
 - [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline
 - [ ] **Phase 10: Respaldo en Firestore** - Subida silenciosa, nunca bloqueante, aislada del resto
@@ -140,7 +140,7 @@ Plans:
 
 **Wave 9** *(blocked on Wave 8 completion)*
 
-- [ ] 07-11-PLAN.md — Firma humana acotada a los viewports que la aprobación original no cubrió, y puesta al día del ledger de requisitos (ola 9)
+- [x] 07-11-PLAN.md — Firma humana acotada a los viewports que la aprobación original no cubrió, y puesta al día del ledger de requisitos (ola 9)
 
 **UI hint**: yes
 **Verificación humana**: Sí, y de las más sensibles del hito — toques repetidos, mantener pulsado, recarga a mitad de partida, y el presupuesto de altura solo se confirman de verdad en un dispositivo táctil real. Igual que en la Fase 6, se verifica en viewport simulado (portátil/móvil) porque el modelo y SO de la tablet de mesa siguen sin conocerse; esto es honesto, no una confirmación real en el dispositivo objetivo.
@@ -218,7 +218,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 4. Instalación y funcionamiento offline | v1.7 | 6/6 | Complete | 2026-08-31 |
 | 5. Catálogo de héroes y villanos | v1.8 | 6/6 | Complete   | 2026-09-07 |
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
-| 7. Banda de contadores y compatibilidad de sesión | v1.8 | 10/11 | In Progress|  |
+| 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 0/TBD | Not started | - |
 | 9. Histórico y estadísticas | v1.8 | 0/TBD | Not started | - |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
