@@ -14,7 +14,12 @@ created: 2026-09-08
 > a delta document.** `01-UI-SPEC.md` is the design system of record (colors, spacing
 > scale, type scale, three-band screen layout, tap-feedback pattern, orientation guard);
 > `06-UI-SPEC.md` extended it with the first text inputs and the second modal shape. Both
-> carry forward unchanged. Nothing in this phase contradicts either.
+> carry forward unchanged. **One exception:** this phase narrows a legacy claim inherited
+> from `01-UI-SPEC.md` — the unconditional 44px touch-target width floor — because the
+> CR-01 overlap fix (plan 07-08) had to let the `▼`/`▲` arrows shrink below it at narrow
+> viewports to stop cells stealing each other's taps. See the amended **Touch targets**
+> bullet below for the exact scope of that narrowing; nothing else in either inherited
+> document is touched.
 >
 > COMP-01/COMP-02 (session-compatibility with a v1.7 save) touch no visual surface — they
 > are covered by the "defensive rendering" rules called out inline below (D-12/D-21) and
@@ -72,9 +77,34 @@ Inherited verbatim from `01-UI-SPEC.md` — no new tokens.
   the ~15% ceiling with ~22px of margin. **Prohibited:** the band must never carry
   `flex-1` or render without a height cap — `StepScreen` is the only `flex-1` child of
   the page's root flex column.
-- **Touch targets: 44×44pt / 48×48dp floor (inherited).** Every `▼`/`▲` button exceeds
-  this floor by construction — see Layout: each spans the band's full 96px height and
-  is never narrower than 44px.
+- **Touch targets: 44×44pt / 48×48dp floor (inherited) — split into its two axes, since
+  plan 07-08's CR-01 fix made the old single-sentence version false.**
+  - **Height: unconditional, no exception.** Every `▼`/`▲` button spans the band's full
+    96px in every viewport, at every player count — this is D-02 (the tap zone spans the
+    cell's complete height), it is locked, and this amendment does not touch it.
+  - **Width: bounded to `>=760px` of viewport width.** The 44px floor holds from **760px
+    of viewport width with the worst case of 4 players** — the target landscape viewport
+    (1024x768) sits well inside that, at ~70px per arrow (per `07-08-SUMMARY.md`'s
+    key-decisions) — and the threshold is lower still with fewer players
+    (`152 * nº de celdas`). **Below that threshold the arrow shrinks on purpose:**
+    applying the actual formula the 07-08 fix ships (`ancho de flecha = (ancho_viewport /
+    (n+1) - suelo_del_número) / 2`, with the number's floor at `sm:min-w-16`=64px or,
+    below the `sm` breakpoint, `min-w-12`=48px) to the app's own supported narrow
+    viewports at 4 players gives: **~38px at 700x800, ~34px at 660x800, ~27.5px at
+    412x915** (two rows below `sm`, player-cell width 103px). Human verification (07-11)
+    confirmed the narrow 412x915 arrows are usable with a finger ("Sí, se aciertan
+    bien") — so this is a deliberate, verified trade-off, not an unverified regression.
+  - **Why shrinking is correct, not a degradation accepted lightly.** The alternative was
+    CR-01's cell overflow, where a tap silently changed the wrong player's life total. A
+    narrow target that responds to whoever taps it is strictly better than a wide one
+    that steals the tap from its neighbor.
+  - **Provenance of the claim being narrowed**, in one line, so nobody restores it from
+    memory: D-02 fixes only the height, never a width; HP-10's touch-target clause is
+    scoped to "en tablet horizontal"; and the 44x48pt floor is inherited from UI-02 of
+    Phase 1 (`v1.7-REQUIREMENTS.md`), absent from the current `REQUIREMENTS.md`.
+  - **What guards this now:** the touch-target assertion in
+    `e2e/counter-band-overlap.spec.ts` (44px width as a hard guard AT 1024x768) and the
+    human verdict of 07-11's Task 1 for the narrow widths below 760px.
 - **NEW: `▼`/`▲` tap zone spans the cell's full height (96px), not just the row
   the glyph visually sits in.** D-02's explicit instruction ("las flechas son zonas
   pulsables de los 96px completos de alto") — the single largest touch target the
