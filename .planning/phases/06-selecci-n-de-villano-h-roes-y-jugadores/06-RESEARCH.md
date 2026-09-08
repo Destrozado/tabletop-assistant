@@ -779,17 +779,22 @@ it('D-20: resume() con context sin selection se restaura utilizable, sin undefin
 
 **Si esta tabla estuviera vacía:** no lo está — hay cuatro asunciones, todas de bajo/medio riesgo y todas explícitamente delegadas a discreción de research/planning por `06-CONTEXT.md`.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **¿Merece la pena un test de integración (más allá de los tests puros) que confirme que abrir `PlayerModal`/`VillainPickerModal` efectivamente desactiva los atajos de teclado en el navegador real?**
+Ambas quedaron resueltas aguas abajo, durante la planificación. Se conservan con su
+razonamiento original por trazabilidad.
+
+1. **RESOLVED — ¿Merece la pena un test de integración (más allá de los tests puros) que confirme que abrir `PlayerModal`/`VillainPickerModal` efectivamente desactiva los atajos de teclado en el navegador real?**
    - Lo que sabemos: la lógica pura (`isEditableTarget`, `shortcutsEnabled`) ya está testeada y correcta; lo que falta es el cableado en `index.vue` (el nuevo `ref` `activeSelectionModal` alimentando `atajosActivos`).
    - Lo que no está claro: como no hay entorno de test de componentes (Q7), este cableado no es testeable automáticamente hoy.
    - Recomendación: verificación manual explícita en la fase (teclear un espacio dentro del campo Nombre con el modal abierto y confirmar que el paso no avanza), documentada como paso de verificación humana, no como test automatizado — coherente con cómo el resto del proyecto verifica el árbol de componentes.
+   - **RESOLUCIÓN:** adoptada tal cual. Es la comprobación humana nº 6 de `06-07-PLAN.md`.
 
-2. **¿Dónde vive exactamente el mapa de alias español — fichero TS separado o embebido en el composable de búsqueda?**
+2. **RESOLVED — ¿Dónde vive exactamente el mapa de alias español — fichero TS separado o embebido en el composable de búsqueda?**
    - Lo que sabemos: D-05 solo prohíbe que entre en `content/marvel-characters.json`; todo lo demás es discrecional.
    - Lo que no está claro: si el mapa completo de 23 alias (pendiente de D-07, revisión humana contra las cartas físicas) resulta largo, un fichero propio (`app/data/spanish-hero-aliases.ts` o similar) es más legible que embebido; si es corto, un objeto inline junto al composable basta.
    - Recomendación: empezar embebido junto a `useCharacterCatalogue.ts` o `useHeroSearch.ts`; extraerlo a fichero propio solo si crece incómodo — decisión de bajo coste, reversible.
+   - **RESOLUCIÓN:** el planner decidió lo contrario y con mejor motivo (DC-04 de `06-02-PLAN.md`): fichero propio `app/data/spanish-hero-aliases.ts` desde el principio, precisamente para que la revisión humana de D-07 sea una tabla de 23 filas en un solo sitio en vez de un objeto enterrado en un composable.
 
 ## Security Domain
 
