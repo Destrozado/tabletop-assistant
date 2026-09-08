@@ -26,7 +26,12 @@ repetido, y la persistencia de todo ello dentro de `SessionContext`.
   **Fase 7**
 
 Esta fase no toca ningún campo `text` ni `speech` de ningún paso, ni ninguno de los
-37 clips de voz pregenerada. Tampoco toca el catálogo (`content/marvel-characters.json`),
+**35** clips de voz pregenerada. (Corrección: este documento decía «37» al escribirse,
+cifra heredada de `PROJECT.md`. El recuento real verificado es **35** —35 ficheros
+`.m4a` y 35 entradas en `scripts/voice/manifest.json`— desde que el quick `260901-jg1`
+fusionó `setup.archienemigos.01` y `.02`. `PROJECT.md` y el archivo de v1.7 siguen
+diciendo 37 y deberían corregirse fuera de esta fase.) Tampoco toca el catálogo
+(`content/marvel-characters.json`),
 que es dato 100% derivado del script (D-09 de la Fase 5) y que ninguna pantalla puede
 editar (Pitfall 14).
 
