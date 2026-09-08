@@ -44,18 +44,22 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 **Depends on**: Nada nuevo — se apoya en el motor y el esquema de contenido de v1.7 ya en producción (primera fase de este hito).
 **Requirements**: CAT-01, CAT-02, CAT-03, CAT-04, CAT-05, CAT-06, CAT-07
 **Success Criteria** (what must be TRUE):
+
   1. Un test de Vitest en CI valida el catálogo completo (23 héroes + 3 villanos) contra un esquema Zod y falla la build si el contenido está malformado.
   2. La vida de cada villano está modelada por etapa y por nº de jugadores desde el principio, no como una cifra plana que solo sirve para un caso.
   3. Existe un script committeado y documentado que regenera el catálogo desde la API pública de MarvelCDB; volver a ejecutarlo sobre el mismo origen produce el mismo resultado, y el propio fichero documenta cómo añadir un héroe o villano nuevo en una sola fila.
   4. El catálogo committeado no contiene ningún texto de carta, cita de sabor ni referencia a imagen — el script proyecta explícitamente una lista blanca de campos, nunca la respuesta completa de la API.
   5. Con la wifi apagada tras `nuxt generate`, el catálogo está disponible igual que el resto del contenido — viaja dentro del bundle, nunca se pide por red en ejecución.
+
 **Plans**: 6 plans (los tres últimos son cierre de gaps de 05-VERIFICATION.md)
+
 - [x] 05-01-PLAN.md — Contrato del catálogo: tipos sin zod, esquema Zod estricto y sus tests unitarios
 - [x] 05-02-PLAN.md — Script de generación contra MarvelCDB y catálogo committeado (23 héroes + 3 villanos)
 - [x] 05-03-PLAN.md — Gates de CI: validación del fichero real, guardarraíl anti-copyright y aislamiento de build
 - [x] 05-04-PLAN.md — Cierre del gap CR-01: tamaño de mano por cara (handSizeHero / handSizeAlterEgo) contrastado con el Rules Reference v1.7
 - [x] 05-05-PLAN.md — Cierre del gap CR-02: carga perezosa en los gates para que el guardarraíl anti-copyright pueda fallar por sí solo
 - [x] 05-06-PLAN.md — Cierre del gap de truth #8 (CAT-02): dimensión de dificultad en la etapa de villano — salud de Kang en modo Experto (exp_kang 15/22/25) en tipos, esquema, generador y tests
+
 **Verificación humana**: No bloqueante — este catálogo se verifica entero por Vitest/CI y por inspección directa del JSON; no depende de la tablet de mesa (D-36 no aplica igual que a las reglas: un valor de vida equivocado se corrige con las flechas en mesa, per decisión explícita del usuario).
 
 ### Phase 6: Selección de villano, héroes y jugadores
@@ -64,13 +68,16 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 **Depends on**: Phase 5 (necesita nombres e ids del catálogo para poblar los selectores).
 **Requirements**: SEL-01, SEL-02, SEL-03, SEL-04, SEL-05, SEL-06, SEL-07, SEL-08, SEL-09
 **Success Criteria** (what must be TRUE):
+
   1. Un grupo puede tocar el selector de Villano en «Decidid, como grupo…» y elegir uno de los 3 villanos en un modal.
   2. Un grupo puede tocar un selector de héroe por jugador (tantos como el nº elegido en el mini-setup) y filtrar los 23 héroes escribiendo el nombre del héroe o del alter ego, insensible a mayúsculas y a acentos.
   3. Cada jugador tiene un nombre editable con valor por defecto «Jugador 1»…«Jugador 4», y elegir el mismo héroe en dos huecos se marca visualmente como repetido sin bloquear la partida.
   4. Recargar la página a mitad de partida conserva exactamente la selección hecha (villano, héroes, nombres).
   5. Un grupo que no toca ningún selector juega exactamente como en v1.7, sin ningún hueco ni exigencia nueva.
+
 **Plans**: 7 plans
 Plans:
+
 - [x] 06-01-PLAN.md — Contrato del motor: clave `selection` en datos/esquema/tipos y mutadores puros con reasignación (ola 1)
 - [x] 06-02-PLAN.md — Catálogo en `app/`, mapa de 23 alias en español y funciones puras de filtro, rótulos y repetidos (ola 1)
 - [x] 06-03-PLAN.md — Revisión humana bloqueante de los alias contra las cartas físicas (D-07) (ola 2)
@@ -78,6 +85,7 @@ Plans:
 - [x] 06-05-PLAN.md — Rejilla de selección en `StepScreen.vue` y costura reactiva en `useGameSession.ts` (ola 2)
 - [x] 06-06-PLAN.md — Cableado en `app/pages/[game]/index.vue`: modales, foco y supresión de atajos (D-12) (ola 3)
 - [x] 06-07-PLAN.md — Gates mecánicos y revisión humana en navegador de las tres superficies nuevas (ola 4)
+
 **UI hint**: yes
 **Verificación humana**: Sí — picker/modal/filtro es superficie táctil nueva; verificable en navegador/viewport simulado (portátil o móvil), no en la tablet real de mesa porque su modelo y SO siguen sin conocerse (deuda heredada de v1.7). No es bloqueante para cerrar la fase, pero debe quedar anotado como pendiente de confirmar en dispositivo real cuando la tablet aparezca.
 
@@ -87,20 +95,40 @@ Plans:
 **Depends on**: Phase 6 (necesita saber quién juega para prellenar cada contador).
 **Requirements**: HP-01, HP-02, HP-03, HP-04, HP-05, HP-06, HP-07, HP-08, HP-09, HP-10, COMP-01, COMP-02
 **Success Criteria** (what must be TRUE):
+
   1. El presupuesto de altura de la banda (≤~15% de la pantalla) se decide y se mide contra el viewport objetivo *antes* de construir el componente, no después — la banda nunca reduce el tamaño del texto grande del paso.
   2. Durante la partida hay una banda fija con «Vida villano» y un contador por jugador, ajustable solo con ▲/▼ (sin teclado, sin escribir cifras), precargada con el valor correcto según villano, héroe y nº de jugadores cuando se conoce — por ejemplo, un grupo puede elegir a Thor y ver 14 en su contador al empezar.
   3. Un contador de héroe que llega a 0 se marca como derrotado sin bajar de 0, sin terminar la partida ni abrir ningún diálogo, y puede volver a subir por encima de 0.
   4. Recargar la página a mitad de partida conserva el valor exacto de todos los contadores, y tocar ▲/▼ nunca avanza el paso ni cambia el comportamiento de Espacio/Enter/← ya existentes.
   5. Una partida guardada por la versión de v1.7 ya desplegada se reanuda sin corromperse ni perderse tras este cambio, y toda la interfaz nueva (selección, contadores) se renderiza de forma defensiva cuando la sesión reanudada no trae los campos nuevos — este caso no lo cubre el gate `contentVersion`/`formatVersion` y debe probarse explícitamente.
+
 **Plans**: 7 plans (6 olas)
 Plans:
+**Wave 1**
+
 - [ ] 07-01-PLAN.md — Presupuesto de altura medido en el viewport objetivo ANTES de construir la banda, y contrato de datos `CounterState`/`counters?` (ola 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 07-02-PLAN.md — `engine/counters.ts` con test primero: precarga desde la etapa I, normalización defensiva y los cuatro mutadores con reasignación (ola 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 07-03-PLAN.md — Compatibilidad COMP-01/02: test D-21 de una sesión con forma de v1.7, y la decisión D-17 escrita en `useStepShortcuts.ts` (ola 3)
 - [ ] 07-04-PLAN.md — Costura reactiva en `useGameSession.ts`: visibilidad por `sectionRepeats`, celdas con «—»/«Jugador N»/«· SIN VIDA» y mutadores expuestos (ola 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 07-05-PLAN.md — `CounterBand.vue` según `07-UI-SPEC.md` y su montaje justo bajo `AppHeader` en la página (ola 4)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 07-06-PLAN.md — Pruebas en navegador real: 96px/12,5%, dos filas en estrecho, topes y «SIN VIDA», no-avance del paso y persistencia tras recarga (ola 5)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 07-07-PLAN.md — Verificación humana bloqueante en viewport apaisado simulado: legibilidad, tacto del toque, mantener pulsado y cambio de héroe a media ronda (ola 6)
+
 **UI hint**: yes
 **Verificación humana**: Sí, y de las más sensibles del hito — toques repetidos, mantener pulsado, recarga a mitad de partida, y el presupuesto de altura solo se confirman de verdad en un dispositivo táctil real. Igual que en la Fase 6, se verifica en viewport simulado (portátil/móvil) porque el modelo y SO de la tablet de mesa siguen sin conocerse; esto es honesto, no una confirmación real en el dispositivo objetivo.
 
@@ -110,11 +138,13 @@ Plans:
 **Depends on**: Phase 5 (cifras del catálogo) y Phase 6 (selección hecha) — no depende de la Fase 7 y puede ejecutarse en paralelo con ella.
 **Requirements**: VAL-01, VAL-02, VAL-03, VAL-04, VAL-05, VAL-06
 **Success Criteria** (what must be TRUE):
+
   1. Con villano y héroes elegidos, el paso que cita la vida del villano la muestra entre paréntesis junto al texto («…al valor indicado (14)»).
   2. Un paso cuyo valor difiere por jugador (vida inicial de identidad, tamaño de mano) muestra bajo el texto una lista compacta «Jugador N · Héroe → número», nunca un paréntesis con todos los valores en línea.
   3. Sin ninguna selección hecha, esos mismos pasos se muestran exactamente igual que hoy, sin hueco ni marcador.
   4. `git diff` sobre `content/marvel-champions.json` no toca ni un carácter de ningún campo `text` ni `speech` de ningún paso — el valor se añade solo en el renderizado.
   5. Tras el cambio, `npm test` sigue en verde con los 37 clips de audio pregenerados intactos y el gate de deriva de voz (`engine/__tests__/voice-drift.test.ts`) sin pedir regenerar ni un clip, y la locución de esos pasos sigue diciendo la frase genérica, sin el número.
+
 **Plans**: TBD
 **Verificación humana**: No bloqueante para dispositivo — el criterio decisivo (VAL-04/VAL-05) es mecánico y lo verifica `npm test`, no un humano en una tablet. Sí conviene una lectura humana rápida de que el paréntesis/lista queda legible en pantalla, pero no requiere la tablet objetivo.
 
@@ -124,11 +154,13 @@ Plans:
 **Depends on**: Phase 6 y Phase 7 (necesita villano/héroes/nombres/contadores como datos a registrar).
 **Requirements**: HIST-01, HIST-02, HIST-03, HIST-04, HIST-05, HIST-06, HIST-07, HIST-08, HIST-09, STAT-01, STAT-02, STAT-03, STAT-04, STAT-05
 **Success Criteria** (what must be TRUE):
+
   1. Al pulsar «Partida terminada» el grupo puede registrar Ganada o Perdida (indicando la causa si es Perdida: plan principal completado o todos los héroes derrotados), o cerrar la partida sin registrar nada.
   2. El registro guardado incluye resultado, causa, villano, héroe y nombre de cada jugador, fecha, dificultad, nº de jugadores, duración y nº de rondas — duración y rondas calculadas por el motor, sin que nadie las teclee.
   3. Hay una pantalla que lista las partidas registradas de la más reciente a la más antigua, con opción de borrar una entrada tras confirmar; «Partida terminada» borra la sesión en curso pero nunca el histórico, que vive en localStorage como fuente de verdad.
   4. Hay una pantalla de estadísticas accesible desde el inicio que muestra el % de victorias por héroe y por villano, con un estado vacío claro (no un error ni porcentajes engañosos) cuando el histórico está vacío.
   5. La pantalla de estadísticas lee exclusivamente localStorage — verificable en esta fase de forma trivial, porque Firestore ni siquiera existe todavía en el código en este punto del hito.
+
 **Plans**: TBD
 **UI hint**: yes
 **Verificación humana**: Sí, recomendable pero no bloqueante por dispositivo — el flujo de fin de partida y las dos pantallas nuevas se verifican jugando una partida real de principio a fin (puede hacerse en portátil/móvil, no requiere la tablet de mesa) y comprobando que el registro y las estadísticas resultantes coinciden con lo jugado.
@@ -139,11 +171,13 @@ Plans:
 **Depends on**: Phase 9 (necesita el punto de enganche `appendHistoryEntry` ya existiendo).
 **Requirements**: SYNC-01, SYNC-02, SYNC-03, SYNC-04, SYNC-05, SYNC-06, SYNC-07, SYNC-08, SYNC-09, COMP-03
 **Success Criteria** (what must be TRUE):
+
   1. Cada partida registrada localmente se intenta subir a Firestore de forma «dispara y olvida» — el flujo de fin de partida nunca hace `await` de esa escritura — y con la wifi apagada, registrar el resultado, listar el histórico y ver las estadísticas funcionan exactamente igual que con red, sin ningún bloqueo visible.
   2. Cada registro lleva una marca de sincronizado propia en localStorage (no la persistencia IndexedDB integrada de Firestore, que queda deliberadamente desactivada) y los pendientes se reintentan cuando vuelve la red.
   3. El SDK de Firebase se carga de forma diferida y solo en cliente — no participa del arranque, del prerender ni del primer pintado; verificable comparando el tamaño de los chunks iniciales de `/` y `/marvel-champions` antes y después de esta fase.
   4. La escritura usa autenticación anónima (sin cuentas de usuario) y las reglas de seguridad desplegadas en Firestore permiten crear registros con forma validada pero nunca leer ni borrar los de otros.
   5. Un fallo de Firestore nunca impide jugar, registrar localmente ni ver las estadísticas; y una PWA ya instalada recibe cualquier actualización de esta fase por el camino existente (`registerType: 'prompt'`, banda descartable), sin recargarse sola a mitad de ronda.
+
 **Plans**: TBD
 **Verificación humana**: Sí, dos verificaciones distintas: (a) un test e2e offline (extensión de `e2e/offline-flow.spec.ts` con `context.setOffline(true)`) confirmando que el fin de partida no se cuelga sin red — automatizable, no requiere dispositivo; (b) una revisión manual del fichero de reglas de Firestore realmente desplegado, antes del primer escritura real, no después de "ya funciona". Ninguna de las dos requiere la tablet de mesa.
 
@@ -154,6 +188,7 @@ La investigación (`research/SUMMARY.md`) dejó abierta una disyuntiva entre dos
 ### Recordatorio de alcance para las seis fases (Pitfall 14 de `research/PITFALLS.md`)
 
 Cada fase de este hito comparte infraestructura con una tentación de alcance adyacente ya excluida explícitamente en `PROJECT.md`. Se listan aquí una vez para que cada plan de fase las reconozca y las rechace en el momento, no las redescubra:
+
 - La banda de contadores (Fase 7) es solo para vida — un contador de amenaza o chips de estado (Aturdido/Confundido/Duro) usando el mismo stepper es exactamente el tipo de "casi gratis" que sigue fuera de alcance.
 - El catálogo (Fase 5) es dato versionado que regenera un script — ninguna pantalla de la app debe permitir editarlo.
 - Firestore (Fase 10) es respaldo de escritura, nunca fuente de lectura para ninguna pantalla — y no es la puerta de entrada a cuentas de usuario ni autenticación real.
