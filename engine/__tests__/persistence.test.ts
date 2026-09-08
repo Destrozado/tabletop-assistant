@@ -5,12 +5,22 @@ import { expand } from '../expand'
 import { next } from '../navigator'
 import { resume, toPersistedPosition } from '../persistence'
 import type { PersistedPosition } from '../persistence'
+import { validateGameDefinition } from '../schema'
+import { resolvePlayerSlots, resolveVillainId } from '../selection'
 import type { GameDefinition, SessionContext } from '../types'
 
 const fixturePath = fileURLToPath(new URL('./fixtures/tiny-game.json', import.meta.url))
 const tinyGame: GameDefinition = JSON.parse(readFileSync(fixturePath, 'utf-8'))
 
 const context: SessionContext = { playerCount: 3, difficulty: 'normal' }
+
+// Contenido real (mismo patrón de carga que navigator.test.ts): el test de
+// D-20 usa gameId/contentVersion/runtimeId reales de marvel-champions.json,
+// no del fixture mínimo, porque D-20 es sobre el estado normal de la app
+// real, no sobre una sesión de juguete.
+const contentPath = fileURLToPath(new URL('../../content/marvel-champions.json', import.meta.url))
+const rawMarvelChampions: unknown = JSON.parse(readFileSync(contentPath, 'utf-8'))
+const marvelChampions: GameDefinition = validateGameDefinition(rawMarvelChampions)
 
 function basePersisted(overrides: Partial<PersistedPosition> = {}): PersistedPosition {
   return {
@@ -126,5 +136,76 @@ describe('toPersistedPosition', () => {
     expect(persisted.context).toEqual(context)
     expect(() => new Date(persisted.updatedAt).toISOString()).not.toThrow()
     expect(new Date(persisted.updatedAt).toISOString()).toBe(persisted.updatedAt)
+  })
+})
+
+describe('D-20: resume() de una sesión persistida sin `selection` (Fase 6)', () => {
+  const fresh = expand(marvelChampions, { playerCount: 3, difficulty: 'normal' })
+
+  it('resume() devuelve "resumed" (ni content-changed ni fresh) — la clave nueva del paso no dispara ninguna de las tres comprobaciones', () => {
+    const persisted: PersistedPosition = {
+      formatVersion: 1,
+      gameId: 'marvel-champions',
+      contentVersion: marvelChampions.contentVersion,
+      runtimeId: fresh.sequence[0].runtimeId,
+      round: 1,
+      context: { playerCount: 3, difficulty: 'normal' }, // sin `selection`, forma pre-Fase-6
+      updatedAt: '2026-09-08T00:00:00.000Z',
+    }
+    const { session, outcome } = resume(persisted, fresh)
+    expect(outcome).toBe('resumed')
+
+    // D-03/SEL-09: `selection` ausente es el estado normal y permanente de
+    // la app, no un fallo — StepScreen debe pintar «—» en los tres huecos,
+    // nunca propagar un `undefined` sin resolver a la interfaz.
+    expect(session.context.selection).toBeUndefined()
+
+    const slots = resolvePlayerSlots(session.context)
+    expect(slots).toHaveLength(3)
+    expect(slots).toEqual([
+      { heroId: null, playerName: '' },
+      { heroId: null, playerName: '' },
+      { heroId: null, playerName: '' },
+    ])
+
+    expect(resolveVillainId(session.context)).toBeNull()
+  })
+
+  it('D-20 (localStorage manipulado): un `selection` corrupto y desajustado se normaliza sin lanzar', () => {
+    // `localStorage` es editable desde DevTools — esta es la defensa de la
+    // que depende que la interfaz no reviente con datos manipulados.
+    const persisted: PersistedPosition = {
+      formatVersion: 1,
+      gameId: 'marvel-champions',
+      contentVersion: marvelChampions.contentVersion,
+      runtimeId: fresh.sequence[0].runtimeId,
+      round: 1,
+      context: {
+        playerCount: 3,
+        difficulty: 'normal',
+        selection: {
+          villainId: 42 as unknown as string, // villano no-cadena
+          heroes: [
+            { heroId: 'thor', playerName: 'x'.repeat(40) }, // nombre de 40 caracteres
+            null as unknown as { heroId: string | null, playerName: string }, // entrada nula
+            { heroId: '', playerName: 'Bruno' }, // heroId vacío
+            { heroId: 'hulk', playerName: 'Ana' }, // cuarta entrada, playerCount es 3
+          ],
+        },
+      },
+      updatedAt: '2026-09-08T00:00:00.000Z',
+    }
+
+    expect(() => resume(persisted, fresh)).not.toThrow()
+    const { session, outcome } = resume(persisted, fresh)
+    expect(outcome).toBe('resumed')
+
+    const slots = resolvePlayerSlots(session.context)
+    expect(slots).toHaveLength(3) // la cuarta entrada se descarta
+    expect(slots[0]).toEqual({ heroId: 'thor', playerName: 'x'.repeat(14) }) // recortado a 14
+    expect(slots[1]).toEqual({ heroId: null, playerName: '' }) // entrada nula cae al hueco vacío
+    expect(slots[2]).toEqual({ heroId: null, playerName: 'Bruno' }) // heroId vacío cae a null
+
+    expect(resolveVillainId(session.context)).toBeNull()
   })
 })
