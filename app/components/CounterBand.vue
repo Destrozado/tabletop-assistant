@@ -49,15 +49,25 @@ const rowGroups = computed(() => {
       :key="group.rowKey"
       class="h-24 shrink-0 flex sm:contents"
     >
+      <!--
+        CR-01 (07-VERIFICATION.md): esta celda ya no puede robarle el toque a
+        su hermana. Las flechas se declaran con un suelo de anchura de cero:
+        siguen absorbiendo el espacio sobrante donde lo hay (apaisado), y
+        ENCOGEN en vez de desbordar donde no lo hay (estrecho + varios
+        jugadores). El recorte de la celda es la garantía de última
+        instancia: aunque algún día un valor desbordase la aritmética,
+        quedaría recortado dentro de su propio rectángulo en vez de pintarse
+        encima del contador vecino y ganarle el hit-test.
+      -->
       <div
         v-for="cell in group.rowCells"
         :key="cell.key"
-        class="relative flex-1 min-w-0 h-24 border-l border-background first:border-l-0"
+        class="relative flex-1 min-w-0 h-24 border-l border-background first:border-l-0 overflow-hidden"
       >
         <div class="h-24 flex items-stretch">
           <button
             type="button"
-            class="flex-1 min-w-11 h-24 flex items-end justify-center pb-xs text-heading font-bold leading-none text-accent transition-transform duration-75"
+            class="flex-1 min-w-0 h-24 flex items-end justify-center pb-xs text-heading font-bold leading-none text-accent transition-transform duration-75"
             :class="pressedKey === `${cell.key}:down` ? 'brightness-95 scale-[0.98]' : ''"
             :aria-label="`Bajar vida de ${cell.label}`"
             @mousedown="pressedKey = `${cell.key}:down`"
@@ -69,13 +79,13 @@ const rowGroups = computed(() => {
             ▼
           </button>
 
-          <span class="w-16 shrink-0 h-24 flex items-end justify-center pb-xs text-display font-bold leading-none text-primary-text">
+          <span class="min-w-12 sm:min-w-16 shrink-0 h-24 flex items-end justify-center pb-xs text-display font-bold leading-none text-primary-text tabular-nums">
             {{ cell.displayValue }}
           </span>
 
           <button
             type="button"
-            class="flex-1 min-w-11 h-24 flex items-end justify-center pb-xs text-heading font-bold leading-none text-accent transition-transform duration-75"
+            class="flex-1 min-w-0 h-24 flex items-end justify-center pb-xs text-heading font-bold leading-none text-accent transition-transform duration-75"
             :class="pressedKey === `${cell.key}:up` ? 'brightness-95 scale-[0.98]' : ''"
             :aria-label="`Subir vida de ${cell.label}`"
             @mousedown="pressedKey = `${cell.key}:up`"
