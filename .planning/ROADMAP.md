@@ -30,7 +30,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 ### Phases
 
 - [x] **Phase 5: Catálogo de héroes y villanos** - Datos versionados, reproducibles y legales de los 23 héroes y 3 villanos, sin salir nunca del bundle (completed 2026-09-07)
-- [ ] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente
+- [x] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente (completed 2026-09-08)
 - [ ] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7
 - [ ] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz
 - [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline
@@ -73,11 +73,11 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 Plans:
 - [x] 06-01-PLAN.md — Contrato del motor: clave `selection` en datos/esquema/tipos y mutadores puros con reasignación (ola 1)
 - [x] 06-02-PLAN.md — Catálogo en `app/`, mapa de 23 alias en español y funciones puras de filtro, rótulos y repetidos (ola 1)
-- [ ] 06-03-PLAN.md — Revisión humana bloqueante de los alias contra las cartas físicas (D-07) (ola 2)
+- [x] 06-03-PLAN.md — Revisión humana bloqueante de los alias contra las cartas físicas (D-07) (ola 2)
 - [x] 06-04-PLAN.md — `VillainPickerModal.vue` y `PlayerModal.vue` según el contrato de `06-UI-SPEC.md` (ola 2)
 - [x] 06-05-PLAN.md — Rejilla de selección en `StepScreen.vue` y costura reactiva en `useGameSession.ts` (ola 2)
 - [x] 06-06-PLAN.md — Cableado en `app/pages/[game]/index.vue`: modales, foco y supresión de atajos (D-12) (ola 3)
-- [ ] 06-07-PLAN.md — Gates mecánicos y revisión humana en navegador de las tres superficies nuevas (ola 4)
+- [x] 06-07-PLAN.md — Gates mecánicos y revisión humana en navegador de las tres superficies nuevas (ola 4)
 **UI hint**: yes
 **Verificación humana**: Sí — picker/modal/filtro es superficie táctil nueva; verificable en navegador/viewport simulado (portátil o móvil), no en la tablet real de mesa porque su modelo y SO siguen sin conocerse (deuda heredada de v1.7). No es bloqueante para cerrar la fase, pero debe quedar anotado como pendiente de confirmar en dispositivo real cuando la tablet aparezca.
 
@@ -161,7 +161,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 03.1. Voz pregenerada en español con Gemini TTS | v1.7 | 6/6 | Complete | 2026-08-31 |
 | 4. Instalación y funcionamiento offline | v1.7 | 6/6 | Complete | 2026-08-31 |
 | 5. Catálogo de héroes y villanos | v1.8 | 6/6 | Complete   | 2026-09-07 |
-| 6. Selección de villano, héroes y jugadores | v1.8 | 5/7 | In Progress|  |
+| 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 0/TBD | Not started | - |
 | 8. Valores conocidos dentro del paso | v1.8 | 0/TBD | Not started | - |
 | 9. Histórico y estadísticas | v1.8 | 0/TBD | Not started | - |

@@ -59,6 +59,8 @@ Ver el archivo completo de resultados por requisito en `.planning/milestones/v1.
 
 Validated in Phase 5 (catálogo de héroes y villanos): CAT-01, CAT-02, CAT-03, CAT-04, CAT-05, CAT-06, CAT-07 — los 7 requisitos del catálogo, verificados 8/8 must-haves contra el código, los datos committeados y una regeneración en vivo desde MarvelCDB (`05-VERIFICATION.md`).
 
+Validated in Phase 6 (selección de villano, héroes y jugadores): SEL-01, SEL-02, SEL-03, SEL-04, SEL-05, SEL-06, SEL-07, SEL-08, SEL-09 — los 9 requisitos de la selección, verificados 5/5 criterios de éxito contra el código (`06-VERIFICATION.md`), más 14/14 comprobaciones humanas en navegador y la revisión de los 23 alias en español contra las cartas físicas del grupo (D-07).
+
 ### Active
 
 Hito v1.8 en curso — los requisitos activos con sus REQ-IDs viven en `.planning/REQUIREMENTS.md`. El bloque CAT (catálogo) ya está cerrado; siguen activos SEL, HP, COMP, VAL, HIST y FIRE.
@@ -144,4 +146,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-07 — Fase 5 del hito v1.8 completa (catálogo de héroes y villanos)*
+*Last updated: 2026-09-08 — Fase 6 del hito v1.8 completa (selección de villano, héroes y jugadores)*

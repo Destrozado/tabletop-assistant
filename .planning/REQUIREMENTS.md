@@ -23,15 +23,15 @@
 
 ### SEL — Selección de villano, héroes y jugadores
 
-- [ ] **SEL-01**: En el paso «Decidid, como grupo, qué villano vais a enfrentar…» hay un selector de Villano
-- [ ] **SEL-02**: Tocar el selector de villano abre un modal con los 3 villanos y permite elegir uno
-- [ ] **SEL-03**: Hay un selector de héroe por jugador, tantos como el nº de jugadores elegido en el mini-setup
-- [ ] **SEL-04**: Tocar un selector de héroe abre un modal con los 23 héroes
-- [ ] **SEL-05**: El modal de héroes tiene un filtro de texto arriba que busca a la vez por nombre de héroe y por nombre de alter ego, insensible a mayúsculas y a acentos
-- [ ] **SEL-06**: Cada jugador tiene un nombre editable y opcional, con valor por defecto «Jugador 1»…«Jugador 4»
-- [ ] **SEL-07**: Si dos jugadores eligen el mismo héroe se marca visualmente como repetido, pero se puede continuar — la app no bloquea una regla que el Rules Reference no escribe
-- [ ] **SEL-08**: La selección (villano, héroes, nombres) se persiste con la sesión en curso y sobrevive a recargar la página a mitad de partida
-- [ ] **SEL-09**: Elegir es opcional: sin ninguna selección, la app se comporta exactamente como en v1.7
+- [x] **SEL-01**: En el paso «Decidid, como grupo, qué villano vais a enfrentar…» hay un selector de Villano
+- [x] **SEL-02**: Tocar el selector de villano abre un modal con los 3 villanos y permite elegir uno
+- [x] **SEL-03**: Hay un selector de héroe por jugador, tantos como el nº de jugadores elegido en el mini-setup
+- [x] **SEL-04**: Tocar un selector de héroe abre un modal con los 23 héroes
+- [x] **SEL-05**: El modal de héroes tiene un filtro de texto arriba que busca a la vez por nombre de héroe y por nombre de alter ego, insensible a mayúsculas y a acentos
+- [x] **SEL-06**: Cada jugador tiene un nombre editable y opcional, con valor por defecto «Jugador 1»…«Jugador 4»
+- [x] **SEL-07**: Si dos jugadores eligen el mismo héroe se marca visualmente como repetido, pero se puede continuar — la app no bloquea una regla que el Rules Reference no escribe
+- [x] **SEL-08**: La selección (villano, héroes, nombres) se persiste con la sesión en curso y sobrevive a recargar la página a mitad de partida
+- [x] **SEL-09**: Elegir es opcional: sin ninguna selección, la app se comporta exactamente como en v1.7
 
 ### HP — Banda de contadores
 
