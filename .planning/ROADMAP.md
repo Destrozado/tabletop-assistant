@@ -92,7 +92,15 @@ Plans:
   3. Un contador de héroe que llega a 0 se marca como derrotado sin bajar de 0, sin terminar la partida ni abrir ningún diálogo, y puede volver a subir por encima de 0.
   4. Recargar la página a mitad de partida conserva el valor exacto de todos los contadores, y tocar ▲/▼ nunca avanza el paso ni cambia el comportamiento de Espacio/Enter/← ya existentes.
   5. Una partida guardada por la versión de v1.7 ya desplegada se reanuda sin corromperse ni perderse tras este cambio, y toda la interfaz nueva (selección, contadores) se renderiza de forma defensiva cuando la sesión reanudada no trae los campos nuevos — este caso no lo cubre el gate `contentVersion`/`formatVersion` y debe probarse explícitamente.
-**Plans**: TBD
+**Plans**: 7 plans (6 olas)
+Plans:
+- [ ] 07-01-PLAN.md — Presupuesto de altura medido en el viewport objetivo ANTES de construir la banda, y contrato de datos `CounterState`/`counters?` (ola 1)
+- [ ] 07-02-PLAN.md — `engine/counters.ts` con test primero: precarga desde la etapa I, normalización defensiva y los cuatro mutadores con reasignación (ola 2)
+- [ ] 07-03-PLAN.md — Compatibilidad COMP-01/02: test D-21 de una sesión con forma de v1.7, y la decisión D-17 escrita en `useStepShortcuts.ts` (ola 3)
+- [ ] 07-04-PLAN.md — Costura reactiva en `useGameSession.ts`: visibilidad por `sectionRepeats`, celdas con «—»/«Jugador N»/«· SIN VIDA» y mutadores expuestos (ola 3)
+- [ ] 07-05-PLAN.md — `CounterBand.vue` según `07-UI-SPEC.md` y su montaje justo bajo `AppHeader` en la página (ola 4)
+- [ ] 07-06-PLAN.md — Pruebas en navegador real: 96px/12,5%, dos filas en estrecho, topes y «SIN VIDA», no-avance del paso y persistencia tras recarga (ola 5)
+- [ ] 07-07-PLAN.md — Verificación humana bloqueante en viewport apaisado simulado: legibilidad, tacto del toque, mantener pulsado y cambio de héroe a media ronda (ola 6)
 **UI hint**: yes
 **Verificación humana**: Sí, y de las más sensibles del hito — toques repetidos, mantener pulsado, recarga a mitad de partida, y el presupuesto de altura solo se confirman de verdad en un dispositivo táctil real. Igual que en la Fase 6, se verifica en viewport simulado (portátil/móvil) porque el modelo y SO de la tablet de mesa siguen sin conocerse; esto es honesto, no una confirmación real en el dispositivo objetivo.
 
