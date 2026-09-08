@@ -20,6 +20,7 @@
               "id": "setup.heroes.01",
               "title": "Elegir villano y héroes",
               "kind": "step",
+              "selection": "characters",
               "text": "Decidid, como grupo, qué villano vais a enfrentar y qué héroe llevará cada jugador.",
               "speech": "Decidid como grupo el villano al que os enfrentaréis y el héroe de cada jugador.",
               "citation": {
