@@ -102,7 +102,7 @@ Plans:
   4. Recargar la página a mitad de partida conserva el valor exacto de todos los contadores, y tocar ▲/▼ nunca avanza el paso ni cambia el comportamiento de Espacio/Enter/← ya existentes.
   5. Una partida guardada por la versión de v1.7 ya desplegada se reanuda sin corromperse ni perderse tras este cambio, y toda la interfaz nueva (selección, contadores) se renderiza de forma defensiva cuando la sesión reanudada no trae los campos nuevos — este caso no lo cubre el gate `contentVersion`/`formatVersion` y debe probarse explícitamente.
 
-**Plans**: 7 plans (6 olas)
+**Plans**: 11 plans (9 olas) — los 4 últimos son cierre de huecos de `07-VERIFICATION.md`
 Plans:
 **Wave 1**
 
@@ -128,6 +128,19 @@ Plans:
 **Wave 6** *(blocked on Wave 5 completion)*
 
 - [x] 07-07-PLAN.md — Verificación humana bloqueante en viewport apaisado simulado: legibilidad, tacto del toque, mantener pulsado y cambio de héroe a media ronda (ola 6)
+
+**Wave 7** *(cierre de huecos — `/gsd:execute-phase 07 --gaps-only`)*
+
+- [ ] 07-08-PLAN.md — Celdas que ya no se solapan: spec de regresión con prueba de impacto (`elementFromPoint`) sobre 5 viewports × 1-4 jugadores, y arreglo del layout de la celda (ola 7)
+- [ ] 07-09-PLAN.md — Endurecimiento del motor: una sola definición de `playerCount` válido y guardas por tipo, para que un `localStorage` manipulado no descarte vidas ni pinte «NaN» (ola 7)
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
+- [ ] 07-10-PLAN.md — Separador VILLANO/Jugador 1, pulsado que no se queda pegado y flechas fuera del recorrido de tabulación, con el triaje de los avisos restantes por escrito (ola 8)
+
+**Wave 9** *(blocked on Wave 8 completion)*
+
+- [ ] 07-11-PLAN.md — Firma humana acotada a los viewports que la aprobación original no cubrió, y puesta al día del ledger de requisitos (ola 9)
 
 **UI hint**: yes
 **Verificación humana**: Sí, y de las más sensibles del hito — toques repetidos, mantener pulsado, recarga a mitad de partida, y el presupuesto de altura solo se confirman de verdad en un dispositivo táctil real. Igual que en la Fase 6, se verifica en viewport simulado (portátil/móvil) porque el modelo y SO de la tablet de mesa siguen sin conocerse; esto es honesto, no una confirmación real en el dispositivo objetivo.
