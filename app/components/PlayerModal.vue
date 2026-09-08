@@ -152,8 +152,21 @@ function onNameInput(event: Event) {
           <span v-if="selectedHeroId === null" class="text-accent">✓</span>
         </button>
 
+        <!-- IN-02 (06-REVIEW.md): dos vacíos distintos, dos mensajes distintos.
+             «No hay catálogo» no es «no coincide nada»: con la lista vacía y sin
+             texto escrito, un único mensaje diría «Ningún héroe coincide con «»»,
+             que suena a búsqueda fallida en vez de a juego sin catálogo. Hoy no
+             es alcanzable —Marvel Champions siempre trae sus 23 héroes— pero lo
+             será en cuanto exista un segundo juego (Warhammer 40.000), donde
+             `index.vue` ya pasa `heroOptions = []` de forma defensiva. -->
         <p
-          v-if="visibleHeroes.length === 0"
+          v-if="heroes.length === 0"
+          class="text-body font-normal text-secondary-text text-center py-md"
+        >
+          Este juego todavía no tiene catálogo de héroes
+        </p>
+        <p
+          v-else-if="visibleHeroes.length === 0"
           class="text-body font-normal text-secondary-text text-center py-md"
         >
           Ningún héroe coincide con «{{ query }}»

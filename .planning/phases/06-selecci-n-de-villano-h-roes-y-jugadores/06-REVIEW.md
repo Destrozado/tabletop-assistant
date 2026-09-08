@@ -142,7 +142,15 @@ only points from engine → UI, never UI → engine).
 
 ## Info
 
-### IN-01: `PlayerModal`'s `takenBy` prop type deviates from the approved `06-UI-SPEC.md` contract without updating the spec
+> **Los dos quedaron arreglados** en el mismo run autónomo.
+> IN-01: `06-UI-SPEC.md` corregido — la fila de `PlayerModal` en el Component
+> Inventory declara ahora `Record<string, string>` (más `nameMaxLength`), y el
+> documento lleva una sección de enmiendas post-aprobación. Se corrigió el
+> **documento**, no el código: la implementación era la mejor de las dos.
+> IN-02: `PlayerModal.vue` distingue ahora «este juego no tiene catálogo» de
+> «nada coincide con tu búsqueda».
+
+### IN-01 [FIXED 2026-09-08]: `PlayerModal`'s `takenBy` prop type deviates from the approved `06-UI-SPEC.md` contract without updating the spec
 
 **File:** `app/components/PlayerModal.vue:19`, `app/composables/useHeroSearch.ts:144-164`
 **Issue:** `06-UI-SPEC.md`'s Component Inventory table specifies
@@ -162,7 +170,7 @@ reuse this contract) will see a prop type that no longer matches the code.
 `takenBy: Record<string, string>` (pre-joined label), with a one-line note pointing
 at the rationale already captured in `useHeroSearch.ts`.
 
-### IN-02: Empty-filter message can read as a false "no match" when the catalogue itself is empty
+### IN-02 [FIXED 2026-09-08]: Empty-filter message can read as a false "no match" when the catalogue itself is empty
 
 **File:** `app/components/PlayerModal.vue:146-151`
 **Issue:** `<p v-if="visibleHeroes.length === 0">Ningún héroe coincide con «{{ query }}»</p>`

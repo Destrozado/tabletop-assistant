@@ -424,7 +424,7 @@ Only components with a contract change or a new component this phase.
 |-----------|--------|-----------------|
 | `StepScreen` | **Extended.** Gains a selection-grid rendering mode. | NEW: `selectionRows: { key: string, label: string, valueLabel: string, hasValue: boolean }[] \| null` (null = step is not a selection step); `duplicateWarningText: string \| null` (pre-computed by the caller, plain warning line, never clickable — D-16). NEW emit: `select-row: [key: string]`. Existing `options[]`/`warningText` props and states unchanged. |
 | `VillainPickerModal` | **NEW component.** | `villains: { id: string, name: string }[]`, `selectedId: string \| null`, `onSelect: (id: string \| null) => void`, `onDismiss: () => void`. Sorted alphabetically by `name` at the call site (component stays dumb — receives an already-sorted list, per the "no component imports `~~/engine`" rule). |
-| `PlayerModal` | **NEW component.** | `slotNumber: number`, `name: string`, `onNameInput: (value: string) => void`, `heroes: { id: string, spanishName: string, catalogueName: string, alterEgo: string }[]` (already sorted by `spanishName`), `selectedHeroId: string \| null`, `takenBy: Record<string, string[]>` (heroId → other slots' current labels, computed at the call site), `onSelectHero: (id: string \| null) => void`, `onDismiss: () => void`. Internal-only state: filter query text (component-local, never persisted — resets each time the modal opens). |
+| `PlayerModal` | **NEW component.** | `slotNumber: number`, `name: string`, `onNameInput: (value: string) => void`, `heroes: { id: string, spanishName: string, catalogueName: string, alterEgo: string }[]` (already sorted by `spanishName`), `selectedHeroId: string \| null`, `takenBy: Record<string, string>` (heroId → an ALREADY-JOINED label string, composed at the call site by `buildTakenByMap` in `useHeroSearch.ts`), `nameMaxLength: number` (bound from `PLAYER_NAME_MAX_LENGTH` in `engine/selection.ts`), `onSelectHero: (id: string \| null) => void`, `onDismiss: () => void`. Internal-only state: filter query text (component-local, never persisted — resets each time the modal opens). |
 
 **Not built as a shared/generic component.** `VillainPickerModal` and `PlayerModal` are
 two separate files, per `06-CONTEXT.md`'s own discretion note ("si compartir componente
@@ -638,6 +638,18 @@ directly — listed here for review. None reopens or contradicts D-01..D-20.
 - [x] Dimension 4 Typography: PASS
 - [x] Dimension 5 Spacing: PASS
 - [x] Dimension 6 Registry Safety: PASS
+
+**Amendments after approval (2026-09-08, same day, from `06-REVIEW.md`):**
+- **IN-01** — `PlayerModal`'s `takenBy` was specified as `Record<string, string[]>`
+  (array of labels, joined in the template). The implementation pre-joins into
+  `Record<string, string>` so the component composes nothing, which is strictly
+  dumber and therefore more in keeping with this document's own component
+  philosophy. The Component Inventory row above has been corrected to match the
+  code. This is a spec correction, not a code deviation to fix — Phase 7 should
+  read the corrected shape.
+- **WR-01** — `nameMaxLength` added to the same row: the 14-character cap is now
+  passed by prop from `PLAYER_NAME_MAX_LENGTH`, instead of being written twice
+  (once in the engine constant, once as a bare `maxlength="14"` literal).
 
 **Approval:** APPROVED 2026-09-08 by `gsd-ui-checker` — 6/6 dimensions PASS, plus all
 project-specific hard rules (D-03, D-04, D-09, D-06, D-13, D-15, D-16/D-32, touch
