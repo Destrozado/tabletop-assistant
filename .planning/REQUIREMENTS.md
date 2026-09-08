@@ -36,15 +36,15 @@
 ### HP — Banda de contadores
 
 - [ ] **HP-01**: Durante la partida hay una banda de contadores fija y siempre visible
-- [ ] **HP-02**: La banda ocupa como máximo ~15% de la altura de la pantalla, presupuesto fijado antes de implementarla y verificado en el viewport objetivo
+- [x] **HP-02**: La banda ocupa como máximo ~15% de la altura de la pantalla, presupuesto fijado antes de implementarla y verificado en el viewport objetivo
 - [ ] **HP-03**: La banda contiene un contador «Vida villano» y un contador por jugador (HP1…HPN según el nº de jugadores)
-- [ ] **HP-04**: Cada contador se ajusta con ▲ y ▼, sin teclado y sin escribir cifras
+- [x] **HP-04**: Cada contador se ajusta con ▲ y ▼, sin teclado y sin escribir cifras
 - [ ] **HP-05**: Los contadores arrancan precargados con el valor correcto según villano, héroe y nº de jugadores cuando ese valor se conoce
-- [ ] **HP-06**: Un contador de héroe que llega a 0 marca a ese jugador como «derrotado» visualmente, no baja de 0, y **no** termina la partida ni abre ningún diálogo — el Rules Reference v1.7 dice que los demás jugadores continúan
-- [ ] **HP-07**: Un jugador marcado como derrotado puede volver a subir por encima de 0
-- [ ] **HP-08**: El valor de todos los contadores se persiste con la sesión y sobrevive a recargar la página a mitad de partida
-- [ ] **HP-09**: Ajustar un contador nunca avanza el paso, y los atajos de teclado ya existentes (Espacio, Enter, ←) siguen comportándose igual que en v1.7
-- [ ] **HP-10**: Los contadores son legibles y accionables a un brazo de distancia en tablet horizontal (cifras grandes, objetivos táctiles suficientes, sin repetición descontrolada al mantener pulsado)
+- [x] **HP-06**: Un contador de héroe que llega a 0 marca a ese jugador como «derrotado» visualmente, no baja de 0, y **no** termina la partida ni abre ningún diálogo — el Rules Reference v1.7 dice que los demás jugadores continúan
+- [x] **HP-07**: Un jugador marcado como derrotado puede volver a subir por encima de 0
+- [x] **HP-08**: El valor de todos los contadores se persiste con la sesión y sobrevive a recargar la página a mitad de partida
+- [x] **HP-09**: Ajustar un contador nunca avanza el paso, y los atajos de teclado ya existentes (Espacio, Enter, ←) siguen comportándose igual que en v1.7
+- [x] **HP-10**: Los contadores son legibles y accionables a un brazo de distancia en tablet horizontal (cifras grandes, objetivos táctiles suficientes, sin repetición descontrolada al mantener pulsado)
 
 ### VAL — Valores conocidos dentro del paso
 
