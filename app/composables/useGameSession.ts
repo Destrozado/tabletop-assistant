@@ -6,6 +6,13 @@
 // `next`/`prev`/`jumpTo` del motor son puras y devuelven sesiones NUEVAS — este
 // composable solo reasigna el ref, nunca muta `session.value` in situ.
 import { computed, ref } from 'vue'
+import {
+  decrementHero as engineDecrementHero,
+  decrementVillain as engineDecrementVillain,
+  incrementHero as engineIncrementHero,
+  incrementVillain as engineIncrementVillain,
+  resolveCounterValues,
+} from '~~/engine/counters'
 import { expand } from '~~/engine/expand'
 import { describeHeader } from '~~/engine/header'
 import { jumpTo as engineJumpTo, next as engineNext, prev as enginePrev } from '~~/engine/navigator'
@@ -17,11 +24,66 @@ import {
   setPlayerName as engineSetPlayerName,
   setVillain as engineSetVillain,
 } from '~~/engine/selection'
-import type { EngineSession, RuntimeStepNode, SessionContext, TextBlock } from '~~/engine/types'
+import type { CounterState, EngineSession, RuntimeStepNode, SessionContext, TextBlock } from '~~/engine/types'
+import { useCharacterCatalogue } from './useCharacterCatalogue'
 import { useGameContent } from './useGameContent'
+import { resolvePlayerLabel } from './useHeroSearch'
+
+export interface CounterCell {
+  key: string
+  label: string
+  displayValue: string
+  defeated: boolean
+}
+
+// D-16: literal ÚNICO de toda la app para el sufijo de héroe derrotado —
+// ninguna pantalla futura debe teclear una segunda redacción. Nótese que
+// HP-06 usa la palabra "derrotado" para describir la condición en la
+// documentación de producto, pero el literal en pantalla (definido abajo,
+// mayúsculas, sin tilde, sin concordancia de género que resolver, D-15) es
+// otra redacción: esta diferencia entre la palabra de producto y el
+// literal de UI es deliberada, no una inconsistencia a corregir.
+const DEFEATED_SUFFIX = ' · SIN VIDA'
+
+// buildCounterCells: función PURA, sin Vue, que transforma los valores ya
+// resueltos por engine/counters.ts (`resolveCounterValues`) y los huecos de
+// jugador (`resolvePlayerSlots`) en el modelo de vista que CounterBand.vue
+// pinta directamente. La celda del villano va primero, con etiqueta fija
+// "VILLANO" y `defeated` SIEMPRE `false` — incluso a 0 (D-11), porque la
+// banda no reacciona a que el villano llegue a 0. El número de celdas es
+// siempre `slots.length + 1`.
+export function buildCounterCells(
+  values: CounterState,
+  slots: { heroId: string | null, playerName: string }[],
+): CounterCell[] {
+  const villainCell: CounterCell = {
+    key: 'villano',
+    label: 'VILLANO',
+    displayValue: values.villainHealth === null ? '—' : String(values.villainHealth),
+    defeated: false,
+  }
+
+  const heroCells: CounterCell[] = slots.map((slot, i) => {
+    const health = values.heroHealth[i] ?? null
+    // Comparación estricta `=== 0`, nunca `!valor`: eso colapsaría `null`
+    // (sin valor conocido) con `0` (a cero pulsaciones), exactamente lo que
+    // D-12 prohíbe.
+    const defeated = health === 0
+    const baseLabel = resolvePlayerLabel(i, slot.playerName)
+    return {
+      key: `jugador-${i}`,
+      label: defeated ? `${baseLabel}${DEFEATED_SUFFIX}` : baseLabel,
+      displayValue: health === null ? '—' : String(health),
+      defeated,
+    }
+  })
+
+  return [villainCell, ...heroCells]
+}
 
 export function useGameSession() {
   const session = ref<EngineSession | null>(null)
+  const { getCatalogue } = useCharacterCatalogue()
 
   function start(gameId: string, context: SessionContext) {
     const { getGame } = useGameContent()
@@ -136,6 +198,60 @@ export function useGameSession() {
 
   const selectedVillainId = computed(() => (session.value ? resolveVillainId(session.value.context) : null))
 
+  // showsCounterBand (D-07/TECH-04): se deriva del flag `sectionRepeats`
+  // del motor —igualdad estricta a propósito, mismo motivo que
+  // `showsSelectionGrid`— y NUNCA compara contra el id de contenido del
+  // paso de rondas. "Durante la partida" de HP-01 se interpreta como
+  // "durante el bucle de rondas": toda la preparación conserva el alto
+  // íntegro para el texto grande.
+  const showsCounterBand = computed<boolean>(() => currentNode.value?.sectionRepeats === true)
+
+  // counterCells: alimenta CounterBand.vue ya resuelto (D-04/D-09/D-12) —
+  // el componente no importa ~~/engine/*, todo llega por aquí. La longitud
+  // la manda `playerCount`, porque la manda `resolvePlayerSlots`/
+  // `resolveCounterValues`; este fichero no vuelve a derivarla.
+  const counterCells = computed<CounterCell[]>(() => {
+    if (!session.value) return []
+    const catalogue = getCatalogue(session.value.gameId)
+    const values = resolveCounterValues(session.value.context, catalogue)
+    const slots = resolvePlayerSlots(session.value.context)
+    return buildCounterCells(values, slots)
+  })
+
+  // incrementCounter/decrementCounter (D-20/HP-08): el formato de clave
+  // ('villano' | 'jugador-{índice base 0}') vive solo aquí, que es también
+  // quien lo produce en `buildCounterCells`; `index.vue` no debe conocerlo.
+  // Cada rama es una ÚNICA sentencia de reasignación de `session.value`,
+  // ninguna escribe en una propiedad anidada. Sin validar el rango de slot
+  // aquí: el motor ya devuelve la misma referencia con un slot inválido y
+  // duplicar la guarda sería una segunda fuente de verdad. Cualquier otra
+  // clave es un no-op silencioso.
+  function incrementCounter(key: string) {
+    if (!session.value) return
+    const catalogue = getCatalogue(session.value.gameId)
+    if (key === 'villano') {
+      session.value = engineIncrementVillain(session.value, catalogue)
+      return
+    }
+    if (key.startsWith('jugador-')) {
+      const slot = Number.parseInt(key.slice('jugador-'.length), 10)
+      session.value = engineIncrementHero(session.value, slot, catalogue)
+    }
+  }
+
+  function decrementCounter(key: string) {
+    if (!session.value) return
+    const catalogue = getCatalogue(session.value.gameId)
+    if (key === 'villano') {
+      session.value = engineDecrementVillain(session.value, catalogue)
+      return
+    }
+    if (key.startsWith('jugador-')) {
+      const slot = Number.parseInt(key.slice('jugador-'.length), 10)
+      session.value = engineDecrementHero(session.value, slot, catalogue)
+    }
+  }
+
   return {
     session,
     start,
@@ -155,5 +271,9 @@ export function useGameSession() {
     setVillain,
     setHero,
     setPlayerName,
+    showsCounterBand,
+    counterCells,
+    incrementCounter,
+    decrementCounter,
   }
 }
