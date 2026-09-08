@@ -10,6 +10,13 @@ import { expand } from '~~/engine/expand'
 import { describeHeader } from '~~/engine/header'
 import { jumpTo as engineJumpTo, next as engineNext, prev as enginePrev } from '~~/engine/navigator'
 import { resolveAudioId, resolveText } from '~~/engine/resolve'
+import {
+  resolvePlayerSlots,
+  resolveVillainId,
+  setHero as engineSetHero,
+  setPlayerName as engineSetPlayerName,
+  setVillain as engineSetVillain,
+} from '~~/engine/selection'
 import type { EngineSession, RuntimeStepNode, SessionContext, TextBlock } from '~~/engine/types'
 import { useGameContent } from './useGameContent'
 
@@ -35,6 +42,33 @@ export function useGameSession() {
   function jumpTo(runtimeId: string) {
     if (!session.value) return
     session.value = engineJumpTo(session.value, runtimeId)
+  }
+
+  // Mutadores de selección de villano/héroes (Fase 6). Calcados línea a
+  // línea de next/prev/jumpTo de arriba: guarda `if (!session.value) return`
+  // y UNA sola sentencia de reasignación de `session.value` al valor
+  // devuelto por la función pura correspondiente. Ninguno escribe en una
+  // propiedad anidada (`session.value.context.selection…`, `heroes[i].x =`,
+  // etc.) — es la razón por la que SEL-08 funciona sin fontanería nueva: el
+  // `watchDebounced(session, …)` de `app/pages/[game]/index.vue` NO lleva
+  // `{ deep: true }`, así que solo dispara cuando cambia la identidad de
+  // `session.value`. Una mutación anidada actualizaría la pantalla igual
+  // (proxy reactivo profundo del `ref`) pero perdería la selección al
+  // recargar — el fallo se manifestaría solo en producción, nunca mirando
+  // la pantalla en desarrollo.
+  function setVillain(villainId: string | null) {
+    if (!session.value) return
+    session.value = engineSetVillain(session.value, villainId)
+  }
+
+  function setHero(slot: number, heroId: string | null) {
+    if (!session.value) return
+    session.value = engineSetHero(session.value, slot, heroId)
+  }
+
+  function setPlayerName(slot: number, playerName: string) {
+    if (!session.value) return
+    session.value = engineSetPlayerName(session.value, slot, playerName)
   }
 
   const currentNode = computed<RuntimeStepNode | null>(() => {
@@ -85,6 +119,23 @@ export function useGameSession() {
     return `${playerCount} jug · ${difficulty === 'expert' ? 'Experto' : 'Normal'}`
   })
 
+  // showsSelectionGrid (D-02/TECH-04): único sitio de toda la app que
+  // decide qué paso pinta la rejilla de selección, y lo decide leyendo la
+  // clave del dato, jamás comparando contra el identificador fijo del paso
+  // de héroes — misma disciplina que D-24 impuso al índice de salto. La
+  // comparación es de igualdad estricta a propósito: el contenido llega al
+  // navegador como JSON crudo sin pasar por el validador de esquema, así
+  // que la clave puede estar simplemente ausente (mismo motivo que el
+  // fallback `?? 'step'` de WR-01).
+  const showsSelectionGrid = computed<boolean>(() => currentNode.value?.step.selection === 'characters')
+
+  // playerSlots: la longitud la manda `context.playerCount`, nunca
+  // `selection.heroes.length` (Q8); la normalización defensiva vive en la
+  // función pura del motor —y por eso está testeada— y no aquí.
+  const playerSlots = computed(() => (session.value ? resolvePlayerSlots(session.value.context) : []))
+
+  const selectedVillainId = computed(() => (session.value ? resolveVillainId(session.value.context) : null))
+
   return {
     session,
     start,
@@ -98,5 +149,11 @@ export function useGameSession() {
     plainSectionTitle,
     position,
     sessionContextLabel,
+    showsSelectionGrid,
+    playerSlots,
+    selectedVillainId,
+    setVillain,
+    setHero,
+    setPlayerName,
   }
 }
