@@ -106,7 +106,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 07-01-PLAN.md — Presupuesto de altura medido en el viewport objetivo ANTES de construir la banda, y contrato de datos `CounterState`/`counters?` (ola 1)
+- [x] 07-01-PLAN.md — Presupuesto de altura medido en el viewport objetivo ANTES de construir la banda, y contrato de datos `CounterState`/`counters?` (ola 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -205,7 +205,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 4. Instalación y funcionamiento offline | v1.7 | 6/6 | Complete | 2026-08-31 |
 | 5. Catálogo de héroes y villanos | v1.8 | 6/6 | Complete   | 2026-09-07 |
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
-| 7. Banda de contadores y compatibilidad de sesión | v1.8 | 0/TBD | Not started | - |
+| 7. Banda de contadores y compatibilidad de sesión | v1.8 | 1/7 | In Progress|  |
 | 8. Valores conocidos dentro del paso | v1.8 | 0/TBD | Not started | - |
 | 9. Histórico y estadísticas | v1.8 | 0/TBD | Not started | - |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
