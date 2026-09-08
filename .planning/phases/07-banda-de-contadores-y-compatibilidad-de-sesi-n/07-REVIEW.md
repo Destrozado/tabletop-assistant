@@ -1,10 +1,11 @@
 ---
 phase: 07-banda-de-contadores-y-compatibilidad-de-sesi-n
-reviewed: 2026-09-08T15:39:36Z
+reviewed: 2026-09-09T00:00:00Z
 depth: standard
-files_reviewed: 12
+files_reviewed: 14
 files_reviewed_list:
   - app/components/CounterBand.vue
+  - app/components/NavBand.vue
   - app/composables/__tests__/useGameSession.test.ts
   - app/composables/__tests__/useStepShortcuts.test.ts
   - app/composables/useGameSession.ts
@@ -12,241 +13,268 @@ files_reviewed_list:
   - app/pages/[game]/index.vue
   - e2e/counter-band-behavior.spec.ts
   - e2e/counter-band-height.spec.ts
+  - e2e/counter-band-overlap.spec.ts
   - engine/__tests__/counters.test.ts
   - engine/__tests__/persistence.test.ts
   - engine/counters.ts
   - engine/types.ts
 findings:
-  critical: 1
+  critical: 0
   warning: 9
-  info: 3
-  total: 13
+  info: 7
+  total: 16
 status: issues_found
 ---
 
-# Phase 07: Code Review Report
+# Phase 07: Code Review Report (re-review after gap closure)
 
-**Reviewed:** 2026-09-08T15:39:36Z
+**Reviewed:** 2026-09-09
 **Depth:** standard
-**Files Reviewed:** 12
-**Status:** issues_found
+**Files Reviewed:** 14
+**Status:** issues_found (no blockers)
 
 ## Summary
 
-The engine layer (`engine/counters.ts`) is the strongest part of this phase. Session compatibility holds up under adversarial reading: `formatVersion` was genuinely not bumped, `SessionContext.counters` is genuinely optional, `resume()` passes the persisted `context` through untouched, and `resolveCounters` validates by type rather than presence. I traced every path from a v1.7-shaped save (`{playerCount, difficulty}` only) and from a hand-edited `counters` blob through to `buildCounterCells`, and could not make `undefined` or `NaN` reach the screen or storage today. The reference-inequality discipline (D-20) is correctly implemented in all four mutators, so counter taps really do trigger the non-deep `watchDebounced` save.
+This is the second review of phase 07. The previous report (CR-01 + WR-01..WR-09 + IN-01..IN-03)
+was the input to plans 07-08/07-09/07-10/07-11, now merged. I re-derived every closed finding
+from the current source rather than from the summaries, and **the blocking finding CR-01 is
+genuinely fixed** — not papered over. There are no blockers in the current state.
 
-The defects are concentrated in the **presentation layer**, which received far less adversarial attention than the engine.
+What I verified as actually resolved:
 
-The headline finding is a layout failure I reproduced empirically against the real production build (`.output/public`, Chromium, Playwright): **at narrow widths the counter band overflows its container and adjacent cells' tap targets overlap, so a tap can decrement the wrong player's life counter, and at 4 players the last player's ▲ is rendered entirely outside the viewport**. This happens at 412×915 — a viewport the project's own `e2e/portrait-usable.spec.ts` treats as supported. The new height spec measures only vertical budget and row ordering, which is exactly why this shipped.
+- **CR-01 — resolved.** `CounterBand.vue:119/141` drop `min-w-11` for `min-w-0`, `:134` replaces
+  the fixed `w-16` with `min-w-12 sm:min-w-16 shrink-0`, and `:103` adds `overflow-hidden` to the
+  cell. I recomputed the flex arithmetic by hand at all five matrix viewports: the irreducible
+  cell content is now `max(48, digits)` px (`sm:` 64px) with zero-floor arrows, so the row can
+  no longer exceed the cell box, and `overflow-hidden` clips rather than paints over the
+  neighbour even if it did. `e2e/counter-band-overlap.spec.ts` guards it with four independent
+  assertions (horizontal fit, per-button containment in band + viewport, pairwise
+  non-intersection, and an `elementFromPoint` hit-test that each button's own centre resolves to
+  itself) over 5 viewports × 4 player counts, plus two end-to-end "▲ of Jugador 1/4 moves only
+  that cell" checks at the exact 412×915 that was reproduced broken. That is the right shape of
+  guard: assertion 4 is what distinguishes "looks better" from "no longer steals the tap".
+- **WR-01 — resolved.** The separator no longer relies on `:first-child`. `rowGroups` now carries
+  a continuous `globalIndex` (`:48-52`) and the class list is `globalIndex === 0 ? '' : 'border-l'`
+  plus a `max-sm:first:border-l-0` reset for the genuinely-independent narrow rows (`:103-105`).
+  I confirmed in the built CSS (`entry.D48ZWsDF.css`) that the reset rule is emitted and both
+  wins on specificity (`:first-child` adds a pseudo-class) and appears later in the file, and
+  `counter-band-behavior.spec.ts:300-329` measures `borderLeftWidth` at both 1024×768 and
+  400×800.
+- **WR-02 — resolved in the two files under review** (four-path reset: `mouseup`, `mouseleave`,
+  `blur`, `touchcancel`), with a real browser-measured regression test. See WR-02 below: the
+  same defect survives in six other buttons that use the identical pattern.
+- **WR-03 — resolved.** `tabindex="-1"` on both arrows, `useStepShortcuts.ts` untouched (D-17
+  preserved), and the spec asserts both halves: `tabIndex === -1` on all 8 arrows *and* that 15
+  Tab presses still reach SIGUIENTE — i.e. it guards against over-fixing.
+- **WR-05 — resolved.** `resolveHeroHealthLength()` is now the single definition of the array
+  length used by both `resolveCounters` and the two slot guards, and every `=== null` guard
+  became `Number.isFinite`. I traced all four mutators with `playerCount` ∈
+  {2.5, NaN, '3', null} and with `heroHealth: [5, 7]` already frozen: no path produces NaN, and
+  the fallback-to-persisted-length genuinely prevents a tampered `playerCount` from discarding
+  frozen values (which was the damaging half of WR-05).
+- **WR-09 — resolved in the two files under review** (`transition-[transform,filter]`). Same
+  incompleteness as WR-02; see WR-03 below.
+- **IN-03 — resolved** by the new overlap matrix, which is exactly the horizontal/non-overlap
+  coverage the old height spec lacked.
 
-Three further presentation issues are also empirically confirmed rather than theorised: a missing cell separator between VILLANO and Jugador 1 at the primary 1024×768 target, a pressed-state that sticks permanently, and counter arrows that are in the tab order but cannot be activated by any key.
+I also independently checked the residual item flagged in the handoff: the arrow widths
+`07-UI-SPEC.md` documents for narrow viewports are *arithmetically consistent* with the
+implemented formula. Re-deriving them gives 37.5px at 700×800, 33.5px at 660×800 and 27.0px at
+412×915 against the documented ~38 / ~34 / ~27.5 — the sub-pixel deltas are the 1px cell
+`border-l` the doc did not subtract. So the derived-not-measured numbers are not wrong. The
+real gap is that nothing *asserts* any floor below 1024×768 (WR-07 below).
 
-Measurements below were taken by driving the built app in headless Chromium and reading `getBoundingClientRect()` / `getComputedStyle()` — no assertion here is inferred from reading CSS classes alone.
-
----
-
-## Critical Issues
-
-### CR-01: Counter cells overflow and overlap at narrow widths — a tap can hit the wrong player's counter, and Jugador 4's ▲ is off-screen
-
-**File:** `app/components/CounterBand.vue:46-89`
-**Severity:** BLOCKER
-
-**Issue:**
-Each cell's inner row has an irreducible minimum width of **152px**: `min-w-11` (44px) on each of the two arrow buttons plus `w-16 shrink-0` (64px) on the value span. The cell itself carries `flex-1 min-w-0`, so the *cell* shrinks below 152px, but its contents do not — they overflow, and there is no `overflow-hidden` anywhere in the band.
-
-Measured against the production build:
-
-| Viewport | Players | band `scrollWidth` / `clientWidth` | Result |
-|---|---|---|---|
-| 1024×768 | 4 | 1024 / 1024 | OK |
-| 700×800 | 4 | **713 / 700** | Jugador 4 ▲ spans `669..713` — 13px clipped |
-| 400×800 | 4 | **453 / 400** | Jugador 4 ▲ spans `409..453` — **entirely outside the viewport** |
-
-The overlap is the more dangerous half. At 400×800 with 4 players:
-
-```
-Jugador 3 cell: x=199.5 w=100.3   buttons: ▼ 201..245   ▲ 309..353
-Jugador 4 cell: x=299.8 w=100.3   buttons: ▼ 301..345   ▲ 409..453
-                                             ^^^^^^^^^^^^^^^^^^
-                        Jugador 3's ▲ (309..353) and Jugador 4's ▼ (301..345)
-                        overlap on 309..345 — a 36px band.
-```
-
-Both cells are `position: relative`, so the later DOM sibling (Jugador 4) paints and hit-tests on top. **A tap in the region that visually shows Jugador 3's ▲ decrements Jugador 4 instead.** This is not cosmetic: it silently corrupts the life totals the group is relying on, which is exactly the failure mode the project's core constraint ("un asistente que guía mal es peor que no tener asistente") is written against.
-
-This is not limited to 4 players. At 412×915 (the phone-portrait viewport `e2e/portrait-usable.spec.ts:68` already treats as supported) with **3** players, cells are ~137px against a 152px minimum, producing a ~15px overlap between every adjacent pair. There is also a landscape window between 640px (the `sm:` breakpoint, where all N+1 cells collapse into one row) and ~760px where the same overlap occurs with 4 players.
-
-Neither e2e spec catches this: `e2e/counter-band-height.spec.ts:266-290` is the only narrow-viewport test, it uses 3 players, and it asserts only `boundingBox().height === 192` and that the player row's `y` is below the villain's.
-
-**Fix:**
-Make the value column shrinkable and drop the hard arrow minimum below `sm:`, then assert horizontal fit in the spec.
-
-```html
-<!-- app/components/CounterBand.vue -->
-<div class="h-24 flex items-stretch overflow-hidden">
-  <button
-    type="button"
-    class="flex-1 min-w-0 sm:min-w-11 h-24 flex items-end justify-center pb-xs
-           text-heading font-bold leading-none text-accent transition-transform duration-75"
-    ...
-  >▼</button>
-
-  <span class="w-12 sm:w-16 shrink min-w-0 h-24 flex items-end justify-center pb-xs
-               text-display font-bold leading-none text-primary-text tabular-nums">
-    {{ cell.displayValue }}
-  </span>
-  ...
-</div>
-```
-
-If the 44px arrow minimum is a hard requirement (touch-target contract), the alternative is to wrap the player row at two cells per line below `sm:` and grow the shell from `h-48` to `h-72` for 3-4 players — but then the shell height must be derived from `rowGroups.length`, not hardcoded (see WR-04).
-
-Add to `e2e/counter-band-height.spec.ts`, at 412×915 and 700×800 with **4** players:
-
-```ts
-const fits = await band.evaluate(el => el.scrollWidth <= el.clientWidth)
-expect(fits, 'la banda no debe desbordar horizontalmente su cascarón').toBe(true)
-// y ninguna pareja de botones adyacentes debe solaparse
-```
+Where the gap closure is weaker than it reads: **three of the nine warnings below are the same
+fix stopping at the two files in scope** while five to six other components keep the exact
+defect the fix was written to eliminate, and the new code comments now assert a codebase-wide
+pattern that no longer holds. Two more are carried-forward findings that plans 07-09/07-10
+deferred *explicitly and in writing* (`07-09-SUMMARY.md:111`, `07-10-SUMMARY.md:127`) — an
+honest deferral, but the defect is still in the tree, so it is still reported.
 
 ---
 
 ## Warnings
 
-### WR-01: Missing separator between VILLANO and Jugador 1 in landscape — `first:` does not survive `sm:contents`
+### WR-01: `computeInitialHeroHealth` got no guard while its villain twin did — the WR-07 fix is half-applied, and the file's own "never propagates NaN" contract now holds for only one of the two functions
 
-**File:** `app/components/CounterBand.vue:50, 55`
+**File:** `engine/counters.ts:44-48` (and `:34-41` for the asymmetry)
 **Severity:** WARNING
 
 **Issue:**
-Cells carry `border-l border-background first:border-l-0`. `first:` compiles to `&:first-child`, which is evaluated against the **DOM tree**, and `display: contents` on the row wrapper does not change parentage. Below `sm:` there are two row wrappers, so exactly one cell per row is `:first-child` — correct. From `sm:` the wrappers become `sm:contents` and the cells all become visual siblings in one row, but **two** of them are still `:first-child`: the villain cell (first in `villano-row`) *and* Jugador 1 (first in `jugadores-row`).
-
-Measured at 1024×768 with 4 players:
-
-```
-cell "VILLANO"   x=0.0    borderLeft=0px   <- intended
-cell "Jugador 1" x=204.2  borderLeft=0px   <- BUG: no separator from VILLANO
-cell "Jugador 2" x=408.4  borderLeft=1px
-cell "Jugador 3" x=613.6  borderLeft=1px
-cell "Jugador 4" x=818.8  borderLeft=1px
-```
-
-The one separator that matters most — between the villain's life and the first player's — is the one that is missing, on the primary target viewport.
-
-**Fix:** Stop relying on `:first-child` and mark the globally-first cell in `rowGroups`:
+The WR-07 fix added a guard to the villain path and left the hero path untouched:
 
 ```ts
-const rowGroups = computed(() => {
-  const villainCell = props.cells.find(cell => cell.key === 'villano') ?? null
-  const playerCells = props.cells.filter(cell => cell.key !== 'villano')
-  const groups = [
-    { rowKey: 'villano-row', rowCells: villainCell ? [villainCell] : [] },
-    { rowKey: 'jugadores-row', rowCells: playerCells },
-  ].filter(group => group.rowCells.length > 0)
-  // índice global de cada celda, para que el separador no dependa de :first-child
-  let n = 0
-  return groups.map(g => ({ ...g, rowCells: g.rowCells.map(cell => ({ cell, globalIndex: n++ })) }))
-})
+// villano — ahora guardado
+if (!Number.isFinite(figures.health)) return null
+return figures.healthPerHero ? figures.health * playerCount : figures.health
+
+// héroe — sin ninguna guarda
+export function computeInitialHeroHealth(hero: CatalogueHero | null): number | null {
+  if (hero === null) return null
+  return hero.health          // <- lo que venga en el catálogo, tal cual
+}
 ```
 
-```html
-<div :class="['relative flex-1 min-w-0 h-24 border-background',
-              entry.globalIndex === 0 ? '' : 'border-l sm:border-l',
-              /* debajo de sm la primera celda de cada fila tampoco lleva borde */ ]">
-```
+The justification written into the code for guarding the villain (`:35-37`: the catalogue is
+machine-written by `scripts/catalogue/fetch-marvelcdb.mjs` from a third-party API, so a
+regeneration without usable `health` must not propagate NaN to the band) applies **identically**
+to `hero.health` — same file, same generator, same third-party source. The file header still
+claims the module never propagates a NaN; that is now true for the villain cell only.
 
-(Or simpler, if the two-row split can be expressed without a wrapper element: drop `sm:contents` in favour of `flex-wrap` on the shell, which makes `:first-child` meaningful again.)
+The consequence is reachable end-to-end, not theoretical plumbing: `resolveCounterValues:133`
+puts whatever `computeInitialHeroHealth` returns straight into the array, and
+`useGameSession.ts:67/76` does `values.heroHealth[i] ?? null` — `NaN ?? null` is **NaN**, not
+null — so `String(health)` renders the literal string `"NaN"` in 40px type at the table.
+(`undefined` takes the `??` branch and is safe; NaN is not.)
 
----
+Second half of the same asymmetry: the guard chosen is `Number.isFinite`, while the *persisted*
+path 60 lines below normalizes with `Math.max(0, Math.trunc(entry))` (`:99`). So the same module
+now applies two different sanitization standards to the same quantity: a catalogue `health` of
+`-5` or `2.5` passes `isFinite` and reaches the band as `-20` / `7.5` for 4 players, whereas the
+identical value coming from `localStorage` would be floored and truncated.
 
-### WR-02: Pressed feedback sticks forever — no `mouseleave` / `touchcancel` / `blur` handler
-
-**File:** `app/components/CounterBand.vue:63-66, 81-84`
-**Severity:** WARNING
-
-**Issue:**
-`pressedKey` is set on `mousedown`/`touchstart` and cleared only on `mouseup`/`touchend` **on the same button**. Neither fires if the pointer leaves the button before release (mouse) or if the OS cancels the touch (`touchcancel`: notification, palm rejection, gesture takeover, scroll capture). Reproduced against the production build:
-
-```
-idle class has scale?                                   false
-while pressed class has scale?                          true
-AFTER releasing OUTSIDE the button, still pressed?      true
-class: ... transition-transform duration-75 brightness-95 scale-[0.98]
-```
-
-The arrow stays visually depressed indefinitely. On the target device (tablet, touch-only) `touchcancel` is the realistic trigger, and the stuck state persists until the user happens to press a *different* arrow — because a single shared `pressedKey` is overwritten rather than reset. `NavBand.vue` has the same omission, but there it self-corrects on the next tap of the same two fixed buttons; here the number of buttons is dynamic and a stuck arrow can sit there for a whole round.
+**Reachability, stated honestly:** `engine/catalogueSchema.ts:46/53/63` declares
+`health: z.number().int().positive()` and `engine/__tests__/characters.test.ts` runs
+`validateCharacterCatalogue` against the real `content/marvel-characters.json` in CI, and
+`useCharacterCatalogue.ts:11` imports that file *statically* at build time. So a bad catalogue
+cannot reach a user today. This is a defence-in-depth and contract-consistency defect, not a
+live bug — but it is a one-line fix that makes the header contract true, and leaving the two
+sibling functions asymmetric is exactly how the next regeneration slips through.
 
 **Fix:**
 
-```html
-<button
-  ...
-  @mousedown="pressedKey = `${cell.key}:down`"
-  @mouseup="pressedKey = null"
-  @mouseleave="pressedKey = null"
-  @blur="pressedKey = null"
-  @touchstart="pressedKey = `${cell.key}:down`"
-  @touchend="pressedKey = null"
-  @touchcancel="pressedKey = null"
-  @click="emit('decrement', cell.key)"
->
+```ts
+// engine/counters.ts
+export function computeInitialHeroHealth(hero: CatalogueHero | null): number | null {
+  if (hero === null) return null
+  return Number.isInteger(hero.health) && hero.health > 0 ? hero.health : null
+}
+
+// y en computeInitialVillainHealth, el mismo estándar que lo persistido:
+if (!Number.isInteger(figures.health) || figures.health <= 0) return null
 ```
 
-Apply the same four-handler set to both arrows, and add the missing handlers to `NavBand.vue` while you are there so the two components stay literally identical as the header comment claims.
+Add the mirror of the existing WR-07 test (`counters.test.ts:387-410`) for a hero whose `health`
+is absent / NaN / negative, asserting `null` and asserting that
+`buildCounterCells` renders `'—'` rather than `'NaN'`.
 
 ---
 
-### WR-03: Counter arrows are focusable but cannot be activated by any key (WCAG 2.1.1 keyboard trap)
+### WR-02: WR-02's four-path pressed reset was applied to 2 of 8 buttons that use the pattern — six can still stick depressed, and the new comment asserting a shared pattern is now false
 
-**Files:** `app/composables/useStepShortcuts.ts:68-90, 128-133, 149-179`; `app/components/CounterBand.vue:58, 76`
+**Files:** `app/components/NavBand.vue:18-23` (the false claim);
+`app/components/ConfirmDialog.vue:41-44, 56-59`; `app/components/ResumePrompt.vue:47-50, 59-62`;
+`app/components/GameSelectorScreen.vue:39-42`; `app/components/ContentChangedNotice.vue:35-38`
 **Severity:** WARNING
 
 **Issue:**
-`isEditableTarget` returns `false` for `BUTTON`, so `resolveShortcutAction` maps Space/Enter to `'next'` regardless of which button has focus, and `useStepShortcuts` then calls `event.preventDefault()` (line 168), which suppresses the browser's native activation of the focused control. The e2e suite asserts this is intentional (`e2e/counter-band-behavior.spec.ts:257-259`: "Espacio no debe cambiar el valor del contador enfocado").
+The fix is correct where it was applied. But `NavBand.vue:18-23` now states the reason for
+applying it there was "mismo juego de manejadores que CounterBand.vue, para que el comentario de
+cabecera que dice que este patrón se reutiliza literalmente siga siendo cierto". Grepping the
+pattern shows it is reused literally in **six more buttons**, none of which were updated:
 
-The consequence, which D-17's comment does not address, is that the ▼/▲ buttons are native `<button>` elements — therefore in the tab order — but **no key can operate them**: Space and Enter are hijacked to advance the step, and no alternative binding exists. A keyboard or switch-control user can tab onto twelve controls (4 players × 2 arrows + villain × 2 at 4 players) and none of them does anything. That is a focusable-but-inoperable control, which is a genuine accessibility defect rather than a taste question.
-
-D-17's stated reasoning ("los contadores se operan con el dedo, no con el teclado, HP-09") is a coherent product decision, but it argues for removing the arrows from the keyboard surface, not for leaving them in it as dead stops.
-
-**Fix:** Take the arrows out of the tab order so the decision is honest and the trap disappears, without touching `useStepShortcuts.ts` (D-17 preserved):
-
-```html
-<button
-  type="button"
-  tabindex="-1"
-  ...
->▼</button>
+```
+ConfirmDialog.vue:41-44         @mousedown/@touchstart/@mouseup/@touchend   (cancelPressed)
+ConfirmDialog.vue:56-59         idem                                        (confirmPressed)
+ResumePrompt.vue:47-50          idem                                        (newGamePressed)
+ResumePrompt.vue:59-62          idem                                        (continuePressed)
+GameSelectorScreen.vue:39-42    idem                                        (pressedId)
+ContentChangedNotice.vue:35-38  idem                                        (ctaPressed)
 ```
 
-If keyboard operation is later wanted instead, the narrower change is to exempt only these buttons (e.g. a `data-counter-arrow` attribute checked in the wiring), never to add a blanket `BUTTON` guard to `isEditableTarget` — that would break Space/Enter for every button in the app, exactly as D-17 warns.
+All six reproduce WR-02 exactly: `touchcancel` (the realistic trigger on the target tablet —
+notification, palm rejection, OS gesture) and pointer-leave-before-release leave the button
+visually depressed with no path back. `GameSelectorScreen.vue` is the worst of the six because
+its pressed class also adds `border-accent` (`:38`), so a cancelled touch leaves a game card
+looking *selected* on the very first screen until a different card is pressed — and
+`pressedId` being a single shared ref means it is overwritten, never reset, exactly the failure
+mode the CounterBand comment describes.
 
----
+So the codebase now carries two dialects of one pattern, and the file that documents the pattern
+documents the minority dialect as if it were universal. That is worse than before the fix: a
+reader copying from `ConfirmDialog.vue` (four handlers) has no signal that the correct pattern is
+the seven-handler one.
 
-### WR-04: `CounterBand.vue` hardcodes the `'villano'` key, duplicating a format `useGameSession.ts` claims is single-sourced
-
-**Files:** `app/components/CounterBand.vue:29-30`; `app/composables/useGameSession.ts:221-228`
-**Severity:** WARNING
-
-**Issue:**
-`useGameSession.ts:222-223` states the key format `'villano' | 'jugador-{índice base 0}'` "vive solo aquí". It does not — `CounterBand.vue:29-30` parses it:
+**Fix:** Apply the same four-path reset to the six sites above, or — better, since this is the
+eighth copy of the same eight lines — extract it once:
 
 ```ts
+// app/composables/usePressedState.ts
+export function usePressedState<T = boolean>() {
+  const pressed = ref<T | null>(null)
+  const release = () => { pressed.value = null }
+  function bind(value: T) {
+    return {
+      onMousedown: () => { pressed.value = value },
+      onTouchstart: () => { pressed.value = value },
+      onMouseup: release, onMouseleave: release, onBlur: release,
+      onTouchend: release, onTouchcancel: release,
+    }
+  }
+  return { pressed, bind, release }
+}
+```
+
+If extraction is out of scope for this phase, at minimum correct `NavBand.vue:18-23` so it stops
+claiming a consistency that does not exist, and record the six sites as a follow-up.
+
+---
+
+### WR-03: WR-09's `transition-[transform,filter]` fix also stopped at 2 of 8 sites — the brightness still snaps in six components
+
+**Files:** `app/components/ConfirmDialog.vue:39, 51`; `app/components/ContentChangedNotice.vue:33`;
+`app/components/ResumePrompt.vue:45, 57`; `app/components/GameSelectorScreen.vue:37`
+**Severity:** WARNING
+
+**Issue:**
+Same shape as WR-02. `CounterBand.vue` and `NavBand.vue` now use
+`transition-[transform,filter] duration-75`; the six sites above still pair
+`transition-transform duration-75` with a `brightness-95` filter in the bound `:class`, so half
+the press feedback animates and half snaps — the exact defect WR-09 described. The prior review
+said the inconsistency was "duplicated in two components"; it was actually in eight, and the
+gap closure reduced it to six while creating a second dialect.
+
+**Fix:** `transition-[transform,filter] duration-75` (or `transition-all duration-75`) at the
+six sites. If `usePressedState` is extracted per WR-02, put the class string next to it so the
+two halves of the pattern cannot drift again.
+
+---
+
+### WR-04: `CounterBand.vue` still parses the `'villano'` key while `useGameSession.ts` still claims the format lives in exactly one place (carried forward — explicitly deferred)
+
+**Files:** `app/components/CounterBand.vue:41-42`; `app/composables/useGameSession.ts:221-223`
+**Severity:** WARNING
+
+**Issue:**
+This is the *first* defect of the old WR-04. Plan 07-10 closed only the second (shell height) and
+recorded the deferral in writing (`07-10-PLAN.md:74`, `07-10-SUMMARY.md:127`), so this is not a
+silent miss. It is still a defect in the merged tree, and the code still asserts the opposite:
+
+```ts
+// useGameSession.ts:221-223
+// el formato de clave ('villano' | 'jugador-{índice base 0}') vive solo aquí
+
+// CounterBand.vue:41-42
 const villainCell = props.cells.find(cell => cell.key === 'villano') ?? null
 const playerCells = props.cells.filter(cell => cell.key !== 'villano')
 ```
 
-If the key is ever renamed in `buildCounterCells` (a plausible move when Warhammer 40.000 lands, where "villano" is the wrong noun), this code does not throw — `villainCell` becomes `null`, the villain row is filtered out by line 34, and **all** cells silently collapse into `jugadores-row`. The two-row narrow layout degrades with no error, no test failure in the unit suite, and only an indirect symptom in e2e. A shared string parsed in two places with a silent-degradation failure mode is a latent bug, not a style issue.
+The component's own header (`:2-4`) also says it "recibe los valores ya resueltos … y no
+distingue" — but it does distinguish, by parsing a magic string produced in another module.
+The failure mode is silent, which is what makes it a warning rather than a note: rename the key
+in `buildCounterCells` (a plausible move for Warhammer 40.000, where "villano" is the wrong
+noun) and nothing throws — `villainCell` becomes `null`, `rowGroups` filters the villain row
+away, all cells collapse into `jugadores-row`, and the only symptom is a narrow-viewport layout
+that silently stops splitting. No unit test fails.
 
-Secondary defect in the same block: the shell height `h-48` (line 46) hardcodes "exactly two rows" while `rowGroups` can produce one (if `playerCells` is empty, e.g. a corrupted `playerCount`). That leaves 96px of dead space stealing height from the step text.
-
-**Fix:** Let the composable declare the row, and derive the shell height:
+**Fix:** as previously proposed — let the data carry the partition so the component stops
+parsing keys:
 
 ```ts
 // useGameSession.ts
 export interface CounterCell {
   key: string
-  row: 'villain' | 'players'   // <- la partición viaja con el dato
+  row: 'villain' | 'players'
   label: string
   displayValue: string
   defeated: boolean
@@ -255,73 +283,43 @@ export interface CounterCell {
 
 ```ts
 // CounterBand.vue
-const rowGroups = computed(() => ([
+const groups = [
   { rowKey: 'villano-row', rowCells: props.cells.filter(c => c.row === 'villain') },
   { rowKey: 'jugadores-row', rowCells: props.cells.filter(c => c.row === 'players') },
-].filter(g => g.rowCells.length > 0)))
-
-const shellHeight = computed(() => rowGroups.value.length === 1 ? 'h-24' : 'h-48')
-```
-
-```html
-<div :class="[shellHeight, 'sm:h-24 shrink-0 bg-surface flex flex-col sm:flex-row']">
+].filter(g => g.rowCells.length > 0)
 ```
 
 ---
 
-### WR-05: `undefined` slips past the `=== null` guards; the slot range check and the array length use two different definitions of `playerCount`
+### WR-05: still no type checker anywhere, and this phase's new code contains a site that would fail the strictness the project declares (carried forward — explicitly deferred)
 
-**File:** `engine/counters.ts:94-99, 142-158, 160-177`
+**Files:** `package.json:5-17`; `.github/workflows/ci.yml`; `engine/__tests__/persistence.test.ts:234`
 **Severity:** WARNING
 
 **Issue:**
-Two related soundness gaps, both contradicting the file's own header contract ("nunca devuelve `undefined` dentro del array", "Un `playerCount` que no sea entero positivo devuelve null en vez de propagar un NaN"):
+Re-verified against the current tree, not the old report:
 
-1. **Guards test `=== null`, not `== null`.** `incrementHero:147` reads `resolveCounterValues(...).heroHealth[slot]`, then `base === null ? 1 : base + 1`. If that index is out of range the value is `undefined`, `undefined === null` is `false`, and `nextValue` becomes **`NaN`**. The same pattern is at `decrementHero:165-167` and at `resolveCounterValues:95-96` (`if (frozen !== null) return frozen` would return `undefined` into a `(number | null)[]`).
+- `typescript` and `vue-tsc` are absent from `package.json` **and** from `node_modules`
+  (`ls node_modules/typescript` → No such file or directory).
+- There is no `typecheck` script (`package.json:5-17`).
+- `.github/workflows/ci.yml` runs `npm run test` and `npx playwright test` only.
 
-2. **Two sources of truth for the length.** The range guard (`incrementHero:144`, `decrementHero:162`) compares against the **raw** `session.context.playerCount`, while both array lengths come from the `Number.isInteger(...) && > 0`-validated one. They disagree for any non-integer `playerCount`. With `context.playerCount = 3.5` (reachable via a hand-edited `localStorage`, which this module explicitly treats as untrusted), `slot = 3` passes `3 >= 3.5 === false`, `resolvePlayerSlots` returns length 0, `base` is `undefined`, and `base + 1` is `NaN`.
-
-The `NaN` does not currently reach storage only because `counters.heroHealth.map(...)` on the same run operates on an empty array and swallows the write. That is coincidence, not defence — and the same input *does* cause real damage in `incrementVillain`/`decrementVillain`, which rebuild `counters.heroHealth` from `resolveCounters` and would therefore **discard any previously frozen hero values** for that session.
-
-**Fix:**
-
-```ts
-// engine/counters.ts — una sola definición de la longitud
-function normalizedPlayerCount(context: SessionContext): number {
-  return Number.isInteger(context.playerCount) && context.playerCount > 0 ? context.playerCount : 0
-}
-
-export function incrementHero(session: EngineSession, slot: number, catalogue: CharacterCatalogue | null): EngineSession {
-  const playerCount = normalizedPlayerCount(session.context)   // <- validado, no crudo
-  if (!Number.isInteger(slot) || slot < 0 || slot >= playerCount) return session
-
-  const base = resolveCounterValues(session.context, catalogue).heroHealth[slot]
-  const nextValue = typeof base === 'number' ? base + 1 : 1   // <- undefined también arranca en 1
-  ...
-}
-```
-
-Apply `normalizedPlayerCount` in `decrementHero` too, and change `resolveCounterValues:95` to `if (typeof frozen === 'number') return frozen`. Add a regression case to `engine/__tests__/counters.test.ts` alongside the existing out-of-range `it.each`:
+`.nuxt/tsconfig.*.json` still declares `"strict": true` and `"noUncheckedIndexedAccess": true`,
+and this phase's own code is written to that standard almost everywhere (`cells[0]!`,
+`rects[i]!`, `catalogue.villains.find(...)!`). The exception is the new D-21 block added by this
+phase:
 
 ```ts
-it.each([2.5, Number.NaN, '3' as unknown as number])('playerCount %s: ningún mutador produce NaN ni descarta valores congelados', (playerCount) => { /* ... */ })
+// engine/__tests__/persistence.test.ts:234 (y :249, :263)
+runtimeId: fresh.sequence[0].runtimeId,   // sin `!` — TS18048 bajo noUncheckedIndexedAccess
 ```
 
----
-
-### WR-06: No type checker exists anywhere, and this phase's code depends on the strictness it declares
-
-**Files:** `package.json:5-16`; `.github/workflows/ci.yml`; `engine/counters.ts:73, 95-96, 147, 165`; `engine/__tests__/persistence.test.ts` (new `D-21` block)
-**Severity:** WARNING
-
-**Issue:**
-`.nuxt/tsconfig.app.json:129-130` and `.nuxt/tsconfig.shared.json:126-127` declare `"strict": true` and `"noUncheckedIndexedAccess": true`, and the codebase visibly writes to that standard (`cells[0]!`, `catalogue.villains.find(...)!` throughout the test suites). But:
-
-- `typescript` and `vue-tsc` are absent from `package.json` **and** from `node_modules` — `npx nuxt typecheck` fails with "A type checker is required".
-- There is no `typecheck` script.
-- `.github/workflows/ci.yml` runs `npm run test` (Vitest) and `npx playwright test` only.
-
-So the declared strictness is aspirational, and this phase relies on it: under `noUncheckedIndexedAccess`, `resolveCounterValues:95-96` returns `number | undefined` into a `(number | null)[]`, `incrementHero:147` / `decrementHero:165` do arithmetic on `number | undefined`, and the new `engine/__tests__/persistence.test.ts` D-21 block indexes `fresh.sequence[0].runtimeId` without the `!` the rest of that file uses. None of these are reported by any gate. WR-05 exists precisely because nothing checks this.
+`engine/__tests__/counters.test.ts` two directories over uses `cells[0]!` in the same situation.
+Nothing reports the difference, because nothing type-checks. The deferral is documented
+(`07-09-SUMMARY.md:111`, citing the zero-new-dependency gate of `07-RESEARCH.md` §A2), which is
+a legitimate reason to defer — but the consequence stands: the declared strictness is
+aspirational, and WR-05 of the previous review (a real NaN-producing bug) existed precisely
+because nothing checked it.
 
 **Fix:**
 
@@ -330,10 +328,7 @@ npm add -D typescript vue-tsc
 ```
 
 ```json
-// package.json
-"scripts": {
-  "typecheck": "nuxt typecheck"
-}
+"scripts": { "typecheck": "nuxt typecheck" }
 ```
 
 ```yaml
@@ -342,88 +337,292 @@ npm add -D typescript vue-tsc
   run: npm run typecheck
 ```
 
-Expect the four sites above to fail on the first run; fixing them is WR-05.
+Expect `persistence.test.ts:234/249/263` to fail on the first run; adding `!` is the whole fix.
 
 ---
 
-### WR-07: `computeInitialVillainHealth` has a dead branch and no guard on the catalogue figure
+### WR-06: the villain counter still presents a stage-I preload as if the group had set it (carried forward — explicitly deferred)
 
-**File:** `engine/counters.ts:34-37`
+**Files:** `engine/counters.ts:24-42`; `app/composables/useGameSession.ts:59-64`
 **Severity:** WARNING
 
 **Issue:**
+Unchanged from the previous review and deferred in writing (`07-10-PLAN.md:83`). Restated
+because it is the finding with the most direct bearing on the project's stated fidelity
+constraint, and because the numbers are now confirmed against the real catalogue: stage-I
+preloads at 4 players are Rhino 56, Kang 48 (expert 60), Ultron 68 — while Ultron's stage III at
+4 players is 108. A group that never touches the villain arrows keeps reading `68` in 40px type
+while the physical villain card has flipped to a stage whose printed health is 108, and the band
+renders that derived figure with the exact styling, size and cell as a value the group actually
+maintains. There is no affordance distinguishing the two.
+
+**Fix:** unchanged and cheap — `buildCounterCells` already emits a `defeated` boolean; a parallel
+`derived: boolean` (true when `context.counters?.villainHealth == null`) costs one field, no
+engine change, and lets `CounterBand.vue` render the unfrozen villain figure in secondary text or
+with a small `I` marker. If that is still out of scope, record it in the phase summary as a
+**known gap** rather than as a closed decision.
+
+---
+
+### WR-07: no assertion of a minimum arrow width anywhere below 1024×768 — the matrix already measures `width` and throws it away
+
+**File:** `e2e/counter-band-overlap.spec.ts:118-138, 197-225, 279-291`
+**Severity:** WARNING
+
+**Issue:**
+D-02 is locked: arrows shrink on purpose below 760px and a human verified 412×915 by hand. That
+decision accepts *shrinking*; it does not accept *zero*, and nothing in the suite distinguishes
+the two. `collectButtonRects` already returns `width` for every button (`:130`), and the only
+place it is used is the 1024×768-only test at `:282-290`. At the other four matrix viewports the
+field is collected and discarded.
+
+Why this matters given the CR-01 fix specifically: the fix's mechanism is "arrows have a zero
+floor and the value span has `shrink-0`". That means arrow width is now a *residual*
+(`(cellWidth − spanWidth) / 2`), so any future change to the span (a wider `min-w-*`, a longer
+`displayValue`, an added element) reduces arrow width silently. A regression that drove an arrow
+to 0px would pass assertion 1 (fits), assertion 2 (contained) and assertion 3 (non-overlap —
+a zero-width rect has negative `overlapX` with everything). Only assertion 4 might catch it, and
+only by accident: `elementFromPoint` at the centre of a zero-width rect lands exactly on a box
+boundary, where which element is returned is not something a test should rely on.
+
+Related coverage note: the matrix never selects a villain or heroes, so every cell it measures
+renders `'—'`. I checked the arithmetic and this is nearly worst-case anyway (the em dash is
+~40px at 40px type, below the 48/64px `min-w` floor, and the widest realistic value — Ultron's
+108 — only widens the span by ~8px), so this is a small gap, not a hole. The missing floor is
+the real one.
+
+**Fix:** two lines inside the existing per-rect loop at `:172`, using the D-02-documented
+values as the floor rather than inventing a number:
 
 ```ts
-const figures = difficulty === 'expert' && stage1.expert ? stage1.expert : stage1
-if (figures.healthPerHero) return figures.health * playerCount
-if (figures.healthPerGroup) return figures.health
-return figures.health          // <- idéntico a la línea anterior
+// e2e/counter-band-overlap.spec.ts
+const MIN_ARROW_WIDTH = viewport.width >= 1024 ? 44 : 20   // D-02: sin suelo de 44 por debajo de 760px, pero nunca 0
+expect(
+  rect.width,
+  `«${rect.label}» mide ${rect.width.toFixed(1)}px de ancho (${context})`,
+).toBeGreaterThanOrEqual(MIN_ARROW_WIDTH)
 ```
 
-The `healthPerGroup` branch is dead — it returns the same expression as the fallthrough. A reader (or a future Warhammer 40.000 contributor) reasonably assumes the flag does something, and will eventually change one of the two identical returns and not the other.
+That also converts the derived-not-measured widths in `07-UI-SPEC.md` (~38 / ~34 / ~27.5px) from
+documentation into an executable record, which is the residual item the handoff flagged.
 
-More importantly, the function guards `playerCount` against `NaN` (line 32) but never guards `figures.health`. If a future `content/marvel-characters.json` entry ever lacked `health` — the file is machine-written by `scripts/catalogue/fetch-marvelcdb.mjs` from a third-party API — `figures.health * playerCount` yields `NaN`, and `resolveCounterValues` **does not sanitize computed values** (it only sanitizes persisted ones, lines 55-77). The `NaN` would flow straight to `String(NaN)` → the band renders `"NaN"` at the table. The function's docstring claims it "Nunca lanza" and returns `null` rather than "propagar un NaN"; that promise only holds for the `playerCount` input.
+---
+
+### WR-08: the overlap matrix's "wait for the band to settle" is a single measurement, not a wait, and five viewports share one test
+
+**File:** `e2e/counter-band-overlap.spec.ts:145-153, 142-240`
+**Severity:** WARNING
+
+**Issue:**
+Two test-reliability defects in the spec that is now the sole guard for the phase's blocking
+finding.
+
+1. `:150-153` reads:
+
+   ```ts
+   // Esperar a que la banda se estabilice tras el cambio de viewport
+   // antes de medir: misma técnica con la que 07-VERIFICATION.md
+   // reprodujo el fallo (mismo `page`, sin recarga).
+   await band.boundingBox()
+   ```
+
+   `boundingBox()` does not wait for layout to settle — it takes one measurement and discards it.
+   It provides no retry, no polling and no stability condition. If Chromium has not reflowed
+   after `setViewportSize`, every subsequent measurement in that iteration (`scrollWidth`,
+   all the rects, all the hit-tests, the 96/192px height) reads stale geometry from the
+   *previous* viewport, and the run either flakes or — worse — passes vacuously. The comment
+   asserts a synchronization guarantee the call does not provide, which is how this stops being
+   maintained.
+
+2. The matrix is 4 tests × 5 viewports rather than 20 tests. A failure at viewport #1 (1024×768,
+   the non-regression guard) aborts before #2–#5 are measured, so a diagnosis says "1024 broke"
+   and stays silent about whether 412×915 also broke. For a spec whose whole purpose is to
+   localize a viewport-dependent layout failure, that hides the information the spec exists to
+   produce.
 
 **Fix:**
 
 ```ts
-const figures = difficulty === 'expert' && stage1.expert ? stage1.expert : stage1
-if (!Number.isFinite(figures.health)) return null      // el catálogo también es entrada
-return figures.healthPerHero ? figures.health * playerCount : figures.health
+// 1. una condición de estabilidad de verdad
+await expect
+  .poll(async () => (await band.boundingBox())?.height, { timeout: 2000 })
+  .toBe(viewport.width >= SM_BREAKPOINT ? 96 : 192)
+
+// 2. un test por combinación: el bucle de viewports pasa a ser un bucle de test()
+for (const playerCount of PLAYER_COUNTS) {
+  for (const viewport of VIEWPORTS) {
+    test(`${viewport.width}x${viewport.height}, ${playerCount} jugadores: cabe, no se solapa y cada botón se toca a sí mismo`, async ({ page }) => {
+      await page.setViewportSize(viewport)
+      await goToRoundLoopWithPlayers(page, playerCount)
+      // …las cinco aserciones tal cual…
+    })
+  }
+}
 ```
 
-Add a test with a hand-built villain whose `stages[0].health` is `undefined`, asserting `null` rather than `NaN`.
+Setting the viewport *before* navigating also removes the mid-test resize entirely, which makes
+defect 1 moot.
 
 ---
 
-### WR-08: The villain counter presents a stage-I preload as the current value for the whole game
+### WR-09: duplicate byte-identical assertions claiming to check a character the test never distinguishes
 
-**Files:** `engine/counters.ts:20-38`; `app/composables/useGameSession.ts:59-64`
+**File:** `app/composables/__tests__/useGameSession.test.ts:24-25, 68-69`
 **Severity:** WARNING
 
 **Issue:**
-`computeInitialVillainHealth` reads `villain.stages[0]` only, and `resolveCounterValues` uses that live figure for as long as `counters.villainHealth` is `null`. That is D-11 as designed. The un-designed consequence is what the table sees: a group that never touches the villain arrows keeps reading e.g. `42` (Rhino stage I × 3) on screen while the villain has physically flipped to stage II, whose printed health is different. The band presents that number in the same 40px type, in the same cell, with the same styling as a value the group actually set — there is no affordance distinguishing "cifra derivada de la etapa I" from "cifra que el grupo mantiene".
 
-Given the project's stated fidelity constraint, a confidently-displayed wrong life total is worse than an em dash. The cost of correcting it manually is ~20 taps at ±1 with no repeat behaviour (D-13/HP-04), which the group will not do mid-round.
+```ts
+expect(cell.displayValue).toBe('—')
+expect(cell.displayValue).toBe('—') // EM DASH, no HYPHEN-MINUS
+```
 
-**Fix:** Not necessarily code in this phase — but the current state should not ship as-is silently. Cheapest honest option: render the *unfrozen* villain value in secondary text (or with a small `I` marker) so "derivado de la etapa I" is visually distinct from "el grupo lo mantiene", and note the limitation in the phase summary as a known gap rather than a closed decision. `buildCounterCells` already carries a `defeated` boolean; a parallel `derived: boolean` (true when `context.counters?.villainHealth == null`) costs one field and no engine change.
+I dumped both lines through `od -c`: the two literals are byte-identical (`e2 80 94` both
+times). The second assertion is an exact duplicate of the first and cannot fail unless the first
+already has. The trailing comment advertises the one thing the pair does not do — distinguish
+U+2014 from U+002D — so a reader (or the next person auditing D-12's "—" contract) concludes
+that character-level check exists when it does not. Same pattern at `:68-69` for
+`'Ana · SIN VIDA'`.
 
----
+This is false confidence in a test file, which is the one case where test-file findings are in
+scope. `buildCounterCells` is where the em dash literal is authored (`useGameSession.ts:62/76`),
+and it is the *only* place in the app that produces it, so a silent HYPHEN-MINUS swap in that
+literal would ship green.
 
-### WR-09: `transition-transform` does not cover `brightness-95`, so half the pressed feedback is instantaneous
+**Fix:** make the second assertion assert something, and drop it if it cannot:
 
-**File:** `app/components/CounterBand.vue:60, 78`
-**Severity:** WARNING
+```ts
+expect(cell.displayValue).toBe('—')
+expect(cell.displayValue.codePointAt(0)).toBe(0x2014) // EM DASH, no HYPHEN-MINUS (0x2D)
+```
 
-**Issue:**
-The pressed class applies two effects — `scale-[0.98]` (a transform) and `brightness-95` (a `filter`) — but the transition property is `transition-transform duration-75`. Only the scale animates; the brightness snaps. On a 96px-tall button the brightness step is the more visible of the two, so the feedback reads as a flicker rather than a press. Copied verbatim from `NavBand.vue:26, 38`, so the inconsistency is now duplicated in two components.
-
-**Fix:** `transition-[transform,filter] duration-75` (or `transition-all duration-75`) in both `CounterBand.vue` and `NavBand.vue`.
+```ts
+expect(cells[1]!.label).toBe('Ana · SIN VIDA')
+expect(cells[1]!.label).toContain('·')  // MIDDLE DOT, no '*' ni '-'
+```
 
 ---
 
 ## Info
 
-### IN-01: Every counter tap normalizes the persisted state twice
+### IN-01: every counter tap normalizes the persisted state twice (carried forward)
 
-**File:** `engine/counters.ts:112-177`
-**Issue:** All four mutators call `resolveCounterValues(...)` (which internally calls `resolveCounters`) and then call `resolveCounters(...)` again on the same `context`. `incrementHero`/`decrementHero` additionally re-scan the full 23-hero / 3-villain catalogue for every slot on every tap via `resolveCounterValues`.
-**Fix:** Have `resolveCounterValues` return both layers, e.g. `{ values, persisted }`, or accept an already-resolved `persisted` argument. Not a correctness problem; noted only because the duplication makes the "single normalization point" invariant harder to verify by reading.
+**File:** `engine/counters.ts:147-214`
+**Issue:** All four mutators call `resolveCounterValues(...)` (which calls `resolveCounters`
+internally at `:111`) and then call `resolveCounters(...)` again on the same `context`.
+`incrementHero`/`decrementHero` additionally re-scan the catalogue via `resolveCounterValues` for
+every tap. Not a correctness problem — noted because the duplication makes the module's central
+"single normalization point" invariant harder to verify by reading, which is the property WR-05
+was fixed to restore.
+**Fix:** have `resolveCounterValues` return `{ values, persisted }`, or accept an
+already-resolved `persisted` argument.
 
-### IN-02: Counter changes are silent to assistive tech, and the accessible name carries the defeat suffix
+### IN-02: counter changes are silent to assistive tech, and the arrow's accessible name carries the defeat suffix (carried forward)
 
-**File:** `app/components/CounterBand.vue:60, 72-74, 78`
-**Issue:** The value `<span>` has no `aria-live`, so a screen reader announces nothing when a counter changes. Separately, the arrow `aria-label`s interpolate `cell.label`, which already contains `DEFEATED_SUFFIX`, producing `"Bajar vida de Jugador 1 · SIN VIDA"`. `e2e/counter-band-behavior.spec.ts:212-213` locks this in, so it is intentional, but it reads as a malformed sentence.
-**Fix:** `aria-live="polite"` on the value span; build the arrow labels from a separate `baseLabel` field on `CounterCell` rather than from the display label.
+**File:** `app/components/CounterBand.vue:121, 134, 143`
+**Issue:** The value `<span>` has no `aria-live`, so nothing is announced when a counter changes.
+Separately, both `aria-label`s interpolate `entry.cell.label`, which already contains
+`DEFEATED_SUFFIX`, producing `"Bajar vida de Jugador 1 · SIN VIDA"`.
+`counter-band-behavior.spec.ts:212-213` locks that string in, so it is intentional, but it reads
+as a malformed sentence. Note this is *not* in tension with D-17: D-17 removes the arrows from
+the keyboard, it does not make the band's numbers unannounceable.
+**Fix:** `aria-live="polite"` on the value span; build the arrow labels from a separate
+`baseLabel` field on `CounterCell` rather than from the display label.
 
-### IN-03: The narrow-viewport e2e test measures the axis that was already correct
+### IN-03: `shellHeightClass` tests `=== 1`, so zero rows falls through to 192px of empty band
 
-**File:** `e2e/counter-band-height.spec.ts:266-290`
-**Issue:** The only narrow test uses 3 players and asserts `boundingBox().height === 192`, the number font size, and the relative `y` of two buttons. It never asserts horizontal fit or non-overlap, which is why CR-01 shipped despite a dedicated layout spec existing.
-**Fix:** Parameterize the narrow test over `[1, 2, 3, 4]` players and add, for each, `expect(await band.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)` plus a pairwise non-overlap check across all `getBoundingClientRect()` of the band's buttons.
+**File:** `app/components/CounterBand.vue:59`
+**Issue:** `rowGroups.value.length === 1 ? 'h-24' : 'h-48'` maps a *zero*-row band to `h-48`,
+i.e. 192px of dead space stealing height from the step text — the exact failure the branch was
+added to prevent. It is unreachable today (`v-if="showsCounterBand"` in `index.vue:690` cannot be
+true without a session, and `buildCounterCells` always emits the villain cell), so this is a
+robustness note, not a bug.
+**Fix:** `rowGroups.value.length <= 1 ? 'h-24' : 'h-48'`, which also states the intent
+("one row or fewer → one row of height") instead of a coincidence.
+
+### IN-04: `resolveHeroHealthLength` duplicates the array-shape guard that `resolveCounters` performs 25 lines later
+
+**File:** `engine/counters.ts:63-72` vs `:83-95`
+**Issue:** The function introduced as "única fuente de la longitud … de todo el fichero" contains
+its own copy of the `raw !== null && typeof raw === 'object' && Array.isArray((raw as
+CounterState).heroHealth)` extraction that `resolveCounters` then repeats verbatim. Unifying the
+length while duplicating the shape guard trades one drift risk for another.
+**Fix:** extract the extraction once and have both callers use it:
+```ts
+function persistedHeroHealth(context: SessionContext): (number | null)[] {
+  const raw = context.counters
+  return raw !== null && typeof raw === 'object' && Array.isArray((raw as CounterState).heroHealth)
+    ? (raw as CounterState).heroHealth
+    : []
+}
+```
+
+### IN-05: the hero-health array length has no upper bound, and no layer type-checks `playerCount`
+
+**Files:** `engine/counters.ts:63-72`; `app/composables/usePersistedSession.ts:60-69`;
+`engine/persistence.ts:81-89`
+**Issue:** `isPersistedPosition` validates only that `context` is a non-null object — it never
+looks at `playerCount` — and `resume()`'s happy path (`persistence.ts:87`) passes
+`persisted.context` through without calling `isValidContext`. So `playerCount: 500000000`
+survives into the session, satisfies `Number.isInteger(...) && > 0`, and makes
+`Array.from({ length })` allocate on every render and every tap. Self-inflicted via devtools
+only (there is no server and no other writer), so this is not a security boundary — and
+`resolvePlayerSlots` (`engine/selection.ts:50-52`) has had the identical shape since phase 6, so
+the new function copied a pattern rather than introducing one. Worth a cap because the module's
+stated contract is "no confía en NINGÚN campo persistido".
+**Fix:** clamp once, next to the game's own declared range (`GameDefinition.minPlayers/
+maxPlayers` already exist in `engine/types.ts:111-112`), e.g.
+`Math.min(context.playerCount, MAX_SUPPORTED_PLAYERS)`.
+
+### IN-06: `sessionContextLabel` interpolates raw `playerCount`, so a partial persisted context renders "undefined jug" in the header
+
+**File:** `app/composables/useGameSession.ts:178-182`
+**Issue:** `return \`${playerCount} jug · ${...}\`` with no validation. A persisted
+`context: {}` passes `isPersistedPosition` (it only checks that `context` is an object) and
+`resume()`'s resumed path, giving `"undefined jug · Normal"` in the header and on the "mesa
+lista" screen. This is unchanged pre-phase-7 code, flagged only because it is the same
+untrusted-`playerCount` class that this phase went to real lengths to harden in `counters.ts`,
+in the same file, left unhardened — the inconsistency is the finding, not the string.
+**Fix:** reuse the engine's normalization rather than adding a second one:
+`const n = Number.isInteger(playerCount) && playerCount > 0 ? playerCount : null` and render
+`''` when `n === null`.
+
+### IN-07: the new WR-05 regression predicates are near-tautologies
+
+**File:** `engine/__tests__/counters.test.ts:343, 352, 359, 367`
+**Issue:** `heroHealth.every(v => v === null || !Number.isNaN(v))` is satisfied by `undefined`,
+by strings, and by objects — `Number.isNaN` does not coerce, so it only ever returns true for a
+literal NaN. The stated intent of these tests ("ningún mutador produce NaN ni descarta valores
+congelados") is actually carried by the neighbouring `toEqual([5, 7])` and
+`heroHealth[1]).toBe(7)` assertions; the predicate contributes almost nothing beyond them, while
+reading like a strong invariant. The `resolveCounterValues` case at `:371-378` does check
+`undefined` explicitly, which is the right pattern.
+**Fix:** assert the shape you mean —
+`expect(heroHealth.every(v => v === null || Number.isInteger(v))).toBe(true)` — which rejects
+`undefined`, strings and fractions as well as NaN.
 
 ---
 
-_Reviewed: 2026-09-08T15:39:36Z_
+## Prior findings: disposition
+
+| Prior ID | Status now | Evidence |
+|---|---|---|
+| CR-01 (blocker) | **Resolved** | `CounterBand.vue:103, 119, 134, 141`; `e2e/counter-band-overlap.spec.ts` (5 viewports × 4 player counts, hit-test) |
+| WR-01 separator | **Resolved** | `CounterBand.vue:48-52, 103-105`; measured at 1024×768 and 400×800 in `counter-band-behavior.spec.ts:300-329` |
+| WR-02 stuck pressed | **Resolved in scope**, open in 6 other buttons | `CounterBand.vue:122-128`; `NavBand.vue:34-40` → new WR-02 above |
+| WR-03 keyboard trap | **Resolved** | `tabindex="-1"` at `CounterBand.vue:118, 140`; `counter-band-behavior.spec.ts:375-408` |
+| WR-04 `'villano'` key / shell height | **Half resolved** (height yes, key no) | `CounterBand.vue:59` vs `:41-42` → new WR-04 above |
+| WR-05 NaN / two length sources | **Resolved** | `engine/counters.ts:63-72, 149, 162, 180-185, 198-204`; `counters.test.ts:323-379` |
+| WR-06 no type checker | **Open** (deferred in writing) | `package.json`, `ci.yml`, missing `node_modules/typescript` → new WR-05 above |
+| WR-07 dead branch / unguarded health | **Half resolved** (villain yes, hero no) | `engine/counters.ts:40-41` vs `:44-48` → new WR-01 above |
+| WR-08 stage-I preload | **Open** (deferred in writing) | no `derived` field on `CounterCell` → new WR-06 above |
+| WR-09 `brightness` not transitioned | **Resolved in scope**, open in 6 other buttons | → new WR-03 above |
+| IN-01 double normalization | Open | → IN-01 above |
+| IN-02 aria-live / label suffix | Open | → IN-02 above |
+| IN-03 narrow test measures wrong axis | **Resolved** | `e2e/counter-band-overlap.spec.ts` |
+
+---
+
+_Reviewed: 2026-09-09_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
