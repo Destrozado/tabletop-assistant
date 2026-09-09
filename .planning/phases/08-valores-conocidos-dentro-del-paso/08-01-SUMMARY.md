@@ -111,3 +111,13 @@ None - no external service configuration required.
 ---
 *Phase: 08-valores-conocidos-dentro-del-paso*
 *Completed: 2026-09-09*
+
+## Self-Check: PASSED
+
+- FOUND: engine/types.ts
+- FOUND: engine/schema.ts
+- FOUND: content/marvel-champions.json
+- FOUND: .planning/phases/08-valores-conocidos-dentro-del-paso/08-01-SUMMARY.md
+- FOUND commit: 7ea3ca5
+- FOUND commit: f28ec9a
+- FOUND commit: f7df9cd
