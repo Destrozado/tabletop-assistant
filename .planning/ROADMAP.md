@@ -32,7 +32,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 - [x] **Phase 5: Catálogo de héroes y villanos** - Datos versionados, reproducibles y legales de los 23 héroes y 3 villanos, sin salir nunca del bundle (completed 2026-09-07)
 - [x] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente (completed 2026-09-08)
 - [x] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7 (verificación: gaps_found — CR-01 solape de zonas táctiles) (completed 2026-09-08)
-- [ ] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz
+- [x] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz (completed 2026-09-09)
 - [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline
 - [ ] **Phase 10: Respaldo en Firestore** - Subida silenciosa, nunca bloqueante, aislada del resto
 
@@ -162,7 +162,7 @@ Plans:
 
 - [x] 08-01-PLAN.md — Contrato del dato: clave `value` en `engine/schema.ts` y `engine/types.ts`, y las cuatro marcas de D-03 en el contenido sin tocar `text` ni `speech`
 - [x] 08-02-PLAN.md — `engine/stepValues.ts`: resolutor puro que reutiliza `engine/counters.ts` y nunca lee el contador congelado (D-13), con su suite propia
-- [ ] 08-03-PLAN.md — Costura en `useGameSession.ts` y las dos superficies de `StepScreen.vue` (paréntesis y lista por jugador), más la verificación de VAL-04/05/06
+- [x] 08-03-PLAN.md — Costura en `useGameSession.ts` y las dos superficies de `StepScreen.vue` (paréntesis y lista por jugador), más la verificación de VAL-04/05/06
 
 **Verificación humana**: No bloqueante para dispositivo — el criterio decisivo (VAL-04/VAL-05) es mecánico y lo verifica `npm test`, no un humano en una tablet. Sí conviene una lectura humana rápida de que el paréntesis/lista queda legible en pantalla, pero no requiere la tablet objetivo.
 
@@ -224,7 +224,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 5. Catálogo de héroes y villanos | v1.8 | 6/6 | Complete   | 2026-09-07 |
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
-| 8. Valores conocidos dentro del paso | v1.8 | 2/3 | In Progress|  |
+| 8. Valores conocidos dentro del paso | v1.8 | 3/3 | Complete   | 2026-09-09 |
 | 9. Histórico y estadísticas | v1.8 | 0/TBD | Not started | - |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 

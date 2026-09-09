@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
 status: executing
-stopped_at: Phase 8 context gathered
-last_updated: "2026-09-09T09:48:01.584Z"
-last_activity: 2026-09-09 -- Phase 08 execution started
+stopped_at: Phase 08 completada (planes 08-01, 08-02, 08-03) — checkpoint humano de la Task 3 aprobado
+last_updated: "2026-09-09T10:48:24.980Z"
+last_activity: 2026-09-09
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 27
-  completed_plans: 24
-  percent: 50
+  completed_plans: 27
+  percent: 67
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 08 (valores-conocidos-dentro-del-paso) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 08
-Last activity: 2026-09-09 -- Phase 08 execution started
+Plan: 3 of 3
+Status: Ready to execute
+Last activity: 2026-09-09
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Last activity: 2026-09-09 -- Phase 08 execution started
 | Phase 03.1 P01 | N/A (2 sesiones) | 3 tasks | 10 files |
 | Phase 03.1 P04 | 35min | 2 tasks | 4 files |
 | Phase 03.1 P05 | 50min | 3 tasks | 4 files |
+| Phase 08 P03 | 40min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -108,6 +109,11 @@ Recent decisions affecting current work:
 - [Phase 03.1-04]: usePreloadedAudio adopta estrategia red-primero + Cache Storage como respaldo (inversion deliberada del orden de RESEARCH.md); routeRule de /audio/** anade max-age=0, must-revalidate — Un clip regenerado reescribe la misma URL de fichero (sin huella en el nombre); con cache-primero un clip regenerado nunca volveria a descargarse — mismo razonamiento del stale service worker trap ya aplicado a /sw.js
 - [Phase 03.1-05]: resolveEffectiveAvailability combina audioAvailable + spanishVoiceAvailable — el control de silencio nunca cae en 'unavailable' con audio pregenerado disponible; la banda de la Fase 3 solo aparece si fallan las dos fuentes (D-07/D-08)
 - [Phase 03.1-05]: el cuerpo integro de announce() de la Fase 3 (guardas, cancel/speak, watchdog G-01) se extrajo TAL CUAL a speakFallback() sin cambiar ninguna linea de esa logica ya verificada en dispositivo real
+- [Phase 08]: 08-03: D-08 el sufijo se interpola en el MISMO nodo de texto que actionText, sin span ni text-accent
+- [Phase 08]: 08-03: D-09/D-32 la lista de valores es un div, nunca un button — sin chevron, sin click, sin aria-label
+- [Phase 08]: 08-03: D-10 sin rótulo (a diferencia de ELECCIÓN/Opciones)
+- [Phase 08]: 08-03: D-14/D-15 stepValueRows es null (no array vacío) cuando no hay ninguna fila conocida
+- [Phase 08]: 08-03: checkpoint humano de Task 3 aprobado (Aprobado!) — los 8 puntos de legibilidad confirmados; recuento real de audio es 35 clips, no 37 (dato heredado del ROADMAP ya erróneo)
 
 ### Pending Todos
 
@@ -154,6 +160,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-09T01:37:01.957Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-valores-conocidos-dentro-del-paso/08-CONTEXT.md
+Last session: 2026-09-09T10:48:24.974Z
+Stopped at: Phase 08 completada (planes 08-01, 08-02, 08-03) — checkpoint humano de la Task 3 aprobado
+Resume file: None
