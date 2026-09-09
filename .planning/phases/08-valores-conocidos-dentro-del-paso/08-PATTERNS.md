@@ -156,6 +156,16 @@ export interface CatalogueHero {
 
 **`contentVersion` stays at 13** (`content/marvel-champions.json:5`) — do not bump, per D-01 and the Phase 6 precedent of adding `selection` without bumping.
 
+> **Addendum (plan 08-04, cierre de hueco).** Lo anterior sigue siendo cierto para los
+> planes 08-01..03, que solo *añaden* la clave `value`. El plan **08-04 sí sube
+> `contentVersion` 13 → 14**, y por tanto **se aparta de D-01 de forma deliberada y
+> justificada**: reordenar `setup.escenario.04` delante de `.02` cambia lo que *significa*
+> un cursor guardado, no solo lo que hay en el paso. Sin la subida, una partida reanudada
+> en `setup.escenario.02`/`.03` caería **después** del paso de sustitución de cartas y
+> nunca lo vería, reproduciendo exactamente el fallo CR-01 que 08-04 cierra. Ver la
+> sección `<audit>` de `08-04-PLAN.md` para el razonamiento completo y el precedente
+> PERS-03. No leas este bloque sin ese addendum.
+
 ---
 
 ### `engine/stepValues.ts` (CREATE — service, transform)
