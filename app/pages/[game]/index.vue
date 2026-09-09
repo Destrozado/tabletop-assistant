@@ -75,6 +75,8 @@ const {
   setPlayerName,
   showsCounterBand,
   counterCells,
+  stepValueSuffix,
+  stepValueRows,
   incrementCounter,
   decrementCounter,
 } = useGameSession()
@@ -705,6 +707,8 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         :options-warning-detail-text="currentText.optionsWarningDetail ?? null"
         :selection-rows="selectionRows"
         :duplicate-warning-text="duplicateWarningText"
+        :step-value-suffix="stepValueSuffix"
+        :step-value-rows="stepValueRows"
         @open-warning-detail="onOpenWarningDetail"
         @open-option-detail="onOpenOptionDetail"
         @open-options-warning-detail="onOpenOptionsWarningDetail"

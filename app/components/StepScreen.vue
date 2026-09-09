@@ -38,9 +38,23 @@ withDefaults(defineProps<{
   // líneas de aviso del fichero). `null` cuando no hay ningún héroe
   // repetido entre los huecos de jugador.
   duplicateWarningText?: string | null
+  // D-08 (Fase 8, VAL-01): sufijo ya formateado (`' (42)'`) que se
+  // interpola dentro del MISMO `<p>` de `actionText`, nunca en un `<span>`
+  // ni un bloque propio. `null` cuando el paso no declara `value` o el
+  // valor no se conoce (VAL-03/D-15): el `<p>` renderiza entonces
+  // exactamente el mismo texto que antes de esta fase.
+  stepValueSuffix?: string | null
+  // D-09/D-10/D-12 (Fase 8, VAL-02): filas «Jugador N · Héroe → número» ya
+  // resueltas por el llamante (forma en línea, sin importar ningún tipo
+  // del motor — misma disciplina que `selectionRows`). `null` cuando el
+  // paso no declara `value` o no hay ninguna fila conocida (VAL-03/D-15):
+  // el bloque entero no existe en el DOM, no es que exista vacío.
+  stepValueRows?: { key: string, label: string, value: number }[] | null
 }>(), {
   selectionRows: null,
   duplicateWarningText: null,
+  stepValueSuffix: null,
+  stepValueRows: null,
 })
 
 const emit = defineEmits<{
@@ -54,7 +68,13 @@ const emit = defineEmits<{
 <template>
   <main class="flex-1 bg-background flex items-center justify-center px-2xl overflow-y-auto">
     <div class="w-full max-w-[960px] flex flex-col items-center gap-lg text-center">
-      <p class="text-display font-bold text-primary-text">{{ actionText }}</p>
+      <!-- D-08 (Fase 8, VAL-01): el sufijo va en el MISMO nodo de texto que
+           `actionText`, nunca en un `<span>` ni con `text-accent` — el
+           paréntesis se lee como parte de la misma frase, no como un dato
+           destacado de otro color. Con `stepValueSuffix` null (VAL-03/D-15)
+           `?? ''` deja el texto renderizado idéntico, carácter por
+           carácter, al de antes de esta fase. -->
+      <p class="text-display font-bold text-primary-text">{{ actionText }}{{ stepValueSuffix ?? '' }}</p>
 
       <!-- D-01/D-02 (Fase 6): rejilla de selección de villano/héroes. Fila
            tonta reutilizada literalmente del bloque `options` de abajo
@@ -94,6 +114,36 @@ const emit = defineEmits<{
         <p v-if="duplicateWarningText" class="text-body font-normal text-warning">
           ⚠ {{ duplicateWarningText }}
         </p>
+      </div>
+
+      <!-- D-09/D-10/D-11/D-12/D-32 (Fase 8, VAL-02): lista «Jugador N ·
+           Héroe → número», copiando la anatomía de fila de `selectionRows`
+           de arriba (mismo `max-w-[720px]`, mismo `border-b
+           border-accent/50`, misma jerarquía etiqueta-pequeña/cifra-grande
+           que la banda de contadores). D-10: SIN rótulo — la frase grande
+           justo encima ya dice qué es la lista, a diferencia de `ELECCIÓN`
+           y `Opciones`. D-11: con un solo jugador la lista es de una fila,
+           no se colapsa a paréntesis — una sola regla para cualquier
+           `playerCount`. D-12: va aquí, entre la frase grande y los avisos
+           `⚠`, porque ocupa el mismo hueco que la rejilla `ELECCIÓN` en
+           `setup.heroes.01`. D-32: la fila es un `<div>`, NUNCA un
+           `<button>` — sin `type="button"`, sin `@click`, sin
+           `:aria-label`, sin `active:brightness-95`/`transition-transform`
+           y sin el chevron `›` final: no hay acción, así que no hay
+           afordancia. No "unificar" con el bloque de `selectionRows` de
+           arriba en una revisión futura: esa rejilla SÍ es pulsable, esta
+           lista NUNCA lo es. -->
+      <div v-if="stepValueRows && stepValueRows.length" class="w-full flex flex-col items-center gap-sm">
+        <div class="w-full max-w-[720px] grid grid-cols-1">
+          <div
+            v-for="stepValueRow in stepValueRows"
+            :key="stepValueRow.key"
+            class="w-full min-h-12 px-md py-sm flex items-center justify-between gap-md text-left border-b border-accent/50"
+          >
+            <span class="min-w-0 truncate text-body font-normal text-primary-text">{{ stepValueRow.label }}</span>
+            <span class="shrink-0 text-heading font-bold text-primary-text">{{ stepValueRow.value }}</span>
+          </div>
+        </div>
       </div>
 
       <div v-if="options && options.length" class="w-full flex flex-col items-center gap-sm">
