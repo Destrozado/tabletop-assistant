@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
-status: ready_to_plan
-stopped_at: Phase 07 complete (11/11) — ready to discuss Phase 8
-last_updated: 2026-09-08T23:15:10.736Z
-last_activity: 2026-09-08 -- Phase 07 execution started
+status: planning
+stopped_at: Phase 8 context gathered
+last_updated: "2026-09-09T01:37:01.963Z"
+last_activity: 2026-09-08
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 24
-  completed_plans: 54
-  percent: 33
+  completed_plans: 24
+  percent: 50
 ---
 
 # Project State
@@ -154,6 +154,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-08T11:09:21.536Z
-Stopped at: Phase 7 UI-SPEC approved
-Resume file: .planning/phases/07-banda-de-contadores-y-compatibilidad-de-sesi-n/07-UI-SPEC.md
+Last session: 2026-09-09T01:37:01.957Z
+Stopped at: Phase 8 context gathered
+Resume file: .planning/phases/08-valores-conocidos-dentro-del-paso/08-CONTEXT.md
