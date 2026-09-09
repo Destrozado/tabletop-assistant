@@ -4,8 +4,8 @@ milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
 status: executing
 stopped_at: Phase 8 context gathered
-last_updated: "2026-09-09T01:57:39.178Z"
-last_activity: 2026-09-09 -- Phase 8 planning complete
+last_updated: "2026-09-09T09:48:01.584Z"
+last_activity: 2026-09-09 -- Phase 08 execution started
 progress:
   total_phases: 6
   completed_phases: 3
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-28)
 
 **Core value:** Que un grupo pueda jugar una partida completa de Marvel Champions de principio a fin sin abrir el reglamento y sin olvidarse de ningún paso.
-**Current focus:** Phase 8 — valores conocidos dentro del paso
+**Current focus:** Phase 08 — valores-conocidos-dentro-del-paso
 
 ## Current Position
 
-Phase: 8
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-09-09 -- Phase 8 planning complete
+Phase: 08 (valores-conocidos-dentro-del-paso) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 08
+Last activity: 2026-09-09 -- Phase 08 execution started
 
 ## Performance Metrics
 
