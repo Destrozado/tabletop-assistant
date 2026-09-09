@@ -45,6 +45,7 @@
               "id": "setup.heroes.03",
               "title": "Ajustar dial de salud",
               "kind": "step",
+              "value": "heroHealth",
               "text": "Ajustad vuestro dial de salud a la vida inicial de vuestra identidad.",
               "speech": "Ajustad el dial de salud a la vida inicial de vuestra identidad.",
               "citation": {
@@ -176,6 +177,7 @@
               "id": "setup.escenario.02",
               "title": "Ajustar dial de vida del villano",
               "kind": "step",
+              "value": "villainHealth",
               "text": "Ajustad el dial de vida del villano al valor indicado en la carta de villano.",
               "speech": "Ajustad el dial de vida del villano al valor indicado en la carta de villano.",
               "citation": {
@@ -303,6 +305,7 @@
               "id": "setup.manos.02",
               "title": "Robar mano inicial",
               "kind": "step",
+              "value": "handSizeAlterEgo",
               "text": "Robad cartas hasta completar vuestra mano inicial.",
               "speech": "Robad hasta completar vuestra mano inicial.",
               "citation": {
@@ -315,6 +318,7 @@
               "id": "setup.manos.03",
               "title": "Mulligan",
               "kind": "step",
+              "value": "handSizeAlterEgo",
               "text": "Podéis descartar cartas de vuestra mano y robar de nuevo hasta vuestra mano inicial.",
               "warning": "No barajéis las descartadas de vuelta al mazo todavía",
               "speech": "Podéis descartar y robar de nuevo hasta vuestra mano inicial.",

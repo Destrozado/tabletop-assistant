@@ -5,6 +5,18 @@
 
 export type Difficulty = 'normal' | 'expert'
 
+// D-01/D-02/D-07/D-05 (Fase 8): los tres únicos valores conocidos que un paso
+// puede declarar que trae consigo. Enum plano de tres miembros (no un objeto
+// `{ kind, scope }`) porque el propio tipo ya fija cuántos hay y cuáles son —
+// un segundo campo de «alcance» solo podría contradecir a este sin que nada
+// lo impidiera. Se exporta como alias único para que `StepDefinition.value` y
+// `StepSchema` (engine/schema.ts) citen el mismo enum sin teclearlo dos
+// veces. `handSizeAlterEgo` (no `handSizeHero` ni `startingHandSize`) porque
+// el setup arranca con la cara de Alter-Ego boca arriba (Rules Reference
+// v1.7, Apéndice II, paso 1); `handSizeHero` daría la cifra equivocada en los
+// 23 héroes durante el setup.
+export type StepValueKind = 'villainHealth' | 'heroHealth' | 'handSizeAlterEgo'
+
 export interface Citation {
   source: 'rules-reference' | 'learn-to-play'
   section: string
@@ -53,6 +65,13 @@ export interface StepDefinition extends TextBlock {
   // campo dependiente y no debe poder variar por dificultad (Pitfall 2 de
   // 06-RESEARCH.md).
   selection?: 'characters'
+  // D-01 (Fase 8): la clave vive EN EL DATO, nunca una tabla de ids en
+  // `engine/` ni en `app/` — misma disciplina de TECH-04/D-24 que ya impuso
+  // `selection`. D-02: enum plano de tres valores (`StepValueKind`); que se
+  // pinte entre paréntesis o en una lista se DERIVA del propio tipo, por eso
+  // no hay un segundo campo de «alcance» que pueda contradecirlo. Fuera de
+  // `TextBlock`, igual que `selection`: no debe poder variar por dificultad.
+  value?: StepValueKind
   variants?: {
     difficulty?: Partial<Record<Difficulty, Partial<TextBlock>>>
   }
