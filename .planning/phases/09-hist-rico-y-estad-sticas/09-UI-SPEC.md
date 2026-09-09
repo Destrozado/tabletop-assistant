@@ -134,6 +134,14 @@ Inherited verbatim — **zero new hex values.** Existing reservations gain new u
 
 ### 2. `GameOutcomeDialog` — replaces the `ConfirmDialog` call on «Partida terminada» (D-01/D-02)
 
+**Ancla visual:** the question `¿Cómo terminó la partida?` — the only Heading/700 text in
+the panel (context line and retained warning are Body/secondary-text, the three recording
+buttons Body/700, `Salir sin registrar` Label), and the first element in the panel, so it
+is visible before any scroll on a short viewport. The three recording buttons are
+deliberately *equal* in weight to each other — no primary/secondary treatment, since D-02
+forbids nudging the group toward one outcome — which is precisely why the anchor has to be
+the question rather than a button.
+
 Same shell as `ConfirmDialog` (opaque `fixed inset-0 z-50 bg-background flex
 items-center justify-center px-xl`, panel `w-full max-w-[640px] bg-surface p-2xl flex
 flex-col gap-lg`), extended with a scroll safety the four-button content needs that
@@ -198,6 +206,26 @@ flex-col gap-lg`), extended with a scroll safety the four-button content needs t
   — zero conditional branches on `sectionRepeats` or similar.
 
 ### 3. `/historico` and `/estadisticas` — shared header shape (D-16/D-18)
+
+**Ancla visual — `/historico`:** the first (most recent) card in the scrollable body.
+The `HISTÓRICO` title is the largest text on the screen (Heading/700) but is deliberately
+*not* the anchor — it is a fixed orientation label in the quiet `bg-surface` band, identical
+on every visit, so it carries no information after the first half-second. The eye should
+land on the top card instead: it is the first thing on the darker `bg-background`, its
+`GANADA`/`PERDIDA` is the first Label/700 in the reading order, and landing there is what
+makes the "más reciente primero" ordering (D-19) obvious without having to compare dates.
+
+**Ancla visual — `/estadisticas`:** the first section header,
+`% DE VICTORIAS POR HÉROE` (Label/700, uppercase, rule underneath) — again the first
+element inside the scrolling body, with the Heading/700 `ESTADÍSTICAS` title playing the
+same fixed-orientation role as on `/historico`. Deliberately *not* any number: §6's hard
+rule keeps `{wins} de {total}` and `{pct} %` at identical Body/400 weight so no percentage
+can out-shout its own sample size. That leaves the two section headers as the only
+emphasis inside the body, so the eye lands on the grouping and reads each block whole —
+exactly the reading D-25 wants.
+
+On both screens the empty state (§5/§7) substitutes its own Heading as the anchor, so
+there is never a screen whose focal point is an empty container.
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -392,6 +420,8 @@ route-independent mount point).
 │ El dispositivo no permitió escribir en su     │  Body/400, secondary-text
 │ almacenamiento (modo privado, cuota agotada    │
 │ u otro bloqueo similar).                       │
+│ Revisad el modo privado del navegador o el     │
+│ espacio libre antes de la próxima partida.     │
 └──────────────────────────────────────────────┘
 ```
 
@@ -511,7 +541,7 @@ is the literal mechanism behind "no un error ni porcentajes engañosos."
 | Back control (both new screens) | `‹ Atrás` (glyph reused verbatim from `NavBand`) |
 | Cross-link controls (D-18) | `Estadísticas ›` (on `/historico`) / `Histórico ›` (on `/estadisticas`) |
 | Save-result notice — success (D-03) | `✓ Partida registrada` |
-| Save-result notice — failure (D-03) | Heading: `⚠ No se pudo guardar la partida` · Body: `El dispositivo no permitió escribir en su almacenamiento (modo privado, cuota agotada u otro bloqueo similar).` |
+| Save-result notice — failure (D-03) | Heading: `⚠ No se pudo guardar la partida` · Body: `El dispositivo no permitió escribir en su almacenamiento (modo privado, cuota agotada u otro bloqueo similar). Revisad el modo privado del navegador o el espacio libre antes de la próxima partida.` — the second sentence is the remedial half: the partida just played is already lost (the session is cleared either way, so there is nothing to retry), so the action the notice asks for is about the *next* partida, never a retry of this one. |
 | Primary CTA of this phase | There is no single primary CTA — the phase adds a 4-way choice (outcome dialog) and two read-only screens. The closest analogue, `Partida terminada` in `IndexOverlay`, is **unchanged text**. |
 | Destructive actions in this phase | Exactly one: deleting a history entry (D-20), covered above. Recording a loss is **not** treated as destructive — it is a true fact about the game, not a data-loss action. |
 
