@@ -113,3 +113,12 @@ None - no external service configuration required.
 ---
 *Phase: 08-valores-conocidos-dentro-del-paso*
 *Completed: 2026-09-09*
+
+## Self-Check: PASSED
+
+- FOUND: engine/stepValues.ts
+- FOUND: engine/__tests__/stepValues.test.ts
+- FOUND: .planning/phases/08-valores-conocidos-dentro-del-paso/08-02-SUMMARY.md
+- FOUND commit: 705616a
+- FOUND commit: d1cf618
+- FOUND commit: 2b2927d
