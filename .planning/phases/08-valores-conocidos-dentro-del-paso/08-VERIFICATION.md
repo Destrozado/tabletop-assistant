@@ -1,205 +1,229 @@
 ---
 phase: 08-valores-conocidos-dentro-del-paso
-verified: 2026-09-09T13:10:00Z
-status: gaps_found
-score: 4/5 must-haves verified
+verified: 2026-09-09T17:05:00Z
+status: passed
+score: 5/5 must-haves verified
 overrides_applied: 0
-gaps:
-  - truth: "Con villano y héroes elegidos, el paso que cita la vida del villano la muestra entre paréntesis junto al texto («…al valor indicado (14)»)."
-    status: partial
-    reason: >
-      Mechanically true for the tested/common case (Rhino, Ultron, or Kang in Normal
-      difficulty), but FALSE for a real, reproducible combination: Kang + Expert difficulty.
-      `computeInitialVillainHealth` (engine/counters.ts:34) deliberately selects
-      `stage1.expert` when `context.difficulty === 'expert'`, and `content/marvel-characters.json`
-      confirms Kang is the only villain of the three shipped with a stage-I `expert` figure
-      (15/hero vs 12/hero normal). But the step that prints this number,
-      `setup.escenario.02` ("Ajustad el dial de vida del villano al valor indicado en la
-      carta de villano."), runs BEFORE `setup.escenario.04` ("Comprobad qué cartas de
-      villano numeradas exige la dificultad elegida" → expert variant: "Sustituid las
-      cartas de villano numeradas por las del modo Experto de este escenario."). At the
-      point step .02 is read, in Expert mode the group is still holding the STANDARD
-      stage-I card (12/hero), not the Expert one (15/hero) — the card swap has not
-      happened yet. At 3 players the screen prints "(45)" while the physical card in the
-      group's hands reads 36. No later step tells the group to re-adjust the dial after
-      the .04 swap. This directly contradicts the project's hard constraint in CLAUDE.md
-      ("un asistente que guía mal es peor que no tener asistente") and the module's own
-      documented invariant that the printed figure is "la vida inicial impresa en la
-      carta" — at that point in the sequence, for Kang/Expert, it is not.
-    artifacts:
-      - path: "content/marvel-champions.json"
-        issue: "setup.escenario.02 (value: villainHealth) is sequenced before setup.escenario.04 (the difficulty-card swap step), so the difficulty-aware figure computed for the dial step can reference a card the group has not swapped in yet."
-      - path: "engine/stepValues.ts"
-        issue: "resolveStepValue delegates to computeInitialVillainHealth(villain, playerCount, difficulty) with no awareness of where the consuming step sits relative to the card-swap step — by design this phase's stepValues.ts has no step-sequence knowledge, so the defect is a content-ordering issue rather than a stepValues.ts bug per se."
-    missing:
-      - "Either reorder content so setup.escenario's difficulty-card-swap step runs before the dial step (content-only fix, renumbering ids), or give setup.escenario.02 an explicit expert-difficulty variant that does not print a number contradicting the card physically in hand at that point in the sequence, or add a step after the swap that re-confirms/re-adjusts the dial in Expert mode."
-      - "A content.test.ts assertion pinning that any step declaring value:\"villainHealth\" is sequenced after the difficulty-card-swap step, so this ordering class of bug fails CI instead of shipping silently (per code review WR-04's suggestion)."
+re_verification:
+  previous_status: gaps_found
+  previous_score: 4/5
+  gaps_closed:
+    - "Con villano y héroes elegidos, el paso que cita la vida del villano la muestra entre paréntesis junto al texto («…al valor indicado (14)») — incluida la combinación Kang + Experto que antes fallaba"
+  gaps_remaining: []
+  regressions: []
 deferred: []
 human_verification: []
 ---
 
-# Phase 8: Valores conocidos dentro del paso Verification Report
+# Fase 8: Valores conocidos dentro del paso — Informe de verificación
 
-**Phase Goal:** Los pasos que citan un valor conocido (vida del villano, vida inicial de
-identidad, tamaño de mano) lo muestran en pantalla —entre paréntesis o en una lista por
-jugador según el caso— sin tocar ni un carácter del texto guardado ni de los clips de voz
+**Objetivo de la fase:** Los pasos que citan un valor conocido (vida del villano, vida inicial
+de identidad, tamaño de mano) lo muestran en pantalla —entre paréntesis o en una lista por
+jugador según el caso— sin tocar ni un carácter del texto guardado ni de los 37 clips de voz
 ya pregenerados.
 
-**Verified:** 2026-09-09T13:10:00Z
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+**Verificado:** 2026-09-09T17:05:00Z
+**Estado:** passed
+**Reverificación:** Sí — tras el cierre de hueco del plan 08-04 (`gap_closure: true`)
 
-## Goal Achievement
+## Logro del objetivo
 
-### Observable Truths
+### Verdades observables
 
-| # | Truth | Status | Evidence |
-|---|-------|--------|----------|
-| 1 | Villain-health step shows the value in parentheses next to the text | ⚠️ PARTIAL (BLOCKER) | Mechanically correct for Rhino/Ultron/Kang-Normal (confirmed rendering path + human-approved "Aprobado!" checkpoint for Rhino/Normal/3p). **FAILS for Kang + Expert difficulty**: the parenthesised figure (45 at 3p) contradicts the physical card the group is holding at `setup.escenario.02` (36 at 3p), because the difficulty-card swap doesn't happen until `setup.escenario.04`, two steps later. See gap below. |
-| 2 | Per-player-value step shows a compact list "Jugador N · Héroe → número" under the text, never an inline parenthesis with all values | ✓ VERIFIED | `app/components/StepScreen.vue:136-148` renders a non-interactive `<div>` list (no `<button>`, no `›`, no `@click`, no `aria-label`) using `text-body`/`text-heading font-bold`, `max-w-[720px]`, `border-b border-accent/50`; `engine/stepValues.ts` produces rows only for `heroHealth`/`handSizeAlterEgo`; human checkpoint confirmed "Jugador 1 · Spider-Man 10", "Jugador 2 · Thor 14", "Jugador 3 · She-Hulk 15" and hand-size list showing 6/5/6 (Alter-Ego face, not Hero face) — "Aprobado!" |
-| 3 | Without any selection, those same steps render exactly as before — no gap, no marker | ✓ VERIFIED | `stepValueSuffix ?? ''` renders empty string when no villain selected (resolveStepValue → null via resolveVillainId → null); `stepValueRows` computed returns `null` (not `[]`) when no rows resolve, and `v-if="stepValueRows && stepValueRows.length"` keeps the block entirely out of the DOM; human checkpoint step 7 confirmed "sin paréntesis, sin lista, sin renglón vacío ni hueco reservado" — "Aprobado!" |
-| 4 | `git diff` on `content/marvel-champions.json` touches zero characters of any `text`/`speech` field — value added only in rendering | ✓ VERIFIED | Re-ran independently against base commit `41c2d4aa05802cf4f512afb0e20d79d7f746e7fd`: `git diff -U0` shows exactly 4 added lines (all `"value": "..."`), 0 removed lines; `git diff` (full context) shows zero `+`/`-` lines matching `"text"`/`"speech"` |
-| 5 | `npm test` stays green with the 35 pregenerated audio clips intact, voice-drift gate green, narration still generic (no number) | ✓ VERIFIED | Re-ran independently: `npm test` → 563/563 passed (22 files); `npx vitest run engine/__tests__/voice-drift.test.ts` → 8/8 passed, no clip-regeneration requested; `ls public/audio/*.m4a` = 35, manifest entries = 35, `git status --porcelain public/audio scripts/voice/manifest.json` empty; `contentVersion` still 13; narration is driven by pregenerated audio ids keyed on step id (`engine/resolve.ts`), structurally incapable of carrying the dynamic number — confirmed no `speech`/`text` field was touched (truth 4) |
+| # | Verdad | Estado | Evidencia |
+|---|--------|--------|-----------|
+| 1 | Con villano y héroes elegidos, el paso que cita la vida del villano la muestra entre paréntesis junto al texto | ✓ VERIFICADO | El BLOCKER de la ronda anterior (Kang + Experto imprimía 45 mientras la carta física seguía en 36) está cerrado. Reordenación confirmada leyendo el JSON en vivo: `setup.escenario` se recorre `.01 → .04 → .02 → .03 → ...` (comprobado con `node -e` sobre `content/marvel-champions.json`, no solo citado del SUMMARY). El paso `.04` (sustitución de cartas por dificultad) precede ahora al paso `.02` (dial, `value: "villainHealth"`) en ambas dificultades. `computeInitialVillainHealth` (`engine/counters.ts:34`) sigue seleccionando `stage1.expert` solo si existe; para Kang ya se ha sustituido la carta en el momento en que `.02` se lee. Gate de CI ejecutable (`engine/__tests__/content.test.ts:289-347`, describe `CR-01/VAL-01`) que falla si un futuro cambio de contenido vuelve a colocar un paso `value:"villainHealth"` antes del paso de sustitución — demostrado mordiendo sobre una copia mutada en memoria. Checkpoint humano bloqueante de la Task 3 del plan 08-04 aprobado explícitamente ("aprobado"): Kang+Experto (3p) → 45 tras ver el orden de cabeceras `10 de 22` (colocar mazos) → `11 de 22` (sustitución) → `12 de 22` (dial); Kang+Normal (3p) → 36. |
+| 2 | Un paso cuyo valor difiere por jugador muestra bajo el texto una lista compacta «Jugador N · Héroe → número», nunca un paréntesis en línea | ✓ VERIFICADO (regresión, sin cambios desde la ronda anterior) | `app/components/StepScreen.vue:136-148`: bloque `<div>` no interactivo (sin `<button>`, sin `›`, sin `@click`, sin `aria-label`); filas producidas solo para `heroHealth`/`handSizeAlterEgo` vía `resolveStepValueRows`/`buildStepValueCells`. Checkpoint humano previo (plan 08-03) sigue vigente y no se revoca. |
+| 3 | Sin ninguna selección, esos mismos pasos se muestran exactamente igual que antes, sin hueco ni marcador | ✓ VERIFICADO (regresión) | `{{ actionText }}{{ stepValueSuffix ?? '' }}` (línea 77) renderiza cadena vacía sin selección; `stepValueRows` devuelve `null` (no `[]`) cuando no hay filas y `v-if="stepValueRows && stepValueRows.length"` saca el bloque del DOM por completo. |
+| 4 | `git diff` sobre `content/marvel-champions.json` no toca ni un carácter de ningún campo `text` ni `speech` — el valor se añade solo en el renderizado | ✓ VERIFICADO (reconfirmado tras el plan 08-04) | Comparación id-a-id ejecutada de forma independiente en esta sesión entre `bcbe00c` (commit base, posterior a los planes 08-01/02/03) y el contenido actual: `text`, `speech`, `warning`, `warningDetail`, `options`, `optionsWarning`, `optionsWarningDetail`, `variants`, `title`, `citation` de los 32 ids — **0 diferencias**. El `git diff` textual de línea sí muestra `+`/`-` en líneas `"text"`/`"speech"` porque el plan 08-04 **movió de sitio** el objeto `setup.escenario.04` (reordenación, no reescritura) — el SUMMARY lo documenta explícitamente como matiz esperado, y la comparación semántica id-a-id (no el diff de líneas) es la que decide, y da 0 diferencias. |
+| 5 | `npm test` sigue en verde con los clips de audio pregenerados intactos y el gate de deriva de voz sin pedir regenerar ni un clip; la locución sigue diciendo la frase genérica sin el número | ✓ VERIFICADO (reconfirmado) | Ejecutado en esta sesión de forma independiente: `npm test` → **567/567** (22 ficheros, incluidos los 4 tests nuevos de `CR-01/VAL-01`); `npx vitest run engine/__tests__/voice-drift.test.ts` → 8/8; `ls public/audio/*.m4a \| wc -l` = 35, `Object.keys(manifest.entries).length` = 35, `git status --porcelain public/audio scripts/voice/manifest.json` vacío; `contentVersion` = 14 (subida deliberada 13→14, documentada y aceptada por el humano en el checkpoint de la Task 3, con el efecto de invalidación de cursor de partida a medias explicado en el SUMMARY). |
 
-**Score:** 4/5 truths verified (truth 1 is a BLOCKER — partial, not failed outright, since it holds for the common/tested path but breaks for a specific real combination)
+**Puntuación:** 5/5 verdades verificadas (el hueco BLOCKER de la ronda anterior queda cerrado)
 
-### Known Documentation Discrepancy (not a failure)
+### Nota de documentación conocida (no es un fallo)
 
-ROADMAP.md and REQUIREMENTS.md (VAL-05) both say "37 clips". The real, current count is
-**35** `.m4a` files matching 35 manifest entries — verified independently (`ls
-public/audio/*.m4a | wc -l` = 35; manifest `entries` keys = 35; both untouched by this
-phase). The "37" figure is stale documentation predating this phase; the correct
-verification criterion (both counts match and are unchanged) holds. Not treated as a gap.
+ROADMAP.md y REQUIREMENTS.md (VAL-05) siguen diciendo «37 clips». El recuento real y actual
+es **35** ficheros `.m4a` frente a 35 entradas del manifiesto — verificado de forma
+independiente en esta sesión (`ls public/audio/*.m4a | wc -l` = 35; claves del manifiesto = 35;
+ambos sin tocar por este plan). Esta discrepancia ya está documentada como cifra heredada de un
+ROADMAP erróneo en `STATE.md` (plan 08-03) y en la nota de cierre de hueco de
+`REQUIREMENTS.md` (línea 63-70). Se confirma como discrepancia preexistente y documentada, no
+como una regresión nueva de este ciclo.
 
-### Required Artifacts
+## Juicio requerido: CR-03 (paso `setup.escenario.04`, variante Experto, manda sustituir cartas inexistentes para Rhino/Ultron)
 
-| Artifact | Expected | Status | Details |
-|----------|----------|--------|---------|
-| `engine/types.ts` | `StepValueKind` exported, `StepDefinition.value?` field | ✓ VERIFIED | `StepValueKind = 'villainHealth' \| 'heroHealth' \| 'handSizeAlterEgo'` exported; used by `useGameSession.ts` |
-| `engine/schema.ts` | `value: z.enum([...]).optional()` inside `StepSchema` | ✓ VERIFIED | Present, validates real content in CI (`npm test` green, `content.test.ts` passes) |
-| `content/marvel-champions.json` | 4 `"value"` keys on the exact 4 D-03 steps, `ronda.jugadores.02` untouched | ✓ VERIFIED | Confirmed via direct JSON walk: `setup.heroes.03` → heroHealth, `setup.escenario.02` → villainHealth, `setup.manos.02`/`.03` → handSizeAlterEgo; `ronda.jugadores.02` carries no `value` key |
-| `engine/stepValues.ts` | `resolveStepValue`/`resolveStepValueRows`, pure, reuse `counters.ts`, never call `resolveCounterValues` | ✓ VERIFIED | Read full file: imports only `./counters`, `./selection`, `./types`; zero mention of `resolveCounterValues` outside comments; reuses `computeInitialVillainHealth`/`computeInitialHeroHealth`; uses `hero.handSizeAlterEgo` (not `handSizeHero`) |
-| `app/composables/useGameSession.ts` | `stepValueSuffix`/`stepValueRows` computeds, `buildStepValueSuffix`/`buildStepValueCells` pure helpers | ✓ VERIFIED | Present at lines 271-284, wired into the returned object; both consume `resolveStepValue`/`resolveStepValueRows` |
-| `app/components/StepScreen.vue` | Suffix interpolated in same `<p>` node as `actionText`; list block as non-interactive `<div>` rows, no label | ✓ VERIFIED | Line 77: `{{ actionText }}{{ stepValueSuffix ?? '' }}`; lines 136-148: `<div>` rows, no `<button>`, no `›`, no `@click`, no `aria-label`, no heading label, positioned after `selectionRows` block and before `options` block (correct D-12 ordering) |
-| `app/pages/[game]/index.vue` | Passes `:step-value-suffix`/`:step-value-rows` props, no engine import added | ✓ VERIFIED | Confirmed by SUMMARY grep evidence and prior review; page already imported `~~/engine/*` for unrelated pre-existing features (out of scope) |
+**Hecho confirmado de forma independiente, no solo citado del `08-REVIEW.md`:**
 
-### Key Link Verification
+```
+$ node -e "... content/marvel-characters.json ..."
+rhino:  stages[*].expert = false, false, false   (nunca tiene cifras de Experto)
+ultron: stages[*].expert = false, false, false   (nunca tiene cifras de Experto)
+kang:   stages[*].expert = true,  true,  true    (12/18/20 normal → 15/22/25 experto)
+```
 
-| From | To | Via | Status | Details |
-|------|-----|-----|--------|---------|
-| `content/marvel-champions.json` | `engine/schema.ts` | strict Zod validation in `content.test.ts` | ✓ WIRED | `npm test` green, content validates |
-| `engine/types.ts` | `engine/schema.ts` | matching enum literals | ✓ WIRED | Confirmed identical three literals in both files |
-| `engine/stepValues.ts` | `engine/counters.ts` | `computeInitialHeroHealth`/`computeInitialVillainHealth` import | ✓ WIRED | Confirmed in file read |
-| `app/composables/useGameSession.ts` | `engine/stepValues.ts` | `resolveStepValue`/`resolveStepValueRows` import | ✓ WIRED | `import { resolveStepValue, resolveStepValueRows, type StepValueRow } from '~~/engine/stepValues'` at line 27 |
-| `app/pages/[game]/index.vue` | `app/components/StepScreen.vue` | `:step-value-suffix`/`:step-value-rows` props | ✓ WIRED | Confirmed via prior grep evidence in SUMMARY, consistent with observed composable/component contract |
-| `app/components/StepScreen.vue` | `app/composables/useGameSession.ts` | no engine import in component | ✓ WIRED | `grep -c "~~/engine" app/components/StepScreen.vue` = 0 (confirmed no such import in the file read) |
+El texto de la variante `expert` de `setup.escenario.04` es incondicional para los tres
+villanos:
 
-### Data-Flow Trace (Level 4)
+> «Sustituid las cartas de villano numeradas por las del modo Experto de este escenario.»
 
-| Artifact | Data Variable | Source | Produces Real Data | Status |
-|----------|---------------|--------|---------------------|--------|
-| `StepScreen.vue` `stepValueSuffix` prop | `stepValueSuffix` computed in `useGameSession.ts` | `resolveStepValue(step.value, context, catalogue)` → real catalogue lookup via `computeInitialVillainHealth` | Yes, for the general case | ⚠️ FLOWING BUT INCORRECT IN ONE CASE — see gap. The computed value is real (not static/hardcoded), but is wrong at `setup.escenario.02` for Kang+Expert because of content sequencing, not because the data pipe is broken. |
-| `StepScreen.vue` `stepValueRows` prop | `stepValueRows` computed | `resolveStepValueRows(step.value, context, catalogue)` → real catalogue lookup (`hero.health`, `hero.handSizeAlterEgo`) | Yes | ✓ FLOWING |
+`engine/types.ts:193-199` documenta en las propias palabras del repositorio que la ausencia de
+`expert` en una etapa «es un hecho del dominio, no un dato pendiente: significa que el modo
+Experto de ese escenario no sustituye las cartas de villano numeradas (caso de Rhino y Ultron)».
+Es decir: en Experto con Rhino o Ultron (2 de los 3 villanos jugables), el asistente manda al
+grupo a buscar cartas de etapa Experto que no existen.
 
-### Behavioral Spot-Checks
+**Origen temporal, confirmado con `git log`/`git show`:** este texto no lo escribió la Fase 8.
+Lo autoró y contrastó contra el Rules Reference el commit `50c3439`
+(`fix(01-06): recontrastar etapa del villano vs Modo Experto contra el Rules Reference`, Fase 1,
+28 de agosto de 2026) — siete fases antes de la Fase 8. La búsqueda `git log -S` de la frase
+exacta no encuentra ninguna introducción posterior; el texto ha sido idéntico desde entonces.
+El plan 08-04 **movió de sitio** este objeto (antes leído después de `.02`, ahora antes), pero
+no tocó ni un carácter de su `text`/`speech` — la corrección de VAL-04 confirma 0 diferencias
+en el campo `variants` de este paso.
 
-| Behavior | Command | Result | Status |
-|----------|---------|--------|--------|
-| Content diff is exactly 4 additive `"value"` lines, 0 removed | `git diff -U0 <base-commit> -- content/marvel-champions.json` | 4 added (`"value":` ×4), 0 removed | ✓ PASS |
-| No `text`/`speech` line touched | `git diff <base-commit> -- content/marvel-champions.json \| grep '^[+-].*"text"\|"speech"'` | empty | ✓ PASS |
-| Audio clips and manifest entries match, untouched | `ls public/audio/*.m4a \| wc -l` / manifest entries count / `git status --porcelain` | 35 = 35, clean | ✓ PASS |
-| Voice-drift gate green | `npx vitest run engine/__tests__/voice-drift.test.ts` | 8/8 passed | ✓ PASS |
-| Full test suite green | `npm test` | 563/563 passed (22 files) | ✓ PASS |
-| Static build succeeds | `npm run generate` | Prerendered 6 routes, PWA precache 64 entries, no error | ✓ PASS |
-| `contentVersion` unchanged | `grep -c '"contentVersion": 13,' content/marvel-champions.json` | 1 | ✓ PASS |
-| Villain-health figure matches the physical card at the point it's read | Manual trace: `setup.escenario.02` (value step) vs `setup.escenario.04` (difficulty-card-swap step), plus `content/marvel-characters.json` Kang stage-I expert figures | Kang + Expert: printed 45 (3p) vs. card-in-hand 36 (3p) at the point the dial step is read | ✗ FAIL — see gap |
+**Efecto sobre VAL-01 (la cifra del dial), comprobado, no supuesto:** `computeInitialVillainHealth`
+(`engine/counters.ts:34`) solo activa la rama `expert` cuando `stage1.expert` existe. Para
+Rhino/Ultron, `stage1.expert` es siempre `undefined`, así que `figures = stage1` en ambas
+dificultades — **la cifra del dial no cambia con la dificultad para esos dos villanos**, con o
+sin la instrucción de sustitución. El defecto de CR-03 no reintroduce ni agrava el BLOCKER que
+el plan 08-04 cerró (VAL-01 sigue siendo correcto en las 3×2 combinaciones villano×dificultad);
+es un problema distinto y ortogonal, limitado a la corrección del propio texto de `.04`.
 
-### Probe Execution
+**Veredicto: (b) — defecto de fidelidad de contenido preexistente, fuera del alcance de la
+Fase 8.** Razones:
 
-No `scripts/*/tests/probe-*.sh` conventional probes found for this phase; PLAN files do not declare any probe scripts. Step 7c: SKIPPED (no declared or conventional probes).
+1. El texto es de la Fase 1, no de la Fase 8; la Fase 8 tiene la restricción explícita (VAL-04)
+   de no reescribir ni un carácter de contenido autorado — arreglar CR-03 dentro de esta fase
+   habría exigido violar su propia restricción de alcance.
+2. La reordenación que hizo el plan 08-04 no creó ni empeoró el defecto: el grupo recibiría la
+   misma instrucción incondicional y errónea estuviera `.04` antes o después de `.02` — solo
+   cambió el orden relativo de dos pasos, no la veracidad del texto de ninguno de los dos.
+3. El objetivo observable de la Fase 8 (VAL-01 a VAL-06) trata de si un valor conocido se
+   muestra en pantalla, no de si cada paso adyacente es correcto según el Rules Reference; la
+   cifra que Fase 8 añade (VAL-01) sigue siendo correcta en todas las combinaciones
+   villano×dificultad, incluida esta.
+4. Ninguna fase posterior del ROADMAP (Fase 9: histórico y estadísticas; Fase 10: respaldo en
+   Firestore) menciona ni roza este ámbito — no hay evidencia de que esté deliberadamente
+   diferido a un trabajo futuro ya planificado.
 
-### Requirements Coverage
+**No se trata como un gap de la Fase 8** (no bloquea el cierre de esta fase), pero **tampoco se
+descarta**: por el mandato explícito de CLAUDE.md («un asistente que guía mal es peor que no
+tener asistente»), este es un defecto real, reproducible y con impacto directo en la fidelidad
+de reglas para 2 de 3 villanos jugables en Experto. Se registra aquí como hallazgo enrutado que
+requiere una decisión humana y, salvo que se decida lo contrario, un plan de cierre de hueco
+dedicado (quick-fix o gap-plan) — **no** una reapertura de la Fase 8. La corrección sugerida por
+`08-REVIEW.md` (condicionar el texto de la variante `expert` de `.04` a que el escenario
+realmente traiga cartas de Experto) es contenido puro y no exige tocar `engine/`.
 
-| Requirement | Source Plan | Description | Status | Evidence |
-|--------------|------------|--------------|--------|----------|
-| VAL-01 | 08-02, 08-03 | Villain health shown in parentheses | ⚠️ PARTIALLY SATISFIED | Works for the common/tested path; fails for Kang + Expert difficulty (see gap) |
-| VAL-02 | 08-02, 08-03 | Per-player values shown as compact list, never inline parenthesis | ✓ SATISFIED | Verified in code + human checkpoint |
-| VAL-03 | 08-02, 08-03 | No selection → steps render exactly as before | ✓ SATISFIED | Verified in code + human checkpoint |
-| VAL-04 | 08-01 | Content `text`/`speech` untouched, value added only in render | ✓ SATISFIED | Verified via independent `git diff` against base commit |
-| VAL-05 | 08-01, 08-03 | Pregenerated audio clips remain valid, voice-drift gate green | ✓ SATISFIED (with stale "37" documentation figure noted, not a failure — real count 35=35) |
-| VAL-06 | 08-01, 08-03 | Narration still says the generic phrase, no number | ✓ SATISFIED | Structurally guaranteed: audio ids are keyed on step id and `speech`/`text` fields are untouched (VAL-04); narration cannot carry a number that was never written into `speech` |
+### Artefactos requeridos
 
-No orphaned requirements — REQUIREMENTS.md maps only VAL-01 through VAL-06 to Phase 8, and all six appear in at least one plan's `requirements` frontmatter.
+| Artefacto | Esperado | Estado | Detalles |
+|-----------|----------|--------|----------|
+| `content/marvel-champions.json` | `setup.escenario.04` antes de `setup.escenario.02`; `contentVersion` = 14 | ✓ VERIFICADO | Orden confirmado por lectura directa del JSON: `.01 .04 .02 .03 .05 .06 .07 .08 .09`; `contentVersion` = 14 |
+| `engine/__tests__/content.test.ts` | Gate `CR-01/VAL-01`, aserción `contentVersion === 14` | ✓ VERIFICADO | `describe('CR-01/VAL-01: ...')` con 4 tests (identidad, no-vacuidad, invariante real, gate que muerde); `contentVersion` fijado a 14 en línea 606 |
+| `engine/stepValues.ts` | Sin cambios respecto a la ronda anterior; sigue sin conocimiento de secuencia (D-13) | ✓ VERIFICADO | No está en `files_modified` del plan 08-04; comportamiento intacto por diseño |
+| `app/components/StepScreen.vue` / `app/composables/useGameSession.ts` | Sin cambios respecto a la ronda anterior | ✓ VERIFICADO | No están en `files_modified` del plan 08-04; se releyó el bloque relevante y coincide byte a byte con lo ya verificado |
 
-### Anti-Patterns Found
+### Verificación de enlaces clave
 
-No `TODO`/`FIXME`/`HACK`/`TBD`/`XXX`/placeholder markers found in files modified by this phase
-(`engine/types.ts`, `engine/schema.ts`, `content/marvel-champions.json`, `engine/stepValues.ts`,
-`engine/__tests__/stepValues.test.ts`, `app/composables/useGameSession.ts`,
-`app/composables/__tests__/useGameSession.test.ts`, `app/components/StepScreen.vue`,
-`app/pages/[game]/index.vue`). No `v-html` introduced. No hardcoded empty stub returns in the
-new render paths.
+| De | A | Vía | Estado | Detalles |
+|----|---|-----|--------|----------|
+| `content/marvel-champions.json` | `engine/flatten.ts` | orden de lectura por posición en `phase.steps[]`, no por id | ✓ CABLEADO | Confirmado con lectura directa del array `steps` — el motor no participa en la decisión de orden (D-13 intacto) |
+| `engine/__tests__/content.test.ts` | `content/marvel-champions.json` | gate de orden ejecutable sobre el contenido real | ✓ CABLEADO | `npx vitest run engine/__tests__/content.test.ts` → 59/59 verde, incluido el describe nuevo |
+| `content/marvel-champions.json` (base `bcbe00c`) | contenido actual | comparación semántica id a id | ✓ CABLEADO | 32/32 ids byte-idénticos en los campos autorados; 0 diferencias |
 
-The independently-confirmed code review (`08-REVIEW.md`) additionally flags 6 warnings and
-6 info items not repeated here in full (missing schema/content tests for the new `value`
-field, no defensive array-guard on `catalogue.villains`/`.heroes`, `StepValueKind` typed three
-times with no compile-time link between the type and the engine's string-literal dispatch,
-text-length budget not accounting for the rendered suffix, untested reactive wiring in
-`useGameSession.ts`, and the value being visual-only/never spoken). None of these individually
-block the phase goal — the resolved data does flow correctly for all combinations tested, and
-the visual-only tradeoff is an accepted structural consequence of the pregenerated-audio
-architecture, not new to this phase. They are test-coverage/robustness gaps, not functional
-failures observed in the field, and are listed here as ℹ️ Info for awareness rather than as
-phase-blocking gaps.
+### Comprobaciones de comportamiento
 
-CR-02 (`optionsWarningDetail` dropped in `engine/resolve.ts`) is confirmed pre-existing —
-`engine/resolve.ts` is not in the `files_modified` list of any 08-0x plan, and `git log`
-shows it was last touched by "Quick 260831-fkb", before this phase. It is out of scope for
-this phase's goal-backward verification and is not counted as a Phase 8 gap.
+| Comportamiento | Comando | Resultado | Estado |
+|-----------------|---------|-----------|--------|
+| Orden real de `setup.escenario` en el JSON en vivo | `node -e` sobre `content/marvel-champions.json` | `.01 .04 .02 .03 .05 .06 .07 .08 .09` | ✓ PASA |
+| Kang no tiene cifra de dial dependiente de un paso posterior sin sustituir | Trazado manual: `computeInitialVillainHealth` + posición de `.04` vs `.02` | En el momento de leer `.02`, `.04` ya se ejecutó | ✓ PASA |
+| Rhino/Ultron: la cifra del dial no depende de la dificultad | Lectura de `content/marvel-characters.json` + `engine/counters.ts:34` | `stage1.expert` ausente ⇒ `figures = stage1` en ambas dificultades | ✓ PASA |
+| Suite completa de tests | `npm test` | 567/567 (22 ficheros) | ✓ PASA |
+| Gate de deriva de voz | `npx vitest run engine/__tests__/voice-drift.test.ts` | 8/8 | ✓ PASA |
+| Clips y manifiesto sin tocar | `ls public/audio/*.m4a \| wc -l` = 35; manifiesto = 35; `git status --porcelain` vacío | 35 = 35, limpio | ✓ PASA |
+| Comparación semántica de contenido id a id contra `bcbe00c` | script `node -e` de esta sesión | 32 ids, 0 diferencias | ✓ PASA |
+| Ausencia de marcadores de deuda en ficheros tocados por 08-04 | `grep -n -E "TBD\|FIXME\|XXX\|TODO\|HACK\|PLACEHOLDER"` sobre `content/marvel-champions.json` y `engine/__tests__/content.test.ts` | sin resultados | ✓ PASA |
+| Commits documentados existen | `git show --stat ad1c755`, `git show --stat de4a78b` | ambos encontrados con el contenido descrito | ✓ PASA |
 
-### Human Verification Required
+### Ejecución de probes
 
-None outstanding. The blocking checkpoint in plan 08-03 (Task 3) was already run and approved
-by the human ("Aprobado!", recorded in `08-03-SUMMARY.md`) for the Rhino/Normal/3-player
-scenario covering all 8 `<how-to-verify>` points. That approval is genuine and does not need
-to be repeated. However, it did not exercise the Kang+Expert combination, which is exactly
-where the CR-01 defect lives — the human never saw the bug because the approved test script
-didn't include it.
+No se han declarado probes en formato `scripts/*/tests/probe-*.sh` ni convencionales para esta
+fase; ningún PLAN los menciona. Paso 7c: OMITIDO (sin probes declarados ni convencionales).
 
-### Gaps Summary
+### Cobertura de requisitos
 
-Four of five roadmap success criteria are cleanly and independently verified: the per-player
-list (criterion 2), the no-selection regression guard (criterion 3), the content-diff purity
-guarantee (criterion 4), and the test/audio-integrity gate (criterion 5) all hold under direct
-re-verification against the live codebase, not just the SUMMARY narrative.
+| Requisito | Plan origen | Descripción | Estado | Evidencia |
+|-----------|------------|--------------|--------|-----------|
+| VAL-01 | 08-02, 08-03, 08-04 | Vida del villano mostrada entre paréntesis | ✓ SATISFECHO | Cerrado el hueco BLOCKER de Kang+Experto; verificado en código, gate de CI y checkpoint humano |
+| VAL-02 | 08-02, 08-03 | Lista compacta por jugador, nunca paréntesis en línea | ✓ SATISFECHO | Regresión confirmada, sin cambios desde la ronda anterior |
+| VAL-03 | 08-02, 08-03 | Sin selección, render idéntico al previo | ✓ SATISFECHO | Regresión confirmada |
+| VAL-04 | 08-01, 08-04 | `text`/`speech` sin tocar, valor añadido solo en render | ✓ SATISFECHO | Comparación id-a-id independiente contra `bcbe00c`: 0 diferencias en 32 ids |
+| VAL-05 | 08-01, 08-03, 08-04 | Clips de audio pregenerados válidos, gate de deriva verde | ✓ SATISFECHO | 35=35 clips/manifiesto, gate verde; cifra «37» del ROADMAP confirmada como discrepancia documental preexistente, no regresión |
+| VAL-06 | 08-01, 08-03, 08-04 | Locución sigue diciendo la frase genérica, sin número | ✓ SATISFECHO | Garantía estructural: ids de audio ligados al id de paso, `speech` sin tocar (VAL-04) |
 
-Criterion 1 (villain-health parenthesis) is where the phase's own difficulty-aware design
-collides with content sequencing that predates this phase: `setup.escenario.02` (the step
-this phase marked with `value: "villainHealth"`) is read by the group before
-`setup.escenario.04` swaps in the Expert-mode villain cards. For Kang — the one villain of
-the three shipped with a distinct Expert stage-I figure — the parenthesised number in Expert
-mode (45 at 3 players) contradicts the card physically in the group's hands at that point (36
-at 3 players), and nothing downstream tells the group to re-adjust the dial after the .04
-swap. This was independently reproduced by tracing `engine/counters.ts:34`'s difficulty
-branch against the real step order and the real catalogue figures — it is not speculative.
+Sin requisitos huérfanos: `REQUIREMENTS.md` solo mapea VAL-01 a VAL-06 a la Fase 8, y los seis
+aparecen en el frontmatter `requirements` de al menos un plan (08-01 a 08-04).
 
-Per CLAUDE.md's explicit, non-negotiable constraint ("un asistente que guía mal es peor que no
-tener asistente"), a feature whose entire purpose is to tell the group the number printed on
-their card must not print a different number than the card in a real, reachable game state.
-This is classified as a BLOCKER rather than a warning, even though it affects only one villain
-in one difficulty mode, because the failure mode is exactly the one the project's rules-fidelity
-constraint exists to prevent, and it is trivially reachable by any group that plays Kang on
-Expert (a normal, supported combination — Expert difficulty and Kang are both fully shipped
-features, not edge/unsupported configurations).
+### Antipatrones encontrados
 
-**Suggested fix paths** (from the independently-confirmed code review, not altered here):
-content-only — either resequence `setup.escenario` so the difficulty-card swap (today's `.04`)
-runs before the dial step (today's `.02`), or give the dial step an explicit `expert`-difficulty
-text variant that does not state a number contradicting the as-yet-unswapped card. Either fix
-stays inside the content layer and does not require touching `engine/stepValues.ts` or any
-already-shipped test.
+No se encuentran marcadores `TODO`/`FIXME`/`HACK`/`TBD`/`XXX`/placeholder en los ficheros
+modificados por el plan 08-04 (`content/marvel-champions.json`,
+`engine/__tests__/content.test.ts`).
 
-If the project owner judges this specific combination (Kang + Expert) an acceptable, documented
-edge case rather than a blocker — for instance, if a future phase or quick-fix is already
-planned to resequence the scenario steps — this gap can be closed with an override in this
-file's frontmatter rather than a new closure plan.
+El `08-REVIEW.md` de esta ronda (revisión independiente de código, no repetida aquí en su
+totalidad) confirma que **CR-01 de la ronda anterior queda cerrado** con evidencia mecánica, y
+añade tres hallazgos nuevos que se dejan documentados para trazabilidad pero que **no bloquean
+el objetivo de esta fase**:
+
+- **CR-01 (nuevo numerado en esta ronda): `/constructor` da 500 en producción** —
+  preexistente (`app/composables/useGameContent.ts`/`useCharacterCatalogue.ts`, objeto literal
+  sin `Object.create(null)`), no introducido por ningún plan de la Fase 8, y ninguno de esos
+  ficheros está en `files_modified` de 08-01 a 08-04. Fuera de alcance de esta verificación de
+  fase; requiere su propio quick-fix.
+- **CR-02: `optionsWarningDetail` muerto en `engine/resolve.ts`** — confirmado preexistente
+  (viene de la quick `260831-fkb`, antes de la Fase 8); `engine/resolve.ts` no está en
+  `files_modified` de ningún plan 08-0x. Fuera de alcance.
+- **CR-03: instrucción de sustitución de cartas Experto incondicional para villanos sin
+  cifras Experto** — juzgado arriba en la sección dedicada. Veredicto: fuera de alcance de la
+  Fase 8, defecto real que requiere plan propio.
+
+Las advertencias WR-01 a WR-08 (guarda de array en `catalogue.villains`/`.heroes`, invalidación
+de `context.counters` al saltar `contentVersion`, `StepValueKind` triplicado sin enlace de
+compilación, presupuesto de 90 caracteres sin contar el sufijo, cobertura de test de la costura
+reactiva, `overflow-y-auto`+`items-center`, batería defensiva que no afirma el valor devuelto)
+son hallazgos de robustez/cobertura de test, no fallos funcionales observados en las
+combinaciones reales verificadas; no bloquean el objetivo de la fase pero quedan registradas en
+`08-REVIEW.md` para que no se pierdan.
+
+### Verificación humana requerida
+
+Ninguna pendiente. El checkpoint bloqueante de la Task 3 del plan 08-04 ya se ejecutó y fue
+aprobado explícitamente por el humano ("aprobado"), cubriendo exactamente la combinación que
+dejó abierto el hueco de la ronda anterior (Kang + Experto) además de Kang + Normal como
+contraste. Esa aprobación es genuina y no necesita repetirse.
+
+### Resumen de hallazgos
+
+El único hueco BLOCKER de la ronda anterior — la cifra de vida del villano en Experto+Kang
+contradiciendo la carta física en el momento en que se lee — queda cerrado con evidencia
+mecánica (reordenación confirmada por lectura directa del contenido, gate de CI que impide la
+regresión, `npm test` 567/567) y humana (checkpoint aprobado explícitamente sobre la
+combinación exacta que antes fallaba). Las cinco verdades observables de la Fase 8 (VAL-01 a
+VAL-06) se sostienen todas bajo reverificación directa contra el código, no solo contra la
+narrativa del SUMMARY.
+
+Un hallazgo nuevo de esta ronda (CR-03) queda documentado, comprobado de forma independiente y
+enrutado explícitamente fuera del alcance de la Fase 8: el texto incondicional de la variante
+Experto de `setup.escenario.04` ordena sustituir cartas de villano numeradas que no existen
+para Rhino y Ultron. Es un defecto de fidelidad de reglas real y preexistente (autorado en la
+Fase 1), no introducido ni agravado por la reordenación de esta fase, y no afecta la corrección
+de la cifra que la Fase 8 muestra en pantalla (VAL-01) para ningún villano. Se recomienda abrir
+un plan de cierre de hueco o quick-fix dedicado para condicionar ese texto al dato real del
+catálogo (`stage.expert` presente), en línea con la corrección sugerida por `08-REVIEW.md`, y
+que un humano decida si se prioriza antes de continuar con la Fase 9.
+
+---
+
+*Verificado: 2026-09-09T17:05:00Z*
+*Verificador: Claude (gsd-verifier)*

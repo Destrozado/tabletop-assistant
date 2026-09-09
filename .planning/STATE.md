@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
-status: executing
-stopped_at: Plan 08-04 completado (checkpoint humano aprobado) — pendiente reverificación de la Fase 08
-last_updated: "2026-09-09T14:45:00.000Z"
+status: ready_to_plan
+stopped_at: Phase 08 complete (4/4) — ready to discuss Phase 9
+last_updated: 2026-09-09T15:02:50.411Z
 last_activity: 2026-09-09 -- Plan 08-04 complete (cierre de hueco CR-01/VAL-01)
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 28
   completed_plans: 28
-  percent: 50
+  percent: 67
 ---
 
 # Project State
@@ -21,20 +21,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-28)
 
 **Core value:** Que un grupo pueda jugar una partida completa de Marvel Champions de principio a fin sin abrir el reglamento y sin olvidarse de ningún paso.
-**Current focus:** Phase 08 — valores-conocidos-dentro-del-paso
+**Current focus:** Phase 9 — histórico y estadísticas
 
 ## Current Position
 
-Phase: 08 (valores-conocidos-dentro-del-paso) — EXECUTING
-Plan: 4 of 4
-Status: Plans complete — awaiting phase re-verification
-Last activity: 2026-09-09 -- Plan 08-04 complete (cierre de hueco CR-01/VAL-01)
+Phase: 9
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-09
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 35
+- Total plans completed: 39
 - Average duration: — min
 - Total execution time: 0 hours
 
@@ -47,6 +47,7 @@ Last activity: 2026-09-09 -- Plan 08-04 complete (cierre de hueco CR-01/VAL-01)
 | 03 | 5 | - | - |
 | 05 | 6 | - | - |
 | 07 | 11 | - | - |
+| 08 | 4 | - | - |
 
 **Recent Trend:**
 
