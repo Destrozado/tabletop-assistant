@@ -60,6 +60,17 @@
 - [x] **VAL-05**: Los 37 clips de audio pregenerados siguen siendo válidos y el gate de deriva de voz sigue en verde sin regenerar ni un clip
 - [x] **VAL-06**: La locución sigue diciendo la frase genérica, sin el número
 
+> **Nota de cierre de hueco (VAL-01), plan 08-04:** el checkpoint humano del plan 08-03 verificó
+> Rhino en Normal y marcó VAL-01 como satisfecho sin haber ejercitado nunca la combinación
+> Kang + Experto — la única en la que la cifra podía discrepar (`08-VERIFICATION.md`, gap
+> BLOCKER). El plan 08-04 reordenó `setup.escenario` para que la sustitución de cartas por
+> dificultad preceda al paso del dial, añadió un gate de CI que impide que ese orden vuelva a
+> romperse, y un checkpoint humano nuevo confirmó Kang + Experto (45) y Kang + Normal (36) con
+> el orden correcto. VAL-01 queda satisfecho de verdad, no solo marcado. El recuento de «37
+> clips» en VAL-05 es una cifra heredada de un ROADMAP ya erróneo (el recuento real en disco es
+> 35; ver nota en `STATE.md`, plan 08-03) — no se corrige aquí por quedar fuera del alcance del
+> plan 08-04.
+
 ### HIST — Histórico de partidas
 
 - [ ] **HIST-01**: Al pulsar «Partida terminada» la app ofrece registrar el resultado
