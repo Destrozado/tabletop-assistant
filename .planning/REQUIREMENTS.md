@@ -56,9 +56,9 @@
 - [ ] **VAL-01**: Un paso que cita un valor único y conocido lo muestra entre paréntesis, p. ej. «Ajustad el dial de vida del villano al valor indicado (14)»
 - [ ] **VAL-02**: Un paso cuyo valor difiere por jugador (vida inicial de identidad, tamaño de mano) muestra bajo el texto una lista compacta «Jugador N · Héroe → número», nunca un paréntesis con todos los valores en línea
 - [ ] **VAL-03**: Si el valor no se conoce (sin selección), el paso se muestra exactamente como hoy, sin hueco ni marcador
-- [ ] **VAL-04**: Ni el texto almacenado en `content/marvel-champions.json` ni el campo `speech` cambian — el valor se añade en el renderizado
-- [ ] **VAL-05**: Los 37 clips de audio pregenerados siguen siendo válidos y el gate de deriva de voz sigue en verde sin regenerar ni un clip
-- [ ] **VAL-06**: La locución sigue diciendo la frase genérica, sin el número
+- [x] **VAL-04**: Ni el texto almacenado en `content/marvel-champions.json` ni el campo `speech` cambian — el valor se añade en el renderizado
+- [x] **VAL-05**: Los 37 clips de audio pregenerados siguen siendo válidos y el gate de deriva de voz sigue en verde sin regenerar ni un clip
+- [x] **VAL-06**: La locución sigue diciendo la frase genérica, sin el número
 
 ### HIST — Histórico de partidas
 
