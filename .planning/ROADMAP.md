@@ -161,7 +161,7 @@ Plans:
 **Plans**: 3 plans (3 olas secuenciales: dato → motor → pantalla)
 
 - [x] 08-01-PLAN.md — Contrato del dato: clave `value` en `engine/schema.ts` y `engine/types.ts`, y las cuatro marcas de D-03 en el contenido sin tocar `text` ni `speech`
-- [ ] 08-02-PLAN.md — `engine/stepValues.ts`: resolutor puro que reutiliza `engine/counters.ts` y nunca lee el contador congelado (D-13), con su suite propia
+- [x] 08-02-PLAN.md — `engine/stepValues.ts`: resolutor puro que reutiliza `engine/counters.ts` y nunca lee el contador congelado (D-13), con su suite propia
 - [ ] 08-03-PLAN.md — Costura en `useGameSession.ts` y las dos superficies de `StepScreen.vue` (paréntesis y lista por jugador), más la verificación de VAL-04/05/06
 
 **Verificación humana**: No bloqueante para dispositivo — el criterio decisivo (VAL-04/VAL-05) es mecánico y lo verifica `npm test`, no un humano en una tablet. Sí conviene una lectura humana rápida de que el paréntesis/lista queda legible en pantalla, pero no requiere la tablet objetivo.
@@ -224,7 +224,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 5. Catálogo de héroes y villanos | v1.8 | 6/6 | Complete   | 2026-09-07 |
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
-| 8. Valores conocidos dentro del paso | v1.8 | 1/3 | In Progress|  |
+| 8. Valores conocidos dentro del paso | v1.8 | 2/3 | In Progress|  |
 | 9. Histórico y estadísticas | v1.8 | 0/TBD | Not started | - |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 
