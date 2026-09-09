@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
-status: ready_to_plan
-stopped_at: Phase 08 complete (4/4) — ready to discuss Phase 9
-last_updated: 2026-09-09T15:02:50.411Z
-last_activity: 2026-09-09 -- Plan 08-04 complete (cierre de hueco CR-01/VAL-01)
+status: planning
+stopped_at: Phase 9 context gathered
+last_updated: "2026-09-09T17:07:33.028Z"
+last_activity: 2026-09-09
 progress:
   total_phases: 6
   completed_phases: 4
@@ -161,6 +161,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-09T10:48:24.974Z
-Stopped at: Phase 08 completada (planes 08-01, 08-02, 08-03) — checkpoint humano de la Task 3 aprobado
-Resume file: None
+Last session: 2026-09-09T17:07:33.014Z
+Stopped at: Phase 9 context gathered
+Resume file: .planning/phases/09-hist-rico-y-estad-sticas/09-CONTEXT.md
