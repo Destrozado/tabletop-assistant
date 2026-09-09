@@ -158,11 +158,12 @@ Plans:
   4. `git diff` sobre `content/marvel-champions.json` no toca ni un carácter de ningún campo `text` ni `speech` de ningún paso — el valor se añade solo en el renderizado.
   5. Tras el cambio, `npm test` sigue en verde con los 37 clips de audio pregenerados intactos y el gate de deriva de voz (`engine/__tests__/voice-drift.test.ts`) sin pedir regenerar ni un clip, y la locución de esos pasos sigue diciendo la frase genérica, sin el número.
 
-**Plans**: 3 plans (3 olas secuenciales: dato → motor → pantalla)
+**Plans**: 4 plans (4 olas secuenciales: dato → motor → pantalla → cierre de hueco)
 
 - [x] 08-01-PLAN.md — Contrato del dato: clave `value` en `engine/schema.ts` y `engine/types.ts`, y las cuatro marcas de D-03 en el contenido sin tocar `text` ni `speech`
 - [x] 08-02-PLAN.md — `engine/stepValues.ts`: resolutor puro que reutiliza `engine/counters.ts` y nunca lee el contador congelado (D-13), con su suite propia
 - [x] 08-03-PLAN.md — Costura en `useGameSession.ts` y las dos superficies de `StepScreen.vue` (paréntesis y lista por jugador), más la verificación de VAL-04/05/06
+- [ ] 08-04-PLAN.md — Cierre del hueco de `08-VERIFICATION.md` (CR-01): recolocar el paso de sustitución de cartas por dificultad delante del paso del dial, sin renumerar ids ni regenerar clips, más el gate de orden en CI
 
 **Verificación humana**: No bloqueante para dispositivo — el criterio decisivo (VAL-04/VAL-05) es mecánico y lo verifica `npm test`, no un humano en una tablet. Sí conviene una lectura humana rápida de que el paréntesis/lista queda legible en pantalla, pero no requiere la tablet objetivo.
 
