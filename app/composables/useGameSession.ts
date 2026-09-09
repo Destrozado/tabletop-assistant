@@ -24,6 +24,7 @@ import {
   setPlayerName as engineSetPlayerName,
   setVillain as engineSetVillain,
 } from '~~/engine/selection'
+import { resolveStepValue, resolveStepValueRows, type StepValueRow } from '~~/engine/stepValues'
 import type { CounterState, EngineSession, RuntimeStepNode, SessionContext, TextBlock } from '~~/engine/types'
 import { useCharacterCatalogue } from './useCharacterCatalogue'
 import { useGameContent } from './useGameContent'
@@ -34,6 +35,17 @@ export interface CounterCell {
   label: string
   displayValue: string
   defeated: boolean
+}
+
+// StepValueCell (Fase 8, D-09): forma que StepScreen.vue recibe para la
+// lista por jugador — hermana de CounterCell, pero sin `displayValue`
+// (string) ni `defeated`: esta lista no es pulsable y su valor siempre es
+// un número conocido (D-14 descarta la fila entera cuando no lo es, nunca
+// emite un marcador).
+export interface StepValueCell {
+  key: string
+  label: string
+  value: number
 }
 
 // D-16: literal ÚNICO de toda la app para el sufijo de héroe derrotado —
@@ -79,6 +91,35 @@ export function buildCounterCells(
   })
 
   return [villainCell, ...heroCells]
+}
+
+// buildStepValueSuffix (D-08, VAL-01/VAL-03): el sufijo que se interpola
+// DENTRO del mismo `<p>` de la frase grande, nunca en un bloque propio —
+// `' (42)'`, un espacio inicial y paréntesis normales, sin espacios dentro.
+// `null` ante cualquier cosa que no sea un número finito (incluidos `null`,
+// `undefined` y `NaN`): es lo que hace que D-15 sea mecánico, sin selección
+// el `<p>` interpola `null ?? ''` y el texto renderizado queda idéntico al
+// de antes de esta fase, carácter por carácter.
+export function buildStepValueSuffix(value: number | null): string | null {
+  return Number.isFinite(value) ? ` (${value})` : null
+}
+
+// buildStepValueCells (D-09/D-14): mapea cada fila ya resuelta por
+// `engine/stepValues.ts` a la celda que StepScreen.vue pinta. Misma
+// etiqueta de jugador que `buildCounterCells` de arriba (`resolvePlayerLabel`)
+// y el mismo glifo separador ` · ` que ya usa `DEFEATED_SUFFIX` en este
+// fichero. NO introduce ningún marcador de ausencia: D-14 ya filtra en el
+// motor las filas sin valor conocido, así que aquí no puede llegar ninguna
+// (ese marcador es de la banda de contadores, superficie distinta). NO trunca
+// la etiqueta en JS — el truncado es de CSS (`truncate`) en el componente.
+// La clave `valor-{slot}` es deliberadamente distinta de `jugador-{i}`
+// porque estas filas no son pulsables y su clave no viaja en ningún evento.
+export function buildStepValueCells(rows: StepValueRow[]): StepValueCell[] {
+  return rows.map(row => ({
+    key: `valor-${row.slot}`,
+    label: `${resolvePlayerLabel(row.slot, row.playerName)} · ${row.heroName}`,
+    value: row.value,
+  }))
 }
 
 export function useGameSession() {
@@ -218,6 +259,30 @@ export function useGameSession() {
     return buildCounterCells(values, slots)
   })
 
+  // stepValueSuffix/stepValueRows (D-08/D-09/D-14/D-15, Fase 8): la costura
+  // reactiva que expone `engine/stepValues.ts` a la pantalla. Ambas leen
+  // `currentNode.value?.step.value` y NO comparan contra ningún id de paso:
+  // la decisión de qué se pinta vive en el dato (D-01/TECH-04), igual que
+  // `showsSelectionGrid`. D-08: el sufijo se interpola dentro de la frase
+  // grande, no es un bloque propio. D-14/D-15: fila a fila; sin ninguna
+  // fila conocida, `null` — no un array vacío — porque `null` es lo que
+  // hace que el bloque de lista no exista en el DOM, igual que el valor
+  // por defecto de `selectionRows` en StepScreen.vue.
+  const stepValueSuffix = computed<string | null>(() => {
+    if (!session.value) return null
+    const catalogue = getCatalogue(session.value.gameId)
+    const value = resolveStepValue(currentNode.value?.step.value, session.value.context, catalogue)
+    return buildStepValueSuffix(value)
+  })
+
+  const stepValueRows = computed<StepValueCell[] | null>(() => {
+    if (!session.value) return null
+    const catalogue = getCatalogue(session.value.gameId)
+    const rows = resolveStepValueRows(currentNode.value?.step.value, session.value.context, catalogue)
+    const cells = buildStepValueCells(rows)
+    return cells.length ? cells : null
+  })
+
   // incrementCounter/decrementCounter (D-20/HP-08): el formato de clave
   // ('villano' | 'jugador-{índice base 0}') vive solo aquí, que es también
   // quien lo produce en `buildCounterCells`; `index.vue` no debe conocerlo.
@@ -273,6 +338,8 @@ export function useGameSession() {
     setPlayerName,
     showsCounterBand,
     counterCells,
+    stepValueSuffix,
+    stepValueRows,
     incrementCounter,
     decrementCounter,
   }
