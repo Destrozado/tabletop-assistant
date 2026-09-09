@@ -534,8 +534,8 @@ describe('content/marvel-champions.json', () => {
         expect(step.warningDetail).toMatch(/aturdido|confundido/i)
       })
 
-      it('contentVersion es exactamente 13 (PERS-03)', () => {
-        expect(marvelChampions.contentVersion).toBe(13)
+      it('contentVersion es exactamente 14 (PERS-03)', () => {
+        expect(marvelChampions.contentVersion).toBe(14)
       })
 
       it('la citation.section de ronda.jugadores.01 casa con /Player Turn \\(p\\. 34\\)/', () => {
