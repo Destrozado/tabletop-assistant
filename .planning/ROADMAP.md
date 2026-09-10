@@ -181,8 +181,8 @@ Plans:
   5. La pantalla de estadísticas lee exclusivamente localStorage — verificable en esta fase de forma trivial, porque Firestore ni siquiera existe todavía en el código en este punto del hito.
 
 **Plans**: 8 plans (5 olas)
-- [ ] 09-01-PLAN.md — Motor: tipos aditivos del histórico, `buildHistoryEntry` y formateadores puros (ola 1)
-- [ ] 09-02-PLAN.md — `GameOutcomeDialog` y el aviso de guardado montado en `app.vue` (ola 1)
+- [x] 09-01-PLAN.md — Motor: tipos aditivos del histórico, `buildHistoryEntry` y formateadores puros (ola 1)
+- [x] 09-02-PLAN.md — `GameOutcomeDialog` y el aviso de guardado montado en `app.vue` (ola 1)
 - [ ] 09-03-PLAN.md — Motor: `aggregateStatistics` con la cascada de orden de D-24 (ola 2)
 - [ ] 09-04-PLAN.md — Costura de almacenamiento: clave `tga:history` y escritura que informa de fallo (ola 2)
 - [ ] 09-05-PLAN.md — Costura reactiva `useGameHistory` con las vistas ya formateadas (ola 3)
@@ -234,7 +234,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
-| 9. Histórico y estadísticas | v1.8 | 0/TBD | Not started | - |
+| 9. Histórico y estadísticas | v1.8 | 2/8 | In Progress|  |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 
 ---
