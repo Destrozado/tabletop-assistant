@@ -13,12 +13,27 @@
 // de alias viven en `app/data/`, fuera del alcance de `engine/`) y leer el
 // reloj real, invocado aquí y solo aquí — el motor lo recibe siempre
 // inyectado como argumento.
-import { buildHistoryEntry } from '~~/engine/history'
+import { computed, ref } from 'vue'
+import {
+  buildHistoryEntry,
+  describeLossCause,
+  formatEntryDate,
+  formatEntryDuration,
+  sortEntriesByRecency,
+} from '~~/engine/history'
 import type { FrozenNames } from '~~/engine/history'
 import { resolvePlayerSlots, resolveVillainId } from '~~/engine/selection'
-import type { CharacterCatalogue, EngineSession, GameOutcome, SessionContext } from '~~/engine/types'
+import { aggregateStatistics } from '~~/engine/statistics'
+import type { StatRow, StatisticsSummary } from '~~/engine/statistics'
+import type {
+  CharacterCatalogue,
+  EngineSession,
+  GameHistoryEntry,
+  GameOutcome,
+  SessionContext,
+} from '~~/engine/types'
 import { useCharacterCatalogue } from './useCharacterCatalogue'
-import { resolveHeroSpanishName } from './useHeroSearch'
+import { resolveHeroSpanishName, resolvePlayerLabel } from './useHeroSearch'
 import { usePersistedSession } from './usePersistedSession'
 
 // resolveFrozenNames: responde a la Open Question 2 de 09-RESEARCH.md — el
@@ -54,9 +69,132 @@ export function resolveFrozenNames(
   return { villainName, heroNames }
 }
 
+// Modelo de vista de una tarjeta del histórico (UI-SPEC §4): cada campo es
+// una cadena ya formateada o `null` — el componente que la pinte no compone
+// ni interpola nada, solo renderiza.
+export interface HistoryCardView {
+  id: string
+  resultLabel: string
+  dateLabel: string
+  causeLabel: string | null
+  contextLine: string
+  playerLines: string[] | null
+  noSelectionLine: string | null
+  roundAndDurationLine: string
+  deleteAriaLabel: string
+  confirmTitle: string
+  confirmBody: string
+}
+
+// buildHistoryCardView: función PURA, sin Vue, calcada del patrón de
+// `buildCounterCells`/`buildStepValueCells` en `useGameSession.ts` — produce
+// exactamente el modelo de vista que el componente de la Fase 9-06 pinta.
+export function buildHistoryCardView(entry: GameHistoryEntry): HistoryCardView {
+  const dateLabel = formatEntryDate(entry.recordedAt)
+  const difficultyLabel = entry.difficulty === 'expert' ? 'Experto' : 'Normal'
+  const resultLabel = entry.result === 'won' ? 'GANADA' : 'PERDIDA'
+  const causeLabel = entry.lossCause !== null ? describeLossCause(entry.lossCause) : null
+
+  // T-09-16: un `villainId`/`heroId` congelado puede quedar huérfano tras
+  // regenerar el catálogo — el nombre se congeló al registrar (D-11), y si
+  // faltara, se pinta el propio id antes que dejar un hueco. Distinto de
+  // "no había villano/héroe elegido", que es la rama de abajo.
+  const hasVillain = entry.villainId !== null
+  const villainDisplayName = hasVillain ? (entry.villainName ?? entry.villainId) : null
+  const hasAnyHero = entry.players.some(player => player.heroId !== null)
+
+  let contextLine: string
+  let playerLines: string[] | null
+  let noSelectionLine: string | null
+
+  if (hasVillain || hasAnyHero) {
+    // D-10 vs SEL-09: la ausencia de selección se dice con palabras — el
+    // glifo «—» queda reservado para una cifra que no se puede saber
+    // (duración), nunca para "no elegiste villano".
+    contextLine = `${villainDisplayName ?? 'Sin villano'} · ${difficultyLabel} · ${entry.playerCount} jug`
+    playerLines = entry.players.map((player, index) => {
+      const label = resolvePlayerLabel(index, player.playerName)
+      return player.heroId !== null ? `${label} · ${player.heroName ?? player.heroId}` : label
+    })
+    noSelectionLine = null
+  }
+  else {
+    // D-12: nunca N filas de jugador vacías. Dificultad y nº de jugadores
+    // SIEMPRE se conocen (se fijan en el mini-setup), así que se conservan
+    // en la línea de contexto aunque no hubiera nada elegido.
+    contextLine = `${difficultyLabel} · ${entry.playerCount} jug`
+    playerLines = null
+    noSelectionLine = 'Sin héroes ni villano anotados'
+  }
+
+  // D-09: siempre "hasta la ronda N", nunca "N rondas".
+  const roundAndDurationLine = `Hasta la ronda ${entry.round} · ${formatEntryDuration(entry.durationMs)}`
+
+  const villainForCopy = villainDisplayName ?? 'sin villano'
+  const deleteAriaLabel = `Borrar partida del ${dateLabel} contra ${villainForCopy}`
+  const confirmTitle = '¿Borrar esta partida del histórico?'
+  const resultado = entry.result === 'won' ? 'Ganada' : 'Perdida'
+  const confirmBody = `${resultado} del ${dateLabel} contra ${villainForCopy}. Esta acción no se puede deshacer.`
+
+  return {
+    id: entry.id,
+    resultLabel,
+    dateLabel,
+    causeLabel,
+    contextLine,
+    playerLines,
+    noSelectionLine,
+    roundAndDurationLine,
+    deleteAriaLabel,
+    confirmTitle,
+    confirmBody,
+  }
+}
+
+// Fila ya formateada de la tabla de estadísticas — el componente no vuelve
+// a componer `{wins} de {played} · {pct} %` (D-25).
+export interface StatRowView {
+  id: string
+  name: string
+  valueLabel: string
+}
+
+export interface StatisticsView {
+  heroRows: StatRowView[]
+  villainRows: StatRowView[]
+  sampleCaption: string | null
+  isEmpty: boolean
+}
+
+function toStatRowView(row: StatRow): StatRowView {
+  return {
+    id: row.id,
+    name: row.name,
+    valueLabel: `${row.wins} de ${row.played} · ${row.pct} %`,
+  }
+}
+
+// buildStatisticsView: no reordena nada — las filas llegan ya ordenadas por
+// `aggregateStatistics` (D-24). `isEmpty` es lo que impide que la pantalla
+// pinte alguna vez una tabla con cero filas o un «0 %» (STAT-05).
+export function buildStatisticsView(summary: StatisticsSummary): StatisticsView {
+  const sampleCaption = summary.totalEntries === summary.entriesWithHeroes
+    ? null
+    : `${summary.totalEntries} ${summary.totalEntries === 1 ? 'partida registrada' : 'partidas registradas'} · ${summary.entriesWithHeroes} con héroes anotados`
+
+  return {
+    heroRows: summary.heroRows.map(toStatRowView),
+    villainRows: summary.villainRows.map(toStatRowView),
+    sampleCaption,
+    isEmpty: summary.totalEntries === 0,
+  }
+}
+
 export function useGameHistory() {
   const { getCatalogue } = useCharacterCatalogue()
-  const { appendHistoryEntry } = usePersistedSession()
+  const { loadHistory, appendHistoryEntry, removeHistoryEntry } = usePersistedSession()
+
+  const entries = ref<GameHistoryEntry[]>([])
 
   // record: resuelve el catálogo, congela los nombres en esta capa (D-11) y
   // construye la entrada con el motor puro. El reloj real se lee AQUÍ y
@@ -71,7 +209,30 @@ export function useGameHistory() {
     return appendHistoryEntry(entry)
   }
 
+  // reload: HIST-07 se garantiza aquí, no se confía en el orden almacenado.
+  // Reasignación completa del ref, nunca mutación in situ (misma disciplina
+  // que el resto de composables de esta app). Se invoca desde `onMounted`
+  // en las páginas — durante el prerender no hay `localStorage`.
+  function reload(): void {
+    entries.value = sortEntriesByRecency(loadHistory())
+  }
+
+  function remove(id: string): void {
+    removeHistoryEntry(id)
+    reload()
+  }
+
+  const cardViews = computed(() => entries.value.map(buildHistoryCardView))
+  const statisticsView = computed(() => buildStatisticsView(aggregateStatistics(entries.value)))
+  const isEmpty = computed(() => entries.value.length === 0)
+
   return {
+    entries,
+    cardViews,
+    statisticsView,
+    isEmpty,
+    reload,
+    remove,
     record,
   }
 }
