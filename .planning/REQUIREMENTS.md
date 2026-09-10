@@ -73,11 +73,11 @@
 
 ### HIST — Histórico de partidas
 
-- [ ] **HIST-01**: Al pulsar «Partida terminada» la app ofrece registrar el resultado
-- [ ] **HIST-02**: Los resultados posibles son Ganada y Perdida, y siempre se puede cerrar la partida sin registrar nada
-- [ ] **HIST-03**: Si el resultado es Perdida, se puede indicar la causa: plan principal completado o todos los héroes derrotados
+- [x] **HIST-01**: Al pulsar «Partida terminada» la app ofrece registrar el resultado
+- [x] **HIST-02**: Los resultados posibles son Ganada y Perdida, y siempre se puede cerrar la partida sin registrar nada
+- [x] **HIST-03**: Si el resultado es Perdida, se puede indicar la causa: plan principal completado o todos los héroes derrotados
 - [ ] **HIST-04**: El registro guarda resultado, causa, villano, héroe y nombre de cada jugador, fecha, dificultad, nº de jugadores, duración y nº de rondas jugadas
-- [ ] **HIST-05**: El motor expone el instante de inicio de la partida y la ronda actual, para poder calcular duración y rondas sin que el usuario los teclee
+- [x] **HIST-05**: El motor expone el instante de inicio de la partida y la ronda actual, para poder calcular duración y rondas sin que el usuario los teclee
 - [x] **HIST-06**: El histórico vive en localStorage y es la fuente de verdad de la app
 - [ ] **HIST-07**: Hay una pantalla que lista las partidas registradas, de la más reciente a la más antigua
 - [ ] **HIST-08**: Una entrada del histórico se puede borrar, con confirmación previa
@@ -185,11 +185,11 @@
 | VAL-04 | Fase 8 | Satisfecho |
 | VAL-05 | Fase 8 | Satisfecho |
 | VAL-06 | Fase 8 | Satisfecho |
-| HIST-01 | Fase 9 | Pendiente |
-| HIST-02 | Fase 9 | Pendiente |
-| HIST-03 | Fase 9 | Pendiente |
+| HIST-01 | Fase 9 | Satisfecho |
+| HIST-02 | Fase 9 | Satisfecho |
+| HIST-03 | Fase 9 | Satisfecho |
 | HIST-04 | Fase 9 | Pendiente |
-| HIST-05 | Fase 9 | Pendiente |
+| HIST-05 | Fase 9 | Satisfecho |
 | HIST-06 | Fase 9 | Satisfecho |
 | HIST-07 | Fase 9 | Pendiente |
 | HIST-08 | Fase 9 | Pendiente |
