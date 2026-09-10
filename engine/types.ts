@@ -162,7 +162,54 @@ export interface SessionContext {
   // `toPersistedPosition` ya persiste `context` entero y `resume()` ya lo
   // restaura entero.
   counters?: CounterState
+  // D-07 (Fase 9): epoch ms fijado UNA SOLA VEZ en `start()` de
+  // `app/composables/useGameSession.ts`, nunca reescrito al reanudar. Campo
+  // ADITIVO, igual que `selection` (D-19 Fase 6) y `counters` (D-19 Fase 7):
+  // no bumpea `formatVersion` ni `contentVersion`, y `engine/persistence.ts`
+  // no se toca. `undefined` es el estado real de una sesión guardada por
+  // v1.7, la primera versión sin este campo (D-10).
+  startedAt?: number
   [key: string]: unknown
+}
+
+// D-06 (Fase 9): enum plano — la clave del dato NO es la etiqueta de
+// pantalla (misma disciplina que `handSizeAlterEgo`, D-07 de la Fase 8); la
+// redacción española vive en `describeLossCause` de `engine/history.ts`.
+export type LossCause = 'mainSchemeCompleted' | 'heroesEliminated'
+
+// D-01 (Fase 9): los tres únicos valores que el diálogo de fin de partida
+// puede emitir. Elegir la derrota YA elige su causa, así que no existe el
+// estado «perdida sin causa».
+export type GameOutcome = 'won' | LossCause
+
+// D-11 (Fase 9): `heroName` es el nombre CONGELADO que el grupo vio en
+// pantalla (alias español), resuelto por la capa `app/` antes de llamar al
+// motor; `null` cuando ese hueco no tenía héroe (SEL-09/D-12).
+export interface HistoryPlayerEntry {
+  heroId: string | null
+  heroName: string | null
+  playerName: string
+}
+
+// D-15 (Fase 9): la entrada completa de una partida registrada. `gameId`
+// porque hay UN SOLO histórico para toda la app (D-15); `lossCause` es
+// `null` cuando `result === 'won'` (D-06); `round` es el valor del motor
+// tal cual, se lee «hasta la ronda N», nunca `round - 1` (D-09); `durationMs`
+// es un reloj de pared sin tope, `null` cuando no se puede saber (D-08/D-10);
+// `recordedAt` es la fecha ISO del momento de registro.
+export interface GameHistoryEntry {
+  id: string
+  gameId: string
+  result: 'won' | 'lost'
+  lossCause: LossCause | null
+  villainId: string | null
+  villainName: string | null
+  players: HistoryPlayerEntry[]
+  difficulty: Difficulty
+  playerCount: number
+  round: number
+  durationMs: number | null
+  recordedAt: string
 }
 
 export interface EngineSession {
