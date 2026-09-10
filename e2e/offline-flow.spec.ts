@@ -127,4 +127,29 @@ test.describe('Flujo completo sin conexión (OFF-02, OFF-03)', () => {
     await page.goto('/marvel-champions')
     await expect(page.getByText('Nº de jugadores').or(page.getByText('Partida guardada'))).toBeVisible()
   })
+
+  // D-16/09-RESEARCH.md Pitfall 4: '/historico' y '/estadisticas' (plan 09-08)
+  // son rutas nuevas de la Fase 9 que deben quedar enumeradas en
+  // nitro.prerender.routes; si esa lista se olvida, estas dos aserciones son
+  // las que lo detectan — la ruta funcionaría en desarrollo y solo fallaría
+  // la primera vez que se abriera sin red, exactamente el fallo más caro que
+  // este pitfall documenta.
+  test('la ruta /historico se puede abrir directamente sin red (D-16/Pitfall 4)', async ({ page, context }) => {
+    await waitForServiceWorkerControl(page)
+
+    await context.setOffline(true)
+    await page.goto('/historico')
+    // El título de cabecera está siempre presente (con o sin entradas); el
+    // estado vacío añade además su propio encabezado, así que fijarse solo en
+    // el título evita una violación de "strict mode" cuando ambos coexisten.
+    await expect(page.getByRole('heading', { name: 'HISTÓRICO', exact: true })).toBeVisible()
+  })
+
+  test('la ruta /estadisticas se puede abrir directamente sin red (D-16/Pitfall 4)', async ({ page, context }) => {
+    await waitForServiceWorkerControl(page)
+
+    await context.setOffline(true)
+    await page.goto('/estadisticas')
+    await expect(page.getByRole('heading', { name: 'ESTADÍSTICAS', exact: true })).toBeVisible()
+  })
 })
