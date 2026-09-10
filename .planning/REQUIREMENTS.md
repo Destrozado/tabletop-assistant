@@ -78,17 +78,17 @@
 - [ ] **HIST-03**: Si el resultado es Perdida, se puede indicar la causa: plan principal completado o todos los héroes derrotados
 - [ ] **HIST-04**: El registro guarda resultado, causa, villano, héroe y nombre de cada jugador, fecha, dificultad, nº de jugadores, duración y nº de rondas jugadas
 - [ ] **HIST-05**: El motor expone el instante de inicio de la partida y la ronda actual, para poder calcular duración y rondas sin que el usuario los teclee
-- [ ] **HIST-06**: El histórico vive en localStorage y es la fuente de verdad de la app
+- [x] **HIST-06**: El histórico vive en localStorage y es la fuente de verdad de la app
 - [ ] **HIST-07**: Hay una pantalla que lista las partidas registradas, de la más reciente a la más antigua
 - [ ] **HIST-08**: Una entrada del histórico se puede borrar, con confirmación previa
-- [ ] **HIST-09**: «Partida terminada» borra la sesión en curso pero nunca el histórico
+- [x] **HIST-09**: «Partida terminada» borra la sesión en curso pero nunca el histórico
 
 ### STAT — Estadísticas
 
 - [ ] **STAT-01**: Hay una pantalla de estadísticas accesible desde el inicio
 - [x] **STAT-02**: Muestra el porcentaje de victorias por héroe
 - [x] **STAT-03**: Muestra el porcentaje de victorias por villano
-- [ ] **STAT-04**: La pantalla lee exclusivamente localStorage y **nunca** consulta Firestore
+- [x] **STAT-04**: La pantalla lee exclusivamente localStorage y **nunca** consulta Firestore
 - [x] **STAT-05**: Con el histórico vacío muestra un estado vacío claro, no un error ni porcentajes engañosos
 
 ### SYNC — Respaldo en Firestore
@@ -190,14 +190,14 @@
 | HIST-03 | Fase 9 | Pendiente |
 | HIST-04 | Fase 9 | Pendiente |
 | HIST-05 | Fase 9 | Pendiente |
-| HIST-06 | Fase 9 | Pendiente |
+| HIST-06 | Fase 9 | Satisfecho |
 | HIST-07 | Fase 9 | Pendiente |
 | HIST-08 | Fase 9 | Pendiente |
-| HIST-09 | Fase 9 | Pendiente |
+| HIST-09 | Fase 9 | Satisfecho |
 | STAT-01 | Fase 9 | Pendiente |
 | STAT-02 | Fase 9 | Satisfecho |
 | STAT-03 | Fase 9 | Satisfecho |
-| STAT-04 | Fase 9 | Pendiente |
+| STAT-04 | Fase 9 | Satisfecho |
 | STAT-05 | Fase 9 | Satisfecho |
 | SYNC-01 | Fase 10 | Pendiente |
 | SYNC-02 | Fase 10 | Pendiente |

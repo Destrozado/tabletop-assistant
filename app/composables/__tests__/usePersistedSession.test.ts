@@ -7,7 +7,7 @@
 // no hace falta jsdom/happy-dom ni contexto de Nuxt.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { normalizeVoicePreference, usePersistedSession } from '../usePersistedSession'
-import type { EngineSession } from '~~/engine/types'
+import type { EngineSession, GameHistoryEntry } from '~~/engine/types'
 
 function createFakeLocalStorage() {
   const store = new Map<string, string>()
@@ -30,6 +30,24 @@ function makeSession(gameId: string, round = 1): EngineSession {
     cursor: 0,
     round,
     context: { playerCount: 2, difficulty: 'normal' },
+  }
+}
+
+function makeEntry(overrides: Partial<GameHistoryEntry> = {}): GameHistoryEntry {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    gameId: 'marvel-champions',
+    result: 'won',
+    lossCause: null,
+    villainId: 'rhino',
+    villainName: 'Rhino',
+    players: [{ heroId: 'spider-man', heroName: 'Spider-Man', playerName: 'Jugador 1' }],
+    difficulty: 'normal',
+    playerCount: 1,
+    round: 5,
+    durationMs: 1_200_000,
+    recordedAt: new Date().toISOString(),
+    ...overrides,
   }
 }
 
@@ -163,5 +181,132 @@ describe('usePersistedSession — funciones con estado (WR-02: sin listeners `wi
     expect(() => save(makeSession('marvel-champions'))).not.toThrow()
     expect(() => clear('marvel-champions')).not.toThrow()
     expect(() => saveVoicePreference(false)).not.toThrow()
+  })
+})
+
+describe('tga:history — clave independiente de la partida (D-13/HIST-09)', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('HIST-09: clear(gameId) borra el progreso pero NUNCA el histórico', () => {
+    const { save, clear, load, appendHistoryEntry, loadHistory } = usePersistedSession()
+
+    save(makeSession('marvel-champions'))
+    appendHistoryEntry(makeEntry())
+
+    expect(load('marvel-champions')).not.toBeNull()
+    expect(loadHistory()).toHaveLength(1)
+
+    clear('marvel-champions')
+
+    expect(load('marvel-champions')).toBeNull()
+    expect(loadHistory()).toHaveLength(1) // sobrevive a clear() — D-13/HIST-09
+  })
+
+  it('HISTORY_KEY no comparte prefijo con KEY_PREFIX', () => {
+    const KEY_PREFIX = 'tga:progress:'
+    const HISTORY_KEY = 'tga:history'
+    expect(HISTORY_KEY.startsWith(KEY_PREFIX)).toBe(false)
+  })
+
+  it('sin dato guardado, loadHistory() devuelve []', () => {
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory()).toEqual([])
+  })
+
+  it('JSON corrupto en tga:history devuelve [] y no lanza', () => {
+    fakeStorage.setItem('tga:history', 'esto no es JSON válido {{{')
+    const { loadHistory } = usePersistedSession()
+    expect(() => loadHistory()).not.toThrow()
+    expect(loadHistory()).toEqual([])
+  })
+
+  it('un envoltorio con formatVersion: 2 devuelve [] (punto de migración de D-13)', () => {
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 2, entries: [makeEntry()] }))
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory()).toEqual([])
+  })
+
+  it('un envoltorio con tres entradas de las que una está rota devuelve exactamente las dos buenas', () => {
+    const good1 = makeEntry({ id: 'a' })
+    const good2 = makeEntry({ id: 'b' })
+    const broken = { ...makeEntry(), id: undefined } // sin id: forma inválida
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [good1, broken, good2] }))
+
+    const { loadHistory } = usePersistedSession()
+    const result = loadHistory()
+
+    expect(result).toHaveLength(2)
+    expect(result.map(e => e.id)).toEqual(['a', 'b'])
+  })
+
+  it('una entrada con result inválido se descarta sin tirar el resto', () => {
+    const good = makeEntry({ id: 'good' })
+    const brokenResult = { ...makeEntry({ id: 'bad' }), result: 'draw' }
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [good, brokenResult] }))
+
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory().map(e => e.id)).toEqual(['good'])
+  })
+
+  it('orden: dos appendHistoryEntry seguidos dejan la última entrada la primera del array', () => {
+    const { appendHistoryEntry, loadHistory } = usePersistedSession()
+    appendHistoryEntry(makeEntry({ id: 'first' }))
+    appendHistoryEntry(makeEntry({ id: 'second' }))
+
+    const result = loadHistory()
+    expect(result[0]!.id).toBe('second')
+    expect(result[1]!.id).toBe('first')
+  })
+
+  it('D-03: con un setItem que lanza (modo privado/cuota), appendHistoryEntry devuelve false y no lanza', () => {
+    fakeStorage.setItem.mockImplementation(() => {
+      throw new Error('quota')
+    })
+    const { appendHistoryEntry } = usePersistedSession()
+    let result: boolean = true
+    expect(() => {
+      result = appendHistoryEntry(makeEntry())
+    }).not.toThrow()
+    expect(result).toBe(false)
+  })
+
+  it('D-03: con el localStorage falso normal, appendHistoryEntry devuelve true', () => {
+    const { appendHistoryEntry } = usePersistedSession()
+    expect(appendHistoryEntry(makeEntry())).toBe(true)
+  })
+
+  it('removeHistoryEntry(id) deja las demás entradas intactas', () => {
+    const { appendHistoryEntry, removeHistoryEntry, loadHistory } = usePersistedSession()
+    appendHistoryEntry(makeEntry({ id: 'keep-1' }))
+    appendHistoryEntry(makeEntry({ id: 'remove-me' }))
+    appendHistoryEntry(makeEntry({ id: 'keep-2' }))
+
+    removeHistoryEntry('remove-me')
+
+    const result = loadHistory()
+    expect(result.map(e => e.id).sort()).toEqual(['keep-1', 'keep-2'])
+  })
+
+  it('removeHistoryEntry con un id inexistente no cambia nada ni lanza', () => {
+    const { appendHistoryEntry, removeHistoryEntry, loadHistory } = usePersistedSession()
+    appendHistoryEntry(makeEntry({ id: 'a' }))
+    appendHistoryEntry(makeEntry({ id: 'b' }))
+
+    expect(() => removeHistoryEntry('no-existe')).not.toThrow()
+    expect(loadHistory().map(e => e.id).sort()).toEqual(['a', 'b'])
   })
 })
