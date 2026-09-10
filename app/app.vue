@@ -22,6 +22,14 @@
       -->
       <ClientOnly>
         <UpdateBanner />
+        <!--
+          Aviso de guardado del histórico (D-03, 09-UI-SPEC.md §8): mismo
+          motivo que la banda de arriba — el aviso se dispara en `/[game]`
+          justo antes de `navigateTo('/')`, así que hace falta un punto de
+          montaje independiente de ruta para que ya se vea en la pantalla
+          de destino.
+        -->
+        <HistorySavedNotice />
       </ClientOnly>
       <NuxtPage />
     </div>
