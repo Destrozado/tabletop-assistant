@@ -777,15 +777,12 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         tocar ningún z-index (mismo apilamiento que ResumePrompt/su
         ConfirmDialog de descarte).
       -->
-      <ConfirmDialog
+      <GameOutcomeDialog
         v-if="awaitingEndConfirm"
-        title="¿Dar la partida por terminada?"
-        :body="endGameBody"
-        confirm-label="Sí, terminar"
-        cancel-label="Cancelar"
-        :destructive="true"
-        @confirm="onEndGameConfirm"
-        @cancel="onEndGameCancel"
+        :context-line="outcomeContextLine"
+        :warning-body="endGameBody"
+        @record="onOutcomeRecorded"
+        @dismiss="onOutcomeDismiss"
       />
       <WarningDetailModal
         v-if="activeDetail"
