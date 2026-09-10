@@ -180,7 +180,15 @@ Plans:
   4. Hay una pantalla de estadísticas accesible desde el inicio que muestra el % de victorias por héroe y por villano, con un estado vacío claro (no un error ni porcentajes engañosos) cuando el histórico está vacío.
   5. La pantalla de estadísticas lee exclusivamente localStorage — verificable en esta fase de forma trivial, porque Firestore ni siquiera existe todavía en el código en este punto del hito.
 
-**Plans**: TBD
+**Plans**: 8 plans (5 olas)
+- [ ] 09-01-PLAN.md — Motor: tipos aditivos del histórico, `buildHistoryEntry` y formateadores puros (ola 1)
+- [ ] 09-02-PLAN.md — `GameOutcomeDialog` y el aviso de guardado montado en `app.vue` (ola 1)
+- [ ] 09-03-PLAN.md — Motor: `aggregateStatistics` con la cascada de orden de D-24 (ola 2)
+- [ ] 09-04-PLAN.md — Costura de almacenamiento: clave `tga:history` y escritura que informa de fallo (ola 2)
+- [ ] 09-05-PLAN.md — Costura reactiva `useGameHistory` con las vistas ya formateadas (ola 3)
+- [ ] 09-06-PLAN.md — Pantallas `/historico` y `/estadisticas` con sus estados vacíos (ola 4)
+- [ ] 09-07-PLAN.md — Fin de partida: `startedAt` en `start()` y cableado del diálogo en `index.vue` (ola 4)
+- [ ] 09-08-PLAN.md — Accesos desde el inicio, prerender de las dos rutas y verificación humana (ola 5)
 **UI hint**: yes
 **Verificación humana**: Sí, recomendable pero no bloqueante por dispositivo — el flujo de fin de partida y las dos pantallas nuevas se verifican jugando una partida real de principio a fin (puede hacerse en portátil/móvil, no requiere la tablet de mesa) y comprobando que el registro y las estadísticas resultantes coinciden con lo jugado.
 
