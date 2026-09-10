@@ -122,6 +122,27 @@ export function buildStepValueCells(rows: StepValueRow[]): StepValueCell[] {
   }))
 }
 
+// withStartedAt (D-07, Fase 9): función PURA a nivel de módulo, igual estilo
+// que buildCounterCells/buildStepValueCells de arriba — se exporta para
+// poder fijarla con un test sin montar el composable. Devuelve un objeto
+// NUEVO (`{ ...context, startedAt: now }`), nunca muta su argumento.
+// `startedAt` es campo ADITIVO de `SessionContext` (ver su comentario en
+// engine/types.ts): se fija UNA sola vez aquí, dentro de `start()`, y la
+// ruta de reanudación (`resume()` en `onMounted` de
+// `app/pages/[game]/index.vue`) NUNCA lo reescribe, porque `resume()`
+// restaura el `context` persistido entero y no pasa por `start()`. Por eso
+// `engine/persistence.ts` no se toca y no se bumpea `formatVersion` ni
+// `contentVersion`. D-08: la duración que se derivará de este campo es
+// reloj de pared sin tope (`Date.now() - startedAt`), sin temporizadores ni
+// pausas — este grupo termina de una sentada lo que empieza. D-10: una
+// partida guardada por la versión desplegada de v1.7 se reanuda SIN
+// `startedAt` y eso es un estado válido: se guardará `durationMs: null` y
+// el histórico pintará «—», nunca un cero ni una cifra inventada rellenando
+// el reloj al reanudar.
+export function withStartedAt(context: SessionContext, now: number): SessionContext {
+  return { ...context, startedAt: now }
+}
+
 export function useGameSession() {
   const session = ref<EngineSession | null>(null)
   const { getCatalogue } = useCharacterCatalogue()
@@ -129,7 +150,7 @@ export function useGameSession() {
   function start(gameId: string, context: SessionContext) {
     const { getGame } = useGameContent()
     const game = getGame(gameId)
-    session.value = game ? expand(game, context) : null
+    session.value = game ? expand(game, withStartedAt(context, Date.now())) : null
   }
 
   function next() {

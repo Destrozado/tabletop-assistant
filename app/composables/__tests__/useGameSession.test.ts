@@ -6,9 +6,9 @@
 // vitest.config.ts), con los alias `~`/`~~` resueltos a mano igual que en
 // useHeroSearch.test.ts.
 import { describe, expect, it } from 'vitest'
-import { buildCounterCells, buildStepValueCells, buildStepValueSuffix } from '../useGameSession'
+import { buildCounterCells, buildStepValueCells, buildStepValueSuffix, withStartedAt } from '../useGameSession'
 import type { CounterCell } from '../useGameSession'
-import type { CounterState } from '~~/engine/types'
+import type { CounterState, SessionContext } from '~~/engine/types'
 import type { StepValueRow } from '~~/engine/stepValues'
 
 function slots(...playerNames: string[]): { heroId: string | null, playerName: string }[] {
@@ -183,5 +183,38 @@ describe('buildStepValueCells (D-09/D-14)', () => {
       expect(cell.label).not.toContain('—')
       expect(String(cell.value)).not.toContain('—')
     }
+  })
+})
+
+describe('withStartedAt (D-07)', () => {
+  it('sella startedAt con el valor recibido', () => {
+    const context: SessionContext = { playerCount: 3, difficulty: 'normal' }
+    const result = withStartedAt(context, 1234567890)
+
+    expect(result.startedAt).toBe(1234567890)
+  })
+
+  it('devuelve un objeto nuevo y no muta el original', () => {
+    const context: SessionContext = { playerCount: 3, difficulty: 'normal' }
+    const result = withStartedAt(context, 1234567890)
+
+    expect(result).not.toBe(context)
+    expect(context.startedAt).toBeUndefined()
+  })
+
+  it('conserva playerCount, difficulty y cualquier campo aditivo previo (selection, counters)', () => {
+    const context: SessionContext = {
+      playerCount: 4,
+      difficulty: 'expert',
+      selection: { villainId: 'kang', heroes: [] },
+      counters: { villainHealth: 42, heroHealth: [14] },
+    }
+    const result = withStartedAt(context, 42)
+
+    expect(result.playerCount).toBe(4)
+    expect(result.difficulty).toBe('expert')
+    expect(result.selection).toEqual(context.selection)
+    expect(result.counters).toEqual(context.counters)
+    expect(result.startedAt).toBe(42)
   })
 })

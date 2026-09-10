@@ -20,8 +20,10 @@ import { resume } from '~~/engine/persistence'
 // para que no exista una segunda copia del número que pueda desincronizarse.
 import { PLAYER_NAME_MAX_LENGTH } from '~~/engine/selection'
 import { tableOfContents } from '~~/engine/toc'
+import type { GameOutcome } from '~~/engine/types'
 import { useCharacterCatalogue } from '~/composables/useCharacterCatalogue'
 import { useGameContent } from '~/composables/useGameContent'
+import { useGameHistory } from '~/composables/useGameHistory'
 import { useGameSession } from '~/composables/useGameSession'
 import {
   buildDuplicateWarningText,
@@ -32,6 +34,7 @@ import {
   findVillainOption,
   resolvePlayerLabel,
 } from '~/composables/useHeroSearch'
+import { notifyHistorySaved } from '~/composables/useHistorySavedNotice'
 import { usePersistedSession } from '~/composables/usePersistedSession'
 import { usePreloadedAudio } from '~/composables/usePreloadedAudio'
 import { shortcutsEnabled, useStepShortcuts } from '~/composables/useStepShortcuts'
@@ -82,6 +85,11 @@ const {
 } = useGameSession()
 
 const { load, save, clear } = usePersistedSession()
+
+// Fase 9 (HIST-01/02/03): segunda costura reactiva, hermana de
+// useGameSession — solo se usa `record` aquí, en el único sitio de la app
+// donde una partida termina.
+const { record } = useGameHistory()
 
 // D-09: precarga de los 35 audios pregenerados, disparada junto al wake lock
 // en los tres puntos donde arranca una partida (ver onConfirm/
@@ -459,6 +467,21 @@ const endGameBody = computed(() =>
   `Se borrará el progreso guardado (${savedSummary.value}) y volveréis a la pantalla de inicio. Esta acción no se puede deshacer.`,
 )
 
+// outcomeContextLine (09-UI-SPEC.md §Layout 2): `{villano} · {n} jug ·
+// {dificultad} · ronda {N}` — el segmento del villano se OMITE por completo
+// cuando no hay ninguno elegido (SEL-09/D-12: elegir sigue siendo opcional
+// de principio a fin), nunca sustituido por un marcador. `sessionContextLabel`
+// ya produce `{n} jug · {dificultad}`, así que no se recompone aquí.
+const outcomeContextLine = computed(() => {
+  const villainOption = findVillainOption(villainOptions, selectedVillainId.value)
+  const parts = [
+    villainOption?.name,
+    sessionContextLabel.value,
+    session.value ? `ronda ${session.value.round}` : null,
+  ]
+  return parts.filter((part): part is string => Boolean(part)).join(' · ')
+})
+
 // D-43: «Continuar» de la reanudación locuta el paso recuperado — es un
 // toque del usuario (funciona también en iPad) y volver de un bloqueo de
 // tablet es justo cuando oír dónde ibais tiene valor.
@@ -502,19 +525,12 @@ function onEndGameRequest() {
   awaitingEndConfirm.value = true
 }
 
-function onEndGameCancel() {
-  awaitingEndConfirm.value = false
-}
-
-// D-U4: orden EXACTO, no cosmético.
-function onEndGameConfirm() {
-  awaitingEndConfirm.value = false
-  isIndexOpen.value = false
-  // Corta la locución en curso: el tryOnScopeDispose de useVoiceAnnouncer
-  // pausa el <audio> pregenerado al desmontar, pero speechSynthesis (el
-  // camino de respaldo) no se detiene solo al cambiar de ruta — sin esto la
-  // voz seguiría oyéndose ya en el selector de juego.
-  silence()
+// finishGame (D-U4): la cola de limpieza que cierra la partida, extraída del
+// antiguo onEndGameConfirm SIN cambiar ni una línea ni un comentario — los
+// tres pasos que siguen destruyen exactamente los datos que el registro del
+// histórico necesita, así que todo llamante debe invocarlos DESPUÉS de haber
+// registrado (o decidido no registrar).
+function finishGame() {
   // session.value = null ANTES de clear(gameId): el autoguardado es un
   // watchDebounced de 300ms. Si hubiera una escritura pendiente con la
   // sesión antigua, se ejecutaría DESPUÉS del borrado y resucitaría la
@@ -529,6 +545,38 @@ function onEndGameConfirm() {
   // abajo) — al contrario que onDiscardConfirm, que sí libera a mano porque
   // esa transición no desmonta la página.
   navigateTo('/')
+}
+
+// D-U4/Pitfall 1: orden EXACTO, no cosmético. El registro ocurre ENTRE
+// silence() y finishGame() — después de silence(), porque cortar la
+// locución no destruye ningún dato, y ANTES de finishGame(), porque su
+// primer paso (session.value = null) sí lo hace. record() lee
+// session.value, así que moverlo después de finishGame() produciría un
+// histórico vacío en silencio.
+function onOutcomeRecorded(outcome: GameOutcome) {
+  awaitingEndConfirm.value = false
+  isIndexOpen.value = false
+  // Corta la locución en curso: el tryOnScopeDispose de useVoiceAnnouncer
+  // pausa el <audio> pregenerado al desmontar, pero speechSynthesis (el
+  // camino de respaldo) no se detiene solo al cambiar de ruta — sin esto la
+  // voz seguiría oyéndose ya en el selector de juego.
+  silence()
+  const guardado = session.value ? record(session.value, outcome) : false
+  notifyHistorySaved(guardado)
+  finishGame()
+}
+
+// NOTA DE RECONCILIACIÓN (HIST-02): «Salir sin registrar» TERMINA la
+// partida sin escribir en el histórico; no es «cancelar y seguir jugando».
+// Lo exigen HIST-02 y el criterio de éxito nº 1 del ROADMAP («o cerrar la
+// partida sin registrar nada»), y D-01 fija exactamente cuatro opciones —
+// con este diálogo desaparece la opción «Cancelar» del ConfirmDialog
+// anterior. Es deliberado, no un olvido.
+function onOutcomeDismiss() {
+  awaitingEndConfirm.value = false
+  isIndexOpen.value = false
+  silence()
+  finishGame()
 }
 
 // D-43: mismo razonamiento que onResumeContinue — el CTA de reconocimiento
@@ -729,15 +777,12 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         tocar ningún z-index (mismo apilamiento que ResumePrompt/su
         ConfirmDialog de descarte).
       -->
-      <ConfirmDialog
+      <GameOutcomeDialog
         v-if="awaitingEndConfirm"
-        title="¿Dar la partida por terminada?"
-        :body="endGameBody"
-        confirm-label="Sí, terminar"
-        cancel-label="Cancelar"
-        :destructive="true"
-        @confirm="onEndGameConfirm"
-        @cancel="onEndGameCancel"
+        :context-line="outcomeContextLine"
+        :warning-body="endGameBody"
+        @record="onOutcomeRecorded"
+        @dismiss="onOutcomeDismiss"
       />
       <WarningDetailModal
         v-if="activeDetail"
