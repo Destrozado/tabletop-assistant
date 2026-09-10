@@ -86,10 +86,10 @@
 ### STAT — Estadísticas
 
 - [ ] **STAT-01**: Hay una pantalla de estadísticas accesible desde el inicio
-- [ ] **STAT-02**: Muestra el porcentaje de victorias por héroe
-- [ ] **STAT-03**: Muestra el porcentaje de victorias por villano
+- [x] **STAT-02**: Muestra el porcentaje de victorias por héroe
+- [x] **STAT-03**: Muestra el porcentaje de victorias por villano
 - [ ] **STAT-04**: La pantalla lee exclusivamente localStorage y **nunca** consulta Firestore
-- [ ] **STAT-05**: Con el histórico vacío muestra un estado vacío claro, no un error ni porcentajes engañosos
+- [x] **STAT-05**: Con el histórico vacío muestra un estado vacío claro, no un error ni porcentajes engañosos
 
 ### SYNC — Respaldo en Firestore
 
@@ -195,10 +195,10 @@
 | HIST-08 | Fase 9 | Pendiente |
 | HIST-09 | Fase 9 | Pendiente |
 | STAT-01 | Fase 9 | Pendiente |
-| STAT-02 | Fase 9 | Pendiente |
-| STAT-03 | Fase 9 | Pendiente |
+| STAT-02 | Fase 9 | Satisfecho |
+| STAT-03 | Fase 9 | Satisfecho |
 | STAT-04 | Fase 9 | Pendiente |
-| STAT-05 | Fase 9 | Pendiente |
+| STAT-05 | Fase 9 | Satisfecho |
 | SYNC-01 | Fase 10 | Pendiente |
 | SYNC-02 | Fase 10 | Pendiente |
 | SYNC-03 | Fase 10 | Pendiente |
