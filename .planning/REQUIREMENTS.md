@@ -79,8 +79,8 @@
 - [ ] **HIST-04**: El registro guarda resultado, causa, villano, héroe y nombre de cada jugador, fecha, dificultad, nº de jugadores, duración y nº de rondas jugadas
 - [ ] **HIST-05**: El motor expone el instante de inicio de la partida y la ronda actual, para poder calcular duración y rondas sin que el usuario los teclee
 - [x] **HIST-06**: El histórico vive en localStorage y es la fuente de verdad de la app
-- [ ] **HIST-07**: Hay una pantalla que lista las partidas registradas, de la más reciente a la más antigua
-- [ ] **HIST-08**: Una entrada del histórico se puede borrar, con confirmación previa
+- [x] **HIST-07**: Hay una pantalla que lista las partidas registradas, de la más reciente a la más antigua
+- [x] **HIST-08**: Una entrada del histórico se puede borrar, con confirmación previa
 - [x] **HIST-09**: «Partida terminada» borra la sesión en curso pero nunca el histórico
 
 ### STAT — Estadísticas
@@ -191,8 +191,8 @@
 | HIST-04 | Fase 9 | Pendiente |
 | HIST-05 | Fase 9 | Pendiente |
 | HIST-06 | Fase 9 | Satisfecho |
-| HIST-07 | Fase 9 | Pendiente |
-| HIST-08 | Fase 9 | Pendiente |
+| HIST-07 | Fase 9 | Satisfecho |
+| HIST-08 | Fase 9 | Satisfecho |
 | HIST-09 | Fase 9 | Satisfecho |
 | STAT-01 | Fase 9 | Pendiente |
 | STAT-02 | Fase 9 | Satisfecho |
