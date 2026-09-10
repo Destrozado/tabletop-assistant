@@ -665,7 +665,10 @@ extiende. `engine/persistence.ts` permanece sin cambios (D-07 lo confirma explí
 `09-CONTEXT.md` — ambas son huecos de implementación que el propio CONTEXT.md ya marcó
 como "Claude's Discretion" o dejó abiertos a la fase de planificación.
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> Ambas preguntas quedaron cerradas durante `/gsd:plan-phase 9`. Se conservan
+> aquí con su resolución para que el razonamiento no se pierda.
 
 1. **¿`appendHistoryEntry` compara antes/después de `readRaw` o cambia la firma interna de
    `writeRaw` para propagar el resultado del `try`?**
@@ -673,6 +676,11 @@ como "Claude's Discretion" o dejó abiertos a la fase de planificación.
    - What's unclear: el mecanismo interno exacto de detección.
    - Recommendation: el planner elige uno de los dos y lo cubre con un test que mockea
      `window.localStorage.setItem` lanzando una excepción (simulando modo privado/cuota).
+   - **RESOLVED (09-04-PLAN.md, Task 1):** se cambia la firma interna de `writeRaw` a
+     `(key, value) => boolean` y `appendHistoryEntry` propaga ese booleano. Se descarta
+     comparar `readRaw` antes/después: da un falso negativo cuando el contenido escrito
+     coincide con el anterior y obliga a un parseo extra. Cubierto por un test que mockea
+     `setItem` lanzando («quota»).
 
 2. **¿Dónde vive exactamente la resolución del alias español (`heroName` congelado) —
    dentro de `engine/history.ts` recibiéndolo como parámetro, o en la capa de composable
@@ -685,6 +693,11 @@ como "Claude's Discretion" o dejó abiertos a la fase de planificación.
    - Recommendation: el planner decide la firma exacta al escribir el primer test de
      `engine/__tests__/history.test.ts` — cualquiera de las dos formas satisface HIST-04
      sin romper la frontera engine/app.
+   - **RESOLVED (09-01-PLAN.md + 09-05-PLAN.md):** la resolución vive en
+     `app/composables/useGameHistory.ts` mediante `resolveFrozenNames(context, catalogue)`,
+     que llega al motor como dato plano `FrozenNames { villainName, heroNames }`, cuarto
+     argumento de `buildHistoryEntry(session, outcome, now, names)`. `engine/` nunca importa
+     `app/data/spanish-hero-aliases.ts`.
 
 ## Environment Availability
 
