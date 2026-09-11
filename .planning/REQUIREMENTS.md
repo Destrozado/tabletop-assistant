@@ -85,7 +85,7 @@
 
 ### STAT — Estadísticas
 
-- [ ] **STAT-01**: Hay una pantalla de estadísticas accesible desde el inicio
+- [x] **STAT-01**: Hay una pantalla de estadísticas accesible desde el inicio
 - [x] **STAT-02**: Muestra el porcentaje de victorias por héroe
 - [x] **STAT-03**: Muestra el porcentaje de victorias por villano
 - [x] **STAT-04**: La pantalla lee exclusivamente localStorage y **nunca** consulta Firestore
@@ -194,7 +194,7 @@
 | HIST-07 | Fase 9 | Satisfecho |
 | HIST-08 | Fase 9 | Satisfecho |
 | HIST-09 | Fase 9 | Satisfecho |
-| STAT-01 | Fase 9 | Pendiente |
+| STAT-01 | Fase 9 | Satisfecho |
 | STAT-02 | Fase 9 | Satisfecho |
 | STAT-03 | Fase 9 | Satisfecho |
 | STAT-04 | Fase 9 | Satisfecho |
