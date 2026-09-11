@@ -4,13 +4,13 @@ milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
 status: executing
 stopped_at: Phase 9 UI-SPEC approved
-last_updated: "2026-09-10T09:32:41.923Z"
-last_activity: 2026-09-10 -- Phase 09 execution started
+last_updated: "2026-09-11T20:14:03.450Z"
+last_activity: 2026-09-11 -- Phase 09 planning complete
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 36
-  completed_plans: 28
+  total_plans: 39
+  completed_plans: 36
   percent: 67
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 09 (hist-rico-y-estad-sticas) — EXECUTING
-Plan: 1 of 8
-Status: Executing Phase 09
-Last activity: 2026-09-10 -- Phase 09 execution started
+Plan: 9 of 11 (8 ejecutados; 09-09..09-11 son cierre de huecos)
+Status: Ready to execute
+Last activity: 2026-09-11 -- Phase 09 planning complete
 
 ## Performance Metrics
 
