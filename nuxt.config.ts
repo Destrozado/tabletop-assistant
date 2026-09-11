@@ -56,8 +56,13 @@ export default defineNuxtConfig({
       // navegación entre pantallas usa navigateTo() en un manejador de click,
       // no un <NuxtLink> con href real en el HTML — el crawler no lo
       // descubriría solo, así que cada ruta prerenderizable se enumera aquí.
+      // D-16/09-RESEARCH.md Pitfall 4: el histórico y las estadísticas (plan
+      // 09-08) se añaden por el mismo motivo — sin enumerarlas aquí no
+      // tendrían HTML que Workbox pudiera precachear y fallarían la primera
+      // vez que se abrieran con la red cortada, exactamente el mismo fallo
+      // que ya obligó a declarar '/marvel-champions' a mano.
       crawlLinks: false,
-      routes: ['/', '/marvel-champions'],
+      routes: ['/', '/marvel-champions', '/historico', '/estadisticas'],
     },
   },
 
