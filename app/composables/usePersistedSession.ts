@@ -26,7 +26,7 @@
 // trata como ausencia de dato, nunca como error que rompa la interacción.
 import { toPersistedPosition } from '~~/engine/persistence'
 import type { PersistedPosition } from '~~/engine/persistence'
-import type { EngineSession, GameHistoryEntry } from '~~/engine/types'
+import type { EngineSession, GameHistoryEntry, HistoryPlayerEntry } from '~~/engine/types'
 
 const KEY_PREFIX = 'tga:progress:'
 
@@ -86,13 +86,34 @@ function isPersistedPosition(value: unknown): value is PersistedPosition {
     && typeof candidate.context === 'object' && candidate.context !== null
 }
 
+// CR-01 (Fase 9): valida la FORMA de un elemento de `players[]` en la
+// frontera de almacenamiento. Nunca lanza. `players: [null]` o
+// `players: [{}]` hoy superan `Array.isArray(candidate.players)` sin que
+// nada compruebe sus elementos, y tumban `/historico`
+// (`buildHistoryCardView` desreferencia `player.heroId` sin guarda previa).
+// `heroId`/`heroName` admiten `null` (D-12: hueco sin héroe asignado) o
+// `string`; `playerName` exige `string`.
+function isHistoryPlayerEntry(value: unknown): value is HistoryPlayerEntry {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  return (candidate.heroId === null || typeof candidate.heroId === 'string')
+    && (candidate.heroName === null || typeof candidate.heroName === 'string')
+    && typeof candidate.playerName === 'string'
+}
+
 // Valida la FORMA mínima de `GameHistoryEntry` (T-09-11): nunca lanza, y
 // cualquier entrada que no cumpla se descarta SIN tirar el resto del
 // histórico (D-13) — mismo criterio defensivo que `isPersistedPosition` de
-// arriba. No revalida el `GameOutcome`/`LossCause` campo a campo (eso ya lo
-// hizo `engine/history.ts` al construir la entrada); esto es la última
-// línea de defensa ante una edición manual en DevTools o un formato
-// heredado.
+// arriba. CR-01/CR-02 (Fase 9): el dato viene de `window.localStorage`, que
+// es ENTRADA NO FIABLE (puede venir de una build futura o pasada, de una
+// edición manual en DevTools, o de una escritura interrumpida) — no de
+// `engine/history.ts`, que ya construye la entrada bien tipada. Esta
+// frontera debe ser al menos tan estricta como lo que `engine/statistics.ts`
+// y `useGameHistory.ts` ya asumen al consumir el dato (p. ej.
+// `a.name.localeCompare(b.name, 'es')`, que exige `name` siempre `string`).
+// `recordedAt` sigue exigiéndose solo como `string`: rechazar una fecha no
+// parseable escondería una partida completa que `formatEntryDate` ya sabe
+// degradar a «—» (D-21).
 function isGameHistoryEntry(value: unknown): value is GameHistoryEntry {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Record<string, unknown>
@@ -103,6 +124,12 @@ function isGameHistoryEntry(value: unknown): value is GameHistoryEntry {
     && Array.isArray(candidate.players)
     && typeof candidate.round === 'number'
     && typeof candidate.playerCount === 'number'
+    && (candidate.villainId === null || typeof candidate.villainId === 'string')
+    && (candidate.villainName === null || typeof candidate.villainName === 'string')
+    && (candidate.difficulty === 'normal' || candidate.difficulty === 'expert')
+    && (candidate.lossCause === null || candidate.lossCause === 'mainSchemeCompleted' || candidate.lossCause === 'heroesEliminated')
+    && (candidate.durationMs === null || typeof candidate.durationMs === 'number')
+    && candidate.players.every(isHistoryPlayerEntry)
 }
 
 // Los cuatro ayudantes siguientes son el único punto que toca
