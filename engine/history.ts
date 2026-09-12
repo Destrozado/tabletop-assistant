@@ -56,6 +56,29 @@ export function buildHistoryEntry(
       ? now - context.startedAt
       : null
 
+  // CR-01 (ronda 2): el motor no propaga un hueco que la frontera de
+  // almacenamiento vaya a rechazar después — normaliza en origen, igual
+  // que ya hace con `durationMs` arriba. Las tres líneas siguientes son el
+  // mismo criterio defensivo aplicado a `difficulty`/`playerCount`/`round`:
+  // un `context` parcial o manipulado (p. ej. una rama `resumed` que
+  // adoptó un `context: {}`) no debe producir una `GameHistoryEntry` con
+  // campos ausentes/`undefined`/`NaN` — eso es justo lo que
+  // `isGameHistoryEntry` (la frontera de escritura) rechazaba en silencio.
+  const difficulty = context.difficulty === 'expert' ? 'expert' : 'normal'
+  // Reutiliza literalmente el criterio de `resolvePlayerSlots`
+  // (engine/selection.ts:50): si `context.playerCount` no es un entero
+  // positivo, el número de jugadores registrado es el que el propio motor
+  // acaba de derivar (`players.length`) — nunca un hueco. Esto convierte en
+  // invariante que `entry.playerCount === entry.players.length`.
+  const playerCount = Number.isInteger(context.playerCount) && context.playerCount > 0
+    ? context.playerCount
+    : players.length
+  // `round` (D-09): tal cual, se lee "hasta la ronda N", nunca round - 1 —
+  // la copia no cambia, lo que cambia es de dónde puede venir el número.
+  // Un `round` de `NaN`, `2.5` o `-4` no es una ronda; `1` es la única
+  // cifra que esa copia puede afirmar sin mentir.
+  const normalizedRound = Number.isInteger(round) && round >= 1 ? round : 1
+
   return {
     id: `${now}-${Math.random().toString(36).slice(2, 12)}`,
     gameId,
@@ -64,9 +87,9 @@ export function buildHistoryEntry(
     villainId,
     villainName,
     players,
-    difficulty: context.difficulty,
-    playerCount: context.playerCount,
-    round, // D-09: tal cual, se lee "hasta la ronda N", nunca round - 1
+    difficulty,
+    playerCount,
+    round: normalizedRound,
     durationMs,
     recordedAt: new Date(now).toISOString(),
   }

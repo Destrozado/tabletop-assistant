@@ -84,8 +84,21 @@ export function resume(persisted: PersistedPosition | null, fresh: EngineSession
     return { session: contentChangedFallback(persisted, fresh), outcome: 'content-changed' }
   }
 
+  // CR-01 (ronda 2): esta rama propagaba `persisted.context` y
+  // `persisted.round` en crudo — a diferencia de `contentChangedFallback`,
+  // que ya valida `context` arriba. Un `context` parcial adoptado aquí
+  // viajaba entero hasta `buildHistoryEntry` y de ahí a una entrada del
+  // histórico que `loadHistory()` rechazaba para siempre. Esta rama y
+  // `contentChangedFallback` comparten criterio A PROPÓSITO — que nadie
+  // vuelva a endurecer solo una de las dos.
+  const context = isValidContext(persisted.context) ? persisted.context : fresh.context
+  // `isPersistedPosition` (capa de storage) solo comprueba que la clave
+  // `round` exista, no su tipo — de ahí la misma guarda que ya aplica
+  // `buildHistoryEntry`.
+  const round = Number.isInteger(persisted.round) && persisted.round >= 1 ? persisted.round : fresh.round
+
   return {
-    session: { ...fresh, cursor, round: persisted.round, context: persisted.context },
+    session: { ...fresh, cursor, round, context },
     outcome: 'resumed',
   }
 }
