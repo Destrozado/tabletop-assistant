@@ -107,3 +107,15 @@ None - no external service configuration required.
 ---
 *Phase: 09-hist-rico-y-estad-sticas*
 *Completed: 2026-09-12*
+
+## Self-Check: PASSED
+
+- FOUND: engine/statistics.ts
+- FOUND: engine/history.ts
+- FOUND: engine/__tests__/statistics.test.ts
+- FOUND: engine/__tests__/history.test.ts
+- FOUND: .planning/phases/09-hist-rico-y-estad-sticas/09-10-SUMMARY.md
+- FOUND: 6e393d9 (Task 1 commit)
+- FOUND: 5f4d05b (Task 2 commit)
+- FOUND: cefdabf (Task 3 commit)
+- FOUND: 57c911c (metadata commit)
