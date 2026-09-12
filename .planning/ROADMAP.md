@@ -33,7 +33,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 - [x] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente (completed 2026-09-08)
 - [x] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7 (verificación: gaps_found — CR-01 solape de zonas táctiles) (completed 2026-09-08)
 - [x] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz (completed 2026-09-09)
-- [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (12/12 planes ejecutados; verificación ronda 3: gaps_found 5/7 — 2 BLOCKER nuevos reproducidos de forma independiente: CR-01 un fallo de LECTURA transitorio de localStorage destruye el histórico y devuelve ✓, CR-02 heroNames resuelve por Object.prototype y pierde la partida con un aviso de fallo falso)
+- [x] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (12/12 planes ejecutados; verificación ronda 3: gaps_found 5/7 — 2 BLOCKER nuevos reproducidos de forma independiente: CR-01 un fallo de LECTURA transitorio de localStorage destruye el histórico y devuelve ✓, CR-02 heroNames resuelve por Object.prototype y pierde la partida con un aviso de fallo falso) (completed 2026-09-12)
 - [ ] **Phase 10: Respaldo en Firestore** - Subida silenciosa, nunca bloqueante, aislada del resto
 
 ### Phase Details
@@ -197,7 +197,7 @@ Plans:
 - [x] 09-14-PLAN.md — Cierre de huecos ronda 3: ningún mapa indexado por dato no confiable resuelve por la cadena de prototipos (CR-02 r3 + WR-08) (ola 9)
 - [x] 09-15-PLAN.md — Cierre de huecos ronda 3: un `context` que no se puede validar deja de anunciarse como partida reanudada (WR-03 r3) (ola 9)
 - [x] 09-16-PLAN.md — Cierre de huecos ronda 3: un registro fallido deja de llevarse la partida por delante, y el aviso deja de atribuir causa (amplificador de CR-02 + WR-02/WR-05a) (ola 10)
-- [ ] 09-17-PLAN.md — Barrido exhaustivo de las tres fronteras, con inventario escrito, cierre en lote y registro de lo aplazado (petición explícita del verificador) (ola 11)
+- [x] 09-17-PLAN.md — Barrido exhaustivo de las tres fronteras, con inventario escrito, cierre en lote y registro de lo aplazado (petición explícita del verificador) (ola 11)
 **UI hint**: yes
 **Verificación humana**: Sí, recomendable pero no bloqueante por dispositivo — el flujo de fin de partida y las dos pantallas nuevas se verifican jugando una partida real de principio a fin (puede hacerse en portátil/móvil, no requiere la tablet de mesa) y comprobando que el registro y las estadísticas resultantes coinciden con lo jugado.
 
@@ -243,7 +243,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
-| 9. Histórico y estadísticas | v1.8 | 16/17 | In Progress|  |
+| 9. Histórico y estadísticas | v1.8 | 17/17 | Complete   | 2026-09-12 |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 
 ---
