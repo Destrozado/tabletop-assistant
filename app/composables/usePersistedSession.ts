@@ -26,7 +26,7 @@
 // trata como ausencia de dato, nunca como error que rompa la interacción.
 import { toPersistedPosition } from '~~/engine/persistence'
 import type { PersistedPosition } from '~~/engine/persistence'
-import type { EngineSession, GameHistoryEntry } from '~~/engine/types'
+import type { EngineSession, GameHistoryEntry, HistoryPlayerEntry } from '~~/engine/types'
 
 const KEY_PREFIX = 'tga:progress:'
 
@@ -86,13 +86,34 @@ function isPersistedPosition(value: unknown): value is PersistedPosition {
     && typeof candidate.context === 'object' && candidate.context !== null
 }
 
+// CR-01 (Fase 9): valida la FORMA de un elemento de `players[]` en la
+// frontera de almacenamiento. Nunca lanza. `players: [null]` o
+// `players: [{}]` hoy superan `Array.isArray(candidate.players)` sin que
+// nada compruebe sus elementos, y tumban `/historico`
+// (`buildHistoryCardView` desreferencia `player.heroId` sin guarda previa).
+// `heroId`/`heroName` admiten `null` (D-12: hueco sin héroe asignado) o
+// `string`; `playerName` exige `string`.
+function isHistoryPlayerEntry(value: unknown): value is HistoryPlayerEntry {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  return (candidate.heroId === null || typeof candidate.heroId === 'string')
+    && (candidate.heroName === null || typeof candidate.heroName === 'string')
+    && typeof candidate.playerName === 'string'
+}
+
 // Valida la FORMA mínima de `GameHistoryEntry` (T-09-11): nunca lanza, y
 // cualquier entrada que no cumpla se descarta SIN tirar el resto del
 // histórico (D-13) — mismo criterio defensivo que `isPersistedPosition` de
-// arriba. No revalida el `GameOutcome`/`LossCause` campo a campo (eso ya lo
-// hizo `engine/history.ts` al construir la entrada); esto es la última
-// línea de defensa ante una edición manual en DevTools o un formato
-// heredado.
+// arriba. CR-01/CR-02 (Fase 9): el dato viene de `window.localStorage`, que
+// es ENTRADA NO FIABLE (puede venir de una build futura o pasada, de una
+// edición manual en DevTools, o de una escritura interrumpida) — no de
+// `engine/history.ts`, que ya construye la entrada bien tipada. Esta
+// frontera debe ser al menos tan estricta como lo que `engine/statistics.ts`
+// y `useGameHistory.ts` ya asumen al consumir el dato (p. ej.
+// `a.name.localeCompare(b.name, 'es')`, que exige `name` siempre `string`).
+// `recordedAt` sigue exigiéndose solo como `string`: rechazar una fecha no
+// parseable escondería una partida completa que `formatEntryDate` ya sabe
+// degradar a «—» (D-21).
 function isGameHistoryEntry(value: unknown): value is GameHistoryEntry {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Record<string, unknown>
@@ -103,6 +124,12 @@ function isGameHistoryEntry(value: unknown): value is GameHistoryEntry {
     && Array.isArray(candidate.players)
     && typeof candidate.round === 'number'
     && typeof candidate.playerCount === 'number'
+    && (candidate.villainId === null || typeof candidate.villainId === 'string')
+    && (candidate.villainName === null || typeof candidate.villainName === 'string')
+    && (candidate.difficulty === 'normal' || candidate.difficulty === 'expert')
+    && (candidate.lossCause === null || candidate.lossCause === 'mainSchemeCompleted' || candidate.lossCause === 'heroesEliminated')
+    && (candidate.durationMs === null || typeof candidate.durationMs === 'number')
+    && candidate.players.every(isHistoryPlayerEntry)
 }
 
 // Los cuatro ayudantes siguientes son el único punto que toca
@@ -155,6 +182,43 @@ function removeRaw(key: string): void {
   }
 }
 
+// CR-03 (Fase 9): tres resultados DISTINGUIBLES de leer el envoltorio de
+// `tga:history` en crudo, ANTES de decidir si una escritura puede proceder.
+// 'empty' es la ÚNICA vía legítima para crear el envoltorio desde cero.
+// 'unreadable' es un blob que EXISTE pero no se sabe interpretar — JSON
+// corrupto, un `formatVersion` distinto del actual (p. ej. tras un rollback
+// de versión), o un envoltorio sin `entries` array — y nunca debe
+// machacarse, solo abortar la escritura. `entries` en la variante 'ok' va
+// SIN FILTRAR por `isGameHistoryEntry`: quien filtra es `loadHistory` (de
+// cara a la pantalla), nunca esta lectura (de cara al disco).
+type EnvelopeRead =
+  | { kind: 'empty' }
+  | { kind: 'ok', entries: unknown[] }
+  | { kind: 'unreadable' }
+
+// CR-03: separa "leer el envoltorio en crudo" de "leer las entradas
+// válidas" (que sigue siendo trabajo de `loadHistory`, más abajo). Nunca
+// lanza. `readRaw` devolviendo `undefined` (clave ausente O storage
+// inaccesible) es la ÚNICA vía a 'empty' — el `catch` del `JSON.parse`
+// devuelve 'unreadable', NUNCA 'empty', para que
+// `appendHistoryEntry`/`removeHistoryEntry` aborten la escritura en vez de
+// sobrescribir un blob que no han sabido interpretar (T-09-01).
+function readEnvelope(): EnvelopeRead {
+  const raw = readRaw(HISTORY_KEY)
+  if (raw === undefined) return { kind: 'empty' }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<HistoryEnvelope>
+    if (parsed.formatVersion !== HISTORY_FORMAT_VERSION) return { kind: 'unreadable' }
+    if (!Array.isArray(parsed.entries)) return { kind: 'unreadable' }
+    return { kind: 'ok', entries: parsed.entries }
+  }
+  catch {
+    // JSON corrupto: ilegible, NO ausente — ver el contrato de arriba.
+    return { kind: 'unreadable' }
+  }
+}
+
 export function usePersistedSession() {
   function load(gameId: string): PersistedPosition | null {
     const raw = readRaw(storageKey(gameId))
@@ -197,24 +261,18 @@ export function usePersistedSession() {
     writeRaw(VOICE_KEY, String(enabled))
   }
 
-  // D-13: lectura defensiva entrada a entrada. JSON corrupto, envoltorio
-  // ausente o de otro `formatVersion` devuelven `[]` — nunca lanzan. Tres
-  // entradas con una rota devuelven las dos buenas: nunca se tira el array
-  // entero por un solo elemento ilegible.
+  // D-13/CR-03: lectura defensiva entrada a entrada, apoyada en
+  // `readEnvelope()`. 'empty' y 'unreadable' devuelven `[]` por igual DE
+  // CARA A LA PANTALLA — la distinción entre ambos solo le importa a las
+  // escrituras (`appendHistoryEntry`/`removeHistoryEntry`, más abajo), que
+  // sí deben tratarlos de forma distinta para no destruir un blob ilegible.
+  // Tres entradas con una rota devuelven las dos buenas: nunca se tira el
+  // array entero por un solo elemento ilegible. Contrato público sin
+  // cambios respecto al código previo a CR-03.
   function loadHistory(): GameHistoryEntry[] {
-    const raw = readRaw(HISTORY_KEY)
-    if (!raw) return []
-
-    try {
-      const parsed = JSON.parse(raw) as Partial<HistoryEnvelope>
-      if (parsed.formatVersion !== HISTORY_FORMAT_VERSION) return []
-      if (!Array.isArray(parsed.entries)) return []
-      return parsed.entries.filter(isGameHistoryEntry)
-    }
-    catch {
-      // JSON corrupto (edición manual, cuota parcial, etc.): ausencia de dato.
-      return []
-    }
+    const read = readEnvelope()
+    if (read.kind !== 'ok') return []
+    return read.entries.filter(isGameHistoryEntry)
   }
 
   // D-03: la ÚNICA función de este fichero que no devuelve `void` — es
@@ -224,11 +282,22 @@ export function usePersistedSession() {
   // firma a `void` debe leer D-03 primero. HIST-07: la entrada nueva se
   // antepone, así que el histórico ya queda ordenado de más reciente a más
   // antigua tal como se persiste.
+  //
+  // CR-03: aborta devolviendo `false` SIN llamar a `writeRaw` cuando
+  // `readEnvelope()` devuelve 'unreadable' — nunca se machaca un blob que
+  // no se ha sabido interpretar (`formatVersion` desconocido, JSON
+  // corrupto). Las entradas previas se conservan EN CRUDO (`read.entries`,
+  // sin filtrar por `isGameHistoryEntry`): lo que no pasa la validación se
+  // filtra de cara a la PANTALLA (`loadHistory`), NUNCA de cara al DISCO —
+  // así una entrada hoy ilegible no se destruye para siempre.
   function appendHistoryEntry(entry: GameHistoryEntry): boolean {
-    const current = loadHistory()
-    const envelope: HistoryEnvelope = {
+    const read = readEnvelope()
+    if (read.kind === 'unreadable') return false
+
+    const previous = read.kind === 'ok' ? read.entries : []
+    const envelope = {
       formatVersion: HISTORY_FORMAT_VERSION,
-      entries: [entry, ...current],
+      entries: [entry, ...previous],
     }
     return writeRaw(HISTORY_KEY, JSON.stringify(envelope))
   }
@@ -237,11 +306,32 @@ export function usePersistedSession() {
   // todo el motor). Devuelve `void`: un borrado que no llega a escribirse
   // deja la entrada visible, un estado observable y recuperable — al
   // contrario que una partida no registrada, que es lo que D-03 protege.
+  //
+  // CR-03/WR-08: mismo patrón de `readEnvelope()` que `appendHistoryEntry`.
+  // Ante 'unreadable' no se escribe nada — nunca se machaca un blob
+  // ilegible. Ante 'empty' tampoco — no hay nada que borrar, y crear un
+  // envoltorio vacío no aporta. Para 'ok', se opera sobre `read.entries` EN
+  // CRUDO eliminando COMO MÁXIMO UN elemento: el primero que sea un objeto
+  // no nulo cuya propiedad `id` coincida con el argumento — así una
+  // colisión de `id` (WR-08) nunca se lleva dos partidas por delante. El
+  // resto de elementos, incluidos los que no pasan `isGameHistoryEntry`,
+  // sobreviven en disco tal cual.
   function removeHistoryEntry(id: string): void {
-    const current = loadHistory()
-    const envelope: HistoryEnvelope = {
+    const read = readEnvelope()
+    if (read.kind !== 'ok') return
+
+    let removed = false
+    const entries = read.entries.filter((candidate) => {
+      if (removed) return true
+      const isMatch = candidate !== null && typeof candidate === 'object' && (candidate as { id?: unknown }).id === id
+      if (!isMatch) return true
+      removed = true
+      return false
+    })
+
+    const envelope = {
       formatVersion: HISTORY_FORMAT_VERSION,
-      entries: current.filter(e => e.id !== id),
+      entries,
     }
     writeRaw(HISTORY_KEY, JSON.stringify(envelope))
   }

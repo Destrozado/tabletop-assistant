@@ -309,4 +309,103 @@ describe('tga:history — clave independiente de la partida (D-13/HIST-09)', () 
     expect(() => removeHistoryEntry('no-existe')).not.toThrow()
     expect(loadHistory().map(e => e.id).sort()).toEqual(['a', 'b'])
   })
+
+  it('CR-03: con formatVersion: 2 guardado, appendHistoryEntry devuelve false y el blob v2 sigue intacto', () => {
+    const seeded = JSON.stringify({ formatVersion: 2, entries: [makeEntry({ id: 'v2-a' }), makeEntry({ id: 'v2-b' })] })
+    fakeStorage.setItem('tga:history', seeded)
+
+    const { appendHistoryEntry } = usePersistedSession()
+    const result = appendHistoryEntry(makeEntry())
+
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+  })
+
+  it('CR-03: con JSON no parseable guardado, appendHistoryEntry devuelve false y la cadena sigue intacta', () => {
+    const seeded = 'esto no es JSON válido {{{'
+    fakeStorage.setItem('tga:history', seeded)
+
+    const { appendHistoryEntry } = usePersistedSession()
+    const result = appendHistoryEntry(makeEntry())
+
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+  })
+
+  it('CR-03: con formatVersion: 2 guardado, removeHistoryEntry no escribe nada', () => {
+    const seeded = JSON.stringify({ formatVersion: 2, entries: [makeEntry({ id: 'v2-a' }), makeEntry({ id: 'v2-b' })] })
+    fakeStorage.setItem('tga:history', seeded)
+    fakeStorage.setItem.mockClear()
+
+    const { removeHistoryEntry } = usePersistedSession()
+    removeHistoryEntry('v2-a')
+
+    expect(fakeStorage.setItem).not.toHaveBeenCalledWith('tga:history', expect.anything())
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+  })
+
+  it('CR-03: una entrada ilegible sobrevive en disco a un removeHistoryEntry de otra entrada', () => {
+    const keep = makeEntry({ id: 'keep' })
+    const broken = { id: 'rota' } // no pasa isGameHistoryEntry (forma incompleta)
+    const borrar = makeEntry({ id: 'borrar' })
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [keep, broken, borrar] }))
+
+    const { removeHistoryEntry, loadHistory } = usePersistedSession()
+    removeHistoryEntry('borrar')
+
+    const persisted = JSON.parse(fakeStorage.getItem('tga:history')!)
+    expect(persisted.entries).toHaveLength(2)
+    expect(persisted.entries.some((e: { id: string }) => e.id === 'rota')).toBe(true)
+
+    // Se filtra de cara a la PANTALLA, nunca de cara al DISCO.
+    expect(loadHistory().map(e => e.id)).toEqual(['keep'])
+  })
+
+  it('CR-01: una entrada con players: [null] no supera loadHistory()', () => {
+    const buena = makeEntry({ id: 'buena' })
+    const rota = { ...makeEntry({ id: 'rota' }), players: [null] as never }
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [buena, rota] }))
+
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory().map(e => e.id)).toEqual(['buena'])
+  })
+
+  it('CR-01: una entrada con players: [{}] no supera loadHistory()', () => {
+    const buena = makeEntry({ id: 'buena' })
+    const rota = { ...makeEntry({ id: 'rota' }), players: [{}] as never }
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [buena, rota] }))
+
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory().map(e => e.id)).toEqual(['buena'])
+  })
+
+  it('CR-02: una entrada con villainId numérico y villainName null no supera loadHistory()', () => {
+    const buena = makeEntry({ id: 'buena' })
+    const rota = makeEntry({ id: 'rota', villainId: 5 as never, villainName: null })
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [buena, rota] }))
+
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory().map(e => e.id)).toEqual(['buena'])
+  })
+
+  it('CR-02: una entrada con players: [{ heroId: 7, ... }] no supera loadHistory()', () => {
+    const buena = makeEntry({ id: 'buena' })
+    const rota = makeEntry({ id: 'rota', players: [{ heroId: 7, heroName: null, playerName: 'Ana' }] as never })
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [buena, rota] }))
+
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory().map(e => e.id)).toEqual(['buena'])
+  })
+
+  it('WR-08: removeHistoryEntry elimina como máximo una entrada aunque dos compartan id', () => {
+    const dup1 = makeEntry({ id: 'dup' })
+    const dup2 = makeEntry({ id: 'dup' })
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [dup1, dup2] }))
+
+    const { removeHistoryEntry } = usePersistedSession()
+    removeHistoryEntry('dup')
+
+    const persisted = JSON.parse(fakeStorage.getItem('tga:history')!)
+    expect(persisted.entries).toHaveLength(1)
+  })
 })
