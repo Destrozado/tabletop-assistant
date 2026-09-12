@@ -180,7 +180,7 @@ Plans:
   4. Hay una pantalla de estadísticas accesible desde el inicio que muestra el % de victorias por héroe y por villano, con un estado vacío claro (no un error ni porcentajes engañosos) cuando el histórico está vacío.
   5. La pantalla de estadísticas lee exclusivamente localStorage — verificable en esta fase de forma trivial, porque Firestore ni siquiera existe todavía en el código en este punto del hito.
 
-**Plans**: 12 plans (8 olas)
+**Plans**: 17 plans (11 olas)
 - [x] 09-01-PLAN.md — Motor: tipos aditivos del histórico, `buildHistoryEntry` y formateadores puros (ola 1)
 - [x] 09-02-PLAN.md — `GameOutcomeDialog` y el aviso de guardado montado en `app.vue` (ola 1)
 - [x] 09-03-PLAN.md — Motor: `aggregateStatistics` con la cascada de orden de D-24 (ola 2)
@@ -193,6 +193,11 @@ Plans:
 - [x] 09-10-PLAN.md — Cierre de huecos: motor que no lanza ante ids no-string y orden cronológico real (CR-02) (ola 6)
 - [x] 09-11-PLAN.md — Cierre de huecos: `/historico` y `/estadisticas` que no se caen ante datos inconsistentes (CR-01) (ola 7)
 - [x] 09-12-PLAN.md — Cierre de huecos: la escritura del histórico valida con el mismo predicado que la lectura (CR-01 ronda 2 + WR-03) (ola 8)
+- [ ] 09-13-PLAN.md — Cierre de huecos ronda 3: un fallo transitorio de LECTURA deja de destruir el histórico (CR-01 r3) (ola 9)
+- [ ] 09-14-PLAN.md — Cierre de huecos ronda 3: ningún mapa indexado por dato no confiable resuelve por la cadena de prototipos (CR-02 r3 + WR-08) (ola 9)
+- [ ] 09-15-PLAN.md — Cierre de huecos ronda 3: un `context` que no se puede validar deja de anunciarse como partida reanudada (WR-03 r3) (ola 9)
+- [ ] 09-16-PLAN.md — Cierre de huecos ronda 3: un registro fallido deja de llevarse la partida por delante, y el aviso deja de atribuir causa (amplificador de CR-02 + WR-02/WR-05a) (ola 10)
+- [ ] 09-17-PLAN.md — Barrido exhaustivo de las tres fronteras, con inventario escrito, cierre en lote y registro de lo aplazado (petición explícita del verificador) (ola 11)
 **UI hint**: yes
 **Verificación humana**: Sí, recomendable pero no bloqueante por dispositivo — el flujo de fin de partida y las dos pantallas nuevas se verifican jugando una partida real de principio a fin (puede hacerse en portátil/móvil, no requiere la tablet de mesa) y comprobando que el registro y las estadísticas resultantes coinciden con lo jugado.
 
