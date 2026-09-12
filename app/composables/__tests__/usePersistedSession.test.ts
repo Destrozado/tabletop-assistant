@@ -471,3 +471,111 @@ describe('tga:history — clave independiente de la partida (D-13/HIST-09)', () 
   })
 })
 
+describe('CR-01 (ronda 3): un fallo TRANSITORIO de lectura de localStorage nunca autoriza a reconstruir el histórico', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('CR-01 (ronda 3): dos partidas registradas sobreviven a un getItem que lanza una única vez', () => {
+    const { appendHistoryEntry, loadHistory } = usePersistedSession()
+
+    expect(appendHistoryEntry(makeEntry({ id: 'partida-1' }))).toBe(true)
+    expect(appendHistoryEntry(makeEntry({ id: 'partida-2' }))).toBe(true)
+    expect(loadHistory().map(e => e.id)).toEqual(['partida-2', 'partida-1'])
+
+    const seeded = fakeStorage.getItem('tga:history')
+
+    fakeStorage.getItem.mockImplementationOnce(() => {
+      throw new Error('SecurityError')
+    })
+
+    const result = appendHistoryEntry(makeEntry({ id: 'partida-3' }))
+
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+    expect(loadHistory().map(e => e.id)).toEqual(['partida-2', 'partida-1'])
+  })
+
+  it('CR-01 (ronda 3): con la lectura caída, setItem no llega a invocarse para tga:history', () => {
+    const { appendHistoryEntry } = usePersistedSession()
+
+    appendHistoryEntry(makeEntry({ id: 'partida-1' }))
+    appendHistoryEntry(makeEntry({ id: 'partida-2' }))
+    fakeStorage.setItem.mockClear()
+
+    fakeStorage.getItem.mockImplementationOnce(() => {
+      throw new Error('SecurityError')
+    })
+    appendHistoryEntry(makeEntry({ id: 'partida-3' }))
+
+    expect(fakeStorage.setItem.mock.calls.filter(call => call[0] === 'tga:history')).toHaveLength(0)
+  })
+
+  it('CR-01 (ronda 3): removeHistoryEntry con la lectura caída no escribe nada y el blob sigue intacto', () => {
+    const seeded = JSON.stringify({ formatVersion: 1, entries: [makeEntry({ id: 'a' }), makeEntry({ id: 'b' })] })
+    fakeStorage.setItem('tga:history', seeded)
+    fakeStorage.setItem.mockClear()
+
+    fakeStorage.getItem.mockImplementationOnce(() => {
+      throw new Error('SecurityError')
+    })
+
+    const { removeHistoryEntry } = usePersistedSession()
+    expect(() => removeHistoryEntry('a')).not.toThrow()
+
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+  })
+
+  it('CR-01 (ronda 3): el contrato hacia la pantalla no cambia — loadHistory() devuelve [] sin lanzar con getItem siempre lanzando', () => {
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+
+    const { loadHistory } = usePersistedSession()
+    expect(() => loadHistory()).not.toThrow()
+    expect(loadHistory()).toEqual([])
+  })
+
+  it('CR-01 (ronda 3): anti-regresión de la vía legítima — tga:history genuinamente ausente sigue permitiendo escribir', () => {
+    const { appendHistoryEntry, loadHistory } = usePersistedSession()
+
+    const result = appendHistoryEntry(makeEntry({ id: 'primera' }))
+
+    expect(result).toBe(true)
+    expect(loadHistory().map(e => e.id)).toEqual(['primera'])
+    expect(JSON.parse(fakeStorage.getItem('tga:history')!).formatVersion).toBe(1)
+  })
+
+  it('CR-01 (ronda 3): SSR/prerender — sin window, loadHistory/appendHistoryEntry/removeHistoryEntry ni leen ni escriben el histórico', () => {
+    delete (globalThis as { window?: unknown }).window
+    const { loadHistory, appendHistoryEntry, removeHistoryEntry } = usePersistedSession()
+
+    expect(loadHistory()).toEqual([])
+    expect(appendHistoryEntry(makeEntry())).toBe(false)
+    expect(() => removeHistoryEntry('x')).not.toThrow()
+  })
+
+  it('CR-01 (ronda 3): el endurecimiento no se propaga a los datos reconstruibles — load()/loadVoicePreference() siguen degradando en silencio', () => {
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+
+    const { load, loadVoicePreference } = usePersistedSession()
+    expect(load('marvel-champions')).toBeNull()
+    expect(loadVoicePreference()).toBe(true)
+  })
+})
+
