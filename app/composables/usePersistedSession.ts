@@ -114,6 +114,14 @@ function isHistoryPlayerEntry(value: unknown): value is HistoryPlayerEntry {
 // `recordedAt` sigue exigiéndose solo como `string`: rechazar una fecha no
 // parseable escondería una partida completa que `formatEntryDate` ya sabe
 // degradar a «—» (D-21).
+// WR-03: `round`/`playerCount`/`durationMs` se validan por FINITUD
+// (`Number.isFinite`), no solo por `typeof === 'number'` —
+// `typeof NaN === 'number'` es `true`, así que la comprobación anterior
+// dejaba pasar `NaN`/`Infinity` y la tarjeta pintaba «Hasta la ronda NaN».
+// `Number.isFinite` ya implica `typeof === 'number'` (no coacciona su
+// argumento), así que sustituye a las tres comprobaciones sin añadir nada
+// extra. Es el mismo criterio que `engine/history.ts` ya aplica a
+// `startedAt`/`durationMs`.
 function isGameHistoryEntry(value: unknown): value is GameHistoryEntry {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Record<string, unknown>
@@ -122,13 +130,13 @@ function isGameHistoryEntry(value: unknown): value is GameHistoryEntry {
     && (candidate.result === 'won' || candidate.result === 'lost')
     && typeof candidate.recordedAt === 'string'
     && Array.isArray(candidate.players)
-    && typeof candidate.round === 'number'
-    && typeof candidate.playerCount === 'number'
+    && Number.isFinite(candidate.round)
+    && Number.isFinite(candidate.playerCount)
     && (candidate.villainId === null || typeof candidate.villainId === 'string')
     && (candidate.villainName === null || typeof candidate.villainName === 'string')
     && (candidate.difficulty === 'normal' || candidate.difficulty === 'expert')
     && (candidate.lossCause === null || candidate.lossCause === 'mainSchemeCompleted' || candidate.lossCause === 'heroesEliminated')
-    && (candidate.durationMs === null || typeof candidate.durationMs === 'number')
+    && (candidate.durationMs === null || Number.isFinite(candidate.durationMs))
     && candidate.players.every(isHistoryPlayerEntry)
 }
 
@@ -291,6 +299,18 @@ export function usePersistedSession() {
   // filtra de cara a la PANTALLA (`loadHistory`), NUNCA de cara al DISCO —
   // así una entrada hoy ilegible no se destruye para siempre.
   function appendHistoryEntry(entry: GameHistoryEntry): boolean {
+    // CR-01 (ronda 2): el predicado que decide qué se puede LEER
+    // (`isGameHistoryEntry`, usado por `loadHistory`) debe decidir también
+    // qué se puede ESCRIBIR; una entrada que no vaya a superarlo no se
+    // «guarda», se pierde en silencio con un ✓ encima. Tras la Task 1 de
+    // este plan (09-12) esta rama es defensa en profundidad inalcanzable
+    // desde `record()` — el motor ya no produce una entrada inválida — así
+    // que su valor real es impedir que un llamador futuro (la
+    // sincronización a Firestore, un import) reintroduzca el hueco por
+    // otra puerta. Fase 10: no relajar esta guarda para que un caso nuevo
+    // «pase».
+    if (!isGameHistoryEntry(entry)) return false
+
     const read = readEnvelope()
     if (read.kind === 'unreadable') return false
 
