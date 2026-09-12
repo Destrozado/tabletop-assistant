@@ -130,3 +130,10 @@ None - no requiere configuración de servicio externo.
 ---
 *Phase: 09-hist-rico-y-estad-sticas*
 *Completed: 2026-09-13*
+
+## Self-Check: PASSED
+
+- `app/pages/[game]/index.vue` — FOUND (modificado, commit 0a08593)
+- `app/components/HistorySavedNotice.vue` — FOUND (modificado, commit 598fc1a)
+- Commit 0a08593 (`fix(09-16): finishGame no borra el progreso cuando record() falla`) — FOUND en `git log --oneline`
+- Commit 598fc1a (`fix(09-16): aviso de fallo deja de atribuir causa y se puede oír`) — FOUND en `git log --oneline`
