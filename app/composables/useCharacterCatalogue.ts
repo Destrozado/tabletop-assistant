@@ -15,8 +15,17 @@ const cataloguesById: Record<string, CharacterCatalogue> = {
 }
 
 export function useCharacterCatalogue() {
+  // WR-08 (09-REVIEW.md, ronda 3): `gameId` viene del parámetro de ruta
+  // (`/[game]`), es decir, de la URL — dato no confiable. Un objeto literal
+  // indexado directamente (`cataloguesById[gameId]`) resuelve por la cadena
+  // de prototipos: `cataloguesById['constructor']` devuelve la función
+  // `Object`, que es truthy, así que `?? null` nunca entra. Misma familia
+  // de defecto que CR-02 (ronda 3) — un objeto literal indexado por dato
+  // no confiable — y calcado del mismo fix en `useGameContent.ts`.
+  // `Object.hasOwn` en el punto de LECTURA descarta la cadena de
+  // prototipos sin tocar `cataloguesById`.
   function getCatalogue(gameId: string): CharacterCatalogue | null {
-    return cataloguesById[gameId] ?? null
+    return Object.hasOwn(cataloguesById, gameId) ? cataloguesById[gameId]! : null
   }
 
   return { getCatalogue }
