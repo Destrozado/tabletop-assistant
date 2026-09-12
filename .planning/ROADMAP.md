@@ -189,8 +189,8 @@ Plans:
 - [x] 09-06-PLAN.md — Pantallas `/historico` y `/estadisticas` con sus estados vacíos (ola 4)
 - [x] 09-07-PLAN.md — Fin de partida: `startedAt` en `start()` y cableado del diálogo en `index.vue` (ola 4)
 - [x] 09-08-PLAN.md — Accesos desde el inicio, prerender de las dos rutas y verificación humana (ola 5)
-- [ ] 09-09-PLAN.md — Cierre de huecos: escritura no destructiva de `tga:history` y frontera de tipos (CR-03) (ola 6)
-- [ ] 09-10-PLAN.md — Cierre de huecos: motor que no lanza ante ids no-string y orden cronológico real (CR-02) (ola 6)
+- [x] 09-09-PLAN.md — Cierre de huecos: escritura no destructiva de `tga:history` y frontera de tipos (CR-03) (ola 6)
+- [x] 09-10-PLAN.md — Cierre de huecos: motor que no lanza ante ids no-string y orden cronológico real (CR-02) (ola 6)
 - [ ] 09-11-PLAN.md — Cierre de huecos: `/historico` y `/estadisticas` que no se caen ante datos inconsistentes (CR-01) (ola 7)
 **UI hint**: yes
 **Verificación humana**: Sí, recomendable pero no bloqueante por dispositivo — el flujo de fin de partida y las dos pantallas nuevas se verifican jugando una partida real de principio a fin (puede hacerse en portátil/móvil, no requiere la tablet de mesa) y comprobando que el registro y las estadísticas resultantes coinciden con lo jugado.
@@ -237,7 +237,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
-| 9. Histórico y estadísticas | v1.8 | 8/8 | Complete   | 2026-09-11 |
+| 9. Histórico y estadísticas | v1.8 | 10/11 | In Progress|  |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 
 ---
