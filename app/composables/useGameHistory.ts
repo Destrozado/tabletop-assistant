@@ -110,27 +110,63 @@ export function buildHistoryCardView(entry: GameHistoryEntry): HistoryCardView {
   // regenerar el catálogo — el nombre se congeló al registrar (D-11), y si
   // faltara, se pinta el propio id antes que dejar un hueco. Distinto de
   // "no había villano/héroe elegido", que es la rama de abajo.
-  const hasVillain = entry.villainId !== null
-  const villainDisplayName = hasVillain ? (entry.villainName ?? entry.villainId) : null
+  // BF-02 (09-17, barrido de fronteras): `villainId`/`villainName` solo se
+  // aceptan si son realmente `string` — un `entry` corrupto con
+  // `villainId: 7` no debe pintar «7 · Normal · 3 jug» como si `7` fuera un
+  // nombre de villano. `entry` viene en última instancia de `localStorage`,
+  // y esta función es exportada y probada directamente: su contrato no
+  // puede depender de que la frontera de almacenamiento la haya llamado
+  // bien (mismo razonamiento que la normalización de `players` de abajo).
+  const hasVillain = typeof entry.villainId === 'string'
+  const villainDisplayName = hasVillain
+    ? (typeof entry.villainName === 'string' ? entry.villainName : entry.villainId)
+    : null
 
   // CR-01: `entry` viene en última instancia de `localStorage` — el tipo
   // TypeScript es una promesa de compilación, no una garantía de ejecución.
   // Una entrada corrupta puede degradar una tarjeta, pero nunca puede tumbar
   // la pantalla. Misma guarda que ya aplica `engine/statistics.ts` sobre el
   // mismo dato (`Array.isArray` + comprobación de objeto no nulo).
+  //
+  // BF-01 (09-17, barrido de fronteras, WR-01): el filtro anterior solo
+  // descartaba `null` y no-objetos, sin normalizar el TIPO de `heroId`/
+  // `heroName`/`playerName` — con `heroId: undefined` (p. ej.
+  // `players: [{ playerName: 'Ana' }]`), `hasAnyHero` salía `true` por
+  // comparar solo `!== null`, y la interpolación de más abajo pintaba
+  // literalmente «Ana · undefined». Normalizar aquí, en la frontera de la
+  // vista, con el MISMO predicado que `engine/statistics.ts:98`
+  // (`heroId !== null && heroId !== undefined`, que tras esta normalización
+  // se colapsa a `!== null`) es la regla: el módulo que pinta y el módulo
+  // que agrega deben decidir «este hueco tiene héroe» con el mismo
+  // criterio, o la pantalla y la estadística cuentan cosas distintas sobre
+  // la misma partida.
   const players: HistoryPlayerEntry[] = (Array.isArray(entry.players) ? entry.players : [])
     .filter((player): player is HistoryPlayerEntry => player !== null && typeof player === 'object')
+    .map(player => ({
+      heroId: typeof player.heroId === 'string' ? player.heroId : null,
+      heroName: typeof player.heroName === 'string' ? player.heroName : null,
+      playerName: typeof player.playerName === 'string' ? player.playerName : '',
+    }))
   const hasAnyHero = players.some(player => player.heroId !== null)
 
   let contextLine: string
   let playerLines: string[] | null
   let noSelectionLine: string | null
 
+  // BF-02: `entry.playerCount`/`entry.round` solo se usan si son finitos —
+  // en caso contrario, el mismo repliegue que `buildHistoryEntry` ya aplica
+  // en origen (09-12): `players.length` y `1` respectivamente. Defensa en
+  // profundidad: la frontera de almacenamiento ya filtra estos casos, pero
+  // esta función se prueba directamente y su contrato no puede depender de
+  // que alguien la haya llamado bien.
+  const safePlayerCount = Number.isFinite(entry.playerCount) ? entry.playerCount : players.length
+  const safeRound = Number.isFinite(entry.round) ? entry.round : 1
+
   if (hasVillain || hasAnyHero) {
     // D-10 vs SEL-09: la ausencia de selección se dice con palabras — el
     // glifo «—» queda reservado para una cifra que no se puede saber
     // (duración), nunca para "no elegiste villano".
-    contextLine = `${villainDisplayName ?? 'Sin villano'} · ${difficultyLabel} · ${entry.playerCount} jug`
+    contextLine = `${villainDisplayName ?? 'Sin villano'} · ${difficultyLabel} · ${safePlayerCount} jug`
     playerLines = players.map((player, index) => {
       const label = resolvePlayerLabel(index, player.playerName)
       return player.heroId !== null ? `${label} · ${player.heroName ?? player.heroId}` : label
@@ -141,13 +177,13 @@ export function buildHistoryCardView(entry: GameHistoryEntry): HistoryCardView {
     // D-12: nunca N filas de jugador vacías. Dificultad y nº de jugadores
     // SIEMPRE se conocen (se fijan en el mini-setup), así que se conservan
     // en la línea de contexto aunque no hubiera nada elegido.
-    contextLine = `${difficultyLabel} · ${entry.playerCount} jug`
+    contextLine = `${difficultyLabel} · ${safePlayerCount} jug`
     playerLines = null
     noSelectionLine = 'Sin héroes ni villano anotados'
   }
 
   // D-09: siempre "hasta la ronda N", nunca "N rondas".
-  const roundAndDurationLine = `Hasta la ronda ${entry.round} · ${formatEntryDuration(entry.durationMs)}`
+  const roundAndDurationLine = `Hasta la ronda ${safeRound} · ${formatEntryDuration(entry.durationMs)}`
 
   const villainForCopy = villainDisplayName ?? 'sin villano'
   const deleteAriaLabel = `Borrar partida del ${dateLabel} contra ${villainForCopy}`

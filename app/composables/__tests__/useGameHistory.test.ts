@@ -214,6 +214,90 @@ describe('buildHistoryCardView', () => {
   })
 })
 
+// BF-01/BF-02 (09-17, barrido de fronteras — WR-01 de 09-REVIEW.md): un hueco
+// de jugador con `heroId`/`heroName` de tipo equivocado (o ausente) no debe
+// producir ninguna cadena con la subcadena literal 'undefined' en NINGÚN
+// campo de la vista — se comprueba sobre `JSON.stringify(view)` para cubrir
+// los diez campos de una vez, no solo el que se esperaba que fallara.
+describe('BF-01/BF-02 (09-17): buildHistoryCardView nunca pinta "undefined" ni "NaN"', () => {
+  it('un hueco sin heroId (players: [{ playerName: "Ana" }]) no produce ninguna cadena "undefined"', () => {
+    const entry = makeEntry({
+      villainId: null,
+      villainName: null,
+      players: [{ playerName: 'Ana' }] as never,
+    })
+
+    const view = buildHistoryCardView(entry)
+
+    expect(JSON.stringify(view)).not.toContain('undefined')
+  })
+
+  it('un hueco con heroId: undefined explícito no produce ninguna cadena "undefined"', () => {
+    const entry = makeEntry({
+      villainId: null,
+      villainName: null,
+      players: [{ heroId: undefined, heroName: undefined, playerName: 'Ana' } as never],
+    })
+
+    const view = buildHistoryCardView(entry)
+
+    expect(JSON.stringify(view)).not.toContain('undefined')
+  })
+
+  it('un hueco con heroId: 7 (tipo equivocado) se normaliza a "sin héroe", nunca pinta el número crudo como si fuera un héroe', () => {
+    const entry = makeEntry({
+      villainId: null,
+      villainName: null,
+      players: [{ heroId: 7, heroName: 'Cualquiera', playerName: 'Ana' } as never],
+    })
+
+    const view = buildHistoryCardView(entry)
+
+    expect(JSON.stringify(view)).not.toContain('undefined')
+    // heroId de tipo equivocado se normaliza a null: sin villano y sin
+    // ningún hueco con heroId válido, la tarjeta cae a la rama D-12 (nunca
+    // filas de jugador con un "7" pintado como si fuera un héroe).
+    expect(view.playerLines).toBeNull()
+    expect(view.noSelectionLine).toBe('Sin héroes ni villano anotados')
+  })
+
+  it('un hueco con heroId real pero heroName: undefined pinta el heroId como respaldo, nunca "undefined"', () => {
+    const entry = makeEntry({
+      villainId: null,
+      villainName: null,
+      players: [{ heroId: 'thor', heroName: undefined, playerName: 'Ana' } as never],
+    })
+
+    const view = buildHistoryCardView(entry)
+
+    expect(JSON.stringify(view)).not.toContain('undefined')
+    expect(view.playerLines).toEqual(['Ana · thor'])
+  })
+
+  it('BF-02: playerCount: NaN y round: NaN no producen ninguna cadena "NaN"', () => {
+    const entry = makeEntry({
+      playerCount: Number.NaN as never,
+      round: Number.NaN as never,
+    })
+
+    const view = buildHistoryCardView(entry)
+
+    expect(JSON.stringify(view)).not.toContain('NaN')
+  })
+
+  it('BF-02: villainId de tipo equivocado (número) no se pinta como si fuera un nombre de villano', () => {
+    const entry = makeEntry({
+      villainId: 7 as never,
+      villainName: undefined as never,
+    })
+
+    const view = buildHistoryCardView(entry)
+
+    expect(view.contextLine).not.toContain('7 ·')
+    expect(JSON.stringify(view)).not.toContain('undefined')
+  })
+})
+
 describe('buildStatisticsView', () => {
   it('valueLabel con el formato exacto «3 de 4 · 75 %»', () => {
     const summary: StatisticsSummary = {

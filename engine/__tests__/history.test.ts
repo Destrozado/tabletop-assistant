@@ -175,6 +175,42 @@ describe('D-21: formatEntryDate y formatEntryDuration con cadenas exactas', () =
   })
 })
 
+// BF-03 (09-17, barrido de fronteras — WR-06 de 09-REVIEW.md): tres cifras
+// imposibles que formatEntryDuration podía pintar antes de este plan. Estos
+// tests conviven en el mismo describe D-21 sin tocar los existentes de
+// arriba — anti-regresión de las tres cadenas ya fijadas incluida al final.
+describe('BF-03 (09-17): formatEntryDuration sin "1 h 0 min", sin "0 min" y sin negativos', () => {
+  it('formatEntryDuration(3_600_000) (exactamente 1h) devuelve "1 h", nunca "1 h 0 min"', () => {
+    expect(formatEntryDuration(3_600_000)).toBe('1 h')
+  })
+
+  it('formatEntryDuration(7_200_000) (exactamente 2h) devuelve "2 h"', () => {
+    expect(formatEntryDuration(7_200_000)).toBe('2 h')
+  })
+
+  it('formatEntryDuration(20_000) (20 s) devuelve "1 min", nunca "0 min"', () => {
+    expect(formatEntryDuration(20_000)).toBe('1 min')
+  })
+
+  it('formatEntryDuration(0) devuelve "1 min", nunca "0 min"', () => {
+    expect(formatEntryDuration(0)).toBe('1 min')
+  })
+
+  it('formatEntryDuration(-6_000_000) (negativo) devuelve "—", nunca "-2 h -40 min"', () => {
+    expect(formatEntryDuration(-6_000_000)).toBe('—')
+  })
+
+  it('formatEntryDuration(Number.NEGATIVE_INFINITY) devuelve "—"', () => {
+    expect(formatEntryDuration(Number.NEGATIVE_INFINITY)).toBe('—')
+  })
+
+  it('anti-regresión: las tres cadenas ya fijadas por D-21 no cambian', () => {
+    expect(formatEntryDuration(6_000_000)).toBe('1 h 40 min')
+    expect(formatEntryDuration(120_000)).toBe('2 min')
+    expect(formatEntryDuration(null)).toBe('—')
+  })
+})
+
 describe('sortEntriesByRecency: orden descendente sin mutar el original', () => {
   function entryAt(recordedAt: string): GameHistoryEntry {
     return {
