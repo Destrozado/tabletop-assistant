@@ -208,6 +208,59 @@ describe('sortEntriesByRecency: orden descendente sin mutar el original', () => 
   })
 })
 
+describe('WR-06: orden cronológico real, no colación de cadena', () => {
+  function entryAt(recordedAt: string): GameHistoryEntry {
+    return {
+      id: `id-${recordedAt}`,
+      gameId: 'marvel-champions',
+      result: 'won',
+      lossCause: null,
+      villainId: null,
+      villainName: null,
+      players: [],
+      difficulty: 'normal',
+      playerCount: 1,
+      round: 1,
+      durationMs: null,
+      recordedAt,
+    }
+  }
+
+  it('WR-06: el orden es por instante, no por colación de cadena', () => {
+    // Mismo instante representado con formatos distintos: '...+02:00' es
+    // 2026-09-10T12:00:00.000Z (12:00 UTC) y '...Z' es 2026-09-10T13:00:00.000Z
+    // (13:00 UTC) — la segunda es la MÁS RECIENTE por instante, pero una
+    // comparación de cadenas la coloca antes porque '13' < '14' lexicográficamente.
+    // Verificado con Date.parse al escribir el test: ambos casos dan órdenes opuestos.
+    const conOffset = entryAt('2026-09-10T14:00:00.000+02:00') // instante: 12:00 UTC
+    const conZ = entryAt('2026-09-10T13:00:00.000Z') // instante: 13:00 UTC, más reciente
+
+    const resultado = sortEntriesByRecency([conOffset, conZ])
+
+    expect(resultado).toEqual([conZ, conOffset])
+  })
+
+  it('WR-06: una entrada con recordedAt no parseable queda al final y no altera el orden relativo de las demás', () => {
+    const masReciente = entryAt('2026-09-10T12:00:00.000Z')
+    const masAntigua = entryAt('2026-09-01T12:00:00.000Z')
+    const ilegible = entryAt('ayer')
+
+    const resultado = sortEntriesByRecency([ilegible, masReciente, masAntigua])
+
+    expect(resultado).toEqual([masReciente, masAntigua, ilegible])
+  })
+
+  it('WR-06: dos entradas con el mismo recordedAt conservan su orden de inserción (estabilidad)', () => {
+    const primera = entryAt('2026-09-10T12:00:00.000Z')
+    const segunda = entryAt('2026-09-10T12:00:00.000Z')
+    const masAntigua = entryAt('2026-09-01T12:00:00.000Z')
+
+    const resultado = sortEntriesByRecency([primera, segunda, masAntigua])
+
+    expect(resultado).toEqual([primera, segunda, masAntigua])
+  })
+})
+
 describe('no-mutación: buildHistoryEntry no modifica session ni names', () => {
   it('la sesión recibida no cambia', () => {
     const session = baseSession({

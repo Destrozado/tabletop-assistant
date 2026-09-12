@@ -81,16 +81,28 @@ function buildRows(
   return [...rows].sort((a, b) => b.pct - a.pct || b.played - a.played || a.name.localeCompare(b.name, 'es'))
 }
 
+// CR-02 (defensa en profundidad): `entry` viene en última instancia de
+// `localStorage` a través de `loadHistory()`, y el tipo `GameHistoryEntry`
+// es una promesa de compilación, no una garantía de ejecución — un dato que
+// viole el tipo puede cruzar la frontera sin que nada lo impida.
+// `app/composables/usePersistedSession.ts` (plan 09-09) valida el tipo en la
+// frontera de almacenamiento; esta es la SEGUNDA línea de defensa, no la
+// primera: el motor declara en su cabecera que nunca lanza, y ese contrato
+// no puede depender de que el llamador haya validado antes. La coerción
+// explícita con `String(...)` garantiza que `id`/`name` son siempre string
+// aunque el dato de origen no lo sea, para que la cascada de orden de D-24
+// (línea 81, comparador alfabético español) nunca reciba un número.
 function extractHeroIds(entry: GameHistoryEntry): { id: string, name: string }[] {
   const players = Array.isArray(entry.players) ? entry.players : []
   return players
     .filter(p => p !== null && typeof p === 'object' && p.heroId !== null && p.heroId !== undefined)
-    .map(p => ({ id: p.heroId as string, name: p.heroName ?? p.heroId! }))
+    .map(p => ({ id: String(p.heroId), name: String(p.heroName ?? p.heroId) }))
 }
 
+// CR-02 (defensa en profundidad): ver comentario de `extractHeroIds`.
 function extractVillainId(entry: GameHistoryEntry): { id: string, name: string }[] {
   if (entry.villainId === null || entry.villainId === undefined) return []
-  return [{ id: entry.villainId, name: entry.villainName ?? entry.villainId }]
+  return [{ id: String(entry.villainId), name: String(entry.villainName ?? entry.villainId) }]
 }
 
 // D-23: la función nunca inventa filas a cero — solo conoce ids que
