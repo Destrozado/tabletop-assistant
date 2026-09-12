@@ -530,15 +530,27 @@ function onEndGameRequest() {
 // tres pasos que siguen destruyen exactamente los datos que el registro del
 // histórico necesita, así que todo llamante debe invocarlos DESPUÉS de haber
 // registrado (o decidido no registrar).
-function finishGame() {
+//
+// preserveProgress (09-16, cierre del WARNING «amplificador del impacto de
+// CR-02» de 09-VERIFICATION.md sobre estas mismas líneas): el progreso solo
+// se borra cuando ya no hace falta; si el registro no se pudo guardar, el
+// progreso es lo único que permite reintentarlo, así que borrarlo convierte
+// un fallo recuperable en una pérdida definitiva. El valor por defecto
+// `false` conserva el comportamiento histórico para todo llamante que no
+// diga nada (onDiscardConfirm no pasa por aquí; onOutcomeDismiss llama sin
+// argumento a propósito). Ninguna rama toca el histórico — `clear` solo
+// borra `tga:progress:<gameId>` (HIST-09 intacto).
+function finishGame(preserveProgress = false) {
   // session.value = null ANTES de clear(gameId): el autoguardado es un
   // watchDebounced de 300ms. Si hubiera una escritura pendiente con la
   // sesión antigua, se ejecutaría DESPUÉS del borrado y resucitaría la
   // clave. Asignar null reprograma esa invocación pendiente con null, que
   // la guarda `if (!value) return` del watch descarta (mismo truco que
-  // onDiscardConfirm).
+  // onDiscardConfirm). Esto es también lo que hace que preservar el
+  // progreso funcione: la clave queda tal como la dejó el último
+  // autoguardado, sin que esta escritura tardía la reescriba.
   session.value = null
-  clear(gameId)
+  if (!preserveProgress) clear(gameId)
   // NO se llama a releaseWakeLock() aquí: navigateTo desmonta esta página y
   // el tryOnScopeDispose interno de useWakeLock ya libera el bloqueo solo
   // (mismo razonamiento que el «Atrás» del mini-setup, líneas 434-439 más
@@ -553,6 +565,14 @@ function finishGame() {
 // primer paso (session.value = null) sí lo hace. record() lee
 // session.value, así que moverlo después de finishGame() produciría un
 // histórico vacío en silencio.
+//
+// 09-16 (cierre del WARNING «amplificador del impacto de CR-02»): el orden
+// sigue siendo el mismo y sigue siendo obligatorio; lo que se añade es que
+// el RESULTADO de record() decide también qué se destruye. Si `guardado`
+// es false, finishGame(true) preserva `tga:progress:<gameId>` — el grupo
+// vuelve a `/`, entra otra vez en el juego, ve «Partida guardada …
+// CONTINUAR» y puede volver a pulsar «Partida terminada» para reintentar el
+// registro.
 function onOutcomeRecorded(outcome: GameOutcome) {
   awaitingEndConfirm.value = false
   isIndexOpen.value = false
@@ -570,8 +590,10 @@ function onOutcomeRecorded(outcome: GameOutcome) {
   if (session.value) {
     const guardado = record(session.value, outcome)
     notifyHistorySaved(guardado)
+    finishGame(!guardado)
+  } else {
+    finishGame()
   }
-  finishGame()
 }
 
 // NOTA DE RECONCILIACIÓN (HIST-02): «Salir sin registrar» TERMINA la
