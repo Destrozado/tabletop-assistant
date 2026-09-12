@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 
 Phase: 09 (hist-rico-y-estad-sticas) — EXECUTING
 Plan: 12 of 12
-Status: Phase complete — ready for verification (09-12 cierra el BLOCKER de la 2ª ronda de 09-VERIFICATION.md)
+Status: Verificación ronda 3 — gaps_found 5/7. El BLOCKER de la ronda 2 está cerrado por 09-12, pero la ronda 3 reproduce 2 BLOCKER nuevos (CR-01 lectura transitoria que borra el histórico, CR-02 prototipo en heroNames). Siguiente paso: /gsd:plan-phase 9 --gaps
 Last activity: 2026-09-12
 
 ## Performance Metrics
