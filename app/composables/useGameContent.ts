@@ -15,8 +15,19 @@ const gamesById: Record<string, GameDefinition> = {
 export function useGameContent() {
   const games: GameIndexEntry[] = gamesIndex
 
+  // WR-08 (09-REVIEW.md, ronda 3): `gameId` viene del parámetro de ruta
+  // (`/[game]`), es decir, de la URL — dato no confiable. Un objeto literal
+  // indexado directamente (`gamesById[gameId]`) resuelve por la cadena de
+  // prototipos: `gamesById['constructor']` devuelve la función `Object`,
+  // que es truthy, así que `?? null` nunca entra, la guarda `v-if="!game"`
+  // de la pantalla de juego no se dispara, `expand()` revienta sobre
+  // `game.sections` y la pantalla se queda en «Cargando…» sin salida.
+  // Misma familia de defecto que CR-02 (ronda 3) en `engine/history.ts` —
+  // un objeto literal indexado por dato no confiable — pero aquí el dato
+  // no confiable es la URL, no `localStorage`. `Object.hasOwn` en el punto
+  // de LECTURA descarta la cadena de prototipos sin tocar `gamesById`.
   function getGame(gameId: string): GameDefinition | null {
-    return gamesById[gameId] ?? null
+    return Object.hasOwn(gamesById, gameId) ? gamesById[gameId]! : null
   }
 
   return { games, getGame }

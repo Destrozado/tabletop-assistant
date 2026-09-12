@@ -374,3 +374,89 @@ describe('CR-01 (ronda 2): buildHistoryEntry normaliza en origen y nunca propaga
     expect(entry7.round).toBe(7)
   })
 })
+
+// CR-02 (ronda 3): las ocho claves heredadas de Object.prototype — declarada
+// una sola vez aquí y reutilizada en el `it.each` de todo el describe, para
+// que añadir una novena clave en el futuro sea una sola línea.
+const PROTOTYPE_KEYS = [
+  'constructor',
+  'toString',
+  'valueOf',
+  'hasOwnProperty',
+  '__proto__',
+  'isPrototypeOf',
+  'propertyIsEnumerable',
+  'toLocaleString',
+] as const
+
+function sessionWithHeroId(heroId: string): EngineSession {
+  return baseSession({
+    context: baseContext({
+      playerCount: 1,
+      selection: { villainId: null, heroes: [{ heroId, playerName: 'Ana' }] },
+    }),
+  })
+}
+
+describe('CR-02 (ronda 3): el mapa de nombres congelados se indexa con dato no confiable — la cadena de prototipos no participa', () => {
+  it.each(PROTOTYPE_KEYS)('un heroId igual a "%s" produce heroName null, nunca una función heredada de Object.prototype', (heroId) => {
+    const entry = buildHistoryEntry(sessionWithHeroId(heroId), 'won', NOON_UTC_MS, emptyNames)
+    expect(entry.players[0]!.heroName).toBeNull()
+    // La aserción que describe el síntoma real observado por el
+    // verificador: sin objeto sin prototipo, `heroName` era la FUNCIÓN
+    // `Object`/`toString`/etc., no `undefined` ni `null`.
+    expect(typeof entry.players[0]!.heroName !== 'function').toBe(true)
+  })
+
+  it.each(PROTOTYPE_KEYS)('la entrada resultante para "%s" supera el contrato de escritura (heroName null|string)', (heroId) => {
+    const entry = buildHistoryEntry(sessionWithHeroId(heroId), 'won', NOON_UTC_MS, emptyNames)
+    expect(entry.players.every(p => p.heroName === null || typeof p.heroName === 'string')).toBe(true)
+  })
+
+  it('camino feliz intacto: con heroNames creado con Object.create(null) y la clave spider-man, heroName es "Spider-Man"', () => {
+    const heroNames: Record<string, string> = Object.create(null)
+    heroNames['spider-man'] = 'Spider-Man'
+    const entry = buildHistoryEntry(sessionWithHeroId('spider-man'), 'won', NOON_UTC_MS, { villainName: null, heroNames })
+    expect(entry.players[0]!.heroName).toBe('Spider-Man')
+  })
+
+  it('camino feliz intacto (D-11): con heroNames literal {} y un heroId normal ausente, heroName sigue siendo null', () => {
+    const entry = buildHistoryEntry(sessionWithHeroId('thor'), 'won', NOON_UTC_MS, { villainName: null, heroNames: {} })
+    expect(entry.players[0]!.heroName).toBeNull()
+  })
+
+  it('valor presente pero de tipo equivocado (número): heroName es null, no el número', () => {
+    const heroNames = { 'spider-man': 7 } as unknown as Record<string, string>
+    const entry = buildHistoryEntry(sessionWithHeroId('spider-man'), 'won', NOON_UTC_MS, { villainName: null, heroNames })
+    expect(entry.players[0]!.heroName).toBeNull()
+  })
+
+  it('heroNames que no es un objeto en absoluto (null y una cadena): buildHistoryEntry no lanza y heroName es null', () => {
+    for (const heroNamesHostil of [null, 'no-es-un-objeto']) {
+      let entry: GameHistoryEntry | undefined
+      expect(() => {
+        entry = buildHistoryEntry(
+          sessionWithHeroId('spider-man'),
+          'won',
+          NOON_UTC_MS,
+          { villainName: null, heroNames: heroNamesHostil as never },
+        )
+      }).not.toThrow()
+      expect(entry!.players[0]!.heroName).toBeNull()
+    }
+  })
+
+  it('villainName no-string (un número y un objeto) produce null; "Rhino" sigue viajando intacto', () => {
+    const session = baseSession({
+      context: baseContext({ selection: { villainId: 'rhino', heroes: [] } }),
+    })
+
+    for (const villainNameHostil of [7, { nombre: 'Rhino' }]) {
+      const entry = buildHistoryEntry(session, 'won', NOON_UTC_MS, { villainName: villainNameHostil as never, heroNames: {} })
+      expect(entry.villainName).toBeNull()
+    }
+
+    const entryFeliz = buildHistoryEntry(session, 'won', NOON_UTC_MS, { villainName: 'Rhino', heroNames: {} })
+    expect(entryFeliz.villainName).toBe('Rhino')
+  })
+})
