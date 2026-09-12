@@ -57,7 +57,7 @@ export function buildHistoryEntry(
       : null
 
   return {
-    id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
+    id: `${now}-${Math.random().toString(36).slice(2, 12)}`,
     gameId,
     result: outcome === 'won' ? 'won' : 'lost',
     lossCause: outcome === 'won' ? null : outcome,
@@ -108,10 +108,28 @@ export function formatEntryDuration(durationMs: number | null): string {
   return `${hours} h ${minutes} min`
 }
 
-// HIST-07: garantía mecánica de "de la más reciente a la más antigua"
-// incluso si el array almacenado llegara desordenado por edición manual.
-// Devuelve un array NUEVO ordenado por recordedAt descendente (comparación
-// de cadenas ISO, que es cronológica), sin mutar la entrada.
+// HIST-07/WR-06: garantía mecánica de "de la más reciente a la más antigua"
+// incluso si el array almacenado llegara desordenado por edición manual. El
+// orden se calcula por INSTANTE (Date.parse), no por comparación de cadenas:
+// una comparación de cadenas ISO solo es cronológica si todas las cadenas
+// tienen exactamente el mismo formato y depende además de la colación del
+// ICU del dispositivo — dos representaciones válidas del mismo instante con
+// formatos distintos (p. ej. con offset explícito frente a "Z") pueden
+// ordenarse al revés bajo comparación de cadenas. Una entrada con
+// `recordedAt` no parseable (`Date.parse` devuelve `NaN`) se trata como
+// "infinitamente antigua" y cae al final, de forma determinista, sin alterar
+// el orden relativo de las demás. Este orden no es solo cosmético: alimenta
+// en `engine/statistics.ts` (D-26) la elección del nombre congelado
+// ganador, que asume que el primer elemento del array es el más reciente.
+// Devuelve un array NUEVO, sin mutar la entrada; `Array.prototype.sort` es
+// estable en todos los motores soportados, así que dos entradas con el
+// mismo instante conservan su orden de inserción — preserva la garantía de
+// `appendHistoryEntry` de anteponer la entrada nueva incluso si dos
+// registros caen en el mismo milisegundo.
 export function sortEntriesByRecency(entries: GameHistoryEntry[]): GameHistoryEntry[] {
-  return [...entries].sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))
+  const instant = (entry: GameHistoryEntry): number => {
+    const parsed = Date.parse(entry.recordedAt)
+    return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed
+  }
+  return [...entries].sort((a, b) => instant(b) - instant(a))
 }
