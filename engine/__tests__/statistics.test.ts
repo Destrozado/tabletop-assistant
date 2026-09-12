@@ -160,6 +160,65 @@ describe('Villanos', () => {
   })
 })
 
+describe('CR-02: defensa en profundidad ante id/name no-string', () => {
+  it('CR-02: con dos entradas de villano y una con villainId numérico, aggregateStatistics no lanza (orden A)', () => {
+    const numerica = makeEntry({ villainId: 5 as never, villainName: null })
+    const normal = makeEntry({ villainId: 'rhino', villainName: 'Rhino' })
+    expect(() => aggregateStatistics([numerica, normal])).not.toThrow()
+    const summary = aggregateStatistics([numerica, normal])
+    expect(summary.villainRows).toHaveLength(2)
+    for (const row of summary.villainRows) {
+      expect(typeof row.id).toBe('string')
+      expect(typeof row.name).toBe('string')
+    }
+  })
+
+  it('CR-02: con dos entradas de villano y una con villainId numérico, aggregateStatistics no lanza (orden B, invertido)', () => {
+    const numerica = makeEntry({ villainId: 5 as never, villainName: null })
+    const normal = makeEntry({ villainId: 'rhino', villainName: 'Rhino' })
+    expect(() => aggregateStatistics([normal, numerica])).not.toThrow()
+    const summary = aggregateStatistics([normal, numerica])
+    expect(summary.villainRows).toHaveLength(2)
+    for (const row of summary.villainRows) {
+      expect(typeof row.id).toBe('string')
+      expect(typeof row.name).toBe('string')
+    }
+  })
+
+  it('CR-02: con dos entradas de héroe y una con heroId numérico, aggregateStatistics no lanza (orden A)', () => {
+    const numerico = makeEntry({ players: [makePlayer({ heroId: 7 as never, heroName: null })] })
+    const normal = makeEntry({ players: [makePlayer({ heroId: 'thor', heroName: 'Thor' })] })
+    expect(() => aggregateStatistics([numerico, normal])).not.toThrow()
+    const summary = aggregateStatistics([numerico, normal])
+    expect(summary.heroRows).toHaveLength(2)
+    for (const row of summary.heroRows) {
+      expect(typeof row.id).toBe('string')
+      expect(typeof row.name).toBe('string')
+    }
+  })
+
+  it('CR-02: con dos entradas de héroe y una con heroId numérico, aggregateStatistics no lanza (orden B, invertido)', () => {
+    const numerico = makeEntry({ players: [makePlayer({ heroId: 7 as never, heroName: null })] })
+    const normal = makeEntry({ players: [makePlayer({ heroId: 'thor', heroName: 'Thor' })] })
+    expect(() => aggregateStatistics([normal, numerico])).not.toThrow()
+    const summary = aggregateStatistics([normal, numerico])
+    expect(summary.heroRows).toHaveLength(2)
+    for (const row of summary.heroRows) {
+      expect(typeof row.id).toBe('string')
+      expect(typeof row.name).toBe('string')
+    }
+  })
+
+  it('CR-02: el id de la fila también se coerciona (villainId numérico 5 produce id "5")', () => {
+    const numerica = makeEntry({ villainId: 5 as never, villainName: null })
+    const normal = makeEntry({ villainId: 'rhino', villainName: 'Rhino' })
+    const summary = aggregateStatistics([numerica, normal])
+    const fila = summary.villainRows.find(r => r.id === '5')
+    expect(fila).toBeDefined()
+    expect(fila!.id).toBe('5')
+  })
+})
+
 describe('No-mutación', () => {
   it('aggregateStatistics no modifica el array recibido ni sus entradas', () => {
     const entries = [
