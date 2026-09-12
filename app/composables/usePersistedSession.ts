@@ -24,6 +24,12 @@
 // deserializa objetos planos — cualquier fallo de parseo (JSON corrupto) o de
 // acceso al propio storage (modo privado, cuota, contexto restringido) se
 // trata como ausencia de dato, nunca como error que rompa la interacción.
+// CR-01 (ronda 3): esa última frase es cierta para `tga:progress:*` y
+// `tga:voice-enabled` — datos RECONSTRUIBLES, donde "no sé leer" y "no hay
+// dato" pueden colapsarse sin pérdida — pero es FALSA a propósito para
+// `tga:history` (irreconstruible, D-13): ahí un fallo de LECTURA nunca
+// autoriza a tratar el histórico como ausente. Ver `readRaw`/`readEnvelope`
+// más abajo, donde esta distinción se hace explícita en el tipo.
 import { toPersistedPosition } from '~~/engine/persistence'
 import type { PersistedPosition } from '~~/engine/persistence'
 import type { EngineSession, GameHistoryEntry, HistoryPlayerEntry } from '~~/engine/types'
@@ -140,18 +146,39 @@ function isGameHistoryEntry(value: unknown): value is GameHistoryEntry {
     && candidate.players.every(isHistoryPlayerEntry)
 }
 
+// CR-01 (ronda 3): resultado discriminado de tres vías para distinguir «no
+// hay dato» de «no he podido comprobar si hay dato». Antes de este cierre
+// `readRaw` colapsaba las tres situaciones (clave ausente, SSR sin `window`,
+// `getItem` lanzando) en un único `undefined`, y `readEnvelope` traducía ese
+// `undefined` a `{ kind: 'empty' }` — el mismo camino exacto que una clave
+// genuinamente ausente. Eso permitía que un fallo TRANSITORIO de lectura
+// (modo privado, cuota, contexto restringido) autorizara a
+// `appendHistoryEntry` a reconstruir el envoltorio del histórico desde cero,
+// destruyendo partidas ya registradas. Solo `'absent'` significa «el storage
+// ha confirmado que la clave no existe»; `'unreadable'` significa «no sé qué
+// hay», y quien decide qué hacer con eso es cada llamador según si su dato es
+// reconstruible (`load`/`loadVoicePreference`, que siguen colapsando ambos) o
+// no (`readEnvelope`, que ya no lo hace).
+type RawRead =
+  | { kind: 'absent' }
+  | { kind: 'value', raw: string }
+  | { kind: 'unreadable' }
+
 // Los cuatro ayudantes siguientes son el único punto que toca
-// `window.localStorage` de verdad. `undefined` significa "sin dato" tanto en
-// SSR (no hay `window`) como si el propio storage lanza (modo privado, cuota,
-// contexto restringido) — el llamador no distingue el motivo, solo la
-// ausencia.
-function readRaw(key: string): string | undefined {
-  if (typeof window === 'undefined') return undefined
+// `window.localStorage` de verdad.
+function readRaw(key: string): RawRead {
+  // Sin `window` (SSR/prerender) tampoco se escribe (`writeRaw` ya devuelve
+  // `false` sin `window`), así que clasificarlo como «ilegible» es
+  // literalmente cierto y además es la clasificación segura — nunca autoriza
+  // a machacar un dato que pudiera existir en el dispositivo real.
+  if (typeof window === 'undefined') return { kind: 'unreadable' }
   try {
-    return window.localStorage.getItem(key) ?? undefined
+    const value = window.localStorage.getItem(key)
+    if (value === null) return { kind: 'absent' }
+    return { kind: 'value', raw: value }
   }
   catch {
-    return undefined
+    return { kind: 'unreadable' }
   }
 }
 
@@ -204,19 +231,24 @@ type EnvelopeRead =
   | { kind: 'ok', entries: unknown[] }
   | { kind: 'unreadable' }
 
-// CR-03: separa "leer el envoltorio en crudo" de "leer las entradas
-// válidas" (que sigue siendo trabajo de `loadHistory`, más abajo). Nunca
-// lanza. `readRaw` devolviendo `undefined` (clave ausente O storage
-// inaccesible) es la ÚNICA vía a 'empty' — el `catch` del `JSON.parse`
-// devuelve 'unreadable', NUNCA 'empty', para que
-// `appendHistoryEntry`/`removeHistoryEntry` aborten la escritura en vez de
-// sobrescribir un blob que no han sabido interpretar (T-09-01).
+// CR-03/CR-01 (ronda 3): separa "leer el envoltorio en crudo" de "leer las
+// entradas válidas" (que sigue siendo trabajo de `loadHistory`, más abajo).
+// Nunca lanza. `'empty'` tiene ahora UNA sola fuente: `readRaw` devolviendo
+// `'absent'` — la clave no existe de verdad, confirmado por `getItem`
+// devolviendo `null` sin lanzar. Un `getItem` que lanza (`'unreadable'` de
+// LECTURA) y un JSON que no se sabe interpretar (`catch` del `JSON.parse`,
+// `formatVersion` desconocido, `entries` no array) desembocan los dos en
+// `'unreadable'`, y esa variante ya aborta toda escritura en
+// `appendHistoryEntry`/`removeHistoryEntry` sin tocar `writeRaw` (T-09-01).
+// Si alguien vuelve a colapsar «no he podido leer» y «no hay nada» en un
+// mismo camino, vuelve a abrir el BLOCKER CR-01 (ronda 3).
 function readEnvelope(): EnvelopeRead {
-  const raw = readRaw(HISTORY_KEY)
-  if (raw === undefined) return { kind: 'empty' }
+  const read = readRaw(HISTORY_KEY)
+  if (read.kind === 'unreadable') return { kind: 'unreadable' }
+  if (read.kind === 'absent') return { kind: 'empty' }
 
   try {
-    const parsed = JSON.parse(raw) as Partial<HistoryEnvelope>
+    const parsed = JSON.parse(read.raw) as Partial<HistoryEnvelope>
     if (parsed.formatVersion !== HISTORY_FORMAT_VERSION) return { kind: 'unreadable' }
     if (!Array.isArray(parsed.entries)) return { kind: 'unreadable' }
     return { kind: 'ok', entries: parsed.entries }
@@ -229,11 +261,15 @@ function readEnvelope(): EnvelopeRead {
 
 export function usePersistedSession() {
   function load(gameId: string): PersistedPosition | null {
-    const raw = readRaw(storageKey(gameId))
-    if (!raw) return null
+    const read = readRaw(storageKey(gameId))
+    // CR-01 (ronda 3): el progreso es un dato RECONSTRUIBLE (se vuelve a
+    // jugar desde el paso que sea), así que tratar «no sé leer»
+    // (`'unreadable'`) igual que «no hay partida guardada» (`'absent'`) no
+    // destruye nada — es justo la propiedad que el histórico no tiene.
+    if (read.kind !== 'value') return null
 
     try {
-      const parsed = JSON.parse(raw)
+      const parsed = JSON.parse(read.raw)
       return isPersistedPosition(parsed) ? parsed : null
     }
     catch {
@@ -255,14 +291,17 @@ export function usePersistedSession() {
   }
 
   function loadVoicePreference(): boolean {
-    const raw = readRaw(VOICE_KEY)
-    if (raw === undefined) return true
+    const read = readRaw(VOICE_KEY)
+    // CR-01 (ronda 3): preferencia RECONSTRUIBLE (se vuelve a pulsar el
+    // botón), así que «no sé leer» sigue cayendo al valor por defecto igual
+    // que «no hay preferencia guardada» — mismo criterio que `load` arriba.
+    if (read.kind !== 'value') return true
     // Mismo criterio que el serializador booleano de VueUse que sustituye
     // esta lectura: solo la cadena literal "true" es verdadera; cualquier
     // otra cosa se coacciona a booleano antes de pasar por
     // normalizeVoicePreference (que solo hace de guarda para el `false`
     // exacto, D-47).
-    return normalizeVoicePreference(raw === 'true')
+    return normalizeVoicePreference(read.raw === 'true')
   }
 
   function saveVoicePreference(enabled: boolean): void {
