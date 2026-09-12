@@ -33,7 +33,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 - [x] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente (completed 2026-09-08)
 - [x] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7 (verificación: gaps_found — CR-01 solape de zonas táctiles) (completed 2026-09-08)
 - [x] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz (completed 2026-09-09)
-- [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (11/12 planes ejecutados; verificación ronda 2: gaps_found 5/7 — CR-01 nuevo, escritura del histórico sin validar; cierre planificado en 09-12-PLAN.md)
+- [x] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (11/12 planes ejecutados; verificación ronda 2: gaps_found 5/7 — CR-01 nuevo, escritura del histórico sin validar; cierre planificado en 09-12-PLAN.md) (completed 2026-09-12)
 - [ ] **Phase 10: Respaldo en Firestore** - Subida silenciosa, nunca bloqueante, aislada del resto
 
 ### Phase Details
@@ -192,7 +192,7 @@ Plans:
 - [x] 09-09-PLAN.md — Cierre de huecos: escritura no destructiva de `tga:history` y frontera de tipos (CR-03) (ola 6)
 - [x] 09-10-PLAN.md — Cierre de huecos: motor que no lanza ante ids no-string y orden cronológico real (CR-02) (ola 6)
 - [x] 09-11-PLAN.md — Cierre de huecos: `/historico` y `/estadisticas` que no se caen ante datos inconsistentes (CR-01) (ola 7)
-- [ ] 09-12-PLAN.md — Cierre de huecos: la escritura del histórico valida con el mismo predicado que la lectura (CR-01 ronda 2 + WR-03) (ola 8)
+- [x] 09-12-PLAN.md — Cierre de huecos: la escritura del histórico valida con el mismo predicado que la lectura (CR-01 ronda 2 + WR-03) (ola 8)
 **UI hint**: yes
 **Verificación humana**: Sí, recomendable pero no bloqueante por dispositivo — el flujo de fin de partida y las dos pantallas nuevas se verifican jugando una partida real de principio a fin (puede hacerse en portátil/móvil, no requiere la tablet de mesa) y comprobando que el registro y las estadísticas resultantes coinciden con lo jugado.
 
@@ -238,7 +238,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
-| 9. Histórico y estadísticas | v1.8 | 11/12 | In Progress|  |
+| 9. Histórico y estadísticas | v1.8 | 12/12 | Complete   | 2026-09-12 |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 
 ---

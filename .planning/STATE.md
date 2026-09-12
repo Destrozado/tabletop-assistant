@@ -4,14 +4,14 @@ milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
 status: executing
 stopped_at: Phase 9 UI-SPEC approved
-last_updated: "2026-09-12T12:22:11.897Z"
-last_activity: 2026-09-12 -- Phase 09 planning complete
+last_updated: "2026-09-12T12:35:49.415Z"
+last_activity: 2026-09-12
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 40
-  completed_plans: 39
-  percent: 67
+  completed_plans: 40
+  percent: 83
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 09 (hist-rico-y-estad-sticas) — EXECUTING
-Plan: 12 of 12 (11 ejecutados; 09-12 es cierre de gaps de la verificación ronda 2, pendiente)
-Status: Ready to execute
-Last activity: 2026-09-12 -- Phase 09 planning complete
+Plan: 12 of 12
+Status: Phase complete — ready for verification (09-12 cierra el BLOCKER de la 2ª ronda de 09-VERIFICATION.md)
+Last activity: 2026-09-12
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Last activity: 2026-09-12 -- Phase 09 planning complete
 | Phase 03.1 P04 | 35min | 2 tasks | 4 files |
 | Phase 03.1 P05 | 50min | 3 tasks | 4 files |
 | Phase 08 P03 | 40min | 3 tasks | 4 files |
+| Phase 09 P12 | 9min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,8 @@ Recent decisions affecting current work:
 - [Phase 08]: 08-03: D-10 sin rótulo (a diferencia de ELECCIÓN/Opciones)
 - [Phase 08]: 08-03: D-14/D-15 stepValueRows es null (no array vacío) cuando no hay ninguna fila conocida
 - [Phase 08]: 08-03: checkpoint humano de Task 3 aprobado (Aprobado!) — los 8 puntos de legibilidad confirmados; recuento real de audio es 35 clips, no 37 (dato heredado del ROADMAP ya erróneo)
+- [Phase 09-12]: buildHistoryEntry normaliza difficulty/playerCount/round en origen (mismo criterio que durationMs); appendHistoryEntry se somete a isGameHistoryEntry antes de escribir — cierra el BLOCKER de CR-01 ronda 2
+- [Phase 09-12]: isGameHistoryEntry valida round/playerCount/durationMs con Number.isFinite en vez de typeof === 'number' (WR-03)
 
 ### Pending Todos
 
@@ -161,6 +164,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-09T19:22:38.602Z
+Last session: 2026-09-12T12:34:47.427Z
 Stopped at: Phase 9 UI-SPEC approved
-Resume file: .planning/phases/09-hist-rico-y-estad-sticas/09-UI-SPEC.md
+Resume file: None
