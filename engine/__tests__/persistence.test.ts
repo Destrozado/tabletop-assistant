@@ -101,7 +101,7 @@ describe('resume', () => {
     expect(result.session.cursor).toBeLessThan(result.session.sequence.length)
   })
 
-  it('CR-01: con persisted parcial (context ausente, p.ej. residuo de una build antigua) nunca deja session.context indefinido', () => {
+  it('CR-01 / WR-03 (ronda 3): con persisted parcial (context ausente, p.ej. residuo de una build antigua) nunca deja session.context indefinido', () => {
     const fresh = expand(tinyGame, context)
     // Simula lo que hoy puede sobrevivir a la validación insuficiente de
     // usePersistedSession.load() (solo comprueba 'formatVersion' in parsed):
@@ -109,7 +109,12 @@ describe('resume', () => {
     const partial = { formatVersion: 1 } as unknown as PersistedPosition
     expect(() => resume(partial, fresh)).not.toThrow()
     const result = resume(partial, fresh)
-    expect(result.outcome).toBe('content-changed')
+    // WR-03 (ronda 3): un context ausente ya no cae en 'content-changed' —
+    // la guarda única de resume() lo intercepta primero y degrada a
+    // 'fresh', porque el contenido no ha cambiado, es la CONFIGURACIÓN la
+    // que se ha perdido. Las otras tres aserciones se conservan: siguen
+    // siendo ciertas y siguen siendo el punto del test.
+    expect(result.outcome).toBe('fresh')
     expect(result.session.context).toBeDefined()
     expect(result.session.context.playerCount).toBeTypeOf('number')
     expect(result.session.context.difficulty).toBeTypeOf('string')
@@ -287,13 +292,19 @@ describe('D-21: resume() de una sesión persistida con forma de v1.7 (sin select
   })
 })
 
-describe('CR-01 (ronda 2): la rama `resumed` valida el context igual que `content-changed`', () => {
-  it('con context: {} persistido, resume() devuelve "resumed" pero adopta el context de la sesión FRESCA', () => {
+describe('CR-01 (ronda 2) / WR-03 (ronda 3): la rama `resumed` valida el context igual que `content-changed`', () => {
+  it('WR-03 (ronda 3): con context: {} persistido, resume() devuelve "fresh" y la sesión fresca ENTERA (no una mezcla)', () => {
     const fresh = expand(tinyGame, context)
     const persisted = basePersisted({ context: {} as SessionContext })
     const result = resume(persisted, fresh)
-    expect(result.outcome).toBe('resumed')
+    // Cambio de expectativa respecto al comportamiento antiguo (ronda 2):
+    // entonces "resumed" con el context fresco adoptado en silencio; ahora
+    // la guarda única de resume() degrada a "fresh" explícitamente, porque
+    // un context inválido no es una partida reanudable.
+    expect(result.outcome).toBe('fresh')
     expect(result.session.context).toEqual(fresh.context)
+    expect(result.session.cursor).toBe(0)
+    expect(result.session.round).toBe(1)
   })
 
   it('con un context con forma válida, resume() sigue devolviendo el context persistido intacto (anti-regresión del camino feliz)', () => {
@@ -312,5 +323,59 @@ describe('CR-01 (ronda 2): la rama `resumed` valida el context igual que `conten
 
     const persistedValid = basePersisted({ round: 3 })
     expect(resume(persistedValid, fresh).session.round).toBe(3)
+  })
+})
+
+describe('WR-03 (ronda 3): un context que no se puede validar no es una partida reanudable', () => {
+  it('playerCount: NaN con difficulty válida degrada a "fresh"', () => {
+    const fresh = expand(tinyGame, context)
+    const persisted = basePersisted({ context: { playerCount: Number.NaN, difficulty: 'normal' } })
+    const result = resume(persisted, fresh)
+    expect(result.outcome).toBe('fresh')
+  })
+
+  it('playerCount fuera de rango (0, no-entero) degrada a "fresh"', () => {
+    const fresh = expand(tinyGame, context)
+    const zero = resume(basePersisted({ context: { playerCount: 0, difficulty: 'normal' } }), fresh)
+    expect(zero.outcome).toBe('fresh')
+
+    const fractional = resume(basePersisted({ context: { playerCount: 2.5, difficulty: 'normal' } }), fresh)
+    expect(fractional.outcome).toBe('fresh')
+  })
+
+  it('difficulty que no es "normal" ni "expert" degrada a "fresh"', () => {
+    const fresh = expand(tinyGame, context)
+    const imposible = resume(basePersisted({ context: { playerCount: 2, difficulty: 'imposible' as unknown as SessionContext['difficulty'] } }), fresh)
+    expect(imposible.outcome).toBe('fresh')
+
+    const numerica = resume(basePersisted({ context: { playerCount: 2, difficulty: 7 as unknown as SessionContext['difficulty'] } }), fresh)
+    expect(numerica.outcome).toBe('fresh')
+  })
+
+  it('context: null y context: [] (superan isPersistedPosition en la capa de storage) degradan a "fresh" sin lanzar', () => {
+    const fresh = expand(tinyGame, context)
+
+    const withNull = basePersisted({ context: null as unknown as SessionContext })
+    expect(() => resume(withNull, fresh)).not.toThrow()
+    expect(resume(withNull, fresh).outcome).toBe('fresh')
+
+    const withArray = basePersisted({ context: [] as unknown as SessionContext })
+    expect(() => resume(withArray, fresh)).not.toThrow()
+    expect(resume(withArray, fresh).outcome).toBe('fresh')
+  })
+
+  it('anti-regresión: las ocho combinaciones legítimas de playerCount (1-4) × difficulty siguen "resumed" con el context intacto', () => {
+    const fresh = expand(tinyGame, context)
+    const difficulties: SessionContext['difficulty'][] = ['normal', 'expert']
+
+    for (const playerCount of [1, 2, 3, 4]) {
+      for (const difficulty of difficulties) {
+        const legitContext = { playerCount, difficulty }
+        const persisted = basePersisted({ context: legitContext })
+        const result = resume(persisted, fresh)
+        expect(result.outcome).toBe('resumed')
+        expect(result.session.context).toEqual(legitContext)
+      }
+    }
   })
 })
