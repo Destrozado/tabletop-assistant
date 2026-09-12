@@ -45,10 +45,10 @@ onMounted(() => {
       <template v-if="cargado">
         <div v-if="statisticsView.isEmpty" class="flex flex-col items-center justify-center text-center gap-md h-full">
           <h2 class="text-heading font-bold text-primary-text">
-            Todavía no hay estadísticas
+            {{ statisticsView.emptyTitle }}
           </h2>
           <p class="text-body font-normal text-secondary-text">
-            En cuanto registréis vuestra primera partida en el histórico, aquí aparecerá el % de victorias por héroe y por villano.
+            {{ statisticsView.emptyBody }}
           </p>
         </div>
 

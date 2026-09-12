@@ -561,8 +561,16 @@ function onOutcomeRecorded(outcome: GameOutcome) {
   // camino de respaldo) no se detiene solo al cambiar de ruta — sin esto la
   // voz seguiría oyéndose ya en el selector de juego.
   silence()
-  const guardado = session.value ? record(session.value, outcome) : false
-  notifyHistorySaved(guardado)
+  // WR-04: el booleano de appendHistoryEntry distingue «escribí» de «no me
+  // dejaron escribir» (D-03), y no cubre «no había nada que escribir». Si
+  // session.value es null no hubo ningún intento de escritura, así que NO
+  // se avisa de nada en absoluto — pintar el aviso de fallo en ese tercer
+  // caso es un diagnóstico falso que induce al grupo a tocar ajustes del
+  // navegador sin motivo.
+  if (session.value) {
+    const guardado = record(session.value, outcome)
+    notifyHistorySaved(guardado)
+  }
   finishGame()
 }
 
