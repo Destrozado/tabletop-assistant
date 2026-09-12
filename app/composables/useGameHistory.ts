@@ -60,7 +60,17 @@ export function resolveFrozenNames(
     ? (catalogue?.villains.find(villain => villain.id === villainId)?.name ?? null)
     : null
 
-  const heroNames: Record<string, string> = {}
+  // CR-02 (ronda 3): este mapa se indexa con un `heroId` que viene en
+  // última instancia de `localStorage` (editable a mano), así que un
+  // objeto literal convierte `constructor`/`toString`/`__proto__` en
+  // «claves que existen» heredadas de `Object.prototype`. Un objeto sin
+  // prototipo solo puede contener lo que este bucle ha puesto. El
+  // consumidor (`engine/history.ts`) aplica además su propia guarda
+  // (`Object.hasOwn` + exigencia de `string`): la pareja es deliberada —
+  // el motor no puede asumir que todo llamador le pase un mapa sin
+  // prototipo, porque su cabecera declara que nunca lanza y que
+  // normaliza por su cuenta.
+  const heroNames: Record<string, string> = Object.create(null)
   for (const slot of resolvePlayerSlots(context)) {
     if (slot.heroId === null) continue
     const hero = catalogue?.heroes.find(candidate => candidate.id === slot.heroId)

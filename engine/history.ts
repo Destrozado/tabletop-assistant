@@ -20,6 +20,24 @@ export interface FrozenNames {
   heroNames: Record<string, string>
 }
 
+// CR-02 (ronda 3): `heroNames` se indexa con un `heroId` que en última
+// instancia viene de `localStorage` (dato no confiable, `resolvePlayerSlots`
+// solo exige "cadena no vacía", sin contrastar contra ningún catálogo). La
+// guarda existe por DOS motivos, igual que `durationMs` más abajo: la clave
+// es dato no confiable (podría ser `'constructor'`, `'__proto__'`, etc., y
+// resolver por la cadena de prototipos de `Object`) Y el valor asociado
+// tampoco está garantizado por el tipo TypeScript (una promesa de
+// compilación, no de ejecución — el llamador podría entregar cualquier
+// cosa). `Object.hasOwn` descarta la cadena de prototipos; el `typeof`
+// descarta un valor de tipo equivocado. Nunca lanza.
+function resolveFrozenHeroName(heroNames: unknown, heroId: string): string | null {
+  if (typeof heroNames !== 'object' || heroNames === null) return null
+  if (heroId.length === 0) return null
+  if (!Object.hasOwn(heroNames, heroId)) return null
+  const value = (heroNames as Record<string, unknown>)[heroId]
+  return typeof value === 'string' ? value : null
+}
+
 // Construye una entrada completa del histórico a partir de una sesión viva
 // (a punto de destruirse), el resultado elegido en GameOutcomeDialog y los
 // nombres congelados ya resueltos por el llamador. Devuelve un objeto
@@ -34,11 +52,20 @@ export function buildHistoryEntry(
 
   // T-09-01: SIEMPRE por resolveVillainId/resolvePlayerSlots, normalizados
   // por tipo y con test propio — nunca context.selection en crudo.
+  // CR-02 (ronda 3): `villainName` es el campo HERMANO de `heroNames` dentro
+  // del mismo objeto `FrozenNames` — lo produce el mismo llamador y
+  // `isGameHistoryEntry` le exige exactamente el mismo contrato
+  // (`null | string`). Endurecer solo `heroNames` y dejar este campo sin
+  // guarda de tipo sería repetir, dentro del mismo plan, el patrón de
+  // «un lado del contrato se endurece y el vecino queda sin revisar» que
+  // lleva tres rondas reabriendo esta fase.
   const villainId = resolveVillainId(context)
-  const villainName = villainId !== null ? names.villainName : null
+  const villainName = villainId !== null && typeof names.villainName === 'string'
+    ? names.villainName
+    : null
 
   const players = resolvePlayerSlots(context).map((slot) => {
-    const heroName = slot.heroId !== null ? (names.heroNames[slot.heroId] ?? null) : null
+    const heroName = slot.heroId !== null ? resolveFrozenHeroName(names.heroNames, slot.heroId) : null
     return {
       heroId: slot.heroId,
       heroName,
