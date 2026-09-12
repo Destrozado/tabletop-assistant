@@ -417,4 +417,43 @@ describe('useGameHistory — ciclo record/reload/remove con localStorage falso',
     expect(entries.value).toHaveLength(0)
     expect(isEmpty.value).toBe(true)
   })
+
+  it('CR-01 (ronda 2): una entrada construida desde context: {} sobrevive a un ciclo record() → loadHistory()', () => {
+    const { record, reload, entries } = useGameHistory()
+
+    const session: EngineSession = {
+      gameId: 'marvel-champions',
+      contentVersion: 1,
+      sequence: [],
+      cursor: 0,
+      round: Number.NaN as unknown as number,
+      context: {} as SessionContext,
+    }
+
+    expect(record(session, 'won')).toBe(true)
+
+    reload()
+    expect(entries.value).toHaveLength(1)
+    const entry = entries.value[0]!
+    expect(entry.difficulty).toBe('normal')
+    expect(entry.playerCount).toBe(0)
+    expect(entry.round).toBe(1)
+    expect(entry.players).toHaveLength(0)
+  })
+
+  it('la misma ida y vuelta con una sesión normal conserva playerCount y round tal cual (camino feliz)', () => {
+    const { record, reload, entries } = useGameHistory()
+
+    const session = makeSession({
+      selection: { villainId: 'rhino', heroes: [{ heroId: 'spider-man', playerName: 'Ana' }] },
+    })
+
+    expect(record(session, 'won')).toBe(true)
+
+    reload()
+    expect(entries.value).toHaveLength(1)
+    const entry = entries.value[0]!
+    expect(entry.playerCount).toBe(1)
+    expect(entry.round).toBe(session.round)
+  })
 })

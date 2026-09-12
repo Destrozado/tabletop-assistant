@@ -286,3 +286,31 @@ describe('D-21: resume() de una sesión persistida con forma de v1.7 (sin select
     })
   })
 })
+
+describe('CR-01 (ronda 2): la rama `resumed` valida el context igual que `content-changed`', () => {
+  it('con context: {} persistido, resume() devuelve "resumed" pero adopta el context de la sesión FRESCA', () => {
+    const fresh = expand(tinyGame, context)
+    const persisted = basePersisted({ context: {} as SessionContext })
+    const result = resume(persisted, fresh)
+    expect(result.outcome).toBe('resumed')
+    expect(result.session.context).toEqual(fresh.context)
+  })
+
+  it('con un context con forma válida, resume() sigue devolviendo el context persistido intacto (anti-regresión del camino feliz)', () => {
+    const fresh = expand(tinyGame, context)
+    const persisted = basePersisted({ context: { playerCount: 2, difficulty: 'expert' } })
+    const result = resume(persisted, fresh)
+    expect(result.outcome).toBe('resumed')
+    expect(result.session.context).toEqual(persisted.context)
+  })
+
+  it('con round: NaN persistido, session.round cae a 1; con round: 3, se mantiene 3', () => {
+    const fresh = expand(tinyGame, context)
+
+    const persistedNaN = basePersisted({ round: Number.NaN as unknown as number })
+    expect(resume(persistedNaN, fresh).session.round).toBe(1)
+
+    const persistedValid = basePersisted({ round: 3 })
+    expect(resume(persistedValid, fresh).session.round).toBe(3)
+  })
+})

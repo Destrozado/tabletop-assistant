@@ -294,3 +294,83 @@ describe('id: aleatorio, con la forma esperada', () => {
     expect(entry.id).toMatch(/^\d+-[a-z0-9]+$/)
   })
 })
+
+describe('CR-01 (ronda 2): buildHistoryEntry normaliza en origen y nunca propaga un hueco', () => {
+  it('con context: {} la entrada tiene difficulty "normal", playerCount 0 y players de longitud 0, y las claves están presentes', () => {
+    const session = baseSession({ context: {} as SessionContext })
+    const entry = buildHistoryEntry(session, 'won', NOON_UTC_MS, emptyNames)
+    expect(entry.difficulty).toBe('normal')
+    expect(entry.playerCount).toBe(0)
+    expect(entry.players).toHaveLength(0)
+    // Es justo lo que JSON.stringify eliminaba y lo que hacía desaparecer
+    // la partida: la clave debe existir con un valor, no estar ausente.
+    expect(Object.hasOwn(entry, 'difficulty')).toBe(true)
+    expect(Object.hasOwn(entry, 'playerCount')).toBe(true)
+  })
+
+  it('difficulty solo es "expert" si context.difficulty es exactamente esa cadena; cualquier otra cosa cae a "normal"', () => {
+    const imposible = buildHistoryEntry(
+      baseSession({ context: baseContext({ difficulty: 'imposible' as never }) }),
+      'won',
+      NOON_UTC_MS,
+      emptyNames,
+    )
+    expect(imposible.difficulty).toBe('normal')
+
+    const indefinida = buildHistoryEntry(
+      baseSession({ context: baseContext({ difficulty: undefined as never }) }),
+      'won',
+      NOON_UTC_MS,
+      emptyNames,
+    )
+    expect(indefinida.difficulty).toBe('normal')
+
+    const experto = buildHistoryEntry(
+      baseSession({ context: baseContext({ difficulty: 'expert' }) }),
+      'won',
+      NOON_UTC_MS,
+      emptyNames,
+    )
+    expect(experto.difficulty).toBe('expert')
+  })
+
+  it('un playerCount que no es entero positivo cae a players.length, en todos los casos hostiles', () => {
+    for (const playerCount of [Number.NaN, -3, 2.5, undefined]) {
+      const entry = buildHistoryEntry(
+        baseSession({ context: baseContext({ playerCount: playerCount as never }) }),
+        'won',
+        NOON_UTC_MS,
+        emptyNames,
+      )
+      expect(entry.playerCount).toBe(entry.players.length)
+    }
+  })
+
+  it('con playerCount: 3 válido y tres héroes seleccionados, playerCount === 3 y players.length === 3 (camino feliz)', () => {
+    const session = baseSession({
+      context: baseContext({
+        playerCount: 3,
+        selection: {
+          villainId: null,
+          heroes: [
+            { heroId: 'thor', playerName: 'Ana' },
+            { heroId: 'she-hulk', playerName: 'Luis' },
+            { heroId: 'spider-man', playerName: 'Marta' },
+          ],
+        },
+      }),
+    })
+    const entry = buildHistoryEntry(session, 'won', NOON_UTC_MS, emptyNames)
+    expect(entry.playerCount).toBe(3)
+    expect(entry.players).toHaveLength(3)
+  })
+
+  it('un round que no es entero >= 1 cae a 1, en todos los casos hostiles; round: 7 sigue devolviendo 7', () => {
+    for (const round of [Number.NaN, 0, -4, 2.5]) {
+      const entry = buildHistoryEntry(baseSession({ round: round as never }), 'won', NOON_UTC_MS, emptyNames)
+      expect(entry.round).toBe(1)
+    }
+    const entry7 = buildHistoryEntry(baseSession({ round: 7 }), 'won', NOON_UTC_MS, emptyNames)
+    expect(entry7.round).toBe(7)
+  })
+})

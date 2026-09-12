@@ -408,4 +408,66 @@ describe('tga:history — clave independiente de la partida (D-13/HIST-09)', () 
     const persisted = JSON.parse(fakeStorage.getItem('tga:history')!)
     expect(persisted.entries).toHaveLength(1)
   })
+  it('CR-01 (ronda 2): appendHistoryEntry de una entrada sin difficulty devuelve false y no escribe nada', () => {
+    const { appendHistoryEntry } = usePersistedSession()
+    const result = appendHistoryEntry(makeEntry({ difficulty: undefined as never }))
+
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBeNull()
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
+  })
+
+  it('CR-01 (ronda 2): appendHistoryEntry de una entrada sin playerCount devuelve false y no escribe nada', () => {
+    const { appendHistoryEntry } = usePersistedSession()
+    const result = appendHistoryEntry(makeEntry({ playerCount: undefined as never }))
+
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBeNull()
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
+  })
+
+  it('CR-01 (ronda 2): appendHistoryEntry de una entrada con round: NaN devuelve false y no escribe nada', () => {
+    const { appendHistoryEntry } = usePersistedSession()
+    const result = appendHistoryEntry(makeEntry({ round: Number.NaN }))
+
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBeNull()
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
+  })
+
+  it('CR-01 (ronda 2): una entrada válida sigue escribiéndose (el camino feliz no se degrada)', () => {
+    const { appendHistoryEntry, loadHistory } = usePersistedSession()
+    expect(appendHistoryEntry(makeEntry({ id: 'ok' }))).toBe(true)
+    expect(loadHistory().map(e => e.id)).toEqual(['ok'])
+  })
+
+  it('CR-01 (ronda 2): con entradas previas, una entrada inválida no las toca (blob intacto byte a byte)', () => {
+    const { appendHistoryEntry } = usePersistedSession()
+    appendHistoryEntry(makeEntry({ id: 'previa' }))
+    const seeded = fakeStorage.getItem('tga:history')
+
+    const result = appendHistoryEntry(makeEntry({ difficulty: undefined as never }))
+
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+  })
+
+  it('WR-03: round/playerCount/durationMs con Infinity no superan loadHistory() (localStorage manipulado con el literal JSON `1e400`, que `JSON.parse` sí acepta y convierte a `Infinity` — `NaN`/`Infinity` no son literales JSON válidos, así que un blob real solo puede colar un número fuera de rango de esta forma, nunca `NaN`)', () => {
+    const buena = makeEntry({ id: 'buena' })
+    const rotaRound = makeEntry({ id: 'rota-round', round: 999 })
+    const rotaPlayerCount = makeEntry({ id: 'rota-playercount', playerCount: 998 })
+    const rotaDuration = makeEntry({ id: 'rota-duration', durationMs: 997 })
+    let raw = JSON.stringify({
+      formatVersion: 1,
+      entries: [buena, rotaRound, rotaPlayerCount, rotaDuration],
+    })
+    raw = raw.replace('"round":999', '"round":1e400')
+    raw = raw.replace('"playerCount":998', '"playerCount":1e400')
+    raw = raw.replace('"durationMs":997', '"durationMs":1e400')
+    fakeStorage.setItem('tga:history', raw)
+
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory().map(e => e.id)).toEqual(['buena'])
+  })
 })
+

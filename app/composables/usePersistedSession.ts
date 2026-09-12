@@ -305,10 +305,9 @@ export function usePersistedSession() {
     // «guarda», se pierde en silencio con un ✓ encima. Tras la Task 1 de
     // este plan (09-12) esta rama es defensa en profundidad inalcanzable
     // desde `record()` — el motor ya no produce una entrada inválida — así
-    // que su valor real es impedir que un llamador futuro (la
-    // sincronización a Firestore, un import) reintroduzca el hueco por
-    // otra puerta. Fase 10: no relajar esta guarda para que un caso nuevo
-    // «pase».
+    // que su valor real es impedir que un llamador futuro (un respaldo
+    // remoto, un import) reintroduzca el hueco por otra puerta. Próximas
+    // fases: no relajar esta guarda para que un caso nuevo «pase».
     if (!isGameHistoryEntry(entry)) return false
 
     const read = readEnvelope()
