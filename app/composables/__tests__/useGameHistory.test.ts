@@ -165,6 +165,53 @@ describe('buildHistoryCardView', () => {
     expect(view.deleteAriaLabel).toBe('Borrar partida del 9 sep 2026 contra sin villano')
     expect(view.confirmBody).toBe('Perdida del 9 sep 2026 contra sin villano. Esta acción no se puede deshacer.')
   })
+
+  it('CR-01: una entrada con players: [null] no lanza', () => {
+    const entry = makeEntry({ players: [null] as never })
+
+    expect(() => buildHistoryCardView(entry)).not.toThrow()
+
+    const view = buildHistoryCardView(entry)
+    expect(typeof view.id).toBe('string')
+    expect(typeof view.resultLabel).toBe('string')
+    expect(typeof view.roundAndDurationLine).toBe('string')
+  })
+
+  it('CR-01: una entrada con players: [{}] no lanza', () => {
+    const entry = makeEntry({ players: [{}] as never })
+
+    expect(() => buildHistoryCardView(entry)).not.toThrow()
+
+    const view = buildHistoryCardView(entry)
+    expect(typeof view.id).toBe('string')
+    expect(typeof view.resultLabel).toBe('string')
+    expect(typeof view.roundAndDurationLine).toBe('string')
+  })
+
+  it('CR-01: un hueco inválido se descarta pero los válidos se siguen pintando', () => {
+    const view = buildHistoryCardView(makeEntry({
+      villainId: 'kang',
+      villainName: 'Kang',
+      players: [null, { heroId: 'thor', heroName: 'Thor', playerName: 'Ana' }] as never,
+    }))
+
+    expect(view.playerLines).toHaveLength(1)
+    expect(view.playerLines).toContain('Ana · Thor')
+  })
+
+  it('CR-01: una entrada corrupta no impide renderizar el resto de la lista', () => {
+    const entries = [
+      makeEntry({ id: 'a' }),
+      makeEntry({ id: 'b', players: [null] as never }),
+      makeEntry({ id: 'c' }),
+    ]
+
+    let views: ReturnType<typeof buildHistoryCardView>[] = []
+    expect(() => {
+      views = entries.map(buildHistoryCardView)
+    }).not.toThrow()
+    expect(views).toHaveLength(3)
+  })
 })
 
 describe('buildStatisticsView', () => {
@@ -223,6 +270,63 @@ describe('buildStatisticsView', () => {
     }
 
     expect(buildStatisticsView(summary).isEmpty).toBe(true)
+  })
+
+  it('WR-01: con partidas registradas pero cero filas, isEmpty es true', () => {
+    const summary: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 3,
+      entriesWithHeroes: 0,
+    }
+
+    expect(buildStatisticsView(summary).isEmpty).toBe(true)
+  })
+
+  it('WR-01: la copy del estado vacío distingue los dos motivos', () => {
+    const historicoVacio: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 0,
+      entriesWithHeroes: 0,
+    }
+    expect(buildStatisticsView(historicoVacio).emptyBody).toBe(
+      'En cuanto registréis vuestra primera partida en el histórico, aquí aparecerá el % de victorias por héroe y por villano.',
+    )
+
+    const sinFilas: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 3,
+      entriesWithHeroes: 0,
+    }
+    expect(buildStatisticsView(sinFilas).emptyBody).toBe(
+      '3 partidas registradas, pero ninguna con héroe ni villano anotados. En cuanto anotéis quién jugó o contra quién, aquí aparecerá el % de victorias.',
+    )
+
+    const unaPartida: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 1,
+      entriesWithHeroes: 0,
+    }
+    expect(buildStatisticsView(unaPartida).emptyBody).toBe(
+      '1 partida registrada, pero ninguna con héroe ni villano anotados. En cuanto anotéis quién jugó o contra quién, aquí aparecerá el % de victorias.',
+    )
+  })
+
+  it('WR-01: con al menos una fila, isEmpty es false y emptyTitle/emptyBody son null', () => {
+    const summary: StatisticsSummary = {
+      heroRows: [{ id: 'thor', name: 'Thor', wins: 1, played: 1, pct: 100 }],
+      villainRows: [],
+      totalEntries: 1,
+      entriesWithHeroes: 1,
+    }
+
+    const view = buildStatisticsView(summary)
+    expect(view.isEmpty).toBe(false)
+    expect(view.emptyTitle).toBeNull()
+    expect(view.emptyBody).toBeNull()
   })
 })
 

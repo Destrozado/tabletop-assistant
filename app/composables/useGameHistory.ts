@@ -30,6 +30,7 @@ import type {
   EngineSession,
   GameHistoryEntry,
   GameOutcome,
+  HistoryPlayerEntry,
   SessionContext,
 } from '~~/engine/types'
 import { useCharacterCatalogue } from './useCharacterCatalogue'
@@ -101,7 +102,15 @@ export function buildHistoryCardView(entry: GameHistoryEntry): HistoryCardView {
   // "no había villano/héroe elegido", que es la rama de abajo.
   const hasVillain = entry.villainId !== null
   const villainDisplayName = hasVillain ? (entry.villainName ?? entry.villainId) : null
-  const hasAnyHero = entry.players.some(player => player.heroId !== null)
+
+  // CR-01: `entry` viene en última instancia de `localStorage` — el tipo
+  // TypeScript es una promesa de compilación, no una garantía de ejecución.
+  // Una entrada corrupta puede degradar una tarjeta, pero nunca puede tumbar
+  // la pantalla. Misma guarda que ya aplica `engine/statistics.ts` sobre el
+  // mismo dato (`Array.isArray` + comprobación de objeto no nulo).
+  const players: HistoryPlayerEntry[] = (Array.isArray(entry.players) ? entry.players : [])
+    .filter((player): player is HistoryPlayerEntry => player !== null && typeof player === 'object')
+  const hasAnyHero = players.some(player => player.heroId !== null)
 
   let contextLine: string
   let playerLines: string[] | null
@@ -112,7 +121,7 @@ export function buildHistoryCardView(entry: GameHistoryEntry): HistoryCardView {
     // glifo «—» queda reservado para una cifra que no se puede saber
     // (duración), nunca para "no elegiste villano".
     contextLine = `${villainDisplayName ?? 'Sin villano'} · ${difficultyLabel} · ${entry.playerCount} jug`
-    playerLines = entry.players.map((player, index) => {
+    playerLines = players.map((player, index) => {
       const label = resolvePlayerLabel(index, player.playerName)
       return player.heroId !== null ? `${label} · ${player.heroName ?? player.heroId}` : label
     })
@@ -164,6 +173,12 @@ export interface StatisticsView {
   villainRows: StatRowView[]
   sampleCaption: string | null
   isEmpty: boolean
+  // WR-01: `emptyTitle`/`emptyBody` son `null` exactamente cuando `isEmpty`
+  // es `false` — la plantilla de `estadisticas.vue` deja de llevar copy
+  // literal, así que el componente no compone ni interpola nada (misma
+  // disciplina que el resto de este fichero).
+  emptyTitle: string | null
+  emptyBody: string | null
 }
 
 function toStatRowView(row: StatRow): StatRowView {
@@ -182,11 +197,31 @@ export function buildStatisticsView(summary: StatisticsSummary): StatisticsView 
     ? null
     : `${summary.totalEntries} ${summary.totalEntries === 1 ? 'partida registrada' : 'partidas registradas'} · ${summary.entriesWithHeroes} con héroes anotados`
 
+  // WR-01: "no hay NADA que enseñar" — antes solo cubría el histórico
+  // vacío (`totalEntries === 0`), dejando sin estado vacío el caso "hay
+  // partidas pero ninguna con héroe ni villano anotados", que dejaba
+  // `/estadisticas` sin tablas y sin estado vacío (pantalla sin salida).
+  const isEmpty = summary.heroRows.length === 0 && summary.villainRows.length === 0
+
+  let emptyTitle: string | null = null
+  let emptyBody: string | null = null
+
+  if (isEmpty) {
+    // UI-SPEC §7: copy fijada, sin cambiar ni una coma. Antes vivía literal
+    // en la plantilla de estadisticas.vue; ahora se mueve aquí.
+    emptyTitle = 'Todavía no hay estadísticas'
+    emptyBody = summary.totalEntries === 0
+      ? 'En cuanto registréis vuestra primera partida en el histórico, aquí aparecerá el % de victorias por héroe y por villano.'
+      : `${summary.totalEntries} ${summary.totalEntries === 1 ? 'partida registrada' : 'partidas registradas'}, pero ninguna con héroe ni villano anotados. En cuanto anotéis quién jugó o contra quién, aquí aparecerá el % de victorias.`
+  }
+
   return {
     heroRows: summary.heroRows.map(toStatRowView),
     villainRows: summary.villainRows.map(toStatRowView),
     sampleCaption,
-    isEmpty: summary.totalEntries === 0,
+    isEmpty,
+    emptyTitle,
+    emptyBody,
   }
 }
 
