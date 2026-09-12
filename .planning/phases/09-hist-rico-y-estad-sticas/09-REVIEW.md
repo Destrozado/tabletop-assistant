@@ -1,20 +1,25 @@
 ---
 phase: 09-hist-rico-y-estad-sticas
-reviewed: 2026-09-12T14:50:00Z
+reviewed: 2026-09-13T00:58:00Z
 depth: standard
-files_reviewed: 23
+files_reviewed: 30
 files_reviewed_list:
   - app/app.vue
   - app/components/GameOutcomeDialog.vue
   - app/components/GameSelectorScreen.vue
   - app/components/HistoryEntryCard.vue
   - app/components/HistorySavedNotice.vue
+  - app/composables/__tests__/useGameContent.test.ts
   - app/composables/__tests__/useGameHistory.test.ts
   - app/composables/__tests__/useGameSession.test.ts
+  - app/composables/__tests__/useHeroSearch.test.ts
   - app/composables/__tests__/useHistorySavedNotice.test.ts
   - app/composables/__tests__/usePersistedSession.test.ts
+  - app/composables/useCharacterCatalogue.ts
+  - app/composables/useGameContent.ts
   - app/composables/useGameHistory.ts
   - app/composables/useGameSession.ts
+  - app/composables/useHeroSearch.ts
   - app/composables/useHistorySavedNotice.ts
   - app/composables/usePersistedSession.ts
   - app/pages/[game]/index.vue
@@ -30,442 +35,556 @@ files_reviewed_list:
   - engine/statistics.ts
   - engine/types.ts
 findings:
-  critical: 2
-  warning: 8
-  info: 14
-  total: 24
+  critical: 1
+  warning: 7
+  info: 6
+  total: 14
 status: issues_found
 ---
 
-# Fase 09: Informe de revisión de código (ronda 3)
+# Fase 9: Informe de revisión de código (ronda 4)
 
-**Reviewed:** 2026-09-12
-**Depth:** standard
-**Files Reviewed:** 23 (25 rutas en `files_reviewed_list`: `engine/persistence.ts` y su test entraron por cadena de llamada)
-**Status:** issues_found
-**Ronda:** 3ª (tras los cierres 09-09 … 09-12)
+**Revisado:** 2026-09-13T00:58:00Z
+**Profundidad:** standard
+**Ficheros revisados:** 30
+**Estado:** issues_found
 
 ## Summary
 
-Verificación previa, contra el código en disco (no contra los SUMMARY):
+Los cierres de 09-13..09-17 hacen lo que dicen que hacen: `readRaw` discrimina las tres vías,
+`readEnvelope`/`appendHistoryEntry`/`removeHistoryEntry` ya no machacan un blob ilegible,
+`resolveFrozenNames`/`resolveFrozenHeroName`/`buildTakenByMap`/`buildDuplicateWarningText`/
+`resolveHeroSpanishName` están a salvo de la cadena de prototipos, `resume()` degrada a
+`'fresh'`, y `finishGame(preserveProgress)` ya no borra lo que no se pudo guardar. Los 785
+tests pasan (`npx vitest run`, 27 ficheros).
 
-| Hallazgo de rondas anteriores | Estado hoy | Evidencia |
-|---|---|---|
-| CR-01 r1 (`players:[null]` tumba `/historico`) | CERRADO | `usePersistedSession.ts:96-102,140` + `useGameHistory.ts:111-113` |
-| CR-02 r1 (`localeCompare` sobre no-string) | CERRADO | `usePersistedSession.ts:135-139` + `statistics.ts:99,105` |
-| CR-03 r1 (leer-modificar-escribir destruye el histórico) | **CERRADO SOLO A MEDIAS** | `readEnvelope()` distingue JSON corrupto, pero no «no he podido leer» → ver CR-01 de esta ronda |
-| CR-01 r2 (escritura sin el predicado de lectura) | CERRADO | `usePersistedSession.ts:311` + `history.ts:67-80` + 5 tests |
-| WR-03 r2 (`NaN`/`Infinity` en la tarjeta) | CERRADO | `Number.isFinite` en `:133,134,139` |
-| WR-01, WR-02, WR-04..WR-07 r2 | **SIGUEN ABIERTOS** | ver WR-01..WR-07 abajo |
+El valor de esta ronda está exactamente donde el encargo lo situaba: **en lo que el barrido de
+`09-AUDIT-FRONTERAS.md` no recorrió**. Ese barrido declara su perímetro en la línea 20-22
+(«los tres ficheros nombrados por el encargo, más `useHeroSearch.ts`, `engine/statistics.ts` y
+`engine/selection.ts`») y excluye explícitamente los `.vue` (§5). Los hallazgos de abajo viven
+en tres huecos de ese perímetro:
 
-Suite reproducida aquí: `npx vitest run` → **26 ficheros / 681 tests en verde**. Cero
-referencias a Firebase/Firestore en `app/` y `engine/` (grep -ric = 0). Cero `v-html`,
-`innerHTML` o `eval`. Cero artefactos de depuración.
+1. **La frontera que el barrido no nombró: el aviso al usuario.** El único resultado observable
+   del gesto «terminar partida» es `HistorySavedNotice`, y su copy —reescrita en 09-16 para
+   dejar de afirmar una causa no comprobada— afirma ahora un HECHO no comprobado sobre los
+   datos del grupo («sigue guardada en el dispositivo»), que es **falso justo en los dos modos
+   de fallo que la propia frase enumera**. Es literalmente la pregunta Q3 del barrido («¿puede
+   este valor afirmar algo que no ha ocurrido?») aplicada a la capa que el barrido no miró.
+   → CR-01.
 
-**Lo que esta ronda encuentra y las dos anteriores no vieron.** El cierre de CR-03 (ronda 1)
-se apoya en una premisa escrita de forma explícita en el propio código y que es **falsa
-justo para el dato que la fase declara irreconstruible**:
+2. **Predicados que dicen replicar a su productor y no lo hacen.** Los comentarios BF-01/BF-02
+   afirman usar «el MISMO predicado» / «los mismos valores de repliegue» que
+   `engine/statistics.ts` y `buildHistoryEntry`. Comprobado con código ejecutado: no es cierto
+   en tres ejes distintos (finitud vs entero, `typeof string` vs cadena no vacía, `typeof
+   string` vs «no nulo»). Consecuencia verificada: `round: 0`, `round: -5`, `playerCount: 2.5`,
+   `heroId: ''` y `villainId: ''` **atraviesan la frontera de ESCRITURA (`appendHistoryEntry`
+   devuelve `true`) y la de LECTURA (`loadHistory` los devuelve)** y se pintan como «Hasta la
+   ronda -5», «2.5 jug», «Ana · » y «contra ». → WR-01, WR-02, WR-03.
 
-> `usePersistedSession.ts:209-211`: «`readRaw` devolviendo `undefined` (clave ausente **O
-> storage inaccesible**) es la ÚNICA vía a 'empty'»
+3. **El único parámetro sin guarda de todo `engine/history.ts`.** El barrido contestó Q1 para
+   `buildHistoryEntry` con «no aplica: función pura» y solo auditó los campos de `context` y de
+   `FrozenNames`. Nadie preguntó por `now`. `new Date(now).toISOString()` **lanza**
+   `RangeError` con `NaN`/`Infinity`/fuera de rango, rompiendo la promesa de cabecera «nunca
+   lanza» — el mismo perfil de alcanzabilidad que BF-04, que este mismo barrido sí cerró.
+   → WR-04.
 
-Es decir: `readEnvelope()` protege el blob del histórico frente a un JSON que no supo
-*interpretar*, pero lo sustituye alegremente cuando no ha sabido *leerlo*. Reproducido
-ejecutando el módulo real con el mismo arnés de `localStorage` falso que usa la suite del
-proyecto: **dos partidas registradas desaparecen para siempre y `appendHistoryEntry`
-devuelve `true`**, así que el grupo ve «✓ Partida registrada» encima del borrado (CR-01).
+No se ha encontrado ninguna vulnerabilidad de seguridad: no hay `v-html`, `eval`, `innerHTML`,
+interpolación en `navigateTo` con dato de usuario, ni credenciales. Tampoco artefactos de
+depuración (`console.*`, `debugger`, `TODO`/`FIXME`) en ninguno de los 30 ficheros.
 
-El segundo hallazgo nuevo es de la misma familia y también reproducido: `engine/history.ts`
-resuelve el nombre congelado con un acceso a un objeto literal, así que **la cadena de
-prototipos de `Object` participa en la búsqueda**; un `heroId` llamado `constructor`
-produce un `heroName` que es una función, la entrada no supera la frontera de escritura y la
-partida se pierde con el aviso de fallo equivocado encima (CR-02).
+**Método de verificación de los hallazgos:** cada afirmación numérica de este informe está
+ejecutada contra el código real, no deducida. Se usó un proyecto Vitest desechable fuera del
+repo (alias `~`/`~~` apuntando a la raíz) que importa `buildHistoryCardView`,
+`aggregateStatistics`, `buildStatisticsView`, `usePersistedSession` y `buildHistoryEntry` sin
+tocar ni un fichero del repositorio. Las salidas literales se citan en cada hallazgo.
 
-El resto son avisos: seis heredados de la ronda 2 que siguen sin tocarse, uno nuevo sobre
-`resume()` promoviendo a verdad el `context` de relleno de la página, y otro sobre el mismo
-patrón de búsqueda por prototipo aplicado al parámetro de ruta.
-
-## Structural Findings (fallow)
-
-No se recibió bloque `<structural_findings>` en esta invocación; esta sección queda vacía a
-propósito para que no se confunda con «no había nada que encontrar».
+---
 
 ## Narrative Findings (AI reviewer)
 
-## Critical Issues
+### Critical Issues (BLOCKER)
 
-### CR-01: un `localStorage` que falla al LEER borra el histórico entero, y la app confirma el borrado con un ✓ — **BLOCKER**
+#### CR-01: el aviso de fallo afirma que la partida «sigue guardada en el dispositivo» sin haberlo comprobado — y es falso precisamente en los dos modos de fallo que la propia frase nombra
 
-**File:** `app/composables/usePersistedSession.ts:148-156` (`readRaw`), `:214-228` (`readEnvelope`), `:301-322` (`appendHistoryEntry`)
-
-**Issue:**
-`readRaw` colapsa tres situaciones distintas en un único `undefined`: clave ausente, sin
-`window`, y **el storage lanzó al leer** (modo privado, contexto restringido, presión de
-almacenamiento). `readEnvelope` mapea ese `undefined` a `{ kind: 'empty' }`, y
-`appendHistoryEntry` trata `'empty'` como «no hay histórico todavía» y **construye el
-envoltorio desde cero** con `previous = []` (`:316`). Resultado: una única lectura fallida
-convierte N partidas registradas en 1.
-
-Esto es exactamente la clase de destrucción que CR-03 (ronda 1) declaró cerrada. El arreglo
-de entonces distinguió «JSON que no sé interpretar» de «no hay nada», pero dejó fuera «no he
-podido leer», y lo dejó por escrito como si fuera inocuo (`:209-211`).
-
-Peor que el borrado: `writeRaw` sí funciona en ese escenario, así que `appendHistoryEntry`
-devuelve **`true`**, `notifyHistorySaved(true)` pinta «✓ Partida registrada»
-(`[game]/index.vue:570-573`) y `finishGame()` destruye la sesión acto seguido. Nadie se
-entera nunca.
-
-**Reproducción ejecutada** (módulo real, arnés de `localStorage` falso calcado del de
-`usePersistedSession.test.ts`; `getItem` lanza UNA vez, `setItem` normal):
-
-```
-appendHistoryEntry('partida-1') -> true
-appendHistoryEntry('partida-2') -> true
-loadHistory()                   -> ['partida-2', 'partida-1']
-// getItem lanza SecurityError una sola vez:
-appendHistoryEntry('partida-3') -> true      // ← confirma éxito
-loadHistory()                   -> ['partida-3']   // partida-1 y partida-2 destruidas
-```
-
-La suite actual no lo detecta porque su test de fallo de lectura
-(`usePersistedSession.test.ts:141-148`) solo cubre `load()` (progreso, dato reconstruible),
-nunca `appendHistoryEntry` (histórico, dato irreconstruible).
-
-**Fix:** que la imposibilidad de leer sea un estado propio, y que solo la ausencia real
-autorice a crear el envoltorio desde cero:
-
-```ts
-// readRaw pasa a devolver un resultado discriminado
-type RawRead = { kind: 'absent' } | { kind: 'value', raw: string } | { kind: 'unreadable' }
-
-function readRaw(key: string): RawRead {
-  if (typeof window === 'undefined') return { kind: 'unreadable' } // SSR: tampoco se escribe
-  try {
-    const raw = window.localStorage.getItem(key)
-    return raw === null ? { kind: 'absent' } : { kind: 'value', raw }
-  }
-  catch {
-    return { kind: 'unreadable' } // NO es 'absent': nunca autoriza a machacar
-  }
-}
-
-function readEnvelope(): EnvelopeRead {
-  const read = readRaw(HISTORY_KEY)
-  if (read.kind === 'unreadable') return { kind: 'unreadable' }
-  if (read.kind === 'absent') return { kind: 'empty' }
-  try { /* … parseo igual que hoy, sobre read.raw … */ }
-  catch { return { kind: 'unreadable' } }
-}
-```
-
-`loadVoicePreference`/`load` pueden seguir tratando ambos casos como ausencia (datos
-reconstruibles); el que no puede es el histórico. Añadir el test de regresión del bloque de
-arriba: `getItem` que lanza + `setItem` que funciona ⇒ `appendHistoryEntry === false` y blob
-intacto byte a byte.
-
----
-
-### CR-02: `heroNames[heroId]` busca por la cadena de prototipos — un `heroId` llamado `constructor` pierde la partida y culpa al dispositivo — **BLOCKER**
-
-**File:** `engine/history.ts:41`; origen del mapa en `app/composables/useGameHistory.ts:63-68`
+**Ficheros:**
+- `app/components/HistorySavedNotice.vue:55-57` (la afirmación)
+- `app/pages/[game]/index.vue:576-597` (`onOutcomeRecorded`) y `:543-560` (`finishGame`)
+- `app/composables/usePersistedSession.ts:281-284` (`save`, que descarta el booleano de `writeRaw`)
 
 **Issue:**
-`names.heroNames` es un objeto literal (`const heroNames: Record<string, string> = {}`), así
-que `names.heroNames[slot.heroId]` **hereda de `Object.prototype`**. Con
-`heroId ∈ {constructor, toString, valueOf, hasOwnProperty, __proto__, …}` el `?? null` de la
-línea 41 nunca entra: el valor devuelto es una función, y esa función viaja como `heroName`
-dentro de `GameHistoryEntry`.
+El texto que se pinta cuando `record()` devuelve `false` es:
 
-Cadena completa, reproducida ejecutando `buildHistoryEntry` + `record()` reales con un
-`context.selection.heroes[0].heroId = 'constructor'` (valor que `resolvePlayerSlots` acepta
-sin pestañear: es un string no vacío, `engine/selection.ts:62`):
+> «La partida no se ha perdido: **sigue guardada en el dispositivo**. Volved a entrar en la
+> partida y pulsad «Partida terminada» otra vez para reintentar el registro. Si vuelve a fallar,
+> puede deberse al **modo privado del navegador**, a la **memoria llena**, o a un histórico
+> anterior que la app no consigue leer.»
 
-```
-typeof entry.players[0].heroName  -> 'function'
-record(session, 'won')            -> false        // isHistoryPlayerEntry lo rechaza
-loadHistory().length              -> 0            // la partida no existe
-```
+La primera frase es una afirmación de hecho sobre los datos del grupo. Nada la comprueba.
+El único mecanismo que la sostendría es `finishGame(true)` (09-16), que se limita a **no
+borrar** `tga:progress:<gameId>` — no verifica que esa clave exista ni que su contenido
+corresponda a la partida que se acaba de intentar registrar. Y el progreso se escribe por
+`save()`, que **ignora a propósito el booleano de `writeRaw`** (`usePersistedSession.ts:281-284`,
+justificado por VOZ-06/D-51). Es decir: el fallo de escritura del progreso es silencioso por
+diseño, así que la app no sabe —y no puede saber con el código actual— si hay algo guardado.
 
-En pantalla eso es: `notifyHistorySaved(false)` → «⚠ No se pudo guardar la partida. **El
-dispositivo no permitió escribir en su almacenamiento** (modo privado, cuota agotada…)»
-(`HistorySavedNotice.vue:30-32`) — un diagnóstico falso que manda al grupo a revisar ajustes
-del navegador — e inmediatamente después `finishGame()` (`[game]/index.vue:574`) destruye la
-sesión. La partida es irrecuperable.
+Recorrido de los tres motivos que la propia copy enumera:
 
-Precondición: un `heroId` con nombre de propiedad de `Object.prototype` en el
-`localStorage`. El proyecto trata explícitamente ese vector como dentro de su modelo de
-amenaza (`engine/__tests__/persistence.test.ts:183-184`: «`localStorage` es editable desde
-DevTools — esta es la defensa de la que depende que la interfaz no reviente con datos
-manipulados»), y el coste del arreglo es una línea.
+| Motivo del `false` | ¿`writeRaw` del histórico falla? | ¿`writeRaw` del progreso falla también? | ¿«sigue guardada en el dispositivo»? |
+|---|---|---|---|
+| Modo privado (`setItem` lanza) | sí | **sí — todas las llamadas a `save()` de toda la partida fallaron en silencio** | **FALSO** |
+| Memoria llena / cuota | sí | **sí (misma cuota, mismo origen)** | **FALSO** |
+| Histórico previo ilegible (`readEnvelope() === 'unreadable'`) | no se intenta escribir | no | cierto |
 
-**Fix:** mapa sin prototipo en el productor y guarda de tipo en el consumidor (las dos, no
-una):
+En los dos primeros casos —los dos que el usuario va a reconocer como «lo mío»— la partida se
+ha perdido entera: `tga:progress:<gameId>` nunca llegó a escribirse, `session.value = null`
+descarta además la escritura pendiente del `watchDebounced`, y `navigateTo('/')` desmonta la
+página. El grupo lee «no se ha perdido», vuelve al juego, y se encuentra el **mini-setup**
+(no «Partida guardada · CONTINUAR»), con la partida y su registro irrecuperables. La
+instrucción «pulsad «Partida terminada» otra vez» es, en ese estado, imposible de seguir.
 
-```ts
-// app/composables/useGameHistory.ts
-const heroNames: Record<string, string> = Object.create(null)
+Esto es exactamente el defecto de la familia que lleva tres rondas reabriendo la fase, en la
+frontera que el barrido excluyó: 09-16 cerró la mitad correcta del problema (dejar de atribuir
+una causa técnica no comprobada) y la sustituyó por una **afirmación de estado igual de no
+comprobada**, esta vez sobre los datos y no sobre la causa.
 
-// engine/history.ts
-const frozen = Object.hasOwn(names.heroNames, slot.heroId) ? names.heroNames[slot.heroId] : null
-const heroName = slot.heroId !== null && typeof frozen === 'string' ? frozen : null
-```
-
-Mismo repaso conviene en cualquier otro `Record<string, …>` indexado por dato de usuario:
-`buildTakenByMap`/`labelsByHeroId` (`useHeroSearch.ts:154-163`) y `spanishHeroAliases`
-(`:66`) comparten la forma, aunque hoy sus claves vengan del catálogo.
-
----
-
-## Warnings
-
-### WR-01: la defensa en profundidad de `buildHistoryCardView` cubre `null` pero no `undefined` (sigue abierto desde la ronda 2) — **WARNING**
-
-**File:** `app/composables/useGameHistory.ts:113` y `:126`
-
-**Issue:** `engine/statistics.ts:98` y `:124` comprueban `p.heroId !== null && p.heroId !== undefined`;
-su gemelo de la capa de vista solo comprueba `!== null`. Con `heroId: undefined` (`players:
-[{ playerName: 'Ana' }]`), `hasAnyHero` sale `true` y la línea 126 entra por la rama del
-héroe: `` `${label} · ${player.heroName ?? player.heroId}` `` interpola `undefined` y la
-tarjeta pinta literalmente «Ana · undefined». Es el mismo patrón «un módulo tiene la guarda
-y el gemelo la olvidó» que produjo el CR-01 de la ronda 1.
-
-**Fix:** usar el mismo predicado en los dos sitios (idealmente extraído a una función
-compartida, p. ej. `hasHero(player)`), o normalizar `heroId ?? null` al filtrar en `:111-113`.
-
----
-
-### WR-02: un envoltorio ilegible bloquea el registro para siempre, en silencio y con diagnóstico falso (sigue abierto desde la ronda 2) — **WARNING**
-
-**File:** `app/composables/usePersistedSession.ts:214-228`, `:301-322`; `app/pages/historico.vue:79-86`
-
-**Issue:** con un blob `unreadable` (JSON corrupto o `formatVersion` desconocido tras un
-rollback de versión), `appendHistoryEntry` devuelve `false` en **todas** las partidas
-futuras y `loadHistory()` devuelve `[]`. La interfaz entonces afirma dos cosas falsas: la
-pantalla dice «Todavía no hay partidas registradas» (hay, no se saben leer) y el aviso dice
-que el dispositivo no dejó escribir (sí deja; es la app la que se niega). No existe ninguna
-vía en la interfaz para salir del bloqueo.
-
-**Fix:** distinguir el caso en el contrato de `appendHistoryEntry` (p. ej.
-`'ok' | 'storage-failed' | 'unreadable'`), dar copy propia a `HistorySavedNotice`
-(«no se pudo leer el histórico guardado») y ofrecer una acción explícita de archivado
-(renombrar la clave a `tga:history:backup-<ts>` y empezar limpio) en `/historico`. El dato
-antiguo se conserva, que es lo que CR-03 protege; lo que no puede quedarse es el callejón sin
-salida.
-
----
-
-### WR-03 (NUEVO): `resume()` asciende a verdad el `context` de relleno de la página — **WARNING**
-
-**File:** `engine/persistence.ts:94` y `:63`; origen del relleno en `app/pages/[game]/index.vue:149`
-
-**Issue:** la página construye la sesión estructural con un `context` explícitamente
-declarado *placeholder*: `expand(game, { playerCount: 1, difficulty: 'normal' })`. Si el
-`context` persistido no supera `isValidContext` (basta con `context: {}` o `context: []`,
-que sí superan `isPersistedPosition`, `:86`), `resume()` adopta `fresh.context` y **devuelve
-`outcome: 'resumed'`**. El grupo ve «Partida guardada … CONTINUAR», continúa en el paso
-correcto, y a partir de ahí toda la sesión miente: la banda de contadores pinta 1 héroe en
-lugar de 4, la cabecera dice «1 jug · Normal», y al terminar, `buildHistoryEntry` escribe esa
-mentira en el histórico (`playerCount: 1`, `difficulty: 'normal'`) sin ninguna marca de
-degradación. El test `engine/__tests__/persistence.test.ts:291-297` fija este comportamiento
-como correcto.
-
-Un `context` que no se puede validar no es una partida reanudable: es una partida cuya
-configuración se ha perdido.
-
-**Fix:** tratar el `context` inválido como cambio de forma, no como reanudación:
+**Fix:**
+Comprobar antes de afirmar. `save()` ya tiene el booleano a mano; solo hay que dejar de tirarlo
+**para este llamador** (el criterio de VOZ-06/D-51 sigue valiendo para `next()`/`prev()`, que
+siguen sin mirarlo):
 
 ```ts
-const validContext = isValidContext(persisted.context)
-if (!validContext) {
-  // sin configuración fiable no hay reanudación: que el mini-setup vuelva a preguntar
-  return { session: fresh, outcome: 'fresh' }
+// app/composables/usePersistedSession.ts
+// D-03 / CR-01 (ronda 4): mismo criterio que appendHistoryEntry — quien necesita
+// AFIRMAR algo sobre el dato guardado tiene que poder comprobarlo. next()/prev()
+// siguen ignorando el retorno (VOZ-06/D-51): la firma cambia, su uso no.
+function save(session: EngineSession): boolean {
+  const persisted = toPersistedPosition(session)
+  return writeRaw(storageKey(session.gameId), JSON.stringify(persisted))
 }
 ```
 
-(y el mismo criterio en `contentChangedFallback`, que hoy devuelve el relleno con la pantalla
-«el contenido ha cambiado» y un CTA que abre partida). Actualizar los dos tests que fijan el
-comportamiento actual.
+```ts
+// app/pages/[game]/index.vue — onOutcomeRecorded
+if (session.value) {
+  const guardado = record(session.value, outcome)
+  // Si el registro falló, el progreso es lo ÚNICO que permite reintentarlo:
+  // se reescribe AQUÍ, síncronamente, y se comprueba. Nunca se afirma que la
+  // partida sobrevive sin haber confirmado esta escritura.
+  const progresoAsegurado = guardado ? false : save(session.value)
+  notifyHistorySaved(guardado, progresoAsegurado)
+  finishGame(!guardado && progresoAsegurado)
+}
+else {
+  finishGame()
+}
+```
+
+```ts
+// app/composables/useHistorySavedNotice.ts
+type NoticeVariant = 'success' | 'failure-recoverable' | 'failure-lost'
+
+export function notifyHistorySaved(saved: boolean, progressSecured = false): void {
+  clearPendingTimeout()
+  const nextVariant: NoticeVariant = saved
+    ? 'success'
+    : (progressSecured ? 'failure-recoverable' : 'failure-lost')
+  // …resto igual
+}
+```
+
+Y dos textos distintos en `HistorySavedNotice.vue`: el actual solo para
+`failure-recoverable`, y para `failure-lost` uno que no afirme nada que no se haya comprobado
+(p. ej. «No se ha podido guardar nada en este dispositivo. Es posible que el navegador esté en
+modo privado o sin espacio; anotad el resultado a mano si queréis conservarlo»).
+
+Si por alcance se prefiere no ampliar la superficie de la interfaz, la corrección **mínima** y
+no negociable es retirar la primera frase: la app no puede afirmar un hecho sobre los datos del
+grupo que no ha comprobado. Eso es lo que arreglaron las tres rondas anteriores en el motor.
 
 ---
 
-### WR-04: `GameOutcomeDialog` no tiene `Escape`, ni gestión de foco, ni salida no terminal (sigue abierto desde la ronda 1) — **WARNING**
+### Warnings
 
-**File:** `app/components/GameOutcomeDialog.vue:37-97`
+#### WR-01: `round`/`playerCount` se validan por FINITUD en las dos fronteras y por ENTERO EN RANGO solo en el productor — «Hasta la ronda -5» y «2.5 jug» se escriben, se leen y se pintan
 
-**Issue:** `role="dialog" aria-modal="true"` sin `aria-labelledby`, sin mover el foco al
-abrir, sin devolverlo al cerrar y sin escuchar `Escape` — mientras que `WarningDetailModal.vue`
-(el patrón «bueno» del repo) sí hace las tres cosas. Y las cuatro acciones del diálogo
-terminan la partida: abrirlo por error desde el índice (`onEndGameRequest`,
-`[game]/index.vue:524`) no tiene vuelta atrás. Para un lector de pantalla, el diálogo
-aparece sin anunciarse y con el foco todavía en el botón del overlay que hay detrás.
+**Ficheros:**
+- `app/composables/usePersistedSession.ts:139-140` (`isGameHistoryEntry`)
+- `app/composables/useGameHistory.ts:162-163` (`safePlayerCount`/`safeRound`, cierre BF-02)
+- Productor de referencia: `engine/history.ts:100-107` (`Number.isInteger(...) && > 0` / `>= 1`)
 
-**Fix:** copiar el bloque de `WarningDetailModal.vue` (`onMounted` → `focus()`,
-`keydown`/`Escape` → `dismiss`, `aria-labelledby` apuntando al `<h1>`). Si D-01 prohíbe un
-quinto botón, al menos que `Escape` equivalga a «Salir sin registrar» de forma documentada,
-o que el diálogo se abra tras una confirmación explícita.
+**Issue:**
+El comentario de BF-02 (`useGameHistory.ts:156-161`) dice textualmente: «en caso contrario, el
+mismo repliegue que `buildHistoryEntry` ya aplica en origen (09-12): `players.length` y `1`
+respectivamente». El repliegue es el mismo; **el predicado que decide cuándo replegar, no**:
 
----
+| | productor (`buildHistoryEntry`) | frontera de almacenamiento (`isGameHistoryEntry`) | frontera de vista (`buildHistoryCardView`) |
+|---|---|---|---|
+| `round` | `Number.isInteger(r) && r >= 1` | `Number.isFinite(r)` | `Number.isFinite(r)` |
+| `playerCount` | `Number.isInteger(p) && p > 0` | `Number.isFinite(p)` | `Number.isFinite(p)` |
 
-### WR-05: `HistorySavedNotice` no se anuncia y empuja fuera del viewport las pantallas `h-dvh` (sigue abierto desde la ronda 1) — **WARNING**
+`Number.isFinite` acepta `0`, los negativos y los no enteros. Ejecutado contra el código actual
+(`appendHistoryEntry` con un `window.localStorage` de mentira, y después `loadHistory`):
 
-**File:** `app/components/HistorySavedNotice.vue:17-19`; punto de montaje en `app/app.vue:32`
+```
+append:round0   true      → loadHistory() lo devuelve
+append:roundNeg true      → loadHistory() lo devuelve
+append:pc2.5    true      → loadHistory() lo devuelve
+```
 
-**Issue:** (a) el aviso no lleva `role="status"`/`aria-live="polite"`, así que el único
-resultado del gesto «terminar partida» es invisible para un lector de pantalla; (b) se monta
-como hermano **encima** de `<NuxtPage/>` dentro de `#app-root`, y todas las pantallas usan
-`h-dvh` (`pages/index.vue` → `GameSelectorScreen.vue:26`, `historico.vue:40`,
-`estadisticas.vue:23`): mientras el aviso está visible (6 s en éxito, **20 s** en fallo) el
-contenido mide `banner + 100dvh` y la fila inferior —los accesos «Histórico»/«Estadísticas»
-del selector— queda por debajo del borde de la tablet. No hay ninguna regla global de
-`overflow` en `main.css` que lo contenga.
+y `buildHistoryCardView` sobre esas mismas entradas produce:
 
-**Fix:** `role="status" aria-live="polite"` en el contenedor, y sacar la banda del flujo
-(`fixed top-0 inset-x-0 z-40`) o envolver `<NuxtPage/>` en un contenedor
-`flex flex-col h-dvh` con `min-h-0` para que el aviso reste altura en vez de sumarla. Aplica
-igual a `UpdateBanner`.
+```
+A1 "Hasta la ronda 0 · 1 h 40 min" | "Kang · Normal · 2.5 jug"
+A2 "Hasta la ronda -5 · 1 h 40 min"
+```
 
----
+Nótese que `appendHistoryEntry` **devuelve `true`**: la guarda cuyo comentario declara
+(`usePersistedSession.ts:341-350`) que su valor es «impedir que un llamador futuro (un respaldo
+remoto, un import) reintroduzca el hueco por otra puerta» deja pasar exactamente eso. Es el
+mismo defecto que BF-03 cerró para `durationMs` (negativos → «—») aplicado a los dos campos
+hermanos, que se quedaron sin tocar: `durationMs: -1000` también sigue superando
+`isGameHistoryEntry` (`append:durNeg true`), aunque `formatEntryDuration` ya lo degrada a «—»
+después.
 
-### WR-06: `formatEntryDuration` pinta «1 h 0 min» y duraciones negativas (sigue abierto desde la ronda 1) — **WARNING**
+**Fix:** un solo predicado, el del productor, en las tres capas.
 
-**File:** `engine/history.ts:125-132`
+```ts
+// app/composables/usePersistedSession.ts — isGameHistoryEntry
+&& Number.isInteger(candidate.round) && (candidate.round as number) >= 1
+&& Number.isInteger(candidate.playerCount) && (candidate.playerCount as number) > 0
+&& (candidate.durationMs === null
+  || (Number.isFinite(candidate.durationMs) && (candidate.durationMs as number) >= 0))
+```
 
-**Issue:** con exactamente 3 600 000 ms sale «1 h 0 min» (el minuto redundante que ningún
-reloj de mesa escribe). Y `Number.isFinite` deja pasar los negativos: un `durationMs:
--6000000` manipulado produce «-2 h -40 min», porque `Math.floor(-100/60) = -2` y
-`-100 % 60 = -40`. Además una partida de 20 s se registra como «0 min».
+```ts
+// app/composables/useGameHistory.ts — buildHistoryCardView
+const safePlayerCount = Number.isInteger(entry.playerCount) && entry.playerCount > 0
+  ? entry.playerCount
+  : players.length
+const safeRound = Number.isInteger(entry.round) && entry.round >= 1 ? entry.round : 1
+```
+
+#### WR-02: la cadena vacía atraviesa las dos fronteras — «Ana · », « · Normal · 3 jug», «contra » y una fila de estadísticas sin nombre
+
+**Ficheros:**
+- `app/composables/usePersistedSession.ts:105-107` (`isHistoryPlayerEntry`) y `:141-142` (`villainId`/`villainName`)
+- `app/composables/useGameHistory.ts:120-123`, `:143-150`, `:169`, `:172`, `:188`
+- `engine/statistics.ts:98-99` y `:104-106`
+- Productores de referencia: `engine/selection.ts:63` y `:78` (`typeof === 'string' && length > 0`)
+
+**Issue:**
+Los tres módulos aceptan un `heroId`/`villainId` con `typeof === 'string'`. `resolvePlayerSlots`
+y `resolveVillainId` —los productores cuyo criterio el código dice replicar— exigen además
+`length > 0`. La cadena vacía es, por tanto, un valor que **ningún camino de la app puede
+producir pero las dos fronteras aceptan**, y `??` no la atrapa porque `''` no es nullish.
+
+Ejecutado (ambas entradas devuelven `true` en `appendHistoryEntry` y salen de `loadHistory`):
+
+```
+B1 ["Ana · "] | null | "Sin villano · Normal · 3 jug"          ← heroId: ''
+B2 heroRows:[{"id":"","name":"","wins":1,"played":1,"pct":100}], entriesWithHeroes:1
+C1 " · Normal · 3 jug"
+   | "Borrar partida del 12 sep 2026 contra "
+   | "Ganada del 12 sep 2026 contra . Esta acción no se puede deshacer."   ← villainId: ''
+```
+
+Tres superficies rotas a la vez: la tarjeta del histórico con un separador colgando, el
+`aria-label` del botón de borrar y el cuerpo del `ConfirmDialog` (el texto que el grupo lee
+justo antes de una acción irreversible, D-20) terminando en «contra », y una fila de
+`/estadisticas` con nombre vacío que el `<span class="truncate">` pinta como un hueco mudo con
+un «1 de 1 · 100 %» al lado.
+
+**Fix:** exigir cadena NO VACÍA en las tres capas, y no confiar en `??` para elegir el
+respaldo.
+
+```ts
+// usePersistedSession.ts — isHistoryPlayerEntry / isGameHistoryEntry
+const isNonEmptyString = (v: unknown): v is string => typeof v === 'string' && v.length > 0
+// heroId / heroName / villainId / villainName: `null` o `isNonEmptyString(...)`
+```
+
+```ts
+// useGameHistory.ts — buildHistoryCardView
+const isNonEmpty = (v: unknown): v is string => typeof v === 'string' && v.trim() !== ''
+const hasVillain = isNonEmpty(entry.villainId)
+const villainDisplayName = hasVillain
+  ? (isNonEmpty(entry.villainName) ? entry.villainName : entry.villainId)
+  : null
+// …y en players: heroId/heroName solo se aceptan si isNonEmpty(...)
+```
+
+```ts
+// engine/statistics.ts — extractHeroIds / extractVillainId
+.filter(p => p !== null && typeof p === 'object' && isNonEmpty(String(p.heroId ?? '')))
+```
+
+#### WR-03: `buildHistoryCardView` y `engine/statistics.ts` siguen discrepando sobre «este hueco tiene héroe», pese al comentario de BF-01 que afirma paridad
+
+**Ficheros:** `app/composables/useGameHistory.ts:130-150` (el comentario y la normalización),
+`engine/statistics.ts:98` y `:124`
+
+**Issue:**
+El comentario de BF-01 fija una regla explícita: «el módulo que pinta y el módulo que agrega
+deben decidir "este hueco tiene héroe" con el mismo criterio, o la pantalla y la estadística
+cuentan cosas distintas sobre la misma partida». El cierre normaliza la vista con
+`typeof player.heroId === 'string' ? … : null`, que es **más estricto** que el predicado que
+dice replicar (`heroId !== null && heroId !== undefined`). Con un `heroId` de tipo equivocado
+las dos superficies vuelven a contar cosas distintas, en la dirección contraria a la que el
+defecto original tenía:
+
+```
+D1 playerLines: null | noSelectionLine: "Sin héroes ni villano anotados"   ← la tarjeta
+D2 heroRows:[{"id":"7","name":"7","wins":1,"played":1,"pct":100}], entriesWithHeroes:1
+```
+
+La misma partida: «sin héroes anotados» en `/historico`, un héroe llamado «7» con 100 % de
+victorias en `/estadisticas`, y contada como «con héroes anotados» en la leyenda de muestra.
+
+Hoy no es observable a través de la app (`isHistoryPlayerEntry` descarta la entrada entera
+antes de que `cardViews`/`statisticsView` la vean, `append:hero7 false` en la comprobación
+ejecutada), así que es defensa en profundidad — exactamente la misma categoría que el propio
+comentario invoca para justificar su existencia. Lo que sí es un defecto hoy es **el comentario
+afirmando una paridad que no existe**: es la instrucción que leerá quien toque esto la próxima
+vez, y le dirá que los dos lados ya coinciden cuando no coinciden.
+
+**Fix:** o bien igualar los predicados de verdad (con WR-02 aplicado, «cadena no vacía» en los
+dos lados, que es el criterio del productor), o bien —si la asimetría se quiere a propósito—
+reescribir el comentario para que diga cuál es más estricto y por qué. No dejar el texto
+afirmando lo que el código no hace.
+
+#### WR-04: `buildHistoryEntry` lanza `RangeError` con un `now` hostil — el único parámetro sin guarda del fichero, y su cabecera promete «nunca lanza»
+
+**Fichero:** `engine/history.ts:121` (`recordedAt: new Date(now).toISOString()`) y `:110` (`id`)
+
+**Issue:**
+`engine/history.ts:2-5` declara «Mismo contrato de pureza que `engine/selection.ts`
+(normalización defensiva, nunca muta su argumento, **nunca lanza**)». `buildHistoryEntry`
+valida `context.startedAt` por finitud (`:79-84`), `names.heroNames` con `Object.hasOwn` +
+`typeof` (`:33-39`, cierre 09-14), `names.villainName` por tipo (`:63`, cierre 09-14),
+`context.difficulty`/`playerCount`/`round` en origen (`:94-107`, cierre 09-12). El parámetro
+`now` —hermano directo de `startedAt`, con el que se resta en la misma función— no tiene
+ninguna guarda. Ejecutado:
+
+```
+THROW NaN               RangeError: Invalid time value
+THROW Infinity          RangeError: Invalid time value
+THROW 8640000000000001  RangeError: Invalid time value   (fuera del rango de Date)
+THROW -8640000000000001 RangeError: Invalid time value
+```
+
+`useGameHistory.record` (`:289`) no envuelve la llamada en `try`, y
+`onOutcomeRecorded` (`app/pages/[game]/index.vue:591`) tampoco: la excepción subiría al
+manejador del click, el diálogo se quedaría abierto con `awaitingEndConfirm` en `true` y sin
+ningún camino de salida salvo recargar.
+
+Hoy el único llamador pasa `Date.now()`, así que es **latente** — el mismo perfil exacto que
+BF-04 (`resolveHeroSpanishName`), que este barrido sí clasificó como DEFECTO y cerró con el
+argumento textual de que es «el tipo de "alcanzable el día que alguien quite el filtro" que
+este barrido existe para cerrar». Por su propio criterio, esto debía haberse cerrado en el
+mismo lote. El barrido no lo vio porque contestó Q1 para esta función con «no aplica: función
+pura» y solo auditó los campos de `context` y `FrozenNames`; ninguna de las tres preguntas
+apunta a un parámetro escalar inyectado.
 
 **Fix:**
 
 ```ts
-if (durationMs === null || !Number.isFinite(durationMs) || durationMs < 0) return '—'
-const totalMinutes = Math.max(1, Math.round(durationMs / 60000)) // nunca «0 min»
-const hours = Math.floor(totalMinutes / 60)
-const minutes = totalMinutes % 60
-if (hours === 0) return `${minutes} min`
-return minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`
+export function buildHistoryEntry(
+  session: EngineSession,
+  outcome: GameOutcome,
+  now: number,
+  names: FrozenNames,
+): GameHistoryEntry {
+  // El reloj llega inyectado (determinismo en test), así que es dato de un
+  // llamador — misma categoría que `context.startedAt`, que ya lleva guarda
+  // tres líneas más abajo. `new Date(now).toISOString()` LANZA con NaN,
+  // Infinity o fuera del rango de Date, y la cabecera de este fichero promete
+  // que nunca lanza. Sin fecha fiable no hay entrada: `recordedAt` se deja
+  // como cadena vacía, que `formatEntryDate` ya degrada a «—» (D-21) y que
+  // `isGameHistoryEntry` sigue aceptando como `string`.
+  const safeNow = Number.isFinite(now) && Math.abs(now) <= 8.64e15 ? now : Number.NaN
+  const recordedAt = Number.isNaN(safeNow) ? '' : new Date(safeNow).toISOString()
+  // …y `id` deja de poder empezar por "NaN-": usar `Date.now()` no sirve aquí
+  // (rompería el determinismo); usar `Number.isNaN(safeNow) ? 0 : safeNow`.
 ```
 
----
+Con un test que fije `expect(() => buildHistoryEntry(s, 'won', Number.NaN, names)).not.toThrow()`
+para los cuatro valores de arriba.
 
-### WR-07: `sampleCaption` declara la muestra de héroes e ignora la de villanos (sigue abierto desde la ronda 1) — **WARNING**
+#### WR-05: la banda de aviso empuja fuera del viewport la pantalla a la que ella misma manda volver — el diferido WR-05(b) se agravó en 09-16 y su motivo de aplazamiento ya no sostiene
 
-**File:** `app/composables/useGameHistory.ts:196-198`; origen en `engine/statistics.ts:122-125`
+**Ficheros:** `app/app.vue:23-34`, `app/components/HistorySavedNotice.vue:29-31`,
+`app/pages/index.vue` → `GameSelectorScreen.vue:26` (`h-dvh`)
 
-**Issue:** `entriesWithHeroes` solo cuenta entradas con al menos un `heroId`. Una partida con
-villano anotado y sin héroes alimenta la tabla «% DE VICTORIAS POR VILLANO» pero cuenta como
-«sin anotar» en la leyenda, así que el pie que hay **encima de las dos tablas** dice «12
-partidas registradas · 10 con héroes anotados» mientras la tabla de villanos agrega 12. La
-leyenda no describe la muestra que el lector tiene delante.
+**Issue:**
+Registrado como diferido en `deferred-items.md` §«WR-05 (b)» con este motivo literal: «vive en
+`.vue`/`app.vue`, **fuera del perímetro de este plan**». Ese es un motivo de alcance de plan,
+no de riesgo, y no aplica a esta revisión, cuyo perímetro son los 30 ficheros de la fase,
+`.vue` incluidos. Además el diferido se evaluó antes de que 09-16 sustituyera la copy de fallo
+por un párrafo de tres frases: la banda ya no mide una línea, y la variante de fallo permanece
+**20 segundos**.
 
-**Fix:** exponer también `entriesWithVillain` en `StatisticsSummary` y que la leyenda declare
-la muestra de cada tabla por separado (o colocar el pie solo sobre la de héroes).
+La cadena completa es la que importa: `finishGame` navega a `/`; `GameSelectorScreen` es
+`h-dvh … justify-center` con la fila «Histórico / Estadísticas» al final; la banda es hermano
+**anterior** de `<NuxtPage/>` dentro de `#app-root`, que no tiene contenedor de altura. El
+documento mide `banda + 100dvh`, así que durante esos 20 s la parte inferior queda por debajo
+del borde de la tablet. Y el propio texto de la banda dice «Volved a entrar en la partida y
+pulsad "Partida terminada" otra vez»: el aviso desplaza justo el control que pide pulsar.
 
----
+**Fix (el que ya propone el registro, sin cambios):**
 
-### WR-08 (NUEVO): el parámetro de ruta se usa como clave de objeto literal — `/constructor` esquiva la pantalla «No encontramos ese juego» — **WARNING**
+```html
+<!-- app/app.vue -->
+<div id="app-root" class="flex flex-col h-dvh">
+  <ClientOnly>
+    <UpdateBanner />
+    <HistorySavedNotice />
+  </ClientOnly>
+  <div class="flex-1 min-h-0 overflow-y-auto">
+    <NuxtPage />
+  </div>
+</div>
+```
 
-**File:** `app/pages/[game]/index.vue:44`, `:47`, `:56`, `:149` (consumidores: `useGameContent.ts:19`, `useCharacterCatalogue.ts:19`)
+(o `fixed top-0 inset-x-0 z-40` sobre la banda). Aplica igual a `UpdateBanner`.
 
-**Issue:** mismo defecto raíz que CR-02, esta vez alimentado directamente desde la URL:
-`getGame(gameId)` es `gamesById[gameId] ?? null` sobre un objeto literal, así que
-`getGame('constructor')` devuelve la **función `Object`**, que es truthy. La guarda
-`v-if="!game"` (`:646`) no se dispara, `onMounted` llega a `expand(game, …)` y revienta en
-`engine/expand.ts:16` (`game.sections.find` sobre `undefined`); `resumeResolved` se queda en
-`false` y la pantalla se queda en «Cargando…» para siempre. Igual con
-`getCatalogue('constructor')` (`:56`), que devolvería un `catalogue` truthy a
-`buildHeroOptions`. Vale para `constructor`, `toString`, `valueOf`, `hasOwnProperty`,
-`__proto__`, `isPrototypeOf`, `propertyIsEnumerable`, `toLocaleString`.
+#### WR-06: el contrato escrito de `writeRaw`/`save` quedó obsoleto en 09-16 y ahora describe mal quién depende del resultado de la escritura
 
-Es preexistente (no lo introduce la Fase 9), pero la ruta vive en un fichero de esta entrega
-y la corrección es la misma línea que CR-02.
+**Fichero:** `app/composables/usePersistedSession.ts:185-196` (comentario de `writeRaw`) y
+`:281-284` (`save`)
 
-**Fix:** `const gamesById: Record<string, GameDefinition> = Object.assign(Object.create(null), { 'marvel-champions': … })`,
-o `Object.hasOwn(gamesById, gameId) ? gamesById[gameId] : null` en los dos composables.
+**Issue:**
+El comentario afirma: «El ÚNICO llamador de este fichero que MIRA el resultado es
+`appendHistoryEntry` — el histórico es el único dato de la app que no se puede reconstruir».
+Las dos mitades dejaron de ser ciertas en 09-16. Desde que existe
+`finishGame(preserveProgress)` (`app/pages/[game]/index.vue:543-560`), el progreso **dejó de
+ser un dato meramente reconstruible en ese camino**: pasó a ser la red de seguridad explícita
+del registro fallido, y la interfaz lo declara por escrito al usuario
+(`HistorySavedNotice.vue:56`). Un dato del que la app hace una promesa no puede seguir
+escribiéndose con un fallo silencioso.
 
----
+Esto no es solo documentación: es el mecanismo que hace posible CR-01. Se registra aparte
+porque el comentario es lo que va a leer quien intente arreglar CR-01, y hoy le dice
+explícitamente que no toque esta firma.
 
-## Info
+**Fix:** aplicar el cambio de firma de CR-01 (`save` devuelve `boolean`) y reescribir el
+comentario para que enumere los DOS llamadores que miran el resultado y por qué, dejando claro
+que `next()`/`prev()`/`toggle()` siguen ignorándolo (VOZ-06/D-51 intacto).
 
-_Tier INFO: no bloquean la entrega; se listan porque son deuda real, no estilo._
+#### WR-07: `GameOutcomeDialog` sigue sin `aria-labelledby`, sin gestión de foco y sin `Escape`, y las cuatro salidas terminan la partida — el diferido WR-04 se apoya en un motivo de alcance, no de riesgo
 
-### IN-01: guarda muerta en `buildRows`
-**File:** `engine/statistics.ts:49` — `aggregateStatistics` ya filtró nulos/no-objetos en `:117`
-antes de llamar, así que la línea nunca es falsa. Deja creer que `buildRows` es seguro ante
-cualquier array, cuando su seguridad depende del llamador. Borrarla o hacer que `buildRows`
-sea realmente autónomo.
+**Fichero:** `app/components/GameOutcomeDialog.vue:37-97`
 
-### IN-02: import duplicado del mismo módulo
-**File:** `engine/history.ts:11-12` — dos `import type … from './types'` seguidos. Fusionar.
+**Issue:**
+Registrado como diferido en `deferred-items.md` §WR-04, con motivo literal: «vive en un fichero
+`.vue` de pantalla, explícitamente fuera del perímetro de este plan». Igual que WR-05: es
+alcance de plan, no evaluación de riesgo, y no aplica a esta revisión.
 
-### IN-03: `MONTHS_ES` se exporta y nadie la consume fuera del módulo
-**File:** `engine/history.ts:111` — `grep -rn "MONTHS_ES" app/ engine/` solo la encuentra en su
-propio fichero. Quitar el `export` o documentar por qué es API pública.
+Los hechos no han cambiado desde la ronda 1 y siguen siendo los peores de todos los modales del
+repo: `role="dialog" aria-modal="true"` sin nombre accesible (`:37`), el foco nunca se mueve al
+abrir ni se devuelve al cerrar, no hay listener de `Escape`, y **ninguna de las cuatro acciones
+es reversible** — las cuatro terminan la partida (nota de reconciliación en `:7-15`). Abrirlo
+por error desde `IndexOverlay` no tiene vuelta atrás. `WarningDetailModal.vue`, el patrón bueno
+del repo, sí hace las tres cosas; `[game]/index.vue` ya tiene el mecanismo de captura/retorno
+de foco montado para los otros modales (`:266-302`, `:320-338`), así que el coste de
+replicarlo aquí es bajo y el riesgo de no hacerlo es terminar una partida sin querer.
 
-### IN-04: el histórico crece sin tope ni poda
-**File:** `app/composables/usePersistedSession.ts:301-322` — nada acota `entries`. Con el
-cuerpo de `localStorage` compartido con el progreso y el audio precacheado, el día que tope
-la cuota el síntoma es el aviso de fallo de CR-01/WR-02, sin explicación. Un tope (p. ej.
-500) o una poda explícita evitarían llegar ahí.
-
-### IN-05: los ids de entrada tienen longitud variable y pueden quedar vacíos
-**File:** `engine/history.ts:83` — `Math.random().toString(36).slice(2, 12)` da entre 0 y 10
-caracteres (`Math.random() === 0` ⇒ sufijo vacío ⇒ `id` = `"1789…-"`). El test `:294` fija
-`/^\d+-[a-z0-9]+$/`, que ese caso incumpliría. `crypto.randomUUID()` (disponible en todos los
-navegadores objetivo, contexto seguro) elimina el borde.
-
-### IN-06: `aggregateStatistics` tiene una precondición de orden que su firma no expresa
-**File:** `engine/statistics.ts:38-41` — «el primer nombre visto gana» solo es «el más
-reciente» si el llamador ordenó antes. `useGameHistory` devuelve `entries` como **ref
-mutable** (`:264-272`), así que cualquier pantalla puede romper la precondición sin que nada
-avise. Ordenar dentro de `aggregateStatistics` (o aceptar `readonly` + documentar en la firma).
-
-### IN-07: el fichero e2e aborta la suite entera en tiempo de import
-**File:** `e2e/offline-flow.spec.ts:26-28` — un `throw` a nivel de módulo si `public/audio/` no
-tiene `.m4a`: se cae la colección completa de Playwright, incluidos los tres tests nuevos de
-`/historico` y `/estadisticas`, que no dependen del audio. Mover la comprobación a un
-`test.skip(condition, …)` dentro del test que la necesita.
-
-### IN-08: el espacio de claves de `pressedId` mezcla ids de juego con literales de navegación
-**File:** `app/components/GameSelectorScreen.vue:22,72,84` — un juego con `id: 'history'`
-encendería a la vez su tarjeta y el botón «Histórico». Prefijar (`game:${id}`) o usar un ref
-aparte.
-
-### IN-09: cabecera duplicada literalmente entre las dos pantallas nuevas
-**File:** `app/pages/historico.vue:41-59` y `app/pages/estadisticas.vue:24-42` — 19 líneas
-idénticas salvo título y destino. Un `AppSecondaryHeader` con dos props evita que la próxima
-pantalla copie una tercera vez.
-
-### IN-10: helper de test mal escrito y definido después de su uso
-**File:** `engine/__tests__/statistics.test.ts:39,48` — `makEntryConVarios` (falta la `e`),
-declarada tras el `describe` que la usa (funciona por hoisting). Renombrar y subirla junto a
-los demás helpers.
-
-### IN-11: `removeHistoryEntry` se traga el fallo de escritura
-**File:** `app/composables/usePersistedSession.ts:338-356` — devuelve `void` e ignora el
-booleano de `writeRaw`. El comentario lo justifica («la entrada sigue visible»), pero
-`historico.vue:32-36` llama a `reload()` justo después y la tarjeta reaparece sin ninguna
-explicación: el grupo cree que el botón no funciona. Un aviso reutilizando
-`HistorySavedNotice` cerraría el hueco.
-
-### IN-12: una entrada rechazada por `isGameHistoryEntry` es invisible **y** no se puede borrar
-**File:** `app/composables/usePersistedSession.ts:280-284` — `loadHistory` la filtra, así que
-nunca se pinta una tarjeta con su `id` y no hay forma de invocar `removeHistoryEntry` sobre
-ella. Ocupa cuota para siempre. Va con IN-04/WR-02: hace falta una vía de mantenimiento.
-
-### IN-13: `Math.round` en `pct` puede anunciar «100 %» sin pleno
-**File:** `engine/statistics.ts:72` — 199 de 200 redondea a 100 %. La etiqueta completa
-(`199 de 200 · 100 %`, `useGameHistory.ts:188`) desmiente al porcentaje en la misma línea.
-`Math.floor` para el tramo alto (o no redondear al alza por encima de 99) evita la
-contradicción.
-
-### IN-14: `first-letter:text-accent` no colorea el glifo que pretende colorear
-**File:** `app/components/HistorySavedNotice.vue:22,27` — `::first-letter` se aplica a la
-primera **letra** (admitiendo puntuación previa, no símbolos): con «✓ Partida registrada» el
-color cae sobre la `P`, no sobre el ✓. Envolver el glifo en un `<span>` con la clase.
+**Fix:** el del registro, sin cambios — `onMounted` → `focus()` en el `<h1>`,
+`aria-labelledby` apuntando a ese `<h1>`, y `keydown`/`Escape` → `dismiss`. Decidir antes qué
+significa `Escape` frente a D-01 (cuatro opciones exactas); si no se puede añadir una quinta,
+que equivalga de forma documentada a «Salir sin registrar».
 
 ---
 
-_Reviewed: 2026-09-12T14:50:00Z_
+### Info
+
+#### IN-01: estilo de llave inconsistente con el resto del repo
+
+**Fichero:** `app/pages/[game]/index.vue:594`
+**Issue:** `} else {` en la misma línea, mientras todo el repositorio usa `else` en línea propia
+(p. ej. `app/composables/useGameHistory.ts:176`, `engine/history.ts`, `usePersistedSession.ts`).
+No hay ESLint en el proyecto (`package.json` no declara ni dependencia ni script), así que nada
+lo detecta.
+**Fix:** poner `else` en su propia línea; o, mejor, añadir `@antfu/eslint-config` + un script
+`lint` y un paso en CI.
+
+#### IN-02: `MONTHS_ES` se exporta sin ningún consumidor externo
+
+**Fichero:** `engine/history.ts:138`
+**Issue:** solo lo usa `formatEntryDate` en la línea 147 del mismo fichero; ningún `.vue`,
+composable ni test lo importa. Superficie pública innecesaria en un módulo cuya disciplina
+declarada es que el formateo no salga de aquí.
+**Fix:** quitar `export`.
+
+#### IN-03: `:key="entry.id"` y `removeHistoryEntry` asumen unicidad de `id` que nada garantiza
+
+**Ficheros:** `app/pages/historico.vue:66`, `app/composables/usePersistedSession.ts:378-395`,
+`engine/history.ts:110`
+**Issue:** `appendHistoryEntry` no comprueba que el `id` no exista ya. Con dos entradas del
+mismo `id`, Vue avisa por clave duplicada y `removeHistoryEntry` borra **la primera
+coincidencia del array en disco**, que tras `sortEntriesByRecency` no tiene por qué ser la
+tarjeta pulsada: el grupo borraría una partida distinta de la que pidió. La probabilidad real
+es despreciable (exige mismo milisegundo y mismo sufijo aleatorio), y WR-08 ya garantizó que
+nunca se lleva dos por delante, así que se registra como Info y no como Warning.
+**Fix:** va con IN-05 de `deferred-items.md` (`crypto.randomUUID()`); mientras tanto,
+`appendHistoryEntry` puede rechazar un `id` ya presente en `read.entries`.
+
+#### IN-04: la página de juego instancia `useGameHistory()` entero solo para `record`
+
+**Fichero:** `app/pages/[game]/index.vue:92`
+**Issue:** arrastra `engine/statistics`, `buildHistoryCardView`, `buildStatisticsView` y una
+segunda instancia de `useCharacterCatalogue()` (la primera ya está en `useGameSession`, y una
+tercera en `:55`) al chunk de la pantalla que más importa que arranque rápido en la mesa.
+**Fix:** exportar `record` como función suelta del módulo, o un `useHistoryRecorder()` mínimo.
+
+#### IN-05: CI no tiene ni typecheck ni lint
+
+**Fichero:** `.github/workflows/ci.yml`
+**Issue:** el workflow ejecuta `npm run test` y Playwright. No hay `vue-tsc`/`nuxi typecheck`
+ni linter en el repo, así que un error de tipos en cualquiera de los 30 ficheros de esta fase
+—incluidos los `as never` que los tests usan para inyectar datos hostiles— no rompe nada.
+Varias de las guardas de esta fase existen precisamente porque «el tipo TypeScript es una
+promesa de compilación»; hoy ni siquiera esa promesa se comprueba.
+**Fix:** `npx nuxi typecheck` como paso de CI antes de `npm run test`.
+
+#### IN-06: un test fija como comportamiento correcto una entrada de `playerCount: 0`
+
+**Fichero:** `app/composables/__tests__/useGameHistory.test.ts:545-566`
+**Issue:** el test «una entrada construida desde `context: {}` sobrevive a un ciclo record() →
+loadHistory()» afirma `expect(entry.playerCount).toBe(0)`. Una partida de 0 jugadores no
+existe, y la tarjeta la pinta como «Normal · 0 jug». Es el caso límite de WR-01 congelado en
+un test, así que arreglar WR-01 exige tocar esta aserción — conviene hacerlo en el mismo
+cambio para que no bloquee la corrección.
+**Fix:** al endurecer `isGameHistoryEntry`, cambiar la expectativa a que la entrada se rechaza
+(`record()` → `false`) o a que `playerCount` se replega a un mínimo de 1, según lo que se
+decida en WR-01.
+
+---
+
+## Sobre los hallazgos diferidos
+
+Se ha leído `deferred-items.md` completo. **No se repiten como nuevos** WR-02, WR-05(a),
+IN-04, IN-05, IN-07, IN-11, IN-12 ni IN-13: el análisis de esta ronda los confirma tal como
+están descritos y sus motivos de aplazamiento (superficie de interfaz nueva, cambio de forma de
+`StatisticsSummary`, contratos ya fijados por test) se sostienen.
+
+**Dos aplazamientos se consideran mal clasificados** y se han elevado a hallazgo con su cita:
+
+- **WR-04** (`GameOutcomeDialog`) → elevado aquí como **WR-07**. Motivo registrado: «vive en un
+  fichero `.vue` de pantalla, explícitamente fuera del perímetro de este plan». Es alcance de
+  plan, no riesgo; el perímetro de esta revisión incluye los `.vue`.
+- **WR-05 (b)** (maquetación de la banda sobre pantallas `h-dvh`) → elevado aquí como **WR-05**.
+  Mismo motivo de alcance, y además el diferido se evaluó antes de que 09-16 alargara la copy
+  de fallo a un párrafo de tres frases con 20 s de permanencia, lo que agrava el síntoma sobre
+  la pantalla exacta a la que el aviso manda volver.
+
+**WR-07 del registro** (`sampleCaption` ignora la muestra de villanos) sigue correctamente
+diferido, pero conviene anotar que **WR-02 de este informe lo empeora**: un `heroId: ''`
+incrementa `entriesWithHeroes`, así que la leyenda no solo describe una muestra distinta de la
+que la tabla de villanos agrega, sino que además puede contar como «con héroes anotados» una
+partida cuya única fila de héroe es un hueco sin nombre.
+
+---
+
+_Reviewed: 2026-09-13T00:58:00Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
