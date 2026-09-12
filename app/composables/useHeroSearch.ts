@@ -62,9 +62,22 @@ export function normalizeForSearch(value: string): string {
 // D-05: la ausencia de alias NUNCA rompe nada — un héroe sin entrada en
 // `spanishHeroAliases` (o con entrada de cadena vacía) cae a su nombre
 // inglés del catálogo.
+// BF-04 (09-17, barrido de fronteras, párrafo final de CR-02 en
+// `09-REVIEW.md`): `spanishHeroAliases` es un objeto literal indexado por
+// `heroId`. Hoy los dos llamadores (`buildHeroOptions` con `hero.id` del
+// catálogo, `resolveFrozenNames` con un `heroId` ya filtrado contra el
+// catálogo) nunca pasan una clave de `Object.prototype`, así que el defecto
+// es LATENTE — pero es exactamente el tipo de «alcanzable el día que
+// alguien quite el filtro» que este barrido existe para cerrar:
+// `resolveHeroSpanishName('constructor', 'X')` hacía `alias.trim()` sobre
+// la función `Object`, que no tiene `trim`, y LANZABA, rompiendo la promesa
+// de D-05 de que esta función «nunca falla». `Object.hasOwn` descarta la
+// cadena de prototipos antes de aceptar el valor; el `typeof` descarta un
+// valor de tipo equivocado.
 export function resolveHeroSpanishName(heroId: string, catalogueName: string): string {
+  if (!Object.hasOwn(spanishHeroAliases, heroId)) return catalogueName
   const alias = spanishHeroAliases[heroId]
-  return alias && alias.trim() !== '' ? alias : catalogueName
+  return typeof alias === 'string' && alias.trim() !== '' ? alias : catalogueName
 }
 
 export function buildHeroOptions(heroes: CatalogueHero[] | null | undefined): HeroOption[] {
@@ -141,13 +154,26 @@ export function joinNames(names: string[] | null | undefined): string {
 // cadena ya compuesta, no un array, para que `PlayerModal.vue` siga siendo
 // tonto y no tenga que componer nada. El hueco `currentSlotIndex` nunca
 // aparece en ningún valor. Los huecos con `heroId` `null` no generan entrada.
+// BF-05 (09-17, barrido de fronteras): `slot.heroId` llega desde
+// `resolvePlayerSlots` (`engine/selection.ts`), que solo exige «cadena no
+// vacía» — SIN contrastar contra el catálogo de héroes. A diferencia de
+// `resolveHeroSpanishName` (BF-04, latente), este vector es ALCANZABLE HOY
+// en producción: un `heroId` editado a mano en `localStorage` a
+// `'constructor'` llega tal cual hasta aquí. Con un objeto literal,
+// `labelsByHeroId['constructor']` es la función `Object` (truthy), la
+// guarda `if (!labelsByHeroId[slot.heroId])` no crea el array, y
+// `.push(label)` sobre la función LANZA — la pantalla de selección de
+// héroe revienta al abrir el modal de OTRO jugador. `Object.create(null)`
+// en los dos mapas (mismo patrón que `resolveFrozenNames` en
+// `useGameHistory.ts`, cerrado en 09-14) elimina la cadena de prototipos
+// de raíz.
 export function buildTakenByMap(
   slots: SelectionSlot[] | null | undefined,
   currentSlotIndex: number,
 ): Record<string, string> {
-  if (!slots || slots.length === 0) return {}
+  if (!slots || slots.length === 0) return Object.create(null)
 
-  const labelsByHeroId: Record<string, string[]> = {}
+  const labelsByHeroId: Record<string, string[]> = Object.create(null)
   slots.forEach((slot, index) => {
     if (index === currentSlotIndex) return
     if (!slot.heroId) return
@@ -156,7 +182,7 @@ export function buildTakenByMap(
     labelsByHeroId[slot.heroId]!.push(label)
   })
 
-  const result: Record<string, string> = {}
+  const result: Record<string, string> = Object.create(null)
   for (const heroId of Object.keys(labelsByHeroId)) {
     result[heroId] = joinNames(labelsByHeroId[heroId])
   }
@@ -166,11 +192,14 @@ export function buildTakenByMap(
 // SEL-07/D-16: este texto AVISA, nunca bloquea — exclusión permanente de
 // `PROJECT.md`. La línea que lo pinta es un `<p>` sin afordancia, jamás un
 // `<button>` (D-32): sin borde, sin chevron, no abre `WarningDetailModal`.
+// BF-06 (09-17, barrido de fronteras): mismo defecto y mismo vector de
+// entrada que BF-05 — `slotIndexesByHeroId` era un objeto literal indexado
+// por el mismo `heroId` no contrastado contra el catálogo.
 export function buildDuplicateWarningText(slots: SelectionSlot[] | null | undefined): string | null {
   if (!slots || slots.length === 0) return null
 
   // Agrupa por heroId, en orden de primera aparición, ignorando huecos sin héroe.
-  const slotIndexesByHeroId: Record<string, number[]> = {}
+  const slotIndexesByHeroId: Record<string, number[]> = Object.create(null)
   const heroIdOrder: string[] = []
   slots.forEach((slot, index) => {
     if (!slot.heroId) return

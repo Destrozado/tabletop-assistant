@@ -149,13 +149,25 @@ export function formatEntryDate(recordedAt: string): string {
 
 // D-10/D-21: '—' para null o para cualquier valor no finito (nunca 0, nunca
 // inventado). Formato "1 h 40 min" a partir de una hora, "N min" por debajo.
+// BF-03 (09-17, barrido de fronteras, WR-06): tres cifras imposibles que el
+// código anterior podía pintar y que ninguna mesa real anotaría así.
+// 1) `durationMs < 0` (un `startedAt` manipulado hacia el futuro) pasaba
+//    `Number.isFinite` sin problema y producía minutos/horas negativos
+//    (`Math.floor(-100/60) === -2`, `-100 % 60 === -40` ⇒ «-2 h -40 min») —
+//    ahora degrada a «—», igual que cualquier otro dato que no se puede
+//    afirmar. 2) Una partida de menos de 1 minuto (p. ej. 20 s) redondeaba a
+//    «0 min»; la duración mínima que la copy puede afirmar sin mentir es
+//    «1 min», mismo razonamiento que `round` mínimo es 1 en
+//    `buildHistoryEntry` (09-12). 3) Exactamente 1h/2h/etc. pintaba
+//    «1 h 0 min», el minuto redundante que ningún reloj de mesa escribe —
+//    ahora se omite cuando los minutos son exactamente 0.
 export function formatEntryDuration(durationMs: number | null): string {
-  if (durationMs === null || !Number.isFinite(durationMs)) return '—'
-  const totalMinutes = Math.round(durationMs / 60000)
+  if (durationMs === null || !Number.isFinite(durationMs) || durationMs < 0) return '—'
+  const totalMinutes = Math.max(1, Math.round(durationMs / 60000))
   const hours = Math.floor(totalMinutes / 60)
   const minutes = totalMinutes % 60
   if (hours === 0) return `${minutes} min`
-  return `${hours} h ${minutes} min`
+  return minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`
 }
 
 // HIST-07/WR-06: garantía mecánica de "de la más reciente a la más antigua"
