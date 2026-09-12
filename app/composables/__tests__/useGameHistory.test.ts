@@ -368,6 +368,46 @@ describe('resolveFrozenNames', () => {
 
     expect(resolveFrozenNames(context, catalogue).villainName).toBeNull()
   })
+
+  // CR-02 (ronda 3): las ocho claves heredadas de Object.prototype —
+  // declarada aquí y en engine/__tests__/history.test.ts (deliberadamente
+  // duplicada: cada fichero de test es autocontenido, sin depender de un
+  // import cruzado entre proyectos vitest distintos).
+  const PROTOTYPE_KEYS = [
+    'constructor',
+    'toString',
+    'valueOf',
+    'hasOwnProperty',
+    '__proto__',
+    'isPrototypeOf',
+    'propertyIsEnumerable',
+    'toLocaleString',
+  ] as const
+
+  it('CR-02 (ronda 3): el mapa devuelto no tiene prototipo', () => {
+    const context: SessionContext = {
+      playerCount: 1,
+      difficulty: 'normal',
+      selection: { villainId: null, heroes: [{ heroId: 'thor', playerName: 'Ana' }] },
+    }
+
+    const names = resolveFrozenNames(context, catalogue)
+
+    expect(Object.getPrototypeOf(names.heroNames)).toBeNull()
+  })
+
+  it.each(PROTOTYPE_KEYS)('CR-02 (ronda 3): un heroId igual a "%s" (ausente del catálogo) no resuelve por la cadena de prototipos — el mapa devuelve undefined, nunca una función', (heroId) => {
+    const context: SessionContext = {
+      playerCount: 1,
+      difficulty: 'normal',
+      selection: { villainId: null, heroes: [{ heroId, playerName: 'Ana' }] },
+    }
+
+    const names = resolveFrozenNames(context, catalogue)
+
+    expect(names.heroNames[heroId]).toBeUndefined()
+    expect(typeof names.heroNames[heroId]).not.toBe('function')
+  })
 })
 
 describe('useGameHistory — ciclo record/reload/remove con localStorage falso', () => {
@@ -455,5 +495,41 @@ describe('useGameHistory — ciclo record/reload/remove con localStorage falso',
     const entry = entries.value[0]!
     expect(entry.playerCount).toBe(1)
     expect(entry.round).toBe(session.round)
+  })
+
+  it('CR-02 (ronda 3): un heroId "constructor" se REGISTRA — record() devuelve true y reload() la recupera con heroId conservado y heroName null', () => {
+    const { record, reload, entries } = useGameHistory()
+
+    const session = makeSession({
+      selection: { villainId: null, heroes: [{ heroId: 'constructor', playerName: 'Ana' }] },
+    })
+
+    // Contra el código previo a este plan, record() devolvía false (la
+    // entrada tenía heroName: Object, que isHistoryPlayerEntry rechazaba) y
+    // entries.value quedaba vacío: la partida se perdía sin diagnóstico
+    // correcto (notifyHistorySaved(false) culpaba al almacenamiento).
+    expect(record(session, 'won')).toBe(true)
+
+    reload()
+    expect(entries.value).toHaveLength(1)
+    const entry = entries.value[0]!
+    expect(entry.players[0]!.heroId).toBe('constructor')
+    expect(entry.players[0]!.heroName).toBeNull()
+  })
+
+  it('CR-02 (ronda 3): la variante con un heroId real (spider-man) sigue recuperando el alias congelado (camino feliz)', () => {
+    const { record, reload, entries } = useGameHistory()
+
+    const session = makeSession({
+      selection: { villainId: null, heroes: [{ heroId: 'spider-man', playerName: 'Ana' }] },
+    })
+
+    expect(record(session, 'won')).toBe(true)
+
+    reload()
+    expect(entries.value).toHaveLength(1)
+    const entry = entries.value[0]!
+    expect(entry.players[0]!.heroId).toBe('spider-man')
+    expect(entry.players[0]!.heroName).toBe('Spider-Man')
   })
 })
