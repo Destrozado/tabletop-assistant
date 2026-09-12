@@ -355,6 +355,78 @@ describe('buildDuplicateWarningText (SEL-07)', () => {
   })
 })
 
+// BF-04/BF-05/BF-06 (09-17, barrido de fronteras — párrafo final de CR-02 en
+// 09-REVIEW.md): las ocho claves heredadas de Object.prototype — declarada
+// aquí y en engine/__tests__/history.test.ts y
+// app/composables/__tests__/useGameHistory.test.ts (deliberadamente
+// duplicada: cada fichero de test es autocontenido).
+const PROTOTYPE_KEYS = [
+  'constructor',
+  'toString',
+  'valueOf',
+  'hasOwnProperty',
+  '__proto__',
+  'isPrototypeOf',
+  'propertyIsEnumerable',
+  'toLocaleString',
+] as const
+
+describe('BF-04 (09-17): resolveHeroSpanishName no lanza con una clave de Object.prototype', () => {
+  it.each(PROTOTYPE_KEYS)('resolveHeroSpanishName("%s", "Fallback") no lanza y devuelve "Fallback"', (heroId) => {
+    expect(() => resolveHeroSpanishName(heroId, 'Fallback')).not.toThrow()
+    expect(resolveHeroSpanishName(heroId, 'Fallback')).toBe('Fallback')
+  })
+
+  it('camino feliz intacto: un id real del catálogo sigue devolviendo su alias', () => {
+    expect(resolveHeroSpanishName('thor', 'Thor')).toBe('Thor')
+  })
+})
+
+describe('BF-05/BF-06 (09-17): los mapas indexados por heroId no resuelven por Object.prototype', () => {
+  it.each(PROTOTYPE_KEYS)('buildTakenByMap con un hueco de heroId "%s" no lanza, y el mapa devuelto no tiene prototipo', (heroId) => {
+    const slots: SelectionSlot[] = [
+      slot({ heroId, playerName: 'Ana' }),
+      slot({ heroId: 'thor', playerName: 'Luis' }),
+    ]
+    let result: Record<string, string> = {}
+    expect(() => {
+      result = buildTakenByMap(slots, 1)
+    }).not.toThrow()
+    expect(Object.getPrototypeOf(result)).toBeNull()
+    // La clave se registra como propiedad PROPIA del mapa (Object.create(null)
+    // permite añadirla sin colisión con la cadena de prototipos), no como una
+    // entrada heredada — así se distingue de un mapa que "ya tenía" esa clave
+    // por herencia.
+    expect(Object.hasOwn(result, heroId)).toBe(true)
+    expect(result[heroId]).toBe('Ana')
+  })
+
+  it.each(PROTOTYPE_KEYS)('buildDuplicateWarningText con dos huecos de heroId "%s" no lanza', (heroId) => {
+    const slots: SelectionSlot[] = [
+      slot({ heroId, playerName: 'Ana' }),
+      slot({ heroId, playerName: 'Luis' }),
+    ]
+    expect(() => buildDuplicateWarningText(slots)).not.toThrow()
+  })
+
+  it('camino feliz intacto: buildTakenByMap sigue devolviendo la etiqueta correcta con héroes reales', () => {
+    const slots: SelectionSlot[] = [
+      slot({ heroId: 'thor', playerName: 'Ana' }),
+      slot({ heroId: null, playerName: '' }),
+      slot({ heroId: 'thor', playerName: 'Carla' }),
+    ]
+    expect(buildTakenByMap(slots, 0).thor).toBe('Carla')
+  })
+
+  it('camino feliz intacto: buildDuplicateWarningText sigue avisando con héroes reales repetidos', () => {
+    const slots: SelectionSlot[] = [
+      slot({ heroId: 'thor', playerName: 'Ana' }),
+      slot({ heroId: 'thor', playerName: 'Bruno' }),
+    ]
+    expect(buildDuplicateWarningText(slots)).toBe('Ana y Bruno llevan el mismo héroe')
+  })
+})
+
 describe('findHeroOption / findVillainOption', () => {
   const heroOptions = [heroOption({ id: 'thor', spanishName: 'Thor' }), heroOption({ id: 'hulk', spanishName: 'Hulk' })]
   const villainOptions = [{ id: 'kang', name: 'Kang' }, { id: 'rhino', name: 'Rhino' }]

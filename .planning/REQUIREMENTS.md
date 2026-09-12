@@ -83,6 +83,22 @@
 - [x] **HIST-08**: Una entrada del histórico se puede borrar, con confirmación previa
 - [x] **HIST-09**: «Partida terminada» borra la sesión en curso pero nunca el histórico
 
+> **Nota de cierre de hueco (HIST-04/HIST-06), rondas 2 y 3 de `09-VERIFICATION.md`:** la
+> verificación encontró, en dos rondas consecutivas, defectos reproducibles sobre estos dos
+> requisitos pese a que esta tabla ya los marcaba `Satisfecho` — CR-01 ronda 2
+> (`appendHistoryEntry` no validaba con el mismo predicado que `loadHistory` usa para leer,
+> cerrado en 09-12), CR-01 ronda 3 (un fallo transitorio de *lectura* de `localStorage` se
+> confundía con «no hay histórico», destruyendo partidas ya registradas, cerrado en 09-13) y
+> CR-02 ronda 3 (`heroNames[heroId]` resolvía por `Object.prototype`, cerrado en 09-14). El
+> plan 09-17 cierra el patrón completo con un barrido exhaustivo de las tres fronteras
+> implicadas (`09-AUDIT-FRONTERAS.md`), cerrando además WR-01 (un hueco sin héroe pintaba
+> «undefined») y WR-06 (`formatEntryDuration` pintaba «1 h 0 min» y duraciones negativas) sobre
+> el mismo perímetro. Queda deliberadamente fuera de este cierre — registrado en
+> `deferred-items.md` — la vía de recuperación de un blob de `localStorage` permanentemente
+> ilegible (WR-02): el histórico sigue siendo la fuente de verdad (HIST-06) y ningún dato se
+> pierde por ese camino, pero no hay hoy una acción en `/historico` para archivarlo y empezar
+> limpio.
+
 ### STAT — Estadísticas
 
 - [x] **STAT-01**: Hay una pantalla de estadísticas accesible desde el inicio
@@ -188,9 +204,9 @@
 | HIST-01 | Fase 9 | Satisfecho |
 | HIST-02 | Fase 9 | Satisfecho |
 | HIST-03 | Fase 9 | Satisfecho |
-| HIST-04 | Fase 9 | Satisfecho |
+| HIST-04 | Fase 9 (09-13..09-17) | Satisfecho — ver nota de cierre de hueco (ronda 3) abajo |
 | HIST-05 | Fase 9 | Satisfecho |
-| HIST-06 | Fase 9 | Satisfecho |
+| HIST-06 | Fase 9 (09-13..09-17) | Satisfecho — ver nota de cierre de hueco (ronda 3) abajo |
 | HIST-07 | Fase 9 | Satisfecho |
 | HIST-08 | Fase 9 | Satisfecho |
 | HIST-09 | Fase 9 | Satisfecho |
