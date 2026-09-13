@@ -278,9 +278,25 @@ export function usePersistedSession() {
     }
   }
 
-  function save(session: EngineSession): void {
+  // CR-01 (ronda 4): devuelve si `window.localStorage.setItem` completó sin
+  // lanzar para `tga:progress:<gameId>` con el contenido de ESTA sesión — eso
+  // es lo ÚNICO que afirma: no afirma que el dato siga ahí más tarde, ni que
+  // sea legible después. `false` significa «no se pudo escribir»: sin
+  // `window` (SSR/prerender), o `setItem` lanzando (modo privado del
+  // navegador, cuota agotada).
+  //
+  // Devolver el booleano NO OBLIGA A NADIE A MIRARLO: los dos llamadores del
+  // autoguardado (`watchDebounced` y `pagehide` en `app/pages/[game]/index.vue`)
+  // lo siguen ignorando, y eso es exactamente lo que VOZ-06/D-51 exigen — un
+  // fallo de almacenamiento no puede romper next()/prev()/toggle(). Lo que
+  // cambia es que ahora EXISTE el dato para quien sí lo necesite (planes
+  // 09-20/09-21). Motivo: BLOCKER CR-01 ronda 4 de `09-VERIFICATION.md` —
+  // desde 09-16 la interfaz afirma por escrito al grupo algo sobre
+  // `tga:progress:<gameId>`, y ninguna afirmación de la interfaz sobre los
+  // datos del grupo puede carecer de un valor de retorno real que la respalde.
+  function save(session: EngineSession): boolean {
     const persisted = toPersistedPosition(session)
-    writeRaw(storageKey(session.gameId), JSON.stringify(persisted))
+    return writeRaw(storageKey(session.gameId), JSON.stringify(persisted))
   }
 
   function clear(gameId: string): void {
