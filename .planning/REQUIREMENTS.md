@@ -78,7 +78,7 @@
 - [x] **HIST-03**: Si el resultado es Perdida, se puede indicar la causa: plan principal completado o todos los héroes derrotados
 - [x] **HIST-04**: El registro guarda resultado, causa, villano, héroe y nombre de cada jugador, fecha, dificultad, nº de jugadores, duración y nº de rondas jugadas
 - [x] **HIST-05**: El motor expone el instante de inicio de la partida y la ronda actual, para poder calcular duración y rondas sin que el usuario los teclee
-- [x] **HIST-06**: El histórico vive en localStorage y es la fuente de verdad de la app
+- [ ] **HIST-06**: El histórico vive en localStorage y es la fuente de verdad de la app
 - [x] **HIST-07**: Hay una pantalla que lista las partidas registradas, de la más reciente a la más antigua
 - [x] **HIST-08**: Una entrada del histórico se puede borrar, con confirmación previa
 - [x] **HIST-09**: «Partida terminada» borra la sesión en curso pero nunca el histórico
@@ -103,16 +103,52 @@
 > el mecanismo ADYACENTE de recuperación del PROGRESO que 09-16 añadió (`finishGame(preserveProgress)`)
 > y cuya promesa de interfaz («la partida sigue guardada en el dispositivo») no se sostenía porque
 > `save()` descartaba a propósito el resultado real de la escritura (CR-01 ronda 4, BLOCKER) —
-> queda cerrada por el lote 09-18/09-20/09-21: 09-18 cambia la firma de `save()` a `boolean`
-> (devuelve el resultado real de `writeRaw()`); 09-20 hace que `onOutcomeRecorded` llame a `save()`
-> de forma síncrona entre `record()` y `notifyHistorySaved()` y compruebe ese resultado antes de
-> elegir la variante del aviso, con un test de regresión cruzado (`avisoTrasRegistroFallido.test.ts`);
-> 09-21 hace que `HistorySavedNotice.vue` no contenga ninguna copy propia — solo interpola
+> queda cerrada SOLO A MEDIAS por el lote 09-18/09-20/09-21 — la mitad que sí se cerró de verdad:
+> 09-18 cambia la firma de `save()` a `boolean` (devuelve el resultado real de `writeRaw()`);
+> 09-20 hace que `onOutcomeRecorded` llame a `save()` de forma síncrona entre `record()` y
+> `notifyHistorySaved()` y compruebe ese resultado antes de elegir la variante del aviso, con un
+> test de regresión cruzado (`avisoTrasRegistroFallido.test.ts`); 09-21 hace que
+> `HistorySavedNotice.vue` no contenga ninguna copy propia — solo interpola
 > `NOTICE_HEADING`/`NOTICE_BODY`, calculadas por `resolveNoticeVariant(historyRecorded,
 > progressSecured)` a partir de esos dos booleanos reales. El barrido de cierre de proceso
-> (`09-AUDIT-AFIRMACIONES-UI.md`, plan 09-23) confirma por lectura directa del código que esta
-> superficie —y las otras 23 pantallas `.vue` de la app— ya no afirma nada sobre datos persistidos
-> que un valor de retorno real no respalde.
+> (`09-AUDIT-AFIRMACIONES-UI.md`, plan 09-23) confirmó entonces, por lectura directa del código,
+> que esta superficie —y las otras 23 pantallas `.vue` de la app— ya no afirmaba nada sobre datos
+> persistidos que un valor de retorno real no respaldara. **Esa confirmación resultó incompleta**:
+> el booleano de `save()` certifica si la escritura de AHORA tuvo éxito, no si TODO el estado
+> guardado del dispositivo sigue siendo recuperable — la pregunta que la copy de la interfaz
+> planteaba en realidad. La ronda 5 encontró exactamente ese hueco; ver el párrafo «Ronda 5» abajo.
+>
+> **Ronda 5 (`09-VERIFICATION.md`, planes 09-24/09-25/09-26):** el hallazgo, en una frase:
+> `save()` certifica la escritura de AHORA, y la interfaz usaba ese booleano para afirmar algo
+> sobre TODO el estado del dispositivo («no hay nada que reintentar»), afirmación falsa en un
+> escenario alcanzable —autoguardados previos con éxito y cuota agotada al final— en el que la app
+> ofrece «Continuar» justo después.
+>
+> El cierre elegido fue la causa raíz (opción A, decisión explícita del usuario frente a la mínima
+> de retirar la frase): una autoridad de lectura única, `readStoredProgress`
+> (`app/composables/useStoredProgress.ts`), que hace una lectura real de `tga:progress:<gameId>` y
+> aplica la misma regla `resume()` que el montaje de la página, de la que beben los DOS
+> consumidores —el aviso de fin de partida y el `ResumePrompt`—; el tipo `StoredProgress` de tres
+> valores (`'resumable' | 'absent' | 'unknown'`, incluido «no he podido comprobarlo»), que impide
+> pasar un booleano de escritura donde va una lectura; `planGameEnd(historyRecorded, stored)` como
+> única decisión de fin de partida; y un gate automatizado
+> (`app/composables/__tests__/afirmacionesRespaldadas.test.ts`) que se pone rojo ante cualquier
+> afirmación nueva sin respaldo.
+>
+> Un hallazgo colateral que merece quedar escrito: la barrera de tipos en la que se apoyaba el
+> diseño **no existía**. El proyecto no tenía `typescript` ni `vue-tsc` instalados, `nuxt build`
+> transpila con esbuild sin comprobar tipos y CI no ejecutaba ninguna comprobación de tipos, así
+> que «esto no compila» era una figura retórica. El plan 09-24 instaló el comprobador
+> (`npm run typecheck`, colgado del job `test` de CI antes de los tests) — el mismo patrón que
+> esta fase lleva cinco rondas cerrando, esta vez en el utillaje en vez de en el código.
+>
+> El cierre de WR-01 (`09-REVIEW.md`) queda como efecto colateral de la misma tarea: una guarda de
+> reentrada en `onOutcomeRecorded`/`onOutcomeDismiss` impide que un segundo toque borre en
+> silencio el progreso que la primera invocación había preservado.
+>
+> **Este cierre no se da por bueno hasta que una ronda de verificación independiente lo
+> confirme: cuatro notas anteriores de este mismo documento dieron por cerrado lo que no lo
+> estaba.**
 
 ### STAT — Estadísticas
 
@@ -221,10 +257,10 @@
 | HIST-03 | Fase 9 | Satisfecho |
 | HIST-04 | Fase 9 (09-13..09-17) | Satisfecho — ver nota de cierre de hueco (ronda 3) abajo |
 | HIST-05 | Fase 9 | Satisfecho |
-| HIST-06 | Fase 9 (09-13..09-24) | Satisfecho — ver nota de cierre de hueco (ronda 3, ampliada en ronda 4) abajo; 09-24 añade la barrera de tipos real (`npm run typecheck` en CI) que respalda con una orden comprobable las afirmaciones sobre este código, en vez de con prosa |
+| HIST-06 | Fase 9 (09-13..09-27) | Reabierto en la ronda 5 — ver nota de cierre de hueco abajo |
 | HIST-07 | Fase 9 | Satisfecho |
 | HIST-08 | Fase 9 | Satisfecho |
-| HIST-09 | Fase 9 (09-13..09-23) | Satisfecho |
+| HIST-09 | Fase 9 (09-13..09-27) | Satisfecho |
 | STAT-01 | Fase 9 | Satisfecho |
 | STAT-02 | Fase 9 | Satisfecho |
 | STAT-03 | Fase 9 | Satisfecho |
