@@ -207,7 +207,7 @@ Plans:
 - [x] 09-24-PLAN.md — Barrera de tipos real: el proyecto no tenía comprobador (ni typescript ni vue-tsc, y `nuxt build` no comprueba tipos) — instalación, `npm run typecheck`, paso de CI y triaje de lo preexistente (ola 17)
 - [x] 09-25-PLAN.md — Cierre de huecos ronda 5: la autoridad de lectura que contesta qué hay de verdad en el dispositivo, con «no he podido comprobarlo» como tercera respuesta (CR-01 r5, causa raíz) (ola 18)
 - [x] 09-26-PLAN.md — Cierre de huecos ronda 5: los dos consumidores hablan por la autoridad, guarda de reentrada (WR-01) y gate automatizado contra afirmaciones sin respaldo (ola 19)
-- [ ] 09-27-PLAN.md — Cierre de huecos ronda 5: corrección de la nota de cierre prematura sobre HIST-06, diferidos con justificación de riesgo y pregunta Q5 en la auditoría de afirmaciones (ola 20)
+- [x] 09-27-PLAN.md — Cierre de huecos ronda 5: corrección de la nota de cierre prematura sobre HIST-06, diferidos con justificación de riesgo y pregunta Q5 en la auditoría de afirmaciones (ola 20)
 **UI hint**: yes
 **Verificación humana**: Sí, recomendable pero no bloqueante por dispositivo — el flujo de fin de partida y las dos pantallas nuevas se verifican jugando una partida real de principio a fin (puede hacerse en portátil/móvil, no requiere la tablet de mesa) y comprobando que el registro y las estadísticas resultantes coinciden con lo jugado.
 
@@ -253,7 +253,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
-| 9. Histórico y estadísticas | v1.8 | 26/27 | In Progress|  |
+| 9. Histórico y estadísticas | v1.8 | 27/27 | Complete   | 2026-09-13 |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 
 ---

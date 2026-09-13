@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
 status: executing
-stopped_at: Completed 09-26-PLAN.md
-last_updated: "2026-09-13T12:13:38.775Z"
+stopped_at: Completed 09-27-PLAN.md
+last_updated: "2026-09-13T12:23:15.840Z"
 last_activity: 2026-09-13
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 55
-  completed_plans: 54
-  percent: 67
+  completed_plans: 55
+  percent: 83
 ---
 
 # Project State
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 
 ## Current Position
 
-Phase: 09 (hist-rico-y-estad-sticas) — EXECUTING
-Plan: 4 of 27
+Phase: 09 (hist-rico-y-estad-sticas) — 27/27 plans complete, pendiente de ronda de verificación antes de transicionar a la Fase 10
+Plan: 27 of 27
 Status: Ready to execute
 Last activity: 2026-09-13
 
@@ -72,6 +72,7 @@ Last activity: 2026-09-13
 | Phase 09 P24 | 8min | 4 tasks | 3 files |
 | Phase 09 P25 | 6min | 2 tasks | 4 files |
 | Phase 09 P26 | 10min | 2 tasks | 5 files |
+| Phase 09 P27 | 15min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -126,6 +127,8 @@ Recent decisions affecting current work:
 - [Phase 09-25]: readStoredProgress (useStoredProgress.ts, nuevo) es la autoridad unica de lectura del progreso: expand()+readProgress()+resume() reproducen los tres pasos de onMounted; StoredProgress='resumable'|'absent'|'unknown', invariante stored==='resumable' equivale a outcome!=='fresh'; plan aditivo, sin consumidores todavia — el gap de la ronda 5 sigue abierto hasta 09-26
 - [Phase 09-25]: test de useStoredProgress carga el fixture tiny-game.json con import de modulo JSON (resolveJsonModule) en vez de readFileSync/fileURLToPath (patron de audio-ids.test.ts), porque node:fs/node:url no tienen tipos bajo app/** sin @types/node y ese arbol si pasa por npm run typecheck (09-24)
 - [Phase 09]: 26: planGameEnd(historyRecorded, stored) tipado contra StoredProgress (nunca boolean); cierra WR-01/WR-09 de 09-REVIEW.md y el BLOCKER de la ronda 5
+- [Phase 09-27]: HIST-06 vuelve a [ ] en REQUIREMENTS.md — un requisito no se remarca porque un plan diga haberlo cerrado, sino cuando una ronda de verificación lo confirme; la nota nombra readStoredProgress/StoredProgress/planGameEnd como autoridad real
+- [Phase 09-27]: cuatro diferidos nuevos (WR-04/05/06/02, ronda 4) en deferred-items.md con justificación de RIESGO, nunca de alcance de plan; Q5 añadida a 09-AUDIT-AFIRMACIONES-UI.md como la pregunta de método que habría cazado la ronda 5
 
 ### Pending Todos
 
@@ -172,6 +175,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-13T12:13:38.770Z
-Stopped at: Completed 09-26-PLAN.md
+Last session: 2026-09-13T12:23:15.834Z
+Stopped at: Completed 09-27-PLAN.md
 Resume file: None
