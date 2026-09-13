@@ -200,7 +200,7 @@ Plans:
 - [x] 09-17-PLAN.md — Barrido exhaustivo de las tres fronteras, con inventario escrito, cierre en lote y registro de lo aplazado (petición explícita del verificador) (ola 11)
 - [x] 09-18-PLAN.md — Cierre de huecos ronda 4: `save()` devuelve si el progreso quedó escrito de verdad, y el comentario deja de prohibir el arreglo (CR-01 r4, causa raíz) (ola 12)
 - [x] 09-19-PLAN.md — Cierre de huecos ronda 4: `GameOutcomeDialog` con nombre accesible y foco gestionado; `Escape` resuelto por escrito contra el contrato de diseño (WR-04 reclasificado) (ola 12)
-- [ ] 09-20-PLAN.md — Cierre de huecos ronda 4: tres variantes de aviso atadas a dos booleanos reales, progreso reescrito y comprobado, y el test de regresión exigido (CR-01 r4) (ola 13)
+- [x] 09-20-PLAN.md — Cierre de huecos ronda 4: tres variantes de aviso atadas a dos booleanos reales, progreso reescrito y comprobado, y el test de regresión exigido (CR-01 r4) (ola 13)
 - [ ] 09-21-PLAN.md — Cierre de huecos ronda 4: la banda deja de tener copy propia y solo pinta lo que el composable ha comprobado (CR-01 r4) (ola 14)
 - [ ] 09-22-PLAN.md — Cierre de huecos ronda 4: las bandas de aviso dejan de empujar fuera de la tablet la pantalla de destino (WR-05b reclasificado) (ola 15)
 - [ ] 09-23-PLAN.md — Barrido Q4 de las afirmaciones que la interfaz hace al grupo, cierre de los dos diferidos reclasificados y sincronización de trazabilidad (ola 16)
@@ -249,7 +249,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
-| 9. Histórico y estadísticas | v1.8 | 19/23 | In Progress|  |
+| 9. Histórico y estadísticas | v1.8 | 20/23 | In Progress|  |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 
 ---
