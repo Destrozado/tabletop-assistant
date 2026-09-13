@@ -275,23 +275,60 @@ function readEnvelope(): EnvelopeRead {
   }
 }
 
+// CR-01 (ronda 5): resultado discriminado de LEER el progreso, distinto del
+// booleano de ESCRITURA que ya devuelve `save`. Responden a preguntas
+// distintas — `save` contesta «¿ha funcionado ESTA escritura?»; `ProgressRead`
+// contesta «¿qué hay ahora mismo en el dispositivo?» — y confundirlas es
+// exactamente el BLOCKER de la ronda 5 (`09-VERIFICATION.md`): un booleano de
+// escritura acabó respaldando una frase sobre lo que queda guardado.
+//
+// `{ read: 'ok', position: null }` significa «he mirado el dispositivo y ahí
+// no hay ninguna posición utilizable» (clave ausente, JSON corrupto, o forma
+// que `isPersistedPosition` rechaza — las tres son una lectura CORRECTA cuyo
+// resultado es «nada que ofrecer»). `{ read: 'failed' }` significa «no he
+// podido mirar, así que no sé qué hay» (`getItem` lanzando, o sin `window`) —
+// mismo precedente que CR-01 ronda 3 ya fijó para `tga:history` en
+// `readEnvelope`/`EnvelopeRead`, aplicado ahora también al progreso.
+//
+// Regla que hay que seguir: quien vaya a AFIRMARLE algo al grupo sobre su
+// progreso guardado usa `readProgress`; quien solo quiera una posición con la
+// que arrancar (sin necesidad de distinguir el porqué de un `null`) usa
+// `load`.
+export type ProgressRead =
+  | { read: 'ok', position: PersistedPosition | null }
+  | { read: 'failed' }
+
 export function usePersistedSession() {
-  function load(gameId: string): PersistedPosition | null {
+  // CR-01 (ronda 5): única ruta de parseo del progreso — `load` (más abajo)
+  // es un envoltorio suyo, así que las dos no pueden divergir nunca.
+  function readProgress(gameId: string): ProgressRead {
     const read = readRaw(storageKey(gameId))
-    // CR-01 (ronda 3): el progreso es un dato RECONSTRUIBLE (se vuelve a
-    // jugar desde el paso que sea), así que tratar «no sé leer»
-    // (`'unreadable'`) igual que «no hay partida guardada» (`'absent'`) no
-    // destruye nada — es justo la propiedad que el histórico no tiene.
-    if (read.kind !== 'value') return null
+    if (read.kind === 'unreadable') return { read: 'failed' }
+    if (read.kind === 'absent') return { read: 'ok', position: null }
 
     try {
       const parsed = JSON.parse(read.raw)
-      return isPersistedPosition(parsed) ? parsed : null
+      // JSON válido pero de forma inservible (`isPersistedPosition` la
+      // rechaza): el dispositivo SÍ ha contestado, lo que contesta no sirve
+      // — sigue siendo `read: 'ok'`, nunca `'failed'`.
+      return { read: 'ok', position: isPersistedPosition(parsed) ? parsed : null }
     }
     catch {
-      // JSON corrupto (edición manual, cuota parcial, etc.): ausencia de dato.
-      return null
+      // JSON corrupto: lectura correcta, contenido inservible — no ausencia
+      // de LECTURA, ausencia de POSICIÓN utilizable.
+      return { read: 'ok', position: null }
     }
+  }
+
+  function load(gameId: string): PersistedPosition | null {
+    // CR-01 (ronda 3): el progreso es un dato RECONSTRUIBLE (se vuelve a
+    // jugar desde el paso que sea), así que tratar «no sé leer» igual que «no
+    // hay partida guardada» no destruye nada — es justo la propiedad que el
+    // histórico no tiene. Desde la ronda 5 esta colapsación es explícita y
+    // LOCAL a `load`: existe una sola ruta de parseo (`readProgress`), así que
+    // `load` y `readProgress` no pueden divergir jamás.
+    const lectura = readProgress(gameId)
+    return lectura.read === 'ok' ? lectura.position : null
   }
 
   // CR-01 (ronda 4): devuelve si `window.localStorage.setItem` completó sin
@@ -426,5 +463,5 @@ export function usePersistedSession() {
     writeRaw(HISTORY_KEY, JSON.stringify(envelope))
   }
 
-  return { load, save, clear, loadVoicePreference, saveVoicePreference, loadHistory, appendHistoryEntry, removeHistoryEntry }
+  return { load, readProgress, save, clear, loadVoicePreference, saveVoicePreference, loadHistory, appendHistoryEntry, removeHistoryEntry }
 }

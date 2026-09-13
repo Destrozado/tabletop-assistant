@@ -600,3 +600,55 @@ describe('CR-01 (ronda 3): un fallo TRANSITORIO de lectura de localStorage nunca
   })
 })
 
+describe('readProgress (CR-01 ronda 5): «no he podido leer» deja de confundirse con «no hay nada»', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = { localStorage: fakeStorage }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('clave ausente (nada escrito) → { read: "ok", position: null }', () => {
+    const { readProgress } = usePersistedSession()
+    expect(readProgress('marvel-champions')).toEqual({ read: 'ok', position: null })
+  })
+
+  it('tras save() → { read: "ok", position: <no nulo> } con el gameId correcto', () => {
+    const { save, readProgress } = usePersistedSession()
+    save(makeSession('marvel-champions'))
+
+    const lectura = readProgress('marvel-champions')
+    expect(lectura.read).toBe('ok')
+    expect(lectura.read === 'ok' ? lectura.position?.gameId : undefined).toBe('marvel-champions')
+  })
+
+  it('JSON corrupto → { read: "ok", position: null } — lectura correcta, contenido inservible', () => {
+    fakeStorage.setItem('tga:progress:marvel-champions', '{ esto no es JSON')
+
+    const { readProgress } = usePersistedSession()
+    expect(readProgress('marvel-champions')).toEqual({ read: 'ok', position: null })
+  })
+
+  it('getItem que lanza → { read: "failed" }, y load() sigue devolviendo null (el contrato viejo no cambia)', () => {
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+
+    const { readProgress, load } = usePersistedSession()
+    expect(readProgress('marvel-champions')).toEqual({ read: 'failed' })
+    expect(load('marvel-champions')).toBeNull()
+  })
+
+  it('sin window → { read: "failed" }', () => {
+    delete (globalThis as { window?: unknown }).window
+
+    const { readProgress } = usePersistedSession()
+    expect(readProgress('marvel-champions')).toEqual({ read: 'failed' })
+  })
+})
+
