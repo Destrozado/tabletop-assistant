@@ -1,22 +1,29 @@
-// Test de regresión exigido por CR-01 (ronda 4, 09-VERIFICATION.md): el
-// aviso de HistorySavedNotice.vue afirmaba "la partida... sigue guardada en
-// el dispositivo" apoyándose únicamente en que finishGame(!guardado) NO
-// borraba el progreso — pero "no borrar" no es "hay algo que preservar". En
-// modo privado del navegador o con la cuota llena, `tga:progress:<gameId>`
-// puede no haberse escrito NUNCA durante toda la partida, y la app no tenía
-// forma de saberlo porque `save()` (usePersistedSession.ts) descartaba a
-// propósito el booleano de `writeRaw`.
+// Test de regresión exigido originalmente por CR-01 (ronda 4,
+// 09-VERIFICATION.md) y reescrito por el plan 09-26 contra el BLOCKER de la
+// ronda 5: el aviso de fin de partida afirmaba algo sobre el dispositivo
+// («sigue guardada»/«no hay nada que reintentar») a partir de un booleano de
+// ESCRITURA (`save()`), nunca de una lectura real. Desde el plan 09-25/09-26
+// esa afirmación sale de `readStoredProgress` (la autoridad) vía
+// `planGameEnd`/`resolveNoticeVariant`, que ya no aceptan un `boolean` en esa
+// posición — un `StoredProgress` real, o el typecheck falla.
 //
-// Este test cruza DELIBERADAMENTE dos composables (usePersistedSession y
-// useHistorySavedNotice): la regresión no vivía dentro de ninguno de los
-// dos por separado, sino en la costura entre lo que uno escribe (save(),
-// appendHistoryEntry()) y lo que el otro afirma (resolveNoticeVariant(),
-// NOTICE_BODY). Un test que solo mockeara uno de los dos lados no la habría
-// atrapado.
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { NOTICE_BODY, resolveNoticeVariant } from '../useHistorySavedNotice'
-import { usePersistedSession } from '../usePersistedSession'
+// Este test cruza DELIBERADAMENTE tres piezas (usePersistedSession,
+// useStoredProgress y useHistorySavedNotice): la regresión de la ronda 5 no
+// vivía dentro de ninguna por separado, sino en la costura entre lo que se
+// escribe (`save()`, `appendHistoryEntry()`), lo que la autoridad LEE
+// (`readStoredProgress`) y lo que el aviso AFIRMA
+// (`resolveNoticeVariant`/`planGameEnd`, `NOTICE_BODY`). Un test que solo
+// mockeara una de las tres no la habría atrapado.
+import { afterEach, describe, expect, it } from 'vitest'
+import rawTinyGame from '../../../engine/__tests__/fixtures/tiny-game.json'
+import { expand } from '~~/engine/expand'
+import { validateGameDefinition } from '~~/engine/schema'
 import type { EngineSession, GameHistoryEntry } from '~~/engine/types'
+import { NOTICE_BODY, planGameEnd, resolveNoticeVariant } from '../useHistorySavedNotice'
+import { usePersistedSession } from '../usePersistedSession'
+import { readStoredProgress } from '../useStoredProgress'
+
+const tinyGame = validateGameDefinition(rawTinyGame)
 
 // Montaje copiado literalmente de usePersistedSession.test.ts (createFakeLocalStorage,
 // makeSession): no se reinventa, se reutiliza el mismo doble de prueba.
@@ -43,6 +50,33 @@ function createFakeLocalStorageWithBrokenHistoryKey() {
   return {
     getItem: (key: string) => (store.has(key) ? store.get(key)! : null),
     setItem: (key: string, value: string) => {
+      store.set(key, value)
+    },
+    removeItem: (key: string) => {
+      store.delete(key)
+    },
+  }
+}
+
+// NUEVO (plan 09-26) — el punto entero de esta tarea: `createFakeLocalStorage`
+// lanzaba desde la PRIMERA llamada a `setItem` (IN-02 de `09-REVIEW.md`), así
+// que la suite no podía representar el estado «hay un progreso VIEJO escrito
+// de verdad, y AHORA la escritura falla» — que es exactamente el estado en
+// que vivía el BLOCKER de la ronda 5: el autoguardado escribe
+// `tga:progress:<gameId>` con éxito varias veces durante la partida, la
+// cuota se agota al final, la escritura de cierre falla, y la clave SIGUE
+// ahí. `getItem` funciona SIEMPRE (igual que en un almacenamiento real que
+// solo ha empezado a fallar en escritura, nunca en lectura).
+function createFakeLocalStorageFailingAfter(n: number) {
+  const store = new Map<string, string>()
+  let calls = 0
+  return {
+    getItem: (key: string) => (store.has(key) ? store.get(key)! : null),
+    setItem: (key: string, value: string) => {
+      calls += 1
+      if (calls > n) {
+        throw new Error('QuotaExceededError (simulado): la escritura empieza a fallar tras la partida ya arrancada')
+      }
       store.set(key, value)
     },
     removeItem: (key: string) => {
@@ -80,7 +114,7 @@ function makeEntry(overrides: Partial<GameHistoryEntry> = {}): GameHistoryEntry 
   }
 }
 
-describe('CR-01 (ronda 4): con el almacenamiento caído en toda la partida, el aviso no afirma que la partida siga guardada', () => {
+describe('El escenario de la ronda 5, extremo a extremo, con un doble que falla TARDE', () => {
   afterEach(() => {
     delete (globalThis as { window?: unknown }).window
   })
@@ -95,36 +129,36 @@ describe('CR-01 (ronda 4): con el almacenamiento caído en toda la partida, el a
     ;(globalThis as unknown as { window: unknown }).window = { localStorage: createFakeLocalStorage() }
     const { save } = usePersistedSession()
 
-    const primerResultado = save(makeSession('marvel-champions', 1))
-    const segundoResultado = save(makeSession('marvel-champions', 2))
-    const tercerResultado = save(makeSession('marvel-champions', 3))
+    const primerResultado = save(makeSession('tiny-game', 1))
+    const segundoResultado = save(makeSession('tiny-game', 2))
+    const tercerResultado = save(makeSession('tiny-game', 3))
 
     expect(primerResultado).toBe(false)
     expect(segundoResultado).toBe(false)
     expect(tercerResultado).toBe(false)
   })
 
-  it('2. el registro del histórico también falla, y la variante resultante es la no recuperable', () => {
+  it('2. el registro del histórico también falla, la autoridad confirma que no hay nada, y la variante es la no recuperable', () => {
     ;(globalThis as unknown as { window: unknown }).window = { localStorage: createFakeLocalStorage() }
-    const { save, appendHistoryEntry } = usePersistedSession()
+    const { appendHistoryEntry } = usePersistedSession()
 
     const historyRecorded = appendHistoryEntry(makeEntry())
-    const progressSecured = save(makeSession('marvel-champions'))
+    const informe = readStoredProgress(tinyGame)
 
     expect(historyRecorded).toBe(false)
-    expect(progressSecured).toBe(false)
-    expect(resolveNoticeVariant(historyRecorded, progressSecured)).toBe('failure-unrecoverable')
+    expect(informe.stored).toBe('absent')
+    expect(planGameEnd(historyRecorded, informe.stored).variant).toBe('failure-unrecoverable')
   })
 
   it('3. EL TEST DE REGRESIÓN: el texto que leería el grupo no contiene ninguna promesa sobre el dispositivo', () => {
-    // Si alguien vuelve a colapsar las dos variantes de fallo en una sola
-    // con la copy optimista ("sigue guardada..."), este test se pone rojo.
+    // Si alguien vuelve a colapsar las variantes de fallo en una sola con la
+    // copy optimista ("sigue guardada..."), este test se pone rojo.
     ;(globalThis as unknown as { window: unknown }).window = { localStorage: createFakeLocalStorage() }
-    const { save, appendHistoryEntry } = usePersistedSession()
+    const { appendHistoryEntry } = usePersistedSession()
 
     const historyRecorded = appendHistoryEntry(makeEntry())
-    const progressSecured = save(makeSession('marvel-champions'))
-    const variante = resolveNoticeVariant(historyRecorded, progressSecured)
+    const informe = readStoredProgress(tinyGame)
+    const variante = resolveNoticeVariant(historyRecorded, informe.stored)
     const cuerpo = NOTICE_BODY[variante]
 
     expect(cuerpo).not.toContain('sigue guardada')
@@ -132,21 +166,87 @@ describe('CR-01 (ronda 4): con el almacenamiento caído en toda la partida, el a
     expect(cuerpo).not.toContain('Partida terminada')
   })
 
-  it('4. el contraste que demuestra que el Test 3 no pasa por casualidad: cuando el progreso SÍ se escribe, la promesa reaparece', () => {
+  it('4. contraste: solo la clave del histórico está rota, save() sí escribe, y la promesa de presencia reaparece', () => {
     // Solo la clave del histórico está rota (blob ilegible ya sembrado);
     // `save()` escribe en `tga:progress:<gameId>`, una clave distinta, y
     // debe poder hacerlo con normalidad.
     ;(globalThis as unknown as { window: unknown }).window = { localStorage: createFakeLocalStorageWithBrokenHistoryKey() }
-    const { save, appendHistoryEntry } = usePersistedSession()
+    const { save } = usePersistedSession()
 
-    const historyRecorded = appendHistoryEntry(makeEntry())
-    const progressSecured = save(makeSession('marvel-champions'))
+    const guardado = save(expand(tinyGame, { playerCount: 2, difficulty: 'normal' }))
+    expect(guardado).toBe(true)
 
-    expect(historyRecorded).toBe(false)
-    expect(progressSecured).toBe(true)
+    const informe = readStoredProgress(tinyGame)
+    expect(informe.stored).toBe('resumable')
 
-    const variante = resolveNoticeVariant(historyRecorded, progressSecured)
+    const variante = resolveNoticeVariant(false, informe.stored)
     expect(variante).toBe('failure-recoverable')
     expect(NOTICE_BODY[variante]).toContain('sigue guardada en el dispositivo')
+  })
+
+  it('5. EL TEST DE LA RONDA 5: progreso escrito de verdad, la escritura de cierre falla, y el aviso ya no contradice a ResumePrompt', () => {
+    ;(globalThis as unknown as { window: unknown }).window = { localStorage: createFakeLocalStorageFailingAfter(3) }
+    const { save, appendHistoryEntry } = usePersistedSession()
+
+    // El autoguardado escribe tres veces con éxito durante la partida —
+    // progreso VIEJO escrito de verdad, no una suposición.
+    const base = expand(tinyGame, { playerCount: 2, difficulty: 'normal' })
+    const primerAutoguardado = save({ ...base, cursor: 0 })
+    const segundoAutoguardado = save({ ...base, cursor: 1 })
+    const tercerAutoguardado = save({ ...base, cursor: 2 })
+
+    expect(primerAutoguardado).toBe(true)
+    expect(segundoAutoguardado).toBe(true)
+    expect(tercerAutoguardado).toBe(true)
+
+    // A partir de aquí toda escritura falla (cuota agotada al final de la
+    // partida): tanto el registro del histórico como el intento de guardado
+    // de cierre.
+    const historyRecorded = appendHistoryEntry(makeEntry())
+    const guardadoDeCierre = save({ ...base, cursor: 3 })
+
+    expect(historyRecorded).toBe(false)
+    expect(guardadoDeCierre).toBe(false)
+
+    // El booleano de `save()` vale `false` aquí y, con el código anterior a
+    // este plan, habría seleccionado `failure-unrecoverable` — la variante
+    // que afirma "no hay nada que reintentar". Ese es literalmente el
+    // defecto: la clave `tga:progress:tiny-game` SIGUE en el dispositivo
+    // (el tercer autoguardado la dejó ahí), así que la variante correcta es
+    // la recuperable.
+    const informe = readStoredProgress(tinyGame)
+    expect(planGameEnd(historyRecorded, informe.stored).variant).toBe('failure-recoverable')
+
+    // La otra mitad de la contradicción del BLOCKER: `ResumePrompt` va a
+    // ofrecer "Continuar" para este mismo juego — el aviso, ahora, ya no
+    // dice lo contrario.
+    expect(informe.outcome).toBe('resumed')
+  })
+
+  it('6. lectura imposible (getItem que lanza): el dispositivo no autoriza ni presencia ni ausencia', () => {
+    const fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: {
+        ...fakeStorage,
+        getItem: () => {
+          throw new Error('SecurityError (simulado): la lectura del dispositivo falla')
+        },
+      },
+    }
+
+    const informe = readStoredProgress(tinyGame)
+    expect(informe.stored).toBe('unknown')
+
+    const variante = resolveNoticeVariant(false, informe.stored)
+    expect(variante).toBe('failure-unknown')
+    expect(NOTICE_BODY[variante]).not.toContain('no hay nada que reintentar')
+    expect(NOTICE_BODY[variante]).not.toContain('sigue guardada en el dispositivo')
+  })
+
+  it('7. planGameEnd().preserveProgress es true en las tres variantes de fallo y false en success (mecánica de 09-16, ahora fijada por test)', () => {
+    expect(planGameEnd(false, 'resumable').preserveProgress).toBe(true)
+    expect(planGameEnd(false, 'absent').preserveProgress).toBe(true)
+    expect(planGameEnd(false, 'unknown').preserveProgress).toBe(true)
+    expect(planGameEnd(true, 'absent').preserveProgress).toBe(false)
   })
 })

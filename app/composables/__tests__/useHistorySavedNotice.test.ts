@@ -6,6 +6,13 @@
 // (`afterEach` de abajo) para no filtrar estado a los siguientes. Se usan
 // temporizadores falsos (`vi.useFakeTimers()`) para poder afirmar el
 // autocierre sin esperas reales.
+//
+// Plan 09-26 (cierre del BLOCKER de la ronda 5): `notifyHistorySaved` pasa a
+// recibir la `NoticeVariant` ya decidida (nunca dos booleanos), y
+// `resolveNoticeVariant`/`planGameEnd` pasan a recibir un `StoredProgress`
+// real en vez del booleano de una escritura — de ahí que este fichero
+// importe también el tipo de la autoridad para construir su tabla de
+// verdad.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   FAILURE_AUTO_DISMISS_MS,
@@ -17,6 +24,11 @@ import {
   resolveNoticeVariant,
   useHistorySavedNotice,
 } from '../useHistorySavedNotice'
+import type { StoredProgress } from '../useStoredProgress'
+
+// Las tres respuestas posibles de la autoridad de lectura (`readStoredProgress`),
+// escritas como constante del test — nunca se inventa un cuarto valor.
+const TODOS_LOS_ESTADOS_DEL_DISPOSITIVO: StoredProgress[] = ['resumable', 'absent', 'unknown']
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -35,28 +47,29 @@ describe('resolveAutoDismissMs (función pura)', () => {
     expect(resolveAutoDismissMs('success')).toBe(SUCCESS_AUTO_DISMISS_MS)
   })
 
-  it('2. failure-recoverable devuelve FAILURE_AUTO_DISMISS_MS (20000), mayor que el de éxito (asimetría D-03); failure-unrecoverable comparte la misma duración', () => {
+  it('2. las tres variantes de fallo devuelven FAILURE_AUTO_DISMISS_MS (20000), mayor que el de éxito (asimetría D-03)', () => {
     expect(resolveAutoDismissMs('failure-recoverable')).toBe(FAILURE_AUTO_DISMISS_MS)
     expect(resolveAutoDismissMs('failure-unrecoverable')).toBe(FAILURE_AUTO_DISMISS_MS)
+    expect(resolveAutoDismissMs('failure-unknown')).toBe(FAILURE_AUTO_DISMISS_MS)
     expect(FAILURE_AUTO_DISMISS_MS).toBeGreaterThan(SUCCESS_AUTO_DISMISS_MS)
   })
 })
 
 describe('notifyHistorySaved / useHistorySavedNotice', () => {
-  it('3. notifyHistorySaved(true, true) deja variant en success; notifyHistorySaved(false, true) lo deja en failure-recoverable', () => {
+  it('3. notifyHistorySaved(\'success\') deja variant en success; notifyHistorySaved(\'failure-recoverable\') lo deja en failure-recoverable', () => {
     const { variant } = useHistorySavedNotice()
 
-    notifyHistorySaved(true, true)
+    notifyHistorySaved('success')
     expect(variant.value).toBe('success')
 
-    notifyHistorySaved(false, true)
+    notifyHistorySaved('failure-recoverable')
     expect(variant.value).toBe('failure-recoverable')
   })
 
   it('4. tras avanzar SUCCESS_AUTO_DISMISS_MS la variante de éxito vuelve a null; un milisegundo antes todavía no', () => {
     const { variant } = useHistorySavedNotice()
 
-    notifyHistorySaved(true, true)
+    notifyHistorySaved('success')
     vi.advanceTimersByTime(SUCCESS_AUTO_DISMISS_MS - 1)
     expect(variant.value).toBe('success')
 
@@ -67,7 +80,7 @@ describe('notifyHistorySaved / useHistorySavedNotice', () => {
   it('5. la variante de fallo sigue visible pasados los ms de éxito y desaparece a los de fallo (asimetría D-03)', () => {
     const { variant } = useHistorySavedNotice()
 
-    notifyHistorySaved(false, true)
+    notifyHistorySaved('failure-recoverable')
     vi.advanceTimersByTime(SUCCESS_AUTO_DISMISS_MS)
     expect(variant.value).toBe('failure-recoverable')
 
@@ -78,7 +91,7 @@ describe('notifyHistorySaved / useHistorySavedNotice', () => {
   it('6. dismissHistorySavedNotice() la retira de inmediato y el temporizador pendiente no la resucita después', () => {
     const { variant, dismiss } = useHistorySavedNotice()
 
-    notifyHistorySaved(true, true)
+    notifyHistorySaved('success')
     expect(variant.value).toBe('success')
 
     dismiss()
@@ -91,9 +104,9 @@ describe('notifyHistorySaved / useHistorySavedNotice', () => {
   it('7. dos notifyHistorySaved seguidos no acumulan temporizadores: avanzar el reloj una sola vez tras el segundo deja el estado en null y no vuelve a cambiarlo', () => {
     const { variant } = useHistorySavedNotice()
 
-    notifyHistorySaved(true, true)
+    notifyHistorySaved('success')
     vi.advanceTimersByTime(1000)
-    notifyHistorySaved(true, true)
+    notifyHistorySaved('success')
 
     vi.advanceTimersByTime(SUCCESS_AUTO_DISMISS_MS)
     expect(variant.value).toBe(null)
@@ -106,25 +119,32 @@ describe('notifyHistorySaved / useHistorySavedNotice', () => {
   })
 })
 
-describe('resolveNoticeVariant (función pura — tabla de verdad de CR-01 ronda 4)', () => {
-  it('(true, false) → success: el segundo booleano es irrelevante cuando el histórico ya se escribió', () => {
-    expect(resolveNoticeVariant(true, false)).toBe('success')
+describe('resolveNoticeVariant (función pura — tabla de verdad TOTAL sobre StoredProgress, plan 09-26)', () => {
+  it.each(TODOS_LOS_ESTADOS_DEL_DISPOSITIVO)('(true, %s) → success: el estado del dispositivo es irrelevante cuando el histórico ya se escribió', (stored) => {
+    expect(resolveNoticeVariant(true, stored)).toBe('success')
   })
 
-  it('(true, true) → success', () => {
-    expect(resolveNoticeVariant(true, true)).toBe('success')
+  it('(false, \'resumable\') → failure-recoverable: el histórico falló pero el progreso sigue en el dispositivo', () => {
+    expect(resolveNoticeVariant(false, 'resumable')).toBe('failure-recoverable')
   })
 
-  it('(false, true) → failure-recoverable: el histórico falló pero el progreso está a salvo', () => {
-    expect(resolveNoticeVariant(false, true)).toBe('failure-recoverable')
+  it('(false, \'absent\') → failure-unrecoverable: el histórico falló y no hay progreso que ofrecer', () => {
+    expect(resolveNoticeVariant(false, 'absent')).toBe('failure-unrecoverable')
   })
 
-  it('(false, false) → failure-unrecoverable: ni el histórico ni el progreso se pudieron escribir', () => {
-    expect(resolveNoticeVariant(false, false)).toBe('failure-unrecoverable')
+  it('(false, \'unknown\') → failure-unknown: el histórico falló y no se ha podido comprobar el dispositivo', () => {
+    expect(resolveNoticeVariant(false, 'unknown')).toBe('failure-unknown')
   })
 
   it('la variante no recuperable no promete nada sobre el dispositivo', () => {
     expect(NOTICE_BODY['failure-unrecoverable']).not.toContain('sigue guardada')
     expect(NOTICE_BODY['failure-unrecoverable']).not.toContain('Partida terminada')
+  })
+
+  it('failure-unknown tiene cuerpo propio, distinto de las otras dos variantes de fallo', () => {
+    const cuerpoDesconocido = NOTICE_BODY['failure-unknown']
+    expect(cuerpoDesconocido).not.toBe(null)
+    expect(cuerpoDesconocido).not.toBe(NOTICE_BODY['failure-recoverable'])
+    expect(cuerpoDesconocido).not.toBe(NOTICE_BODY['failure-unrecoverable'])
   })
 })
