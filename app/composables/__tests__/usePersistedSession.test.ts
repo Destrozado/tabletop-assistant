@@ -164,6 +164,27 @@ describe('usePersistedSession — funciones con estado (WR-02: sin listeners `wi
     expect(() => saveVoicePreference(false)).not.toThrow()
   })
 
+  it('save() devuelve true cuando el progreso queda escrito de verdad (CR-01 ronda 4)', () => {
+    const { save } = usePersistedSession()
+    const result = save(makeSession('marvel-champions'))
+
+    expect(result).toBe(true)
+    expect(fakeStorage.setItem).toHaveBeenCalledWith('tga:progress:marvel-champions', expect.any(String))
+  })
+
+  it('save() devuelve false cuando setItem lanza (modo privado/cuota) — CR-01 ronda 4: es el único dato capaz de sostener lo que el aviso le dice al grupo', () => {
+    fakeStorage.setItem.mockImplementation(() => {
+      throw new Error('QuotaExceededError')
+    })
+    const { save } = usePersistedSession()
+
+    let result: boolean = true
+    expect(() => {
+      result = save(makeSession('marvel-champions'))
+    }).not.toThrow()
+    expect(result).toBe(false)
+  })
+
   it('clear() sobrevive a un localStorage que lanza al borrar', () => {
     fakeStorage.removeItem.mockImplementation(() => {
       throw new Error('SecurityError')
