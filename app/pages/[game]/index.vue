@@ -1,19 +1,20 @@
 <script setup lang="ts">
 // Runner: compone las bandas y cablea la navegación, y resuelve la
 // reanudación de partida guardada (PERS-02/03, SETUP-04/05) antes de mostrar
-// nada. `expand`/`resume` son las dos únicas funciones puras del motor que
-// esta página necesita para decidir con qué sesión arrancar antes de que
-// exista una — el resto de la navegación sigue pasando siempre por
-// useGameSession (la única costura reactiva).
+// nada. Desde el plan 09-26 (cierre del BLOCKER de la ronda 5) la página ya
+// no compone `expand`/`load`/`resume` a mano para decidir eso: llama a
+// `readStoredProgress` (plan 09-25), la ÚNICA autoridad sobre lo que hay
+// realmente guardado en el dispositivo para este juego — esa composición es
+// exactamente lo que el montaje (`ResumePrompt`) y el fin de partida (el
+// aviso) tienen que compartir para no poder contradecirse nunca. El resto
+// de la navegación sigue pasando siempre por useGameSession (la única
+// costura reactiva).
 import { useEventListener, useWakeLock } from '@vueuse/core'
 import { computed, onMounted, ref } from 'vue'
-// `collectAudioIds` es tan función pura del motor como `expand`/`resume`/
-// `tableOfContents` de aquí abajo: cálculo determinista sobre el
-// `GameDefinition` que esta página ya tiene, sin I/O ni estado (VOZ-07,
-// plan 03.1-02).
+// `collectAudioIds` es tan función pura del motor como `tableOfContents` de
+// aquí abajo: cálculo determinista sobre el `GameDefinition` que esta página
+// ya tiene, sin I/O ni estado (VOZ-07, plan 03.1-02).
 import { collectAudioIds } from '~~/engine/audio'
-import { expand } from '~~/engine/expand'
-import { resume } from '~~/engine/persistence'
 // WR-01 (06-REVIEW.md): el tope de caracteres del nombre de jugador tiene una
 // sola fuente, la constante del motor. Esta página la enlaza a PlayerModal por
 // prop para que el componente siga siendo tonto (sin importar `~~/engine/*`) y
@@ -34,10 +35,11 @@ import {
   findVillainOption,
   resolvePlayerLabel,
 } from '~/composables/useHeroSearch'
-import { notifyHistorySaved } from '~/composables/useHistorySavedNotice'
+import { notifyHistorySaved, planGameEnd } from '~/composables/useHistorySavedNotice'
 import { usePersistedSession } from '~/composables/usePersistedSession'
 import { usePreloadedAudio } from '~/composables/usePreloadedAudio'
 import { shortcutsEnabled, useStepShortcuts } from '~/composables/useStepShortcuts'
+import { readStoredProgress } from '~/composables/useStoredProgress'
 import { useVoiceAnnouncer } from '~/composables/useVoiceAnnouncer'
 
 const route = useRoute()
@@ -84,7 +86,11 @@ const {
   decrementCounter,
 } = useGameSession()
 
-const { load, save, clear } = usePersistedSession()
+// La página deja de leer el dispositivo por su cuenta (plan 09-26): mientras
+// tuviera `load` a mano, alguien podría construir una respuesta de
+// reanudación en paralelo a `readStoredProgress` y volver a abrir la
+// contradicción que cerró este plan.
+const { save, clear } = usePersistedSession()
 
 // Fase 9 (HIST-01/02/03): segunda costura reactiva, hermana de
 // useGameSession — solo se usa `record` aquí, en el único sitio de la app
@@ -143,25 +149,22 @@ onMounted(() => {
     return
   }
 
-  // Context placeholder: la secuencia y los índices de bucle no dependen del
-  // context, solo la estructura del juego. Si hay partida guardada, resume()
-  // sustituye este context por el persistido antes de que se muestre nada.
-  const structural = expand(game, { playerCount: 1, difficulty: 'normal' })
-  const persisted = load(gameId)
-  const result = resume(persisted, structural)
+  // Primer consumidor de la autoridad (plan 09-26): `readStoredProgress`
+  // reproduce internamente el mismo camino (context de relleno, lectura,
+  // regla de reanudación del motor) que esta página componía antes a mano —
+  // el placeholder que usaba vive ahora como `PLACEHOLDER_CONTEXT` dentro de
+  // `useStoredProgress.ts`. El comportamiento observable no cambia (Pitfall
+  // 7 intacto: nada de esto ocurre durante el prerender).
+  const informe = readStoredProgress(game)
 
-  if (result.outcome === 'fresh') {
+  if (informe.outcome === 'fresh') {
     resumeResolved.value = true
     return
   }
 
-  session.value = result.session
-  if (result.outcome === 'resumed') {
-    awaitingResumeChoice.value = true
-  }
-  else {
-    awaitingContentChangedAck.value = true
-  }
+  session.value = informe.session
+  awaitingResumeChoice.value = informe.outcome === 'resumed'
+  awaitingContentChangedAck.value = informe.outcome === 'content-changed'
   resumeResolved.value = true
 })
 
@@ -590,7 +593,41 @@ function finishGame(preserveProgress = false) {
 // nada. El watchDebounced de 300ms no sirve para esto — finishGame pone
 // session.value = null inmediatamente después y cancela cualquier
 // escritura pendiente (ver el comentario de finishGame).
+// Segundo consumidor de la autoridad, más la guarda de reentrada (WR-01 de
+// `09-REVIEW.md`, plan 09-26). Cuatro cosas que hay que tener presentes al
+// tocar esta función, porque son las que impiden que alguien las
+// «simplifique» mañana:
+//
+// 1. La guarda de reentrada. `finishGame()` pone `session.value = null` de
+//    forma SÍNCRONA, pero `navigateTo('/')` es asíncrono: entre la primera y
+//    una eventual segunda invocación (doble toque, `click` duplicado por
+//    touch + emulación de ratón) la página sigue montada con
+//    `session.value` ya vacío. Antes de esta guarda, esa segunda invocación
+//    caía en la rama `else`, llamaba a `finishGame()` sin argumento y
+//    borraba en silencio el progreso que la primera invocación acababa de
+//    preservar a propósito. La bandera que ya marca «este cierre de partida
+//    está en curso» sirve de guarda sin añadir estado nuevo.
+// 2. Por qué se sigue llamando a `save()` cuando el registro falla, y por
+//    qué su booleano ya no decide nada por sí solo: `save()` es el INTENTO
+//    de dejar el progreso a salvo; la autoridad de lectura de más abajo es
+//    la COMPROBACIÓN de si de verdad quedó algo. Confundir esas dos
+//    preguntas es exactamente el defecto que este plan cierra — por eso la
+//    lectura ocurre DESPUÉS del intento de escritura y es ella, nunca el
+//    booleano, quien decide la variante del aviso.
+// 3. D-U4 sigue intacto: el orden bloqueado es
+//    `silence()` → `record()` → `save()` → `notifyHistorySaved()` →
+//    `finishGame()`; la lectura de la autoridad se intercala entre `save()`
+//    y `notifyHistorySaved()`, el único hueco posible — tiene que ocurrir
+//    después del intento de escritura y antes de que se afirme nada, y todo
+//    ello antes de que `finishGame` vacíe la sesión.
+// 4. La comprobación de que exista sesión Y juego: la autoridad necesita el
+//    `GameDefinition` para reconstruir su lectura, y que exista sesión sin
+//    juego es un estado inalcanzable (la sesión solo nace desde esta misma
+//    página con el juego ya resuelto). La rama `else` conserva el
+//    comportamiento de WR-04: sin ningún intento de escritura, no se avisa
+//    de nada — un aviso ahí sería un diagnóstico falso.
 function onOutcomeRecorded(outcome: GameOutcome) {
+  if (!awaitingEndConfirm.value) return
   awaitingEndConfirm.value = false
   isIndexOpen.value = false
   // Corta la locución en curso: el tryOnScopeDispose de useVoiceAnnouncer
@@ -598,17 +635,13 @@ function onOutcomeRecorded(outcome: GameOutcome) {
   // camino de respaldo) no se detiene solo al cambiar de ruta — sin esto la
   // voz seguiría oyéndose ya en el selector de juego.
   silence()
-  // WR-04: el booleano de appendHistoryEntry distingue «escribí» de «no me
-  // dejaron escribir» (D-03), y no cubre «no había nada que escribir». Si
-  // session.value es null no hubo ningún intento de escritura, así que NO
-  // se avisa de nada en absoluto — pintar el aviso de fallo en ese tercer
-  // caso es un diagnóstico falso que induce al grupo a tocar ajustes del
-  // navegador sin motivo.
-  if (session.value) {
+  if (session.value && game) {
     const guardado = record(session.value, outcome)
-    const progresoAsegurado = guardado ? false : save(session.value)
-    notifyHistorySaved(guardado, progresoAsegurado)
-    finishGame(!guardado)
+    if (!guardado) save(session.value)
+    const { stored } = readStoredProgress(game)
+    const plan = planGameEnd(guardado, stored)
+    notifyHistorySaved(plan.variant)
+    finishGame(plan.preserveProgress)
   } else {
     finishGame()
   }
@@ -620,7 +653,12 @@ function onOutcomeRecorded(outcome: GameOutcome) {
 // partida sin registrar nada»), y D-01 fija exactamente cuatro opciones —
 // con este diálogo desaparece la opción «Cancelar» del ConfirmDialog
 // anterior. Es deliberado, no un olvido.
+//
+// Misma guarda de reentrada que `onOutcomeRecorded` y por el mismo motivo
+// (WR-01 de `09-REVIEW.md`, plan 09-26): un segundo toque no puede volver a
+// ejecutar este cierre.
 function onOutcomeDismiss() {
+  if (!awaitingEndConfirm.value) return
   awaitingEndConfirm.value = false
   isIndexOpen.value = false
   silence()
