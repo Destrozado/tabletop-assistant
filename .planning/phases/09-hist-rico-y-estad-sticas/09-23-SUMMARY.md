@@ -160,3 +160,11 @@ exclusivamente documentación de auditoría y cierre de proceso.
 ---
 *Phase: 09-hist-rico-y-estad-sticas*
 *Completed: 2026-09-13*
+
+## Self-Check: PASSED
+
+- FOUND: .planning/phases/09-hist-rico-y-estad-sticas/09-AUDIT-AFIRMACIONES-UI.md
+- FOUND: .planning/phases/09-hist-rico-y-estad-sticas/09-23-SUMMARY.md
+- FOUND commit: 7a409b2 (docs: barrido Q4)
+- FOUND commit: 8aec385 (docs: cierre WR-04/WR-05(b), enlace y sincronización)
+- FOUND commit: 17d14f7 (docs: SUMMARY.md)
