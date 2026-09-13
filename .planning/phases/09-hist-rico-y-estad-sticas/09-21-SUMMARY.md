@@ -94,3 +94,10 @@ None - no external service configuration required.
 ---
 *Phase: 09-hist-rico-y-estad-sticas*
 *Completed: 2026-09-13*
+
+## Self-Check: PASSED
+
+- FOUND: app/components/HistorySavedNotice.vue
+- FOUND: .planning/phases/09-hist-rico-y-estad-sticas/09-21-SUMMARY.md
+- FOUND commit 3d68d5e (fix(09-21): HistorySavedNotice pinta heading/body del composable)
+- FOUND commit ec3a030 (docs(09-21): SUMMARY)
