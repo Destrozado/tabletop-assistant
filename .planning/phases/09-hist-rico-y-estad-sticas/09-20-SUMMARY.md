@@ -102,3 +102,14 @@ None - no external service configuration required.
 ---
 *Phase: 09-hist-rico-y-estad-sticas*
 *Completed: 2026-09-13*
+
+## Self-Check: PASSED
+
+- FOUND: `app/composables/useHistorySavedNotice.ts`
+- FOUND: `app/composables/__tests__/useHistorySavedNotice.test.ts`
+- FOUND: `app/composables/__tests__/avisoTrasRegistroFallido.test.ts`
+- FOUND: `app/pages/[game]/index.vue`
+- FOUND: `.planning/phases/09-hist-rico-y-estad-sticas/09-20-SUMMARY.md`
+- FOUND commit `9f80cf1` (Task 1)
+- FOUND commit `e679d7f` (Task 2)
+- FOUND commit `49f25dc` (Task 3)
