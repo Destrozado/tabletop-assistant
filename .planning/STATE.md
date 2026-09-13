@@ -4,13 +4,13 @@ milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
 status: executing
 stopped_at: Phase 9 UI-SPEC approved
-last_updated: "2026-09-13T08:44:43.462Z"
-last_activity: 2026-09-13 -- Phase 09 execution started
+last_updated: "2026-09-13T11:49:29.853Z"
+last_activity: 2026-09-13
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 51
-  completed_plans: 45
+  total_plans: 55
+  completed_plans: 52
   percent: 67
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 09 (hist-rico-y-estad-sticas) — EXECUTING
-Plan: 1 of 23
-Status: Executing Phase 09
-Last activity: 2026-09-13 -- Phase 09 execution started
+Plan: 2 of 27
+Status: Ready to execute
+Last activity: 2026-09-13
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Last activity: 2026-09-13 -- Phase 09 execution started
 | Phase 03.1 P05 | 50min | 3 tasks | 4 files |
 | Phase 08 P03 | 40min | 3 tasks | 4 files |
 | Phase 09 P12 | 9min | 3 tasks | 7 files |
+| Phase 09 P24 | 8min | 4 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -118,6 +119,7 @@ Recent decisions affecting current work:
 - [Phase 08]: 08-03: checkpoint humano de Task 3 aprobado (Aprobado!) — los 8 puntos de legibilidad confirmados; recuento real de audio es 35 clips, no 37 (dato heredado del ROADMAP ya erróneo)
 - [Phase 09-12]: buildHistoryEntry normaliza difficulty/playerCount/round en origen (mismo criterio que durationMs); appendHistoryEntry se somete a isGameHistoryEntry antes de escribir — cierra el BLOCKER de CR-01 ronda 2
 - [Phase 09-12]: isGameHistoryEntry valida round/playerCount/durationMs con Number.isFinite en vez de typeof === 'number' (WR-03)
+- [Phase 09]: Task 1/3 (09-24): typescript@^5.9.3 + vue-tsc@^3.3.11 instalados; opcion-a aplicada tras un primer barrido con 0 errores, así que el alcance del typecheck queda el que Nuxt genera de fábrica
 
 ### Pending Todos
 
@@ -164,6 +166,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-12T12:34:47.427Z
+Last session: 2026-09-13T11:49:20.698Z
 Stopped at: Phase 9 UI-SPEC approved
 Resume file: None

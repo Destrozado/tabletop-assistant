@@ -221,7 +221,7 @@
 | HIST-03 | Fase 9 | Satisfecho |
 | HIST-04 | Fase 9 (09-13..09-17) | Satisfecho — ver nota de cierre de hueco (ronda 3) abajo |
 | HIST-05 | Fase 9 | Satisfecho |
-| HIST-06 | Fase 9 (09-13..09-23) | Satisfecho — ver nota de cierre de hueco (ronda 3, ampliada en ronda 4) abajo |
+| HIST-06 | Fase 9 (09-13..09-24) | Satisfecho — ver nota de cierre de hueco (ronda 3, ampliada en ronda 4) abajo; 09-24 añade la barrera de tipos real (`npm run typecheck` en CI) que respalda con una orden comprobable las afirmaciones sobre este código, en vez de con prosa |
 | HIST-07 | Fase 9 | Satisfecho |
 | HIST-08 | Fase 9 | Satisfecho |
 | HIST-09 | Fase 9 (09-13..09-23) | Satisfecho |
