@@ -100,3 +100,11 @@ Este ejecutor corre en un agente headless dentro de un worktree paralelo y no pu
 ---
 *Phase: 09-hist-rico-y-estad-sticas*
 *Completed: 2026-09-13*
+
+## Self-Check: PASSED
+
+- FOUND: app/components/HistorySavedNotice.vue
+- FOUND: app/components/UpdateBanner.vue
+- FOUND: .planning/phases/09-hist-rico-y-estad-sticas/09-22-SUMMARY.md
+- FOUND commit: 43c51d4 (fix(09-22): las bandas de aviso quedan fuera del flujo sin robar toques)
+- FOUND commit: cb22f3e (docs(09-22): SUMMARY del cierre de WR-05(b))
