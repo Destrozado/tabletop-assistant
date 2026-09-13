@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
 status: executing
-stopped_at: Phase 9 UI-SPEC approved
-last_updated: "2026-09-13T11:49:29.853Z"
+stopped_at: Completed 09-25-PLAN.md
+last_updated: "2026-09-13T11:57:32.089Z"
 last_activity: 2026-09-13
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 55
-  completed_plans: 52
+  completed_plans: 53
   percent: 67
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 09 (hist-rico-y-estad-sticas) — EXECUTING
-Plan: 2 of 27
+Plan: 3 of 27
 Status: Ready to execute
 Last activity: 2026-09-13
 
@@ -70,6 +70,7 @@ Last activity: 2026-09-13
 | Phase 08 P03 | 40min | 3 tasks | 4 files |
 | Phase 09 P12 | 9min | 3 tasks | 7 files |
 | Phase 09 P24 | 8min | 4 tasks | 3 files |
+| Phase 09 P25 | 6min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -120,6 +121,9 @@ Recent decisions affecting current work:
 - [Phase 09-12]: buildHistoryEntry normaliza difficulty/playerCount/round en origen (mismo criterio que durationMs); appendHistoryEntry se somete a isGameHistoryEntry antes de escribir — cierra el BLOCKER de CR-01 ronda 2
 - [Phase 09-12]: isGameHistoryEntry valida round/playerCount/durationMs con Number.isFinite en vez de typeof === 'number' (WR-03)
 - [Phase 09]: Task 1/3 (09-24): typescript@^5.9.3 + vue-tsc@^3.3.11 instalados; opcion-a aplicada tras un primer barrido con 0 errores, así que el alcance del typecheck queda el que Nuxt genera de fábrica
+- [Phase 09-25]: readProgress (usePersistedSession.ts) distingue read:'ok'/position:null (lectura correcta, sin posicion utilizable) de read:'failed' (no se pudo leer); load() se reescribe como envoltorio de readProgress, misma firma y comportamiento
+- [Phase 09-25]: readStoredProgress (useStoredProgress.ts, nuevo) es la autoridad unica de lectura del progreso: expand()+readProgress()+resume() reproducen los tres pasos de onMounted; StoredProgress='resumable'|'absent'|'unknown', invariante stored==='resumable' equivale a outcome!=='fresh'; plan aditivo, sin consumidores todavia — el gap de la ronda 5 sigue abierto hasta 09-26
+- [Phase 09-25]: test de useStoredProgress carga el fixture tiny-game.json con import de modulo JSON (resolveJsonModule) en vez de readFileSync/fileURLToPath (patron de audio-ids.test.ts), porque node:fs/node:url no tienen tipos bajo app/** sin @types/node y ese arbol si pasa por npm run typecheck (09-24)
 
 ### Pending Todos
 
@@ -166,6 +170,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-13T11:49:20.698Z
-Stopped at: Phase 9 UI-SPEC approved
+Last session: 2026-09-13T11:57:32.082Z
+Stopped at: Completed 09-25-PLAN.md
 Resume file: None
