@@ -10,7 +10,7 @@
 // todas las rutas.
 import { useHistorySavedNotice } from '~/composables/useHistorySavedNotice'
 
-const { variant, dismiss } = useHistorySavedNotice()
+const { variant, heading, body, dismiss } = useHistorySavedNotice()
 </script>
 
 <template>
@@ -30,30 +30,31 @@ const { variant, dismiss } = useHistorySavedNotice()
       v-if="variant !== null"
       class="bg-surface border-b border-background px-2xl py-lg flex items-start justify-between gap-md"
     >
-      <div v-if="variant === 'success'" class="flex flex-col gap-sm">
-        <h2 class="text-heading font-bold text-primary-text first-letter:text-accent">
-          ✓ Partida registrada
-        </h2>
-      </div>
-      <div v-else class="flex flex-col gap-sm">
-        <h2 class="text-heading font-bold text-primary-text first-letter:text-warning">
-          ⚠ No se pudo guardar la partida
-        </h2>
+      <div class="flex flex-col gap-sm">
         <!--
-          09-16 (WR-02, 09-REVIEW.md): el texto viejo AFIRMABA una causa
-          técnica que la app no ha comprobado («el dispositivo no permitió
-          escribir…») — con el cierre de 09-13 hay al menos tres motivos
-          distintos detrás del mismo `false` de record(), y la app no sabe
-          cuál es. Este texto dice primero lo que SÍ es seguro (gracias a la
-          Task 1 de este mismo plan: la partida sigue en el dispositivo,
-          porque finishGame ya no borra el progreso cuando el registro
-          falla), después qué hacer (el nombre del botón coincide
-          literalmente con el de IndexOverlay.vue), y solo al final enumera
-          como posibilidades — en condicional, sin afirmar ninguna — lo que
-          antes se daba por causa cierta.
+          CR-01 (ronda 4, 09-VERIFICATION.md): este componente ya no
+          contiene NINGUNA afirmación propia sobre los datos del grupo. El
+          texto lo decide `resolveNoticeVariant` (useHistorySavedNotice.ts) a
+          partir de dos valores de retorno reales — lo que devuelve
+          `record()` (appendHistoryEntry) y lo que devuelve `save()`
+          (usePersistedSession) — y vive en `NOTICE_HEADING`/`NOTICE_BODY`
+          precisamente para que un test puro pueda comprobarlo sin montar
+          este componente. Antes de 09-20/09-21 el `v-else` de aquí pintaba
+          la misma frase de recuperación para las dos variantes de fallo,
+          incluida la que no tiene nada que recuperar; esa es la promesa
+          falsa que CR-01 encontró. Regla para el futuro: ninguna
+          frase que esta banda muestre puede escribirse aquí; si hace falta
+          una nueva, se añade como variante en el composable, con el
+          booleano que la respalde.
         -->
-        <p class="text-body font-normal text-secondary-text">
-          La partida no se ha perdido: sigue guardada en el dispositivo. Volved a entrar en la partida y pulsad «Partida terminada» otra vez para reintentar el registro. Si vuelve a fallar, puede deberse al modo privado del navegador, a la memoria llena, o a un histórico anterior que la app no consigue leer.
+        <h2
+          class="text-heading font-bold text-primary-text"
+          :class="variant === 'success' ? 'first-letter:text-accent' : 'first-letter:text-warning'"
+        >
+          {{ heading }}
+        </h2>
+        <p v-if="body" class="text-body font-normal text-secondary-text">
+          {{ body }}
         </p>
       </div>
       <button
