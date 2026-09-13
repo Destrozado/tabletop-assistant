@@ -1,0 +1,99 @@
+// app/composables/useStoredProgress.ts
+// La AUTORIDAD de lectura del progreso guardado (CR-01 ronda 5,
+// `09-VERIFICATION.md`).
+//
+// La pregunta que este fichero contesta, literalmente: «si el grupo vuelve a
+// entrar en este juego, ¿encontrará esta partida para poder reintentar el
+// registro?». `readStoredProgress` es la ÚNICA función con autoridad para
+// contestarla — cualquier frase de la interfaz sobre el progreso guardado del
+// grupo tiene que salir de aquí, nunca deducirse por su cuenta.
+//
+// Esta función NUNCA infiere el estado del dispositivo a partir del valor de
+// retorno de una escritura. `save()` (en `usePersistedSession.ts`) contesta
+// «¿ha funcionado ESTA escritura?»; eso es una pregunta distinta. Confundir
+// las dos es exactamente el BLOCKER de la ronda 5: la copy
+// `failure-unrecoverable` («no hay nada que reintentar») afirmaba algo sobre
+// el dispositivo apoyándose en un booleano que solo hablaba de una escritura
+// — y es la quinta cara del mismo defecto que las rondas 1-4 ya cerraron en
+// el motor (`resume`, ronda 3) y en la capa de almacenamiento
+// (`readEnvelope`, ronda 3; `readProgress`, ronda 5).
+//
+// Por eso esta función llama a `resume()` del motor en vez de reimplementar
+// su regla: el aviso de fin de partida y el `ResumePrompt` del montaje tienen
+// que obtener su respuesta de la MISMA llamada a la MISMA función — si cada
+// uno decidiera por su cuenta, podrían volver a contradecirse, que es
+// literalmente lo que el BLOCKER de la ronda 5 describe (el aviso dice «no
+// hay nada» y `ResumePrompt` ofrece «Continuar» para el mismo juego).
+//
+// Igual que `usePersistedSession.ts` documenta de sí mismo: este fichero NO
+// es reactivo pese a vivir en `app/composables/` — no devuelve refs ni
+// computeds, es una función imperativa que se llama y devuelve un resultado.
+import { resume } from '~~/engine/persistence'
+import type { ResumeOutcome } from '~~/engine/persistence'
+import { expand } from '~~/engine/expand'
+import type { EngineSession, GameDefinition, SessionContext } from '~~/engine/types'
+import { usePersistedSession } from './usePersistedSession'
+
+// Tres respuestas posibles a la pregunta de arriba, y ninguna más:
+//
+// - 'resumable': sí, con certeza — la app le ofrecerá esa partida al volver a
+//   entrar (reanudada, o con el aviso de contenido cambiado).
+// - 'absent': no, con certeza — se ha leído el dispositivo correctamente y lo
+//   que hay allí no produce ninguna partida que ofrecer; al volver a entrar
+//   aparece el mini-setup.
+// - 'unknown': no se puede contestar — la lectura del dispositivo ha
+//   fallado. Este tercer valor existe porque NO puede plegarse sobre ninguno
+//   de los otros dos: plegarlo sobre 'absent' autoriza a afirmar una ausencia
+//   no comprobada (la cara del defecto de la ronda 5) y plegarlo sobre
+//   'resumable' autoriza a afirmar una presencia no comprobada (la de la
+//   ronda 4). Las dos son la misma prohibición — solo distinguir un tercer
+//   estado impide ambas.
+export type StoredProgress = 'resumable' | 'absent' | 'unknown'
+
+export interface StoredProgressReport {
+  stored: StoredProgress
+  outcome: ResumeOutcome
+  session: EngineSession
+}
+
+// El mismo context de relleno que hoy vive escrito a mano en `onMounted`
+// (`app/pages/[game]/index.vue`). La secuencia y los índices de bucle de
+// `expand()` no dependen del context, solo de la estructura del juego —
+// `resume()` sustituye este relleno por el context persistido antes de que
+// se muestre nada, exactamente igual que en el montaje de la página.
+export const PLACEHOLDER_CONTEXT: SessionContext = { playerCount: 1, difficulty: 'normal' }
+
+// NO añadir caché, memoización ni estado de módulo: cada llamada vuelve a
+// leer el dispositivo. Una respuesta cacheada es, por definición, una
+// afirmación sin comprobar — justo lo que este fichero existe para prohibir.
+export function readStoredProgress(game: GameDefinition): StoredProgressReport {
+  const { readProgress } = usePersistedSession()
+  const structural = expand(game, PLACEHOLDER_CONTEXT)
+  const lectura = readProgress(game.gameId)
+
+  if (lectura.read === 'failed') {
+    // `outcome: 'fresh'` es lo que la app puede HACER (mostrar el
+    // mini-setup, exactamente igual que hoy: `load()` también devolvía
+    // `null` en este caso). `stored: 'unknown'` es lo que la app puede
+    // AFIRMAR (nada). Separar las dos cosas es el punto entero de esta
+    // función.
+    return { stored: 'unknown', outcome: 'fresh', session: structural }
+  }
+
+  const result = resume(lectura.position, structural)
+
+  // Invariante que el plan 09-26 puede dar por buena sin volver a
+  // comprobarla: `stored === 'resumable'` ⟺ `outcome !== 'fresh'` ⟺ la app
+  // mostrará `ResumePrompt` o `ContentChangedNotice` al volver a entrar.
+  //
+  // Caso 'content-changed': 'resumable' es correcto aquí porque la partida
+  // SÍ sigue en el dispositivo y el grupo SÍ puede volver a pulsar «Partida
+  // terminada»; que el registro resultante tenga la ronda reiniciada es un
+  // asunto distinto, registrado como deuda (WR-06 de `09-REVIEW.md`) y no una
+  // excepción a esta clasificación.
+  return {
+    stored: result.outcome === 'fresh' ? 'absent' : 'resumable',
+    outcome: result.outcome,
+    session: result.session,
+  }
+}
