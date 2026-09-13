@@ -186,13 +186,29 @@ function readRaw(key: string): RawRead {
 // directamente el resultado del `try` interno — se descarta a propósito
 // comparar `readRaw` antes/después (produciría un falso negativo si el
 // contenido escrito coincidiera con el anterior, y obliga a una lectura y
-// un parseo de más). `save`/`saveVoicePreference` (más abajo) siguen
-// IGNORANDO este booleano sin cambiar ni una línea: VOZ-06/D-51 exigen que
-// un fallo de almacenamiento nunca rompa next()/prev()/toggle(), así que el
-// fallo sigue siendo silencioso para esos dos llamadores. El ÚNICO llamador
-// de este fichero que MIRA el resultado es `appendHistoryEntry` — el
-// histórico es el único dato de la app que no se puede reconstruir, así que
-// el grupo tiene que enterarse si el dispositivo no dejó escribir.
+// un parseo de más).
+//
+// Quién MIRA el resultado — ahora son DOS, no uno:
+// - `appendHistoryEntry` — el histórico es el único dato de la app que no se
+//   puede reconstruir, así que el grupo tiene que enterarse si el
+//   dispositivo no dejó escribir.
+// - `save` — desde 09-16 el progreso dejó de ser un dato meramente
+//   reconstruible en el camino del registro fallido: pasó a ser la red de
+//   seguridad explícita del reintento, y la interfaz lo declara por escrito
+//   al usuario (`HistorySavedNotice.vue`). Un dato del que la app hace una
+//   promesa no puede escribirse con un fallo silencioso (CR-01 ronda 4,
+//   `09-VERIFICATION.md`).
+//
+// Quién sigue IGNORÁNDOLO, y que eso es deliberado: `saveVoicePreference`
+// sigue con firma `void`, y los dos llamadores del autoguardado de la
+// partida (el `watchDebounced` y el `pagehide` de
+// `app/pages/[game]/index.vue`) siguen llamando a `save()` sin mirar lo que
+// devuelve — VOZ-06/D-51 exigen que un fallo de almacenamiento nunca rompa
+// next()/prev()/toggle(), y eso sigue intacto.
+//
+// La regla en una frase: devolver el booleano no obliga a consumirlo; lo
+// que ya no se permite es AFIRMARLE algo al grupo sobre ese dato sin
+// haberlo mirado.
 function writeRaw(key: string, value: string): boolean {
   if (typeof window === 'undefined') return false
   try {
@@ -278,9 +294,25 @@ export function usePersistedSession() {
     }
   }
 
-  function save(session: EngineSession): void {
+  // CR-01 (ronda 4): devuelve si `window.localStorage.setItem` completó sin
+  // lanzar para `tga:progress:<gameId>` con el contenido de ESTA sesión — eso
+  // es lo ÚNICO que afirma: no afirma que el dato siga ahí más tarde, ni que
+  // sea legible después. `false` significa «no se pudo escribir»: sin
+  // `window` (SSR/prerender), o `setItem` lanzando (modo privado del
+  // navegador, cuota agotada).
+  //
+  // Devolver el booleano NO OBLIGA A NADIE A MIRARLO: los dos llamadores del
+  // autoguardado (`watchDebounced` y `pagehide` en `app/pages/[game]/index.vue`)
+  // lo siguen ignorando, y eso es exactamente lo que VOZ-06/D-51 exigen — un
+  // fallo de almacenamiento no puede romper next()/prev()/toggle(). Lo que
+  // cambia es que ahora EXISTE el dato para quien sí lo necesite (planes
+  // 09-20/09-21). Motivo: BLOCKER CR-01 ronda 4 de `09-VERIFICATION.md` —
+  // desde 09-16 la interfaz afirma por escrito al grupo algo sobre
+  // `tga:progress:<gameId>`, y ninguna afirmación de la interfaz sobre los
+  // datos del grupo puede carecer de un valor de retorno real que la respalde.
+  function save(session: EngineSession): boolean {
     const persisted = toPersistedPosition(session)
-    writeRaw(storageKey(session.gameId), JSON.stringify(persisted))
+    return writeRaw(storageKey(session.gameId), JSON.stringify(persisted))
   }
 
   function clear(gameId: string): void {
