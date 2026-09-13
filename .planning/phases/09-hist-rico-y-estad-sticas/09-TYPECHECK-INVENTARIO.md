@@ -132,4 +132,58 @@ permanente de `opcion-b`.
 
 ## Cierre (añadido por la Task 4)
 
-_Pendiente — se completa cuando se ejecute la Task 4 de este plan._
+**Opción aplicada:** `opcion-a` (decisión del usuario en la Task 3). Como el recuento del primer
+barrido fue 0, no ha habido corrección de tipos ni exclusión que escribir — el alcance del
+comprobador queda el que Nuxt genera de fábrica (`app/**` más lo que se importe transitivamente
+desde ahí, incluidos `nuxt.config.ts` y `shared/**` si existiera).
+
+**Estado final:** `npm run typecheck` → código de salida **0** (confirmado de nuevo tras las dos
+pruebas de humo de abajo, para descartar que revertirlas dejara algo a medias).
+
+**Pruebas de humo — evidencia real, no afirmada:**
+
+1. **`.ts` cubierto** (`app/composables/useHistorySavedNotice.ts`, función
+   `resolveAutoDismissMs`): se cambió temporalmente el `return` para devolver el string
+   `'PRUEBA_DE_HUMO_09_24'` en una función declarada `: number`.
+   ```
+   $ npm run typecheck
+   app/composables/useHistorySavedNotice.ts(30,3): error TS2322: Type 'string' is not assignable to type 'number'.
+   EXIT_CODE=2
+   ```
+   Revertido inmediatamente (`git diff` contra el original confirmó fichero idéntico).
+
+2. **`.vue` cubierto** (`app/components/HistorySavedNotice.vue`): se cambió
+   `@click="dismiss"` por `@click="dismiss('PRUEBA_DE_HUMO_09_24')"`, pasando un argumento a una
+   función tipada `() => void`.
+   ```
+   $ npm run typecheck
+   app/components/HistorySavedNotice.vue(93,25): error TS2554: Expected 0 arguments, but got 1.
+   EXIT_CODE=2
+   ```
+   El error señala la línea de la `<template>`, no del `<script setup>` — es justo lo que
+   demuestra que `vue-tsc` comprueba las plantillas y no solo el TypeScript de los bloques
+   `<script>`. Revertido inmediatamente (`git diff` contra el original confirmó fichero
+   idéntico).
+
+3. **Verde final tras revertir ambos:**
+   ```
+   $ npm run typecheck
+   EXIT_CODE=0
+   ```
+
+Ningún error de humo quedó commiteado: las dos reversiones se verificaron por `diff` contra
+copia de seguridad antes de seguir.
+
+**Deuda registrada (no resuelta por este plan, aceptada explícitamente por el usuario):**
+los 28 ficheros de la tabla del §5 (`engine/schema.ts`, `engine/catalogueSchema.ts`, los 17
+`engine/__tests__/*.test.ts`, los 7 `e2e/*.spec.ts`, `playwright.config.ts` y `vitest.config.ts`)
+siguen fuera del grafo de tipos que recorre `npm run typecheck`. Verificado con
+`tsc --listFilesOnly` sobre `.nuxt/tsconfig.json` (orquestador, ronda de cierre de esta Task 4):
+ese conjunto es **disjunto** de la superficie que tocan los planes 09-25 y 09-26 — dentro del
+grafo de tipos están `app/composables/usePersistedSession.ts`,
+`app/composables/useHistorySavedNotice.ts`, los 11 `app/composables/__tests__/*.test.ts`,
+`app/pages/[game]/index.vue` (vía `vue-tsc`), `engine/history.ts`, `engine/persistence.ts`, y
+`app/composables/useStoredProgress.ts` (por nacer bajo `app/**`). No se abre una entrada nueva en
+`deferred-items.md` porque `opcion-a` no introduce ninguna exclusión nueva respecto al
+comportamiento de fábrica de `nuxt typecheck`; el hueco ya estaba descrito en el §5 de este mismo
+documento antes de la Task 4, y sigue vigente sin cambios.
