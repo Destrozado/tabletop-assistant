@@ -93,3 +93,10 @@ WR-04 queda cerrado: las dos piezas accionables (nombre accesible, gestión de f
 ---
 *Phase: 09-hist-rico-y-estad-sticas*
 *Completed: 2026-09-13*
+
+## Self-Check: PASSED
+
+- FOUND: app/components/GameOutcomeDialog.vue
+- FOUND: .planning/phases/09-hist-rico-y-estad-sticas/09-19-SUMMARY.md
+- FOUND: commit 2e93b8c (Task 1)
+- FOUND: commit c74df96 (SUMMARY.md)
