@@ -189,3 +189,101 @@ públicos ya fijados por test, fuera del alcance mínimo de un cierre de huecos.
   anunciar «100 %» sin pleno exacto (199 de 200 redondea a 100 %), y la etiqueta completa
   (`199 de 200 · 100 %`) desmiente al porcentaje en la misma línea. Propuesta: `Math.floor`
   para el tramo alto, o no redondear al alza por encima de 99.
+
+---
+
+## WR-04 (ronda 4) — `UpdateBanner` e `HistorySavedNotice` comparten posición y capa, y la segunda tapa por completo a la primera
+
+**Encontrado durante:** `09-REVIEW.md` (ronda 4), entrada WR-04.
+
+**Descripción:** `UpdateBanner.vue:41-44` y `HistorySavedNotice.vue:58-61` son ambos
+`fixed top-0 inset-x-0 z-40` con fondo opaco, montados como hermanos dentro del mismo
+`<ClientOnly>` en `app/app.vue:23-33`. Si las dos están visibles a la vez ocupan
+exactamente el mismo rectángulo; `HistorySavedNotice` va después en el DOM, así que tapa
+por completo a `UpdateBanner`, incluyendo su CTA «Actualizar» y su `✕`. La combinación es
+alcanzable sin nada exótico: el service worker detecta una versión nueva a media
+partida (`registerType: 'prompt'` la deja visible hasta que se descarte), el grupo sigue
+jugando y termina la partida.
+
+**Por qué no se corrige aquí (evaluación de riesgo):** ambas bandas son transitorias y
+ninguna afirma nada sobre los datos del grupo; la de actualización vuelve a ofrecerse en
+cada carga por diseño (`registerType: 'prompt'`, elegido en `CLAUDE.md` precisamente para
+no interrumpir una partida), así que el peor caso es retrasar una actualización hasta la
+siguiente apertura de la app — nada se pierde de forma irreversible.
+
+**Acción sugerida:** apilarlas en un contenedor común en `app/app.vue` en vez de
+superponerlas.
+
+---
+
+## WR-05 (ronda 4) — `pointer-events-none` deja toques invisibles sobre la cabecera de `/historico`
+
+**Encontrado durante:** `09-REVIEW.md` (ronda 4), entrada WR-05.
+
+**Descripción:** `HistorySavedNotice.vue:60` y `UpdateBanner.vue:43` dejan pasar los
+toques (`pointer-events-none` en el contenedor) pero siguen tapando visualmente la
+cabecera `h-16` de `/historico` (`app/pages/historico.vue:40-57`), donde viven «Volver» y
+«Estadísticas». Un toque sobre el texto de la banda activa un botón que no se ve: el
+grupo cree tocar el aviso y acaba navegando a un sitio distinto del que quería.
+
+**Por qué no se corrige aquí (evaluación de riesgo):** la ventana dura 20 s como máximo y
+los dos controles afectados («Volver» y «Estadísticas») son navegaciones no destructivas
+y reversibles con un toque; no hay pérdida de datos ni acción irreversible detrás. Queda
+además dentro del guion de la comprobación humana pendiente (DEV-02), que es quien mejor
+puede juzgar el impacto real en la tablet.
+
+**Acción sugerida:** devolver `pointer-events-auto` al contenedor y añadir `padding-top` a
+las pantallas mientras haya banda visible, o limitar la banda al ancho que no solapa los
+controles de la cabecera.
+
+**Nota:** la comprobación visual humana en tablet horizontal sigue **ABIERTA** bajo
+`DEV-02` (`REQUIREMENTS.md`, pendiente desde `09-22-SUMMARY.md`). No se abre una entrada
+nueva por ella — ya existe — pero no puede desaparecer del radar: en ningún sitio de este
+documento ni de `REQUIREMENTS.md` puede aparecer como hecha.
+
+---
+
+## WR-06 (ronda 4) — el reintento que anuncia la variante recuperable registra una duración inflada
+
+**Encontrado durante:** `09-REVIEW.md` (ronda 4), entrada WR-06.
+
+**Descripción:** `NOTICE_BODY['failure-recoverable']` (`useHistorySavedNotice.ts:79`)
+instruye a volver a entrar en la partida y pulsar «Partida terminada» otra vez para
+reintentar el registro. Ese reintento restaura `persisted.context` tal cual vía
+`resume()`, y `buildHistoryEntry` (`engine/history.ts:77-83`) calcula
+`durationMs = now - context.startedAt` con `now = Date.now()` **en el momento del
+reintento**. Si el grupo reintenta al día siguiente —justo lo que el aviso invita a
+hacer—, la partida queda registrada con una duración de más de 24 h.
+
+**Por qué no se corrige aquí (evaluación de riesgo):** solo se alcanza tras un fallo de
+escritura del histórico Y un reintento muy posterior; D-08 define la duración como reloj
+de pared sin tope y se decidió con un hecho conocido del grupo (las partidas se terminan
+de una sentada), y la duración no se agrega en `/estadisticas` —que solo calcula % de
+victorias por héroe y villano—, así que el radio de impacto es la etiqueta de duración de
+UNA tarjeta del histórico.
+
+**Acción sugerida:** congelar el instante de referencia al reanudar, o acumular la
+duración en vez de derivarla de `startedAt` en el momento del registro.
+
+---
+
+## WR-02 (ronda 4) — `GameOutcomeDialog` declara `aria-modal` sin atrapar el foco (y WR-03, la restauración de foco inalcanzable)
+
+**Encontrado durante:** `09-REVIEW.md` (ronda 4), entradas WR-02 y WR-03.
+
+**Descripción:** `GameOutcomeDialog.vue:83-84` declara `role="dialog" aria-modal="true"`
+sobre un panel opaco, pero `StepScreen`, `NavBand`, `AppHeader` e `IndexOverlay` siguen en
+el DOM sin `inert`/`aria-hidden` y siguen siendo tabulables — `Tab` puede sacar el foco
+del diálogo hacia un «SIGUIENTE» invisible, y `Enter` avanzaría la partida con el diálogo
+de cierre abierto (WR-02). Además, la restauración de foco al cerrar
+(`previouslyFocused.focus()`) es inalcanzable en las cuatro salidas reales porque
+`IndexOverlay` y `GameOutcomeDialog` se desmontan en el mismo flush, dejando el nodo
+desprendido del DOM (WR-03).
+
+**Por qué no se corrige aquí (evaluación de riesgo):** el dispositivo objetivo del
+proyecto es una tablet apoyada en la mesa y el uso real es táctil; la navegación por
+`Tab` no es un modo de uso de este grupo, y el diálogo es opaco, así que el escenario
+exige un teclado físico Y tabular a ciegas más allá del último botón.
+
+**Acción sugerida:** el ciclo de foco de `WarningDetailModal.vue`, que ya es el patrón
+bueno del repo.

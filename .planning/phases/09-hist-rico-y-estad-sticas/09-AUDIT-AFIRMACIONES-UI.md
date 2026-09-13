@@ -31,6 +31,20 @@ dato que recibe sea el correcto?». Sin Q4, una interfaz que compone una frase n
 datos ya buenos —pero sin comprobar el booleano concreto que la sostiene— pasaría cualquier
 barrido de Q1/Q2/Q3 sin que nadie lo notara hasta la quinta ronda.
 
+**Q5 — ¿el dato que respalda esta frase responde a la MISMA pregunta que la frase
+plantea?** Nace de un agujero que el propio Q4 dejó abierto sin querer, y que la ronda 5
+(`09-VERIFICATION.md`) encontró exactamente donde Q4 debería haberlo cazado: la ronda 4
+introdujo Q4 y el barrido de este documento marcó `HistorySavedNotice.vue` como
+`RESPALDADA` por comprobar que su texto dependía de un booleano real (`save()`/
+`writeRaw()`) — sin auditar si ESE booleano contestaba la pregunta que el texto hacía. Una
+escritura contesta «¿ha funcionado esto que acabo de hacer AHORA?»; el texto de la
+interfaz afirmaba algo sobre el estado COMPLETO del dispositivo («la partida sigue
+guardada»), una pregunta distinta que el mismo booleano no puede responder por sí solo.
+Q4 comprueba que existe un valor de retorno; Q5 comprueba que ese valor de retorno mide lo
+que la frase dice medir. Q5 es la pregunta que habría cazado la ronda 5 dentro del propio
+barrido de la ronda 4, y la que convierte un veredicto `RESPALDADA` en algo que
+efectivamente significa algo.
+
 **Criterio de inclusión** (para que el barrido sea reproducible y no una lista a ojo): entra en el
 inventario **toda frase que la interfaz muestre y que afirme un hecho sobre el estado de los datos
 persistidos del grupo** (histórico, progreso de partida, preferencia de voz): que existen, que se
@@ -90,7 +104,7 @@ varias afirmaciones llevan una fila por afirmación.
 | `app/components/GameOutcomeDialog.vue` | — (`contextLine`/`warningBody` describen la partida que se está a punto de cerrar y una acción FUTURA — «Se borrará el progreso guardado…» —, no un hecho ya comprobado; excluido por la regla de acción futura del §1) | — | NO APLICA |
 | `app/components/GameSelectorScreen.vue` | — (`PRÓXIMAMENTE`/títulos de juego y los rótulos «Histórico»/«Estadísticas» son etiquetas de navegación, no afirmaciones sobre datos) | — | NO APLICA |
 | `app/components/HistoryEntryCard.vue` | `resultLabel`/`causeLabel`/`contextLine`/`playerLines`/`noSelectionLine`/`roundAndDurationLine` — toda la tarjeta de una partida registrada | `buildHistoryCardView` (`app/composables/useGameHistory.ts:103-207`); el propio componente no calcula ni interpola nada, solo renderiza el resultado. Nota: las guardas de tipo de esa función (BF-01/BF-02, ya cerradas por 09-17 y registradas en `09-AUDIT-FRONTERAS.md` §3) son las que sostienen que esta tarjeta nunca pinte `undefined`/`NaN` literal — este barrido no las repite, solo confirma que el componente que las consume no añade ninguna afirmación propia encima | RESPALDADA |
-| `app/components/HistorySavedNotice.vue` | «✓ Partida registrada» / «⚠ No se pudo guardar la partida» + cuerpo (tres variantes, incluida «La partida no se ha perdido: sigue guardada en el dispositivo…») | `resolveNoticeVariant(historyRecorded, progressSecured)` (`app/composables/useHistorySavedNotice.ts:39-42`), alimentada por `NOTICE_HEADING`/`NOTICE_BODY` (líneas 66-81); `historyRecorded` es el booleano real de `record()` (`appendHistoryEntry`) y `progressSecured` es el booleano real de `save()` (plan 09-18, `usePersistedSession.ts:313`), cableados en `app/pages/[game]/index.vue:607-611` (`onOutcomeRecorded`: `guardado = record(...)`, `progresoAsegurado = guardado ? false : save(session.value)`). Esto es precisamente el cierre de CR-01 (ronda 4) — la variante `failure-unrecoverable` (líneas 77-80) YA NO contiene «sigue guardada» ni la instrucción de reintentar, exactamente lo que `missing:` de `09-VERIFICATION.md` pedía | RESPALDADA |
+| `app/components/HistorySavedNotice.vue` | «✓ Partida registrada» / «⚠ No se pudo guardar la partida» + cuerpo (tres variantes, incluida «La partida no se ha perdido: sigue guardada en el dispositivo…») | ~~`resolveNoticeVariant(historyRecorded, progressSecured)` (`app/composables/useHistorySavedNotice.ts:39-42`), alimentada por `NOTICE_HEADING`/`NOTICE_BODY` (líneas 66-81); `historyRecorded` es el booleano real de `record()` (`appendHistoryEntry`) y `progressSecured` es el booleano real de `save()` (plan 09-18, `usePersistedSession.ts:313`), cableados en `app/pages/[game]/index.vue:607-611` (`onOutcomeRecorded`: `guardado = record(...)`, `progresoAsegurado = guardado ? false : save(session.value)`). Esto es precisamente el cierre de CR-01 (ronda 4) — la variante `failure-unrecoverable` (líneas 77-80) YA NO contiene «sigue guardada» ni la instrucción de reintentar, exactamente lo que `missing:` de `09-VERIFICATION.md` pedía~~ **CORREGIDO (ronda 5, plan 09-27):** este veredicto `RESPALDADA` de la ronda 4 era incompleto bajo Q5 — `progressSecured` (el booleano de `save()`) contestaba «¿ha funcionado esta escritura de AHORA?», no la pregunta que el texto («la partida sigue guardada en el dispositivo») realmente plantea sobre el estado COMPLETO del dispositivo. La ronda 5 (`09-VERIFICATION.md`) lo encontró como BLOCKER. Situación tras el cierre (planes 09-24/09-25/09-26): la variante la decide `planGameEnd(historyRecorded, stored)` (`app/composables/useHistorySavedNotice.ts`) a partir de un `StoredProgress` (`'resumable' \| 'absent' \| 'unknown'`) procedente de una lectura real del dispositivo, `readStoredProgress` (`app/composables/useStoredProgress.ts`) — nunca ya de un booleano de escritura — y un gate automatizado (`app/composables/__tests__/afirmacionesRespaldadas.test.ts`) impide que una frase nueva vuelva a entrar sin que su valor de retorno responda la misma pregunta que plantea | RESPALDADA bajo Q4 en la ronda 4, **INCOMPLETA bajo Q5** — cerrada de nuevo en la ronda 5 (09-24/09-25/09-26) |
 | `app/components/IndexOverlay.vue` | Marcas `✓`/`●` (paso hecho / paso actual) en la lista de pasos | `tableOfContents(session.value.sequence, session.value.cursor)` (`app/pages/[game]/index.vue:231-233`, `engine/toc.ts`); el propio componente no guarda ningún estado de qué se ha visitado, solo pinta lo que la posición real del cursor ya determina | RESPALDADA |
 | `app/components/MesaListaScreen.vue` | — (`checklist` es contenido de reglas del juego —qué repasar antes de empezar—, no un dato del grupo) | — | NO APLICA |
 | `app/components/MiniSetupScreen.vue` | — («La pantalla se mantendrá encendida…» es una promesa de comportamiento futuro, excluida por la regla del §1; el resto son etiquetas de control) | — | NO APLICA |
@@ -123,6 +137,29 @@ afirmaciones actuales de esas tres superficies están respaldadas. Las dos afirm
 barrido añade como `ACEPTADO` (`UpdateBanner.vue`, y el estado vacío compartido de
 `estadisticas.vue`/`historico.vue`) llevan razón de riesgo explícita, no de alcance — ninguna
 exige un cambio de código bajo el `<scope_boundary>` de este plan.
+
+### Addendum (ronda 5, plan 09-27) — la fila `HistorySavedNotice.vue` se corrige bajo Q5
+
+El veredicto `RESPALDADA` de la fila `HistorySavedNotice.vue` en §2 (arriba) fue correcto
+bajo Q4 pero **incompleto bajo Q5**: comprobó que existía un booleano real
+(`progressSecured`, de `save()`), sin comprobar que ese booleano contestara la misma
+pregunta que el texto de la interfaz planteaba. La ronda 5 (`09-VERIFICATION.md`) encontró
+el hueco como BLOCKER. La fila queda corregida en §2 con tachado sobre la justificación
+original y la situación real tras los planes 09-24/09-25/09-26: `readStoredProgress`
+como autoridad de lectura única, `StoredProgress` como tipo que sustituye al booleano de
+escritura, y el gate `afirmacionesRespaldadas.test.ts`.
+
+**No se rehace el barrido de los 24 `.vue`.** Verificado con
+`git log --oneline 7a409b2..HEAD -- 'app/**/*.vue'` (`7a409b2` es el commit que creó este
+documento): el único commit que ha tocado un `.vue` desde entonces es `4b02c0e` (plan
+09-26), y el único fichero que toca es `app/pages/[game]/index.vue` — cuya fila en §2 ya
+está marcada `NO APLICA` (la página no compone ninguna frase propia, solo cablea props a
+los componentes de arriba) y cuyo cambio real fue de qué función invoca
+(`readStoredProgress`/`planGameEnd` en vez de la composición manual anterior), no de qué
+`<template>` pinta. Ningún otro de los 23 ficheros restantes tiene un commit posterior a
+`7a409b2`. Afirmar un barrido íntegro que no se ha hecho sería, literalmente, el defecto
+que este documento audita. El resto de las filas de §2 se mantiene tal cual estaba, con
+su veredicto original vigente.
 
 ---
 
