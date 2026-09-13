@@ -33,7 +33,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 - [x] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente (completed 2026-09-08)
 - [x] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7 (verificación: gaps_found — CR-01 solape de zonas táctiles) (completed 2026-09-08)
 - [x] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz (completed 2026-09-09)
-- [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (17/17 planes ejecutados; verificación ronda 4: gaps_found 4/5 — 1 BLOCKER nuevo, CR-01 r4: el aviso de registro fallido afirma «sigue guardada en el dispositivo» sin que nada lo compruebe, porque save() descarta el booleano de writeRaw; los 2 BLOCKER de la ronda 3 sí quedaron cerrados)
+- [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (17/23 planes ejecutados; verificación ronda 4: gaps_found 4/5 — 1 BLOCKER nuevo, CR-01 r4: el aviso de registro fallido afirma «sigue guardada en el dispositivo» sin que nada lo compruebe, porque save() descarta el booleano de writeRaw; los 2 BLOCKER de la ronda 3 sí quedaron cerrados. Lote de cierre 09-18..09-23 planificado)
 - [ ] **Phase 10: Respaldo en Firestore** - Subida silenciosa, nunca bloqueante, aislada del resto
 
 ### Phase Details
@@ -180,7 +180,7 @@ Plans:
   4. Hay una pantalla de estadísticas accesible desde el inicio que muestra el % de victorias por héroe y por villano, con un estado vacío claro (no un error ni porcentajes engañosos) cuando el histórico está vacío.
   5. La pantalla de estadísticas lee exclusivamente localStorage — verificable en esta fase de forma trivial, porque Firestore ni siquiera existe todavía en el código en este punto del hito.
 
-**Plans**: 17 plans (11 olas)
+**Plans**: 23 plans (16 olas)
 - [x] 09-01-PLAN.md — Motor: tipos aditivos del histórico, `buildHistoryEntry` y formateadores puros (ola 1)
 - [x] 09-02-PLAN.md — `GameOutcomeDialog` y el aviso de guardado montado en `app.vue` (ola 1)
 - [x] 09-03-PLAN.md — Motor: `aggregateStatistics` con la cascada de orden de D-24 (ola 2)
@@ -198,6 +198,12 @@ Plans:
 - [x] 09-15-PLAN.md — Cierre de huecos ronda 3: un `context` que no se puede validar deja de anunciarse como partida reanudada (WR-03 r3) (ola 9)
 - [x] 09-16-PLAN.md — Cierre de huecos ronda 3: un registro fallido deja de llevarse la partida por delante, y el aviso deja de atribuir causa (amplificador de CR-02 + WR-02/WR-05a) (ola 10)
 - [x] 09-17-PLAN.md — Barrido exhaustivo de las tres fronteras, con inventario escrito, cierre en lote y registro de lo aplazado (petición explícita del verificador) (ola 11)
+- [ ] 09-18-PLAN.md — Cierre de huecos ronda 4: `save()` devuelve si el progreso quedó escrito de verdad, y el comentario deja de prohibir el arreglo (CR-01 r4, causa raíz) (ola 12)
+- [ ] 09-19-PLAN.md — Cierre de huecos ronda 4: `GameOutcomeDialog` con nombre accesible y foco gestionado; `Escape` resuelto por escrito contra el contrato de diseño (WR-04 reclasificado) (ola 12)
+- [ ] 09-20-PLAN.md — Cierre de huecos ronda 4: tres variantes de aviso atadas a dos booleanos reales, progreso reescrito y comprobado, y el test de regresión exigido (CR-01 r4) (ola 13)
+- [ ] 09-21-PLAN.md — Cierre de huecos ronda 4: la banda deja de tener copy propia y solo pinta lo que el composable ha comprobado (CR-01 r4) (ola 14)
+- [ ] 09-22-PLAN.md — Cierre de huecos ronda 4: las bandas de aviso dejan de empujar fuera de la tablet la pantalla de destino (WR-05b reclasificado) (ola 15)
+- [ ] 09-23-PLAN.md — Barrido Q4 de las afirmaciones que la interfaz hace al grupo, cierre de los dos diferidos reclasificados y sincronización de trazabilidad (ola 16)
 **UI hint**: yes
 **Verificación humana**: Sí, recomendable pero no bloqueante por dispositivo — el flujo de fin de partida y las dos pantallas nuevas se verifican jugando una partida real de principio a fin (puede hacerse en portátil/móvil, no requiere la tablet de mesa) y comprobando que el registro y las estadísticas resultantes coinciden con lo jugado.
 
@@ -243,7 +249,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
-| 9. Histórico y estadísticas | v1.8 | 17/17 | Complete   | 2026-09-12 |
+| 9. Histórico y estadísticas | v1.8 | 17/23 | In progress | -          |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 
 ---
