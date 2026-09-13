@@ -8,6 +8,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "test": "vitest run",
+    "typecheck": "nuxt typecheck",
     "postinstall": "nuxt prepare",
     "voice:generate": "node scripts/voice/generate.mjs",
     "voice:probe": "node scripts/voice/generate.mjs --probe",
@@ -29,7 +30,9 @@
   "devDependencies": {
     "@nuxt/test-utils": "^4.2.0",
     "@playwright/test": "^1.62.1",
+    "typescript": "^5.9.3",
     "vitest": "^4.1.11",
+    "vue-tsc": "^3.3.11",
     "zod": "^4.4.3"
   }
 }
