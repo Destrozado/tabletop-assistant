@@ -341,3 +341,26 @@ en `deferred-items.md` (Task 3 de este plan) con fichero, línea, motivo y propu
 
 Ningún hallazgo de este barrido requiere Firestore/Firebase (SC5/STAT-04 siguen sin tocarse) ni
 toca ningún fichero `.vue` de pantalla.
+
+---
+
+### Nota de continuación (ronda 4, plan 09-23)
+
+El punto de arriba que dejó **WR-04** y **WR-05 (b)** fuera «por vivir en ficheros `.vue`» fue,
+exactamente, el agujero por el que se coló CR-01 de la ronda 4 (`09-VERIFICATION.md`): la
+afirmación sin respaldo que las tres rondas anteriores llevaban cerrando en el motor y en la
+costura de almacenamiento (Q1/Q2/Q3 de este mismo documento) no desapareció — se había mudado
+exactamente a la superficie de interfaz que este barrido excluyó por diseño en el párrafo de
+arriba. Una función ya no podía mentir sobre lo que guardó; pero la pantalla que pintaba ese dato
+sí podía seguir afirmando algo que nadie había comprobado.
+
+El perímetro queda extendido por `09-AUDIT-AFIRMACIONES-UI.md` (plan 09-23), que añade una cuarta
+pregunta — **Q4: ¿puede lo que esta pantalla le afirma al grupo sobre sus datos no ser cierto?** —
+sobre los 24 ficheros `.vue` que este documento dejó fuera. Las dos entradas nombradas arriba
+quedan cerradas por los planes **09-19** (`GameOutcomeDialog.vue`: nombre accesible y foco
+gestionado) y **09-22** (`HistorySavedNotice.vue`/`UpdateBanner.vue`: fuera del flujo de
+documento, sin robar toques), formalizado en `deferred-items.md`.
+
+La regla de proceso en una frase, que este barrido deja escrita para que no se repita una quinta
+vez: **un veredicto de «fuera de perímetro» es válido cuando el perímetro es un límite de RIESGO;
+no lo es cuando es solo el encargo de un plan.**
