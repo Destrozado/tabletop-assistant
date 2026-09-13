@@ -573,6 +573,23 @@ function finishGame(preserveProgress = false) {
 // vuelve a `/`, entra otra vez en el juego, ve «Partida guardada …
 // CONTINUAR» y puede volver a pulsar «Partida terminada» para reintentar el
 // registro.
+//
+// 09-20 (cierre del BLOCKER CR-01 ronda 4, 09-VERIFICATION.md): «no borrar»
+// no es «hay algo que preservar». finishGame(!guardado) por sí solo solo
+// evita llamar a clear(gameId); nunca comprueba que `tga:progress:<gameId>`
+// llegara a escribirse en algún momento de la partida. En modo privado del
+// navegador o con la cuota llena, esa clave puede no haberse escrito NUNCA
+// —ni por el watchDebounced del autoguardado ni por el pagehide—, así que
+// afirmar "sigue guardada en el dispositivo" sin comprobarlo es la misma
+// confirmación falsa que las rondas anteriores de esta fase llevan
+// cerrando en el motor. Por eso, cuando el registro falla, se reescribe el
+// progreso SÍNCRONAMENTE aquí mismo (save() se intercala entre record() y
+// notifyHistorySaved()) y se guarda su resultado real en
+// `progresoAsegurado`: solo con ese booleano notifyHistorySaved puede
+// elegir entre la variante recuperable y la no recuperable sin inventar
+// nada. El watchDebounced de 300ms no sirve para esto — finishGame pone
+// session.value = null inmediatamente después y cancela cualquier
+// escritura pendiente (ver el comentario de finishGame).
 function onOutcomeRecorded(outcome: GameOutcome) {
   awaitingEndConfirm.value = false
   isIndexOpen.value = false
@@ -589,7 +606,8 @@ function onOutcomeRecorded(outcome: GameOutcome) {
   // navegador sin motivo.
   if (session.value) {
     const guardado = record(session.value, outcome)
-    notifyHistorySaved(guardado)
+    const progresoAsegurado = guardado ? false : save(session.value)
+    notifyHistorySaved(guardado, progresoAsegurado)
     finishGame(!guardado)
   } else {
     finishGame()
