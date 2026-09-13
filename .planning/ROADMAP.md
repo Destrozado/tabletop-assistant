@@ -33,7 +33,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 - [x] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente (completed 2026-09-08)
 - [x] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7 (verificación: gaps_found — CR-01 solape de zonas táctiles) (completed 2026-09-08)
 - [x] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz (completed 2026-09-09)
-- [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (17/23 planes ejecutados; verificación ronda 4: gaps_found 4/5 — 1 BLOCKER nuevo, CR-01 r4: el aviso de registro fallido afirma «sigue guardada en el dispositivo» sin que nada lo compruebe, porque save() descarta el booleano de writeRaw; los 2 BLOCKER de la ronda 3 sí quedaron cerrados. Lote de cierre 09-18..09-23 planificado)
+- [x] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (17/23 planes ejecutados; verificación ronda 4: gaps_found 4/5 — 1 BLOCKER nuevo, CR-01 r4: el aviso de registro fallido afirma «sigue guardada en el dispositivo» sin que nada lo compruebe, porque save() descarta el booleano de writeRaw; los 2 BLOCKER de la ronda 3 sí quedaron cerrados. Lote de cierre 09-18..09-23 planificado) (completed 2026-09-13)
 - [ ] **Phase 10: Respaldo en Firestore** - Subida silenciosa, nunca bloqueante, aislada del resto
 
 ### Phase Details
@@ -203,7 +203,7 @@ Plans:
 - [x] 09-20-PLAN.md — Cierre de huecos ronda 4: tres variantes de aviso atadas a dos booleanos reales, progreso reescrito y comprobado, y el test de regresión exigido (CR-01 r4) (ola 13)
 - [x] 09-21-PLAN.md — Cierre de huecos ronda 4: la banda deja de tener copy propia y solo pinta lo que el composable ha comprobado (CR-01 r4) (ola 14)
 - [x] 09-22-PLAN.md — Cierre de huecos ronda 4: las bandas de aviso dejan de empujar fuera de la tablet la pantalla de destino (WR-05b reclasificado) (ola 15)
-- [ ] 09-23-PLAN.md — Barrido Q4 de las afirmaciones que la interfaz hace al grupo, cierre de los dos diferidos reclasificados y sincronización de trazabilidad (ola 16)
+- [x] 09-23-PLAN.md — Barrido Q4 de las afirmaciones que la interfaz hace al grupo, cierre de los dos diferidos reclasificados y sincronización de trazabilidad (ola 16)
 **UI hint**: yes
 **Verificación humana**: Sí, recomendable pero no bloqueante por dispositivo — el flujo de fin de partida y las dos pantallas nuevas se verifican jugando una partida real de principio a fin (puede hacerse en portátil/móvil, no requiere la tablet de mesa) y comprobando que el registro y las estadísticas resultantes coinciden con lo jugado.
 
@@ -249,7 +249,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
-| 9. Histórico y estadísticas | v1.8 | 22/23 | In Progress|  |
+| 9. Histórico y estadísticas | v1.8 | 23/23 | Complete   | 2026-09-13 |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 
 ---
