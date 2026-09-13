@@ -98,6 +98,21 @@
 > ilegible (WR-02): el histórico sigue siendo la fuente de verdad (HIST-06) y ningún dato se
 > pierde por ese camino, pero no hay hoy una acción en `/historico` para archivarlo y empezar
 > limpio.
+>
+> **Ronda 4 (`09-VERIFICATION.md`, plan 09-23):** la reserva que la ronda 4 puso sobre HIST-06 —
+> el mecanismo ADYACENTE de recuperación del PROGRESO que 09-16 añadió (`finishGame(preserveProgress)`)
+> y cuya promesa de interfaz («la partida sigue guardada en el dispositivo») no se sostenía porque
+> `save()` descartaba a propósito el resultado real de la escritura (CR-01 ronda 4, BLOCKER) —
+> queda cerrada por el lote 09-18/09-20/09-21: 09-18 cambia la firma de `save()` a `boolean`
+> (devuelve el resultado real de `writeRaw()`); 09-20 hace que `onOutcomeRecorded` llame a `save()`
+> de forma síncrona entre `record()` y `notifyHistorySaved()` y compruebe ese resultado antes de
+> elegir la variante del aviso, con un test de regresión cruzado (`avisoTrasRegistroFallido.test.ts`);
+> 09-21 hace que `HistorySavedNotice.vue` no contenga ninguna copy propia — solo interpola
+> `NOTICE_HEADING`/`NOTICE_BODY`, calculadas por `resolveNoticeVariant(historyRecorded,
+> progressSecured)` a partir de esos dos booleanos reales. El barrido de cierre de proceso
+> (`09-AUDIT-AFIRMACIONES-UI.md`, plan 09-23) confirma por lectura directa del código que esta
+> superficie —y las otras 23 pantallas `.vue` de la app— ya no afirma nada sobre datos persistidos
+> que un valor de retorno real no respalde.
 
 ### STAT — Estadísticas
 
@@ -206,10 +221,10 @@
 | HIST-03 | Fase 9 | Satisfecho |
 | HIST-04 | Fase 9 (09-13..09-17) | Satisfecho — ver nota de cierre de hueco (ronda 3) abajo |
 | HIST-05 | Fase 9 | Satisfecho |
-| HIST-06 | Fase 9 (09-13..09-17) | Satisfecho — ver nota de cierre de hueco (ronda 3) abajo |
+| HIST-06 | Fase 9 (09-13..09-23) | Satisfecho — ver nota de cierre de hueco (ronda 3, ampliada en ronda 4) abajo |
 | HIST-07 | Fase 9 | Satisfecho |
 | HIST-08 | Fase 9 | Satisfecho |
-| HIST-09 | Fase 9 | Satisfecho |
+| HIST-09 | Fase 9 (09-13..09-23) | Satisfecho |
 | STAT-01 | Fase 9 | Satisfecho |
 | STAT-02 | Fase 9 | Satisfecho |
 | STAT-03 | Fase 9 | Satisfecho |

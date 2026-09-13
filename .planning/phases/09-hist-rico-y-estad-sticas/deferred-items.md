@@ -78,6 +78,22 @@ perímetro de este plan (`<scope_boundary>` §FUERA de alcance: «Los ficheros `
 significa `Escape` frente a D-01 (si un quinto botón/atajo está permitido) — si no, que
 `Escape` equivalga a «Salir sin registrar» de forma documentada.
 
+**Actualización (ronda 4, plan 09-19) — CERRADO:** `09-VERIFICATION.md` (ronda 4, «Sobre los dos
+diferidos reclasificados») reclasificó esta entrada de «diferido» a «hallazgo real», porque su
+motivo de aplazamiento registrado arriba era literalmente «vive en un fichero `.vue`… fuera del
+perímetro de este plan» — una razón de ALCANCE DE PLAN, no una evaluación de riesgo aceptado. El
+plan 09-19 cierra las dos piezas accionables: `GameOutcomeDialog.vue` gana
+`aria-labelledby="game-outcome-heading"` (nombre accesible) y foco gestionado — el panel entra en
+foco al abrirse (`tabindex="-1"`, nunca ningún botón de resultado, para no empujar hacia ninguna
+opción, D-02) y vuelve al elemento previamente activo al cerrarse. La parte de `Escape` queda
+**resuelta, no pendiente**: el propio componente documenta por escrito que `Escape` y el toque
+sobre el velo NO cierran el diálogo A PROPÓSITO, contrastado contra `09-UI-SPEC.md` §Layout 2
+(«no backdrop-tap-dismiss and no Escape-to-dismiss on this dialog»), porque las cuatro salidas de
+este diálogo terminan la partida (D-01/HIST-02) y un cierre accidental por `Escape` la terminaría
+sin querer — la salida por teclado sigue existiendo vía `Tab` hasta el botón «Salir sin
+registrar» + `Enter`. Verificado por `npm run build` (exit 0) y `npx vitest run` (785 tests, exit
+0) según `09-19-SUMMARY.md`.
+
 ---
 
 ## WR-05 (b): `HistorySavedNotice`/`UpdateBanner` empujan fuera del viewport las pantallas `h-dvh`
@@ -95,6 +111,26 @@ del selector queda por debajo del borde de la tablet. Aplica igual a `UpdateBann
 **Acción sugerida:** sacar la banda del flujo (`fixed top-0 inset-x-0 z-40`) o envolver
 `<NuxtPage/>` en un contenedor `flex flex-col h-dvh` con `min-h-0` para que el aviso reste
 altura en vez de sumarla.
+
+**Actualización (ronda 4, plan 09-22) — CERRADO:** `09-VERIFICATION.md` (ronda 4, «Sobre los dos
+diferidos reclasificados») reclasificó esta entrada de «diferido» a «hallazgo real» por el mismo
+motivo que WR-04: el aplazamiento original era de ALCANCE DE PLAN («vive en `.vue`/`app.vue`,
+fuera del perímetro de este plan»), no una evaluación de riesgo. El plan 09-22 cierra la parte de
+código: `HistorySavedNotice.vue` y `UpdateBanner.vue` pasan a `fixed top-0 inset-x-0 z-40` con
+`pointer-events-none` en el contenedor y `pointer-events-auto` en cada control pulsable, así que
+dejan de sumar altura a las pantallas `h-dvh` y dejan de robar toques a la pantalla de debajo —
+`app/app.vue` no se toca. Verificado por `npm run build` (exit 0) y `npx vitest run` (796 tests,
+exit 0) según `09-22-SUMMARY.md`, más una comprobación estructural por `grep` (el contenedor raíz
+de `GameSelectorScreen.vue` sigue centrado verticalmente, así que la banda se superpone a espacio
+vacío, no al `<h1>`). **Con un matiz honesto que no se retira aquí:** el propio `09-22-SUMMARY.md`
+deja registrada como **PENDIENTE** la comprobación visual humana obligatoria del plan (viewport de
+tablet horizontal, `npm run dev`, variante de aviso larga) — el ejecutor de ese plan corría en un
+agente headless sin juicio visual real y lo documentó así explícitamente en vez de fabricarlo. Esa
+comprobación humana sigue sin realizarse; lo que este cierre da por CERRADO es el hallazgo de
+maquetación en sí (el código deja de empujar la pantalla fuera del viewport, con evidencia
+estructural y de test), no la verificación humana en dispositivo real, que sigue abierta bajo el
+mismo ítem `DEV-02` de `REQUIREMENTS.md` (guion de pruebas pendiente en la tablet real) — no se
+abre una entrada nueva por esto, ya existe.
 
 ---
 
