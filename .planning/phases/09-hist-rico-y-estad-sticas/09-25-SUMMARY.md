@@ -119,3 +119,5 @@ aviso de fin de partida y `ResumePrompt` pudiendo contradecirse sobre si hay alg
 ---
 *Phase: 09-hist-rico-y-estad-sticas*
 *Completed: 2026-09-13*
+
+## Self-Check: PASSED
