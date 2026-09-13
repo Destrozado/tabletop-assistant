@@ -180,7 +180,7 @@ Plans:
   4. Hay una pantalla de estadísticas accesible desde el inicio que muestra el % de victorias por héroe y por villano, con un estado vacío claro (no un error ni porcentajes engañosos) cuando el histórico está vacío.
   5. La pantalla de estadísticas lee exclusivamente localStorage — verificable en esta fase de forma trivial, porque Firestore ni siquiera existe todavía en el código en este punto del hito.
 
-**Plans**: 23 plans (16 olas)
+**Plans**: 27 plans (20 olas)
 - [x] 09-01-PLAN.md — Motor: tipos aditivos del histórico, `buildHistoryEntry` y formateadores puros (ola 1)
 - [x] 09-02-PLAN.md — `GameOutcomeDialog` y el aviso de guardado montado en `app.vue` (ola 1)
 - [x] 09-03-PLAN.md — Motor: `aggregateStatistics` con la cascada de orden de D-24 (ola 2)
@@ -204,6 +204,10 @@ Plans:
 - [x] 09-21-PLAN.md — Cierre de huecos ronda 4: la banda deja de tener copy propia y solo pinta lo que el composable ha comprobado (CR-01 r4) (ola 14)
 - [x] 09-22-PLAN.md — Cierre de huecos ronda 4: las bandas de aviso dejan de empujar fuera de la tablet la pantalla de destino (WR-05b reclasificado) (ola 15)
 - [x] 09-23-PLAN.md — Barrido Q4 de las afirmaciones que la interfaz hace al grupo, cierre de los dos diferidos reclasificados y sincronización de trazabilidad (ola 16)
+- [ ] 09-24-PLAN.md — Barrera de tipos real: el proyecto no tenía comprobador (ni typescript ni vue-tsc, y `nuxt build` no comprueba tipos) — instalación, `npm run typecheck`, paso de CI y triaje de lo preexistente (ola 17)
+- [ ] 09-25-PLAN.md — Cierre de huecos ronda 5: la autoridad de lectura que contesta qué hay de verdad en el dispositivo, con «no he podido comprobarlo» como tercera respuesta (CR-01 r5, causa raíz) (ola 18)
+- [ ] 09-26-PLAN.md — Cierre de huecos ronda 5: los dos consumidores hablan por la autoridad, guarda de reentrada (WR-01) y gate automatizado contra afirmaciones sin respaldo (ola 19)
+- [ ] 09-27-PLAN.md — Cierre de huecos ronda 5: corrección de la nota de cierre prematura sobre HIST-06, diferidos con justificación de riesgo y pregunta Q5 en la auditoría de afirmaciones (ola 20)
 **UI hint**: yes
 **Verificación humana**: Sí, recomendable pero no bloqueante por dispositivo — el flujo de fin de partida y las dos pantallas nuevas se verifican jugando una partida real de principio a fin (puede hacerse en portátil/móvil, no requiere la tablet de mesa) y comprobando que el registro y las estadísticas resultantes coinciden con lo jugado.
 
