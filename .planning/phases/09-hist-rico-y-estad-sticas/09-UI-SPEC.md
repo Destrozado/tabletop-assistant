@@ -425,6 +425,16 @@ route-independent mount point).
 └──────────────────────────────────────────────┘
 ```
 
+**Nota (ronda 6, plan 09-31):** el diagrama de fallo de arriba no se redibuja (mantiene la
+copy original de D-03 tal y como este documento la fijó), pero **desde el plan 09-28 no
+existe una única variante de fallo: son cuatro** (`failure-recoverable`, `failure-stale`,
+`failure-unrecoverable`, `failure-unknown`), decididas por `planGameEnd(historyRecorded,
+stored)` a partir de `StoredProgress`. `app/composables/useHistorySavedNotice.ts`
+(`NOTICE_HEADING`/`NOTICE_BODY`) es la fuente de verdad del texto exacto de cada una — ver
+el «Copywriting Contract» abajo, donde las cuatro están citadas literalmente. El
+razonamiento de diseño («aviso breve»/duración/no bloquea nunca) descrito debajo aplica
+igual a las cuatro: todas comparten `FAILURE_AUTO_DISMISS_MS` (20 s).
+
 - Both variants carry the same `✕` dismiss control (`w-12 h-12`, top-right, same as its
   two precedents) **and** auto-dismiss after a fixed duration — this is the "aviso breve"
   language in D-03: the success variant is genuinely brief (no action needed, so it
@@ -519,7 +529,7 @@ is the literal mechanism behind "no un error ni porcentajes engañosos."
 | Home screen — secondary access (D-17) | `Histórico` · `Estadísticas` |
 | Outcome dialog heading (D-01) | `¿Cómo terminó la partida?` |
 | Outcome dialog context line | `{villano ?? omit} · {n} jug · {Normal\|Experto} · ronda {round}` |
-| Outcome dialog retained warning (D-02, unchanged text, only relocated) | Exactly today's `endGameBody`: `Se borrará el progreso guardado ({resumen}) y volveréis a la pantalla de inicio. Esta acción no se puede deshacer.` |
+| Outcome dialog retained warning (D-02, text corrected in ronda 6, plan 09-30) | Today's `endGameBody`, copied literally from `app/pages/[game]/index.vue`: `El progreso guardado de esta partida ({resumen}) se borrará y volveréis a la pantalla de inicio. Si el registro en el histórico falla, la app conservará el progreso para que podáis reintentarlo.` — D-02 required the warning text not disappear, only relocate; ronda 6 (`09-VERIFICATION.md`) found the original text false in the `preserveProgress: true` branch (failed history write), because it always promised an unconditional, irreversible deletion. D-02's *intent* (warn before ending the game) is kept; the *fact it asserts* is corrected. |
 | Outcome button — win | `GANADA` |
 | Outcome button — loss, cause 1 (D-06) | `PERDIDA · Se completó el Plan Principal` |
 | Outcome button — loss, cause 2 (D-06) | `PERDIDA · Todos los héroes eliminados` |
@@ -541,7 +551,13 @@ is the literal mechanism behind "no un error ni porcentajes engañosos."
 | Back control (both new screens) | `‹ Atrás` (glyph reused verbatim from `NavBand`) |
 | Cross-link controls (D-18) | `Estadísticas ›` (on `/historico`) / `Histórico ›` (on `/estadisticas`) |
 | Save-result notice — success (D-03) | `✓ Partida registrada` |
-| Save-result notice — failure (D-03) | Heading: `⚠ No se pudo guardar la partida` · Body: `El dispositivo no permitió escribir en su almacenamiento (modo privado, cuota agotada u otro bloqueo similar). Revisad el modo privado del navegador o el espacio libre antes de la próxima partida.` — the second sentence is the remedial half: the partida just played is already lost (the session is cleared either way, so there is nothing to retry), so the action the notice asks for is about the *next* partida, never a retry of this one. |
+| Save-result notice — failure, `failure-recoverable` (ronda 6, plan 09-28) | Heading: `⚠ No se pudo guardar la partida` · Body, copied literally from `NOTICE_BODY` in `app/composables/useHistorySavedNotice.ts`: `La partida no se ha perdido: sigue guardada en el dispositivo. Volved a entrar en ella y pulsad «Partida terminada» otra vez para reintentar el registro. Si vuelve a fallar, puede deberse al modo privado del navegador, a la memoria llena, o a un histórico anterior que la app no consigue leer.` |
+| Save-result notice — failure, `failure-stale` (new in ronda 6, plan 09-28) | Heading: `⚠ No se pudo guardar la partida` · Body, copied literally from `NOTICE_BODY`: `La partida no se ha registrado. En el dispositivo solo queda una versión anterior de esta partida —no la ronda en la que habéis terminado—, así que volver a entrar y registrarla desde ahí guardaría en el histórico datos que no son los de esta partida. Suele deberse al modo privado del navegador o a la memoria llena.` — the variant that closes the séptima cara del defecto (Gap #1, `09-VERIFICATION.md`): it does not promise game identity nor order the retry the other failure variants order. |
+| Save-result notice — failure, `failure-unrecoverable` (ronda 5, plan 09-26) | Heading: `⚠ No se pudo guardar la partida` · Body, copied literally from `NOTICE_BODY`: `Al volver a entrar en el juego no encontraréis esta partida, así que esta vez no hay nada que reintentar. Suele deberse al modo privado del navegador o a la memoria llena: revisadlo antes de la próxima partida.` |
+| Save-result notice — failure, `failure-unknown` (ronda 5, rewritten ronda 6, plan 09-28) | Heading: `⚠ No se pudo guardar la partida` · Body, copied literally from `NOTICE_BODY`: `No hemos podido comprobar si la partida sigue en el dispositivo. Volved a entrar en el juego: si os ofrece continuar, pulsad «Partida terminada» otra vez para reintentar el registro. Si no os la ofrece, puede que siga ahí y la app no consiga leerla: el modo privado del navegador y la memoria llena son las dos causas habituales.` |
+| Mini-setup — lectura del progreso no comprobada (ronda 6, plan 09-29) | `unverifiedProgressNotice`, copied literally from `UNVERIFIED_PROGRESS_NOTICE` in `app/composables/useProgressMountPlan.ts`: `No hemos podido comprobar si este dispositivo tiene una partida guardada de este juego. Podéis empezar una nueva, pero si había alguna, al guardar la nueva podríais sustituirla.` — rendered only when `planProgressMount` produces `stored === 'unknown'`; never asserts a game exists or doesn't. |
+
+*Note (ronda 6, plan 09-31): the four failure rows above reflect the state after planes 09-24..09-30 — four `NoticeVariant` failure branches instead of one. The original D-03 copy this table cited for the single failure row (`El dispositivo no permitió escribir en su almacenamiento…`) was already retired in earlier rounds for asserting a cause the app could never actually verify; this table now cites the literal, current `NOTICE_BODY` text for each of the four variants instead.*
 | Primary CTA of this phase | There is no single primary CTA — the phase adds a 4-way choice (outcome dialog) and two read-only screens. The closest analogue, `Partida terminada` in `IndexOverlay`, is **unchanged text**. |
 | Destructive actions in this phase | Exactly one: deleting a history entry (D-20), covered above. Recording a loss is **not** treated as destructive — it is a true fact about the game, not a data-loss action. |
 
