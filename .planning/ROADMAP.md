@@ -33,7 +33,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 - [x] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente (completed 2026-09-08)
 - [x] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7 (verificación: gaps_found — CR-01 solape de zonas táctiles) (completed 2026-09-08)
 - [x] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz (completed 2026-09-09)
-- [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (27/27 planes ejecutados; verificación ronda 6: gaps_found 4/5 — el BLOCKER literal de la ronda 5 SÍ quedó cerrado (autoridad de lectura `readStoredProgress` + barrera de tipos real en CI), pero aparece la sexta cara del mismo defecto: la autoridad contesta «¿hay ALGUNA partida?» mientras la copy afirma «ESTA partida sigue guardada», y el gate de clase inspecciona el 1,9% del fichero que debía vigilar. Pendiente de lote de cierre ronda 6)
+- [x] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (27/27 planes ejecutados; verificación ronda 6: gaps_found 4/5 — el BLOCKER literal de la ronda 5 SÍ quedó cerrado (autoridad de lectura `readStoredProgress` + barrera de tipos real en CI), pero aparece la sexta cara del mismo defecto: la autoridad contesta «¿hay ALGUNA partida?» mientras la copy afirma «ESTA partida sigue guardada», y el gate de clase inspecciona el 1,9% del fichero que debía vigilar. Pendiente de lote de cierre ronda 6) (completed 2026-09-14)
 - [ ] **Phase 10: Respaldo en Firestore** - Subida silenciosa, nunca bloqueante, aislada del resto
 
 ### Phase Details
@@ -211,7 +211,7 @@ Plans:
 - [x] 09-28-PLAN.md — Cierre de huecos ronda 6: la autoridad de lectura compara contra la partida que acaba de terminar (`'stale'`), cuarta variante `failure-stale`, y cierre de WR-05/WR-06/WR-07 (ola 21)
 - [x] 09-29-PLAN.md — Cierre de huecos ronda 6: el montaje deja de colapsar «no hay nada» con «no he podido mirar» (`planProgressMount` + aviso en el mini-setup) y el test contraproducente se corrige (ola 22)
 - [x] 09-30-PLAN.md — Cierre de huecos ronda 6: el gate de clase barre el fichero entero y `app/**/*.ts`, se autocomprueba, y `endGameBody` deja de afirmar un borrado que no siempre ocurre (ola 23)
-- [ ] 09-31-PLAN.md — Cierre de huecos ronda 6: séptima variante registrada en REQUIREMENTS.md sin cerrar HIST-06, Q6 en la auditoría, diferidos con riesgo y contrato de copy al día (ola 24)
+- [x] 09-31-PLAN.md — Cierre de huecos ronda 6: séptima variante registrada en REQUIREMENTS.md sin cerrar HIST-06, Q6 en la auditoría, diferidos con riesgo y contrato de copy al día (ola 24)
 **UI hint**: yes
 **Verificación humana**: Sí, recomendable pero no bloqueante por dispositivo — el flujo de fin de partida y las dos pantallas nuevas se verifican jugando una partida real de principio a fin (puede hacerse en portátil/móvil, no requiere la tablet de mesa) y comprobando que el registro y las estadísticas resultantes coinciden con lo jugado.
 
@@ -257,7 +257,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
-| 9. Histórico y estadísticas | v1.8 | 30/31 | In Progress|  |
+| 9. Histórico y estadísticas | v1.8 | 31/31 | Complete   | 2026-09-14 |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 
 ---
