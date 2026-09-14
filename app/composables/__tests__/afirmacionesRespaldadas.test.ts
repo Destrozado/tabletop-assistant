@@ -80,11 +80,22 @@ const VARIANTES_RESPALDADAS_POR_LA_AUTORIDAD = ['failure-recoverable', 'failure-
 //   avisar ni navegar — exactamente el defecto que ese blindaje cierra. No
 //   se añade aquí ninguna comparación `stored === '...'` (Gate C, segundo
 //   test, sigue sin necesitar tocarse).
+// - `useProgressMountPlan.ts` (plan 09-29, TODO(09-30) — entrada provisional,
+//   el `<scope_boundary>` de 09-29-PLAN.md prohíbe reformar este gate y pide
+//   dejar constancia en el SUMMARY en vez de tocarlo): traduce
+//   `StoredProgress` a la decisión de montaje (`MountAction`), el mismo
+//   papel que `useHistorySavedNotice.ts` ya tiene en esta lista (traducir a
+//   copy). El `switch (stored)` de `planProgressMount` nombra los cuatro
+//   valores porque ES la decisión total sobre ellos, no una invención — pero
+//   la entrada definitiva de auditoría (con el razonamiento completo, igual
+//   que las de arriba) la escribe el plan 09-30, que es quien reforma este
+//   fichero para cubrir también `'stale'`.
 const FICHEROS_QUE_PUEDEN_NOMBRAR_EL_ESTADO_DEL_DISPOSITIVO = [
   'app/composables/useStoredProgress.ts',
   'app/composables/useHistorySavedNotice.ts',
   'app/composables/usePersistedSession.ts',
   'app/pages/[game]/index.vue',
+  'app/composables/useProgressMountPlan.ts',
 ]
 
 function quitarComentariosHtml(html: string): string {

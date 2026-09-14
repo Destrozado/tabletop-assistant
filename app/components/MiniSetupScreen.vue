@@ -15,6 +15,12 @@ const props = defineProps<{
   // rango distinto (p. ej. Warhammer 40.000) sin tocarlo.
   minPlayers: number
   maxPlayers: number
+  // Plan 09-29: la copy del aviso de lectura fallida viaja SIEMPRE como
+  // prop, nunca escrita en esta plantilla — el gate de clase
+  // (`afirmacionesRespaldadas.test.ts`) exige que una afirmación sobre los
+  // datos del grupo salga de una decisión pura y testeada
+  // (`planProgressMount`), no de una `<p>` a mano.
+  unverifiedProgressNotice?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -57,6 +63,19 @@ function onConfirmClick() {
       <h1 class="text-heading font-bold text-primary-text text-center">
         {{ gameTitle }} — Preparar partida
       </h1>
+
+      <!--
+        Plan 09-29: no bloquea ni roba foco (role="status", mismo patrón que
+        VoiceUnavailableNotice.vue). El texto llega interpolado desde la
+        prop — ni una palabra de copy escrita en esta plantilla.
+      -->
+      <p
+        v-if="unverifiedProgressNotice"
+        role="status"
+        class="text-body font-normal text-secondary-text text-center max-w-[640px]"
+      >
+        {{ unverifiedProgressNotice }}
+      </p>
 
       <div class="w-full max-w-[640px] flex flex-col gap-xl">
         <div class="flex flex-col gap-md">
