@@ -38,6 +38,7 @@ import {
 import { notifyHistorySaved, planGameEnd } from '~/composables/useHistorySavedNotice'
 import { usePersistedSession } from '~/composables/usePersistedSession'
 import { usePreloadedAudio } from '~/composables/usePreloadedAudio'
+import { planProgressMount } from '~/composables/useProgressMountPlan'
 import { shortcutsEnabled, useStepShortcuts } from '~/composables/useStepShortcuts'
 import { readStoredProgress } from '~/composables/useStoredProgress'
 import type { StoredProgress } from '~/composables/useStoredProgress'
@@ -143,6 +144,9 @@ const awaitingResumeChoice = ref(false)
 const awaitingContentChangedAck = ref(false)
 const awaitingDiscardConfirm = ref(false)
 const awaitingEndConfirm = ref(false)
+// Plan 09-29: aviso del mini-setup cuando la lectura del dispositivo ha
+// fallado — null en cualquier otro caso.
+const avisoProgresoNoComprobado = ref<string | null>(null)
 
 onMounted(() => {
   if (!game) {
@@ -156,16 +160,31 @@ onMounted(() => {
   // el placeholder que usaba vive ahora como `PLACEHOLDER_CONTEXT` dentro de
   // `useStoredProgress.ts`. El comportamiento observable no cambia (Pitfall
   // 7 intacto: nada de esto ocurre durante el prerender).
+  //
+  // Plan 09-29 (cierre de la mitad de montaje del Gap #1 de la ronda 6 y de
+  // CR-02/WR-02 de `09-REVIEW.md`): este `onMounted` consumía el `outcome`
+  // de la autoridad, que vale `'fresh'` tanto si no hay ninguna partida
+  // (`stored: 'absent'`) como si la lectura ha fallado (`stored:
+  // 'unknown'`) — así que no podía distinguir «he comprobado el dispositivo
+  // y no hay nada» de «no he podido comprobarlo», la distinción exacta para
+  // la que `StoredProgress` existe. Ahora la decisión vive en
+  // `planProgressMount`, que es total y testeada sobre los cuatro estados,
+  // y el estado «no comprobado» tiene superficie propia en pantalla
+  // (`avisoProgresoNoComprobado`) en vez de delegarse en los ojos del
+  // grupo. Sin `esperada`: al montar no hay ninguna sesión con la que
+  // comparar (a diferencia de `onOutcomeRecorded`, que sí la tiene).
   const informe = readStoredProgress(game)
+  const plan = planProgressMount(informe.stored, informe.outcome)
+  avisoProgresoNoComprobado.value = plan.unverifiedNotice
 
-  if (informe.outcome === 'fresh') {
+  if (plan.action === 'mini-setup') {
     resumeResolved.value = true
     return
   }
 
   session.value = informe.session
-  awaitingResumeChoice.value = informe.outcome === 'resumed'
-  awaitingContentChangedAck.value = informe.outcome === 'content-changed'
+  awaitingResumeChoice.value = plan.action === 'resume-prompt'
+  awaitingContentChangedAck.value = plan.action === 'content-changed-notice'
   resumeResolved.value = true
 })
 
@@ -803,6 +822,7 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
       :game-title="game.title"
       :min-players="game.minPlayers ?? 1"
       :max-players="game.maxPlayers ?? 4"
+      :unverified-progress-notice="avisoProgresoNoComprobado"
       @update:player-count="playerCount = $event"
       @update:difficulty="difficulty = $event"
       @confirm="onConfirm"
