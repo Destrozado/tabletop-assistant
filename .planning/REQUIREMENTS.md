@@ -149,6 +149,43 @@
 > **Este cierre no se da por bueno hasta que una ronda de verificación independiente lo
 > confirme: cuatro notas anteriores de este mismo documento dieron por cerrado lo que no lo
 > estaba.**
+>
+> **Ronda 6 (`09-VERIFICATION.md`, planes 09-28/09-29/09-30):** el hallazgo, en una frase: el
+> cierre de la ronda 5 sustituyó el booleano de escritura por una lectura real —eso quedó
+> genuinamente cerrado—, pero la lectura que lo sustituye contestaba «¿hay ALGUNA partida
+> reanudable?» mientras la copy de `failure-recoverable` planteaba «¿sigue guardada ESTA
+> partida?». Es la séptima cara del mismo patrón, encontrada en la ronda 6. La consecuencia
+> concreta: el reintento que esa frase ordenaba podía escribir en el histórico —el único dato
+> irreconstruible de la app— la ronda y la selección de héroes/villano de un autoguardado
+> anterior, sin ningún aviso.
+>
+> El agravante, sin suavizarlo: el propio test de regresión que el plan 09-26 escribió para
+> cerrar la ronda 5 (`avisoTrasRegistroFallido.test.ts`, test 5) reproducía ese escenario y
+> **fijaba la respuesta defectuosa en verde como comportamiento esperado**.
+>
+> El segundo hallazgo, de proceso: el gate de clase que 09-26 introdujo para «proteger la CLASE»
+> inspeccionaba el 1,9% de la plantilla del único fichero donde han vivido cinco de las siete
+> caras, por una regex perezosa que cortaba en el primer `</template>` anidado — la razón
+> estructural por la que la séptima cara no se detectó sola.
+>
+> El cierre elegido, nombrando código que existe: `readStoredProgress(game, esperada?)` y
+> `esLaMismaPartida` (`app/composables/useStoredProgress.ts`), el cuarto valor `'stale'`, la
+> variante `failure-stale` y la reescritura de `failure-unknown`
+> (`app/composables/useHistorySavedNotice.ts`), `planProgressMount`
+> (`app/composables/useProgressMountPlan.ts`) para que el montaje deje de colapsar `'absent'`
+> con `'unknown'`, el gate reescrito con región vigilada completa, barrido de `.ts`, excepciones
+> por frase y auto-verificación (`app/composables/__tests__/afirmacionesRespaldadas.test.ts`), y
+> el arreglo de `endGameBody` (`app/pages/[game]/index.vue`), abierto desde la ronda 4 como
+> IN-03/WR-04.
+>
+> Los WARNING de la ronda 5 que este lote SÍ cerró: WR-05 (el comentario derogado de
+> `HistorySavedNotice.vue` que instruía reintroducir el booleano), WR-06 (la ventana sin
+> `try/catch` en `onOutcomeRecorded`) y WR-07 (`PLACEHOLDER_CONTEXT` mutable y compartido).
+> Decirlo aquí es lo que impide que reaparezcan como «pendientes» sin serlo.
+>
+> **Este cierre no se da por bueno hasta que una ronda de verificación independiente lo
+> confirme: cuatro notas anteriores de este mismo documento dieron por cerrado lo que no lo
+> estaba.**
 
 ### STAT — Estadísticas
 
@@ -183,7 +220,7 @@
 ### Deuda de dispositivo real (heredada de v1.7)
 
 - **DEV-01**: Identificar el modelo y SO/navegador de la tablet de mesa
-- **DEV-02**: Ejecutar en ella el guion de pruebas pendiente: VOZ-08 (respaldo silencioso), foco del modal de detalle en Safari, control de silencio con audio pregenerado, instalación PWA
+- **DEV-02**: Ejecutar en ella el guion de pruebas pendiente: VOZ-08 (respaldo silencioso), foco del modal de detalle en Safari, control de silencio con audio pregenerado, instalación PWA, el aviso de lectura no comprobada en el mini-setup (ronda 6, `09-31`) y la variante `failure-stale` del aviso de guardado (20 s, texto largo — ronda 6, `09-31`)
 
 ### Ampliación de alcance
 
@@ -255,12 +292,12 @@
 | HIST-01 | Fase 9 | Satisfecho |
 | HIST-02 | Fase 9 | Satisfecho |
 | HIST-03 | Fase 9 | Satisfecho |
-| HIST-04 | Fase 9 (09-13..09-17) | Satisfecho — ver nota de cierre de hueco (ronda 3) abajo |
+| HIST-04 | Fase 9 (09-13..09-17, 09-28) | Satisfecho (flujo normal) — matiz de riesgo: el registro podía construirse a partir de un `session` desactualizado en la rama de reintento tras un fallo de escritura; ese camino es el que 09-28 cierra (`esLaMismaPartida`) — ver nota de cierre de hueco (rondas 3 y 6) abajo |
 | HIST-05 | Fase 9 | Satisfecho |
-| HIST-06 | Fase 9 (09-13..09-27) | Reabierto en la ronda 5 — ver nota de cierre de hueco abajo |
+| HIST-06 | Fase 9 (09-13..09-31) | Reabierto en la ronda 5, séptima variante encontrada en la ronda 6 — ver nota de cierre de hueco abajo |
 | HIST-07 | Fase 9 | Satisfecho |
 | HIST-08 | Fase 9 | Satisfecho |
-| HIST-09 | Fase 9 (09-13..09-27) | Satisfecho |
+| HIST-09 | Fase 9 (09-13..09-31) | Satisfecho |
 | STAT-01 | Fase 9 | Satisfecho |
 | STAT-02 | Fase 9 | Satisfecho |
 | STAT-03 | Fase 9 | Satisfecho |
