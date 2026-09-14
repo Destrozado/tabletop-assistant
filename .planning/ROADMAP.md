@@ -208,7 +208,7 @@ Plans:
 - [x] 09-25-PLAN.md — Cierre de huecos ronda 5: la autoridad de lectura que contesta qué hay de verdad en el dispositivo, con «no he podido comprobarlo» como tercera respuesta (CR-01 r5, causa raíz) (ola 18)
 - [x] 09-26-PLAN.md — Cierre de huecos ronda 5: los dos consumidores hablan por la autoridad, guarda de reentrada (WR-01) y gate automatizado contra afirmaciones sin respaldo (ola 19)
 - [x] 09-27-PLAN.md — Cierre de huecos ronda 5: corrección de la nota de cierre prematura sobre HIST-06, diferidos con justificación de riesgo y pregunta Q5 en la auditoría de afirmaciones (ola 20)
-- [ ] 09-28-PLAN.md — Cierre de huecos ronda 6: la autoridad de lectura compara contra la partida que acaba de terminar (`'stale'`), cuarta variante `failure-stale`, y cierre de WR-05/WR-06/WR-07 (ola 21)
+- [x] 09-28-PLAN.md — Cierre de huecos ronda 6: la autoridad de lectura compara contra la partida que acaba de terminar (`'stale'`), cuarta variante `failure-stale`, y cierre de WR-05/WR-06/WR-07 (ola 21)
 - [ ] 09-29-PLAN.md — Cierre de huecos ronda 6: el montaje deja de colapsar «no hay nada» con «no he podido mirar» (`planProgressMount` + aviso en el mini-setup) y el test contraproducente se corrige (ola 22)
 - [ ] 09-30-PLAN.md — Cierre de huecos ronda 6: el gate de clase barre el fichero entero y `app/**/*.ts`, se autocomprueba, y `endGameBody` deja de afirmar un borrado que no siempre ocurre (ola 23)
 - [ ] 09-31-PLAN.md — Cierre de huecos ronda 6: séptima variante registrada en REQUIREMENTS.md sin cerrar HIST-06, Q6 en la auditoría, diferidos con riesgo y contrato de copy al día (ola 24)
@@ -257,7 +257,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
-| 9. Histórico y estadísticas | v1.8 | 27/27 | Complete   | 2026-09-13 |
+| 9. Histórico y estadísticas | v1.8 | 28/31 | In Progress|  |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 
 ---
