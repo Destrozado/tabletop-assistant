@@ -287,3 +287,86 @@ exige un teclado físico Y tabular a ciegas más allá del último botón.
 
 **Acción sugerida:** el ciclo de foco de `WarningDetailModal.vue`, que ya es el patrón
 bueno del repo.
+
+---
+
+## WR-02 (ronda 6) — tras una lectura fallida del progreso, el primer autoguardado de la partida nueva sobrescribe lo que no se pudo leer
+
+**Encontrado durante:** `09-REVIEW.md` (ronda 5, WR-02) y confirmado por `09-VERIFICATION.md`
+(ronda 6) como WARNING.
+
+**Descripción:** con `stored === 'unknown'` al montar, la app enseña el mini-setup; el grupo
+empieza otra partida y el primer `watchDebounced` que consiga escribir machaca
+`tga:progress:<gameId>`, destruyendo una posición que quizá seguía ahí y que solo era
+ilegible en ese instante. El plan 09-29 cierra la mitad honesta —la app **avisa** antes, con
+`UNVERIFIED_PROGRESS_NOTICE`— pero no corta ni condiciona el autoguardado.
+
+**Por qué no se corrige aquí (evaluación de RIESGO, no de alcance):** en las dos causas
+realistas de un fallo de lectura —modo privado y cuota— la **escritura falla igual**, así
+que no hay nada que destruir; el escenario dañino exige una lectura que falla y una
+escritura posterior que funciona, es decir un fallo transitorio. El radio de impacto es el
+PROGRESO de una partida (`tga:progress:<gameId>`), nunca el histórico (`tga:history`, otra
+clave, intacta por HIST-09), que es el único dato irreconstruible. Y el grupo ha recibido
+el aviso antes de empezar, así que la acción es informada. Cortar el autoguardado a cambio
+dejaría sin guardar una partida que el grupo sí ha empezado a propósito — un daño cierto
+para evitar uno improbable.
+
+**Supuesto NO verificado (hallazgo del verificador de planes, ronda 6):** la frase «en las
+dos causas realistas la escritura falla igual» asume que las causas de un fallo de LECTURA
+coinciden con las de un fallo de ESCRITURA. Pero `usePersistedSession.ts` solo marca
+`read: 'failed'` cuando `getItem` lanza o no hay `window` — un disparador más estrecho y
+menos correlacionado con `QuotaExceededError` en `setItem` de lo que la justificación
+supone, así que «la lectura falla y la escritura posterior funciona» puede ser menos raro
+de lo que este texto sugiere. El diferimiento se mantiene (la mitigación de 09-29 sigue en
+pie y el radio sigue siendo el progreso, nunca `tga:history`), pero esta entrada deja
+constar por escrito que esta correlación está SUPUESTA y no comprobada contra el código,
+para que una ronda futura pueda revisarla sin tener que volver a deducirla.
+
+**Acción sugerida:** si alguna vez se aborda, archivar el blob ilegible bajo
+`tga:progress:<gameId>:backup-<ts>` antes del primer `save()` de la partida nueva, en vez
+de condicionar el autoguardado.
+
+---
+
+## Nota de cierre (ronda 6, plan 09-31) — qué NO se difiere de la ronda 5
+
+Para que ningún WARNING de la ronda 5 reaparezca aquí como «pendiente» sin serlo, y para
+que ninguno de los que sigue abierto se dé por cerrado por descuido, un repaso explícito:
+WR-05, WR-06 y WR-07 quedaron cerrados por el plan 09-28, y WR-03/WR-04 (los huecos del
+gate) e IN-03/IN-05 quedaron cerrados por el plan 09-30. Nombrados uno a uno abajo, con su
+plan:
+
+- **WR-05** (comentario derogado en `HistorySavedNotice.vue` que instruía reintroducir el
+  booleano) — **CERRADO por el plan 09-28.**
+- **WR-06** (la ventana de `readStoredProgress`/`resume`/`expand` en `onOutcomeRecorded` sin
+  `try/catch`) — **CERRADO por el plan 09-28.**
+- **WR-07** (`PLACEHOLDER_CONTEXT` mutable y compartido entre llamadas) — **CERRADO por el
+  plan 09-28.**
+- **WR-03** (el gate no vigilaba los literales de `NoticeVariant` fuera de
+  `useHistorySavedNotice.ts`) e **IN-03** (el gate no barría `<script setup>`, dejando
+  invisible `endGameBody`) — **CERRADOS por el plan 09-30.**
+- **WR-04** (`extraerTemplate` cortaba en el primer `</template>` anidado, cubriendo el
+  1,9% de la plantilla de `index.vue`) — **CERRADO por el plan 09-30** (`regionVigilada`,
+  barrido de `.ts`, Gate S).
+- **IN-05** (evasión de Gate C por comillas dobles/backtick sin normalizar) — **CERRADO por
+  el plan 09-30** (`normalizarComillas`).
+
+Lo que sigue **ABIERTO**, sin cambios de este lote:
+
+- **WR-04 (ronda 4)** — solapamiento `UpdateBanner`/`HistorySavedNotice` (más arriba en
+  este fichero). Sigue abierto; este lote no lo toca.
+- **WR-05 (ronda 4)** — `pointer-events-none` deja toques invisibles sobre la cabecera de
+  `/historico` (más arriba en este fichero). Sigue abierto; este lote no lo toca.
+- **WR-02 (ronda 6)**, arriba — nuevo en este lote, evaluado y diferido con riesgo, no
+  cerrado.
+- **La comprobación visual humana en tablet horizontal, `DEV-02` (`REQUIREMENTS.md`)** —
+  sigue **ABIERTA** desde `09-22-SUMMARY.md`. En ningún sitio de este documento ni de
+  `REQUIREMENTS.md` puede aparecer como hecha; el guion de esa comprobación gana dos puntos
+  nuevos con este lote (aviso de lectura no comprobada del mini-setup, variante
+  `failure-stale`), pero la comprobación en sí no se ha realizado.
+
+Ningún hallazgo nuevo, distinto de WR-02 (ronda 6) arriba, aparece en los SUMMARY de los
+planes 09-28/09-29/09-30: la medición del punto 1 de la Task 3 de 09-30 (barrido ampliado
+a `.vue`+`.ts` con el vocabulario ampliado de WR-04) coincidió EXACTAMENTE con los ficheros
+y frases previstos por el propio WR-04 — «ningún fichero ni frase apareció fuera de lo
+anticipado», según el propio `09-30-SUMMARY.md`.
