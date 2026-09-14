@@ -20,15 +20,16 @@ import {
   SUCCESS_AUTO_DISMISS_MS,
   dismissHistorySavedNotice,
   notifyHistorySaved,
+  planGameEnd,
   resolveAutoDismissMs,
   resolveNoticeVariant,
   useHistorySavedNotice,
 } from '../useHistorySavedNotice'
 import type { StoredProgress } from '../useStoredProgress'
 
-// Las tres respuestas posibles de la autoridad de lectura (`readStoredProgress`),
-// escritas como constante del test — nunca se inventa un cuarto valor.
-const TODOS_LOS_ESTADOS_DEL_DISPOSITIVO: StoredProgress[] = ['resumable', 'absent', 'unknown']
+// Las cuatro respuestas posibles de la autoridad de lectura (`readStoredProgress`),
+// escritas como constante del test — nunca se inventa un quinto valor.
+const TODOS_LOS_ESTADOS_DEL_DISPOSITIVO: StoredProgress[] = ['resumable', 'stale', 'absent', 'unknown']
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -47,8 +48,9 @@ describe('resolveAutoDismissMs (función pura)', () => {
     expect(resolveAutoDismissMs('success')).toBe(SUCCESS_AUTO_DISMISS_MS)
   })
 
-  it('2. las tres variantes de fallo devuelven FAILURE_AUTO_DISMISS_MS (20000), mayor que el de éxito (asimetría D-03)', () => {
+  it('2. las cuatro variantes de fallo devuelven FAILURE_AUTO_DISMISS_MS (20000), mayor que el de éxito (asimetría D-03)', () => {
     expect(resolveAutoDismissMs('failure-recoverable')).toBe(FAILURE_AUTO_DISMISS_MS)
+    expect(resolveAutoDismissMs('failure-stale')).toBe(FAILURE_AUTO_DISMISS_MS)
     expect(resolveAutoDismissMs('failure-unrecoverable')).toBe(FAILURE_AUTO_DISMISS_MS)
     expect(resolveAutoDismissMs('failure-unknown')).toBe(FAILURE_AUTO_DISMISS_MS)
     expect(FAILURE_AUTO_DISMISS_MS).toBeGreaterThan(SUCCESS_AUTO_DISMISS_MS)
@@ -119,13 +121,17 @@ describe('notifyHistorySaved / useHistorySavedNotice', () => {
   })
 })
 
-describe('resolveNoticeVariant (función pura — tabla de verdad TOTAL sobre StoredProgress, plan 09-26)', () => {
+describe('resolveNoticeVariant (función pura — tabla de verdad TOTAL sobre StoredProgress, planes 09-26/09-28)', () => {
   it.each(TODOS_LOS_ESTADOS_DEL_DISPOSITIVO)('(true, %s) → success: el estado del dispositivo es irrelevante cuando el histórico ya se escribió', (stored) => {
     expect(resolveNoticeVariant(true, stored)).toBe('success')
   })
 
   it('(false, \'resumable\') → failure-recoverable: el histórico falló pero el progreso sigue en el dispositivo', () => {
     expect(resolveNoticeVariant(false, 'resumable')).toBe('failure-recoverable')
+  })
+
+  it('(false, \'stale\') → failure-stale: el histórico falló y lo que queda en el dispositivo NO es la partida que acaba de terminar (plan 09-28)', () => {
+    expect(resolveNoticeVariant(false, 'stale')).toBe('failure-stale')
   })
 
   it('(false, \'absent\') → failure-unrecoverable: el histórico falló y no hay progreso que ofrecer', () => {
@@ -136,15 +142,44 @@ describe('resolveNoticeVariant (función pura — tabla de verdad TOTAL sobre St
     expect(resolveNoticeVariant(false, 'unknown')).toBe('failure-unknown')
   })
 
+  it('los cuatro valores producen cuatro variantes distintas: biyección, sin hueco ni solape', () => {
+    const variantesProducidas = TODOS_LOS_ESTADOS_DEL_DISPOSITIVO.map(stored => resolveNoticeVariant(false, stored))
+    expect(new Set(variantesProducidas).size).toBe(TODOS_LOS_ESTADOS_DEL_DISPOSITIVO.length)
+  })
+
+  it('planGameEnd(false, \'stale\').preserveProgress es true: el snapshot anterior es el único rastro que queda de la partida', () => {
+    expect(planGameEnd(false, 'stale').preserveProgress).toBe(true)
+  })
+
   it('la variante no recuperable no promete nada sobre el dispositivo', () => {
     expect(NOTICE_BODY['failure-unrecoverable']).not.toContain('sigue guardada')
     expect(NOTICE_BODY['failure-unrecoverable']).not.toContain('Partida terminada')
   })
 
-  it('failure-unknown tiene cuerpo propio, distinto de las otras dos variantes de fallo', () => {
+  it('failure-stale (plan 09-28) no promete identidad de partida: ni "sigue guardada" ni "no se ha perdido"', () => {
+    expect(NOTICE_BODY['failure-stale']).not.toContain('sigue guardada')
+    expect(NOTICE_BODY['failure-stale']).not.toContain('no se ha perdido')
+  })
+
+  it('failure-unknown (plan 09-28) ya no delega en el grupo la inferencia de ausencia', () => {
+    expect(NOTICE_BODY['failure-unknown']).not.toContain('ya no está')
+  })
+
+  it('failure-unknown tiene cuerpo propio, distinto de las otras tres variantes de fallo', () => {
     const cuerpoDesconocido = NOTICE_BODY['failure-unknown']
     expect(cuerpoDesconocido).not.toBe(null)
     expect(cuerpoDesconocido).not.toBe(NOTICE_BODY['failure-recoverable'])
+    expect(cuerpoDesconocido).not.toBe(NOTICE_BODY['failure-stale'])
     expect(cuerpoDesconocido).not.toBe(NOTICE_BODY['failure-unrecoverable'])
+  })
+
+  it('las cuatro variantes de fallo tienen cuerpos distintos entre sí', () => {
+    const cuerpos = [
+      NOTICE_BODY['failure-recoverable'],
+      NOTICE_BODY['failure-stale'],
+      NOTICE_BODY['failure-unrecoverable'],
+      NOTICE_BODY['failure-unknown'],
+    ]
+    expect(new Set(cuerpos).size).toBe(cuerpos.length)
   })
 })
