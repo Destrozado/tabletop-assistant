@@ -15,9 +15,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import rawTinyGame from '../../../engine/__tests__/fixtures/tiny-game.json'
 import { expand } from '~~/engine/expand'
 import { validateGameDefinition } from '~~/engine/schema'
+import { toPersistedPosition } from '~~/engine/persistence'
 import type { PersistedPosition } from '~~/engine/persistence'
 import { usePersistedSession } from '../usePersistedSession'
-import { PLACEHOLDER_CONTEXT, readStoredProgress } from '../useStoredProgress'
+import { esLaMismaPartida, PLACEHOLDER_CONTEXT, readStoredProgress } from '../useStoredProgress'
 
 const tinyGame = validateGameDefinition(rawTinyGame)
 
@@ -133,5 +134,169 @@ describe('readStoredProgress — la autoridad sobre lo que hay en el dispositivo
   it('la autoridad no escribe nada en el dispositivo', () => {
     readStoredProgress(tinyGame)
     expect(fakeStorage.setItem).not.toHaveBeenCalled()
+  })
+
+  it('sin segundo argumento, tres autoguardados y cierre fallido: sigue devolviendo resumable (la firma opcional no cambia el comportamiento del montaje)', () => {
+    const { save } = usePersistedSession()
+    save(expand(tinyGame, { playerCount: 2, difficulty: 'normal' }))
+    save({ ...expand(tinyGame, { playerCount: 2, difficulty: 'normal' }), cursor: 1 })
+    save({ ...expand(tinyGame, { playerCount: 2, difficulty: 'normal' }), cursor: 2 })
+
+    const report = readStoredProgress(tinyGame)
+    expect(report.stored).toBe('resumable')
+  })
+
+  describe('con `esperada` — la autoridad contesta «¿es ESTO lo que hay?» (plan 09-28, séptima cara del defecto)', () => {
+    it('lo que hay en disco es idéntico a `esperada` → resumable', () => {
+      const { save } = usePersistedSession()
+      const session = expand(tinyGame, { playerCount: 2, difficulty: 'normal' })
+      save(session)
+
+      const report = readStoredProgress(tinyGame, session)
+      expect(report.stored).toBe('resumable')
+    })
+
+    it('lo que hay en disco es OTRO runtimeId → stale', () => {
+      const { save } = usePersistedSession()
+      const enDisco = expand(tinyGame, { playerCount: 2, difficulty: 'normal' })
+      save(enDisco)
+
+      const esperada = { ...enDisco, cursor: 1 }
+      const report = readStoredProgress(tinyGame, esperada)
+      expect(report.stored).toBe('stale')
+    })
+
+    it('mismo runtimeId pero OTRA round → stale', () => {
+      const { save } = usePersistedSession()
+      const enDisco = expand(tinyGame, { playerCount: 2, difficulty: 'normal' })
+      save(enDisco)
+
+      const esperada = { ...enDisco, round: enDisco.round + 1 }
+      const report = readStoredProgress(tinyGame, esperada)
+      expect(report.stored).toBe('stale')
+    })
+
+    it('mismo runtimeId y round pero OTRO context (playerCount distinto) → stale', () => {
+      const { save } = usePersistedSession()
+      const enDisco = expand(tinyGame, { playerCount: 2, difficulty: 'normal' })
+      save(enDisco)
+
+      const esperada = { ...enDisco, context: { playerCount: 3, difficulty: 'normal' as const } }
+      const report = readStoredProgress(tinyGame, esperada)
+      expect(report.stored).toBe('stale')
+    })
+
+    it('`updatedAt` distinto (dos escrituras de la misma posición en instantes distintos) NO produce stale', () => {
+      const { save } = usePersistedSession()
+      const session = expand(tinyGame, { playerCount: 2, difficulty: 'normal' })
+      save(session)
+      // Segunda escritura de la MISMA posición: `save()` fija su propio
+      // `updatedAt` internamente, así que basta con volver a guardar para
+      // que la clave en disco tenga un `updatedAt` distinto del de la
+      // primera vez.
+      save(session)
+
+      const report = readStoredProgress(tinyGame, session)
+      expect(report.stored).toBe('resumable')
+    })
+
+    it('un `context` con las mismas claves en distinto orden de serialización NO produce stale', () => {
+      const { save } = usePersistedSession()
+      const enDisco = expand(tinyGame, { playerCount: 2, difficulty: 'normal' })
+      save(enDisco)
+
+      const esperada = { ...enDisco, context: { difficulty: 'normal' as const, playerCount: 2 } }
+      const report = readStoredProgress(tinyGame, esperada)
+      expect(report.stored).toBe('resumable')
+    })
+
+    it('clave ausente + esperada → absent, no stale: no hay nada que comparar', () => {
+      const esperada = expand(tinyGame, { playerCount: 2, difficulty: 'normal' })
+      const report = readStoredProgress(tinyGame, esperada)
+      expect(report.stored).toBe('absent')
+    })
+
+    it('getItem que lanza + esperada → unknown, no stale: no se ha podido leer', () => {
+      fakeStorage.getItem.mockImplementation(() => {
+        throw new Error('SecurityError')
+      })
+      const esperada = expand(tinyGame, { playerCount: 2, difficulty: 'normal' })
+
+      const report = readStoredProgress(tinyGame, esperada)
+      expect(report.stored).toBe('unknown')
+    })
+
+    it('contentVersion distinto + esperada → stale y outcome content-changed: hay algo que ofrecer, pero no es esta partida', () => {
+      const structural = expand(tinyGame, { playerCount: 2, difficulty: 'normal' })
+      const persisted: PersistedPosition = {
+        formatVersion: 1,
+        gameId: tinyGame.gameId,
+        contentVersion: 99,
+        runtimeId: structural.sequence[0]!.runtimeId,
+        round: 1,
+        context: { playerCount: 2, difficulty: 'normal' },
+        updatedAt: new Date().toISOString(),
+      }
+      fakeStorage.setItem(`tga:progress:${tinyGame.gameId}`, JSON.stringify(persisted))
+
+      const report = readStoredProgress(tinyGame, structural)
+      expect(report.outcome).toBe('content-changed')
+      expect(report.stored).toBe('stale')
+    })
+  })
+})
+
+describe('esLaMismaPartida — comparación normalizada, sin `updatedAt` (plan 09-28)', () => {
+  it('`updatedAt` distinto devuelve true (queda excluido de la comparación)', () => {
+    const enDisco: PersistedPosition = {
+      formatVersion: 1,
+      gameId: 'tiny-game',
+      contentVersion: 1,
+      runtimeId: 'r1',
+      round: 1,
+      context: { playerCount: 2, difficulty: 'normal' },
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const objetivo: PersistedPosition = { ...enDisco, updatedAt: '2026-06-01T00:00:00.000Z' }
+
+    expect(esLaMismaPartida(enDisco, objetivo)).toBe(true)
+  })
+
+  it('un `context` con las mismas claves construidas en otro orden devuelve true', () => {
+    const enDisco: PersistedPosition = {
+      formatVersion: 1,
+      gameId: 'tiny-game',
+      contentVersion: 1,
+      runtimeId: 'r1',
+      round: 1,
+      context: { playerCount: 2, difficulty: 'normal' },
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const objetivo: PersistedPosition = {
+      ...enDisco,
+      context: { difficulty: 'normal', playerCount: 2 },
+    }
+
+    expect(esLaMismaPartida(enDisco, objetivo)).toBe(true)
+  })
+
+  it('un `context` con el mismo `playerCount` pero distinta `difficulty` devuelve false', () => {
+    const enDisco: PersistedPosition = {
+      formatVersion: 1,
+      gameId: 'tiny-game',
+      contentVersion: 1,
+      runtimeId: 'r1',
+      round: 1,
+      context: { playerCount: 2, difficulty: 'normal' },
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const objetivo: PersistedPosition = { ...enDisco, context: { playerCount: 2, difficulty: 'expert' } }
+
+    expect(esLaMismaPartida(enDisco, objetivo)).toBe(false)
+  })
+
+  it('`toPersistedPosition` de una sesión recién guardada compara igual consigo misma', () => {
+    const session = expand(tinyGame, { playerCount: 2, difficulty: 'normal' })
+    expect(esLaMismaPartida(toPersistedPosition(session), toPersistedPosition(session))).toBe(true)
   })
 })
