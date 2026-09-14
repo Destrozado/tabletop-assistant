@@ -1,23 +1,44 @@
 // app/composables/__tests__/afirmacionesRespaldadas.test.ts
 //
-// EL GATE DE CLASE (plan 09-26, cierre del BLOCKER de la ronda 5).
+// EL GATE DE CLASE (plan 09-26, cierre del BLOCKER de la ronda 5; reformado
+// en el plan 09-30, cierre del Gap #2 de la ronda 6).
 //
-// Cinco rondas de verificación de esta fase han encontrado cinco caras del
+// Seis rondas de verificación de esta fase han encontrado ocho caras del
 // MISMO defecto: una afirmación de la app sobre los datos guardados del
 // grupo, sin que una lectura real del dispositivo la respaldara. Cada ronda
 // cerró la cara que había encontrado — nunca la clase entera — y la ronda
 // siguiente encontraba la cara de al lado. Este fichero es la versión
 // EJECUTABLE del criterio de inclusión de `09-AUDIT-AFIRMACIONES-UI.md` §1
 // («frase que afirma un hecho sobre los datos persistidos del grupo»), para
-// que la sexta cara no dependa de que alguien repita el barrido a mano.
+// que la novena cara no dependa de que alguien repita el barrido a mano.
 //
-// Tres gates:
-// - Gate A: ningún `.vue` afirma nada por su cuenta en su `<template>`.
+// El Gap #2 de la ronda 6 (CR-03/WR-04 de `09-REVIEW.md`) es el hallazgo que
+// explica mecánicamente por qué el Gap #1 no se detectó solo: el
+// `extraerTemplate` original cortaba en el PRIMER `</template>` del fichero
+// — el 1,9% de `app/pages/[game]/index.vue` (761 de ~7.090+ caracteres) —
+// porque su cuantificador era perezoso y el fichero tiene un `<template
+// #fallback>` de `ClientOnly` anidado casi al principio. `ResumePrompt`,
+// `ConfirmDialog`, `ContentChangedNotice` y `GameOutcomeDialog` — donde han
+// vivido cinco de las ocho caras — quedaban fuera. Y ningún gate miraba
+// `<script setup>`, así que `endGameBody` (IN-03/WR-04, abierto desde la
+// ronda 4) seguía invisible por partida doble.
+//
+// La regla nueva, desde el plan 09-30: NO se intenta acotar el bloque de
+// nuevo con otro delimitador — acotar el bloque es lo que falló. Se barre el
+// FICHERO ENTERO menos lo que no es copy (comentarios y `<style>`), y las
+// excepciones se auditan una a una, por frase, con su motivo escrito.
+//
+// Cuatro gates:
+// - Gate A: ningún `.vue` ni `.ts` de `app/` afirma nada por su cuenta en su
+//   plantilla o en su `<script setup>` (barrido completo vía
+//   `regionVigilada`, no solo el `<template>`).
 // - Gate B: la copy del composable (`NOTICE_BODY`) solo afirma desde
-//   variantes que la autoridad puede producir, y esas tres variantes cubren
-//   EXACTAMENTE los tres valores de `StoredProgress`, sin hueco ni solape.
+//   variantes que la autoridad puede producir, y esas variantes cubren
+//   EXACTAMENTE los valores de `StoredProgress`, sin hueco ni solape.
 // - Gate C: nadie fuera de los ficheros que conocen la autoridad se inventa
 //   el estado del dispositivo con un literal o una comparación propia.
+// - Gate S: auto-verificación del propio gate (09-30) — el detector se pone
+//   rojo con SFC sintéticos si alguien vuelve a acotar la región vigilada.
 //
 // Recorrido de ficheros vía `import.meta.glob` (macro de Vite/Vitest), NO
 // `node:fs`/`node:url`: este fichero vive bajo `app/composables/__tests__/`,
@@ -28,7 +49,7 @@
 // aquí (los aporta `vite/client`, ya referenciado por `nuxt/app`), y
 // funciona igual bajo Vitest (que transforma con Vite) sin depender de
 // ningún módulo de Node.
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { NOTICE_BODY, resolveNoticeVariant } from '../useHistorySavedNotice'
 import type { StoredProgress } from '../useStoredProgress'
 
@@ -98,13 +119,24 @@ const FICHEROS_QUE_PUEDEN_NOMBRAR_EL_ESTADO_DEL_DISPOSITIVO = [
   'app/composables/useProgressMountPlan.ts',
 ]
 
-function quitarComentariosHtml(html: string): string {
-  return html.replace(/<!--[\s\S]*?-->/g, '')
+// quitarComentarios/regionVigilada (plan 09-30, fix de CR-03/WR-04 de
+// `09-REVIEW.md` ronda 6): sustituyen a `extraerTemplate`/
+// `quitarComentariosHtml`. La región vigilada deja de intentar acotar
+// «el `<template>`» — acotar el bloque es lo que falló, con un cuantificador
+// perezoso que cortaba en el PRIMER `</template>` anidado — y pasa a ser el
+// FICHERO ENTERO menos lo que de verdad no es copy: comentarios y `<style>`.
+// Es más barato barrer de más y auditar las excepciones una a una (con su
+// motivo escrito) que confiar en un delimitador que un slot con nombre, un
+// `<template v-if>` o un `<script setup>` pueden romper en silencio.
+export function quitarComentarios(sfc: string): string {
+  return sfc
+    .replace(/<!--[\s\S]*?-->/g, '') // comentarios HTML
+    .replace(/\/\*[\s\S]*?\*\//g, '') // comentarios de bloque JS
+    .replace(/^\s*\/\/.*$/gm, '') // comentarios de línea JS
 }
 
-function extraerTemplate(sfc: string): string {
-  const match = sfc.match(/<template[^>]*>([\s\S]*?)<\/template>/)
-  return match ? quitarComentariosHtml(match[1]!) : ''
+export function regionVigilada(sfc: string): string {
+  return quitarComentarios(sfc).replace(/<style[^>]*>[\s\S]*?<\/style>/g, '')
 }
 
 // Ruta relativa desde la raíz del repo (p. ej. `app/components/ResumePrompt.vue`),
@@ -114,26 +146,29 @@ function rutaRelativa(clave: string): string {
   return clave.replace(/^\/+/, '')
 }
 
-describe('Gate A — ningún .vue afirma nada por su cuenta en su <template> (09-26)', () => {
-  // Recorrido RECURSIVO — nunca una lista tecleada a mano: añadir una
-  // pantalla nueva no puede dejarla fuera del barrido.
-  const ficherosVue = import.meta.glob('/app/**/*.vue', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
+// Recorrido RECURSIVO — nunca una lista tecleada a mano: añadir una pantalla
+// nueva no puede dejarla fuera del barrido. Módulo-scope (no dentro del
+// `describe` de Gate A) para que Gate S (auto-verificación) pueda usar el
+// mismo glob al comprobar la cobertura sobre el árbol real, en vez de leer
+// una ruta tecleada a mano.
+const ficherosVueGateA = import.meta.glob('/app/**/*.vue', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
 
+describe('Gate A — ningún .vue ni .ts de app/ afirma nada por su cuenta (09-26/09-30)', () => {
   it('barre al menos un fichero .vue real (el gate no está vacío por accidente)', () => {
-    expect(Object.keys(ficherosVue).length).toBeGreaterThan(0)
+    expect(Object.keys(ficherosVueGateA).length).toBeGreaterThan(0)
   })
 
-  it.each(Object.entries(ficherosVue))('%s no afirma nada sobre los datos del grupo en su <template> sin auditoría', (clave, contenido) => {
+  it.each(Object.entries(ficherosVueGateA))('%s no afirma nada sobre los datos del grupo en su plantilla o en su <script setup> sin auditoría', (clave, contenido) => {
     const ruta = rutaRelativa(clave)
-    const template = extraerTemplate(contenido)
-    const frasesEncontradas = FRASES_SOBRE_LOS_DATOS_DEL_GRUPO.filter(frase => template.includes(frase))
+    const region = regionVigilada(contenido)
+    const frasesEncontradas = FRASES_SOBRE_LOS_DATOS_DEL_GRUPO.filter(frase => region.includes(frase))
 
     if (frasesEncontradas.length > 0 && !FICHEROS_CON_AFIRMACION_AUDITADA.includes(ruta)) {
       throw new Error(
-        `${ruta} afirma en su <template> sobre los datos guardados del grupo (${frasesEncontradas.join(', ')}) `
-        + 'sin pasar por la autoridad. Si hace falta una frase nueva sobre los datos guardados del grupo, '
-        + 'tiene que venir de una variante respaldada por readStoredProgress (useHistorySavedNotice.ts), '
-        + 'no escrita directamente en la plantilla.',
+        `${ruta} afirma en su plantilla o en su <script setup> sobre los datos guardados del grupo `
+        + `(${frasesEncontradas.join(', ')}) sin pasar por la autoridad. Si hace falta una frase nueva sobre `
+        + 'los datos guardados del grupo, tiene que venir de una variante respaldada por readStoredProgress '
+        + '(useHistorySavedNotice.ts), no escrita directamente en la plantilla o en el script.',
       )
     }
 
@@ -177,6 +212,15 @@ describe('Gate C — procedencia del estado del dispositivo (09-26)', () => {
     return Object.entries(todosLosFicheros).filter(([clave]) => !rutaRelativa(clave).includes('/__tests__/'))
   }
 
+  // IN-03 (09-REVIEW.md ronda 6): el primer test de Gate C se protegía con
+  // esta guarda pero el segundo no — si el glob dejara de resolver, el
+  // segundo test pasaría en verde sin una sola aserción ejecutada. Se
+  // extrae a un `beforeAll` compartido para que NINGÚN test de este
+  // `describe` pueda pasar por no encontrar nada que mirar.
+  beforeAll(() => {
+    expect(ficherosVigilados().length).toBeGreaterThan(0)
+  })
+
   it('los literales \'resumable\', \'absent\' y \'unknown\' solo aparecen en los ficheros que conocen la autoridad', () => {
     const LITERALES = ['\'resumable\'', '\'absent\'', '\'unknown\'']
     for (const [clave, contenido] of ficherosVigilados()) {
@@ -192,7 +236,8 @@ describe('Gate C — procedencia del estado del dispositivo (09-26)', () => {
     }
     // Si la lista de vigilancia se quedara vacía por un cambio accidental de
     // ruta, este test pasaría por no encontrar nada que mirar — la
-    // aserción de abajo lo impide.
+    // aserción de abajo lo impide (redundante con el beforeAll, a propósito:
+    // IN-03 pedía que NINGÚN test de este fichero pueda pasar en vacío).
     expect(ficherosVigilados().length).toBeGreaterThan(0)
   })
 
@@ -208,5 +253,106 @@ describe('Gate C — procedencia del estado del dispositivo (09-26)', () => {
         )
       }
     }
+  })
+})
+
+describe('Gate S — auto-verificación del propio gate (09-30)', () => {
+  // Todos los tests de este describe usan cadenas SINTÉTICAS construidas
+  // aquí mismo — nunca leyendo el árbol — salvo las dos aserciones finales
+  // de cobertura, que comprueban explícitamente que el gate mira de verdad
+  // el fichero de mayor riesgo.
+
+  it('una frase colocada DESPUÉS del cierre de un <template> anidado SÍ entra en la región vigilada (el hueco de CR-03)', () => {
+    const frase = FRASES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
+    const sfcSintetico = `
+<script setup lang="ts">
+const x = 1
+</script>
+
+<template>
+  <ClientOnly>
+    <template #fallback>
+      <p>Cargando…</p>
+    </template>
+    <p>${frase}</p>
+  </ClientOnly>
+</template>
+`
+    expect(regionVigilada(sfcSintetico)).toContain(frase)
+
+    // Esta es la que fallaba (CR-03, 09-REVIEW.md ronda 6): cuantificador
+    // perezoso, corta en el PRIMER </template> — el del fallback anidado —
+    // y nunca llega a la frase real, dos líneas más abajo.
+    const capturaConLaRegexVieja = sfcSintetico.match(/<template[^>]*>([\s\S]*?)<\/template>/)?.[1] ?? ''
+    expect(capturaConLaRegexVieja).not.toContain(frase)
+  })
+
+  it('una frase dentro de un comentario HTML NO entra en la región vigilada (los comentarios no son copy)', () => {
+    const frase = FRASES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
+    const sfcSintetico = `
+<template>
+  <!-- ${frase} -->
+  <p>hola</p>
+</template>
+`
+    expect(regionVigilada(sfcSintetico)).not.toContain(frase)
+  })
+
+  it('una frase dentro de un comentario de línea JS de un <script setup> NO entra en la región vigilada', () => {
+    const frase = FRASES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
+    const sfcSintetico = `
+<script setup lang="ts">
+// ${frase}
+const x = 1
+</script>
+
+<template>
+  <p>hola</p>
+</template>
+`
+    expect(regionVigilada(sfcSintetico)).not.toContain(frase)
+  })
+
+  it('una frase dentro de un bloque <style> NO entra en la región vigilada', () => {
+    const frase = FRASES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
+    const sfcSintetico = `
+<template>
+  <p>hola</p>
+</template>
+
+<style scoped>
+/* ${frase} */
+.x { color: red; }
+</style>
+`
+    expect(regionVigilada(sfcSintetico)).not.toContain(frase)
+  })
+
+  it('una frase dentro de un <script setup> (fuera de comentario) SÍ entra en la región vigilada', () => {
+    const frase = FRASES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
+    const sfcSintetico = `
+<script setup lang="ts">
+const aviso = '${frase}'
+</script>
+
+<template>
+  <p>hola</p>
+</template>
+`
+    expect(regionVigilada(sfcSintetico)).toContain(frase)
+  })
+
+  it('cobertura real: la región vigilada de index.vue contiene GameOutcomeDialog (solo existe DESPUÉS del primer </template>)', () => {
+    const clave = Object.keys(ficherosVueGateA).find(k => k.endsWith('/pages/[game]/index.vue'))
+    expect(clave, 'no se encontró app/pages/[game]/index.vue en el glob de Gate A').toBeDefined()
+    const contenido = ficherosVueGateA[clave!]!
+    expect(regionVigilada(contenido)).toContain('GameOutcomeDialog')
+  })
+
+  it('cobertura real: la región vigilada de index.vue contiene endGameBody (solo existe en <script setup>)', () => {
+    const clave = Object.keys(ficherosVueGateA).find(k => k.endsWith('/pages/[game]/index.vue'))
+    expect(clave, 'no se encontró app/pages/[game]/index.vue en el glob de Gate A').toBeDefined()
+    const contenido = ficherosVueGateA[clave!]!
+    expect(regionVigilada(contenido)).toContain('endGameBody')
   })
 })
