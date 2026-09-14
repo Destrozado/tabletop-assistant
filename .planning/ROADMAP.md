@@ -180,7 +180,7 @@ Plans:
   4. Hay una pantalla de estadísticas accesible desde el inicio que muestra el % de victorias por héroe y por villano, con un estado vacío claro (no un error ni porcentajes engañosos) cuando el histórico está vacío.
   5. La pantalla de estadísticas lee exclusivamente localStorage — verificable en esta fase de forma trivial, porque Firestore ni siquiera existe todavía en el código en este punto del hito.
 
-**Plans**: 27 plans (20 olas)
+**Plans**: 31 plans (24 olas)
 - [x] 09-01-PLAN.md — Motor: tipos aditivos del histórico, `buildHistoryEntry` y formateadores puros (ola 1)
 - [x] 09-02-PLAN.md — `GameOutcomeDialog` y el aviso de guardado montado en `app.vue` (ola 1)
 - [x] 09-03-PLAN.md — Motor: `aggregateStatistics` con la cascada de orden de D-24 (ola 2)
@@ -208,6 +208,10 @@ Plans:
 - [x] 09-25-PLAN.md — Cierre de huecos ronda 5: la autoridad de lectura que contesta qué hay de verdad en el dispositivo, con «no he podido comprobarlo» como tercera respuesta (CR-01 r5, causa raíz) (ola 18)
 - [x] 09-26-PLAN.md — Cierre de huecos ronda 5: los dos consumidores hablan por la autoridad, guarda de reentrada (WR-01) y gate automatizado contra afirmaciones sin respaldo (ola 19)
 - [x] 09-27-PLAN.md — Cierre de huecos ronda 5: corrección de la nota de cierre prematura sobre HIST-06, diferidos con justificación de riesgo y pregunta Q5 en la auditoría de afirmaciones (ola 20)
+- [ ] 09-28-PLAN.md — Cierre de huecos ronda 6: la autoridad de lectura compara contra la partida que acaba de terminar (`'stale'`), cuarta variante `failure-stale`, y cierre de WR-05/WR-06/WR-07 (ola 21)
+- [ ] 09-29-PLAN.md — Cierre de huecos ronda 6: el montaje deja de colapsar «no hay nada» con «no he podido mirar» (`planProgressMount` + aviso en el mini-setup) y el test contraproducente se corrige (ola 22)
+- [ ] 09-30-PLAN.md — Cierre de huecos ronda 6: el gate de clase barre el fichero entero y `app/**/*.ts`, se autocomprueba, y `endGameBody` deja de afirmar un borrado que no siempre ocurre (ola 23)
+- [ ] 09-31-PLAN.md — Cierre de huecos ronda 6: séptima variante registrada en REQUIREMENTS.md sin cerrar HIST-06, Q6 en la auditoría, diferidos con riesgo y contrato de copy al día (ola 24)
 **UI hint**: yes
 **Verificación humana**: Sí, recomendable pero no bloqueante por dispositivo — el flujo de fin de partida y las dos pantallas nuevas se verifican jugando una partida real de principio a fin (puede hacerse en portátil/móvil, no requiere la tablet de mesa) y comprobando que el registro y las estadísticas resultantes coinciden con lo jugado.
 
