@@ -63,18 +63,21 @@ const { variant, heading, body, dismiss } = useHistorySavedNotice()
         <!--
           CR-01 (ronda 4, 09-VERIFICATION.md): este componente ya no
           contiene NINGUNA afirmación propia sobre los datos del grupo. El
-          texto lo decide `resolveNoticeVariant` (useHistorySavedNotice.ts) a
-          partir de dos valores de retorno reales — lo que devuelve
-          `record()` (appendHistoryEntry) y lo que devuelve `save()`
-          (usePersistedSession) — y vive en `NOTICE_HEADING`/`NOTICE_BODY`
-          precisamente para que un test puro pueda comprobarlo sin montar
-          este componente. Antes de 09-20/09-21 el `v-else` de aquí pintaba
-          la misma frase de recuperación para las dos variantes de fallo,
-          incluida la que no tiene nada que recuperar; esa es la promesa
-          falsa que CR-01 encontró. Regla para el futuro: ninguna
-          frase que esta banda muestre puede escribirse aquí; si hace falta
-          una nueva, se añade como variante en el composable, con el
-          booleano que la respalde.
+          texto lo decide `planGameEnd`/`resolveNoticeVariant`
+          (useHistorySavedNotice.ts) a partir de DOS preguntas distintas: si
+          el histórico llegó a escribirse (`record()`) y qué hay AHORA MISMO
+          en el dispositivo comparado con la partida que acaba de terminar
+          (`readStoredProgress`, la autoridad de lectura, plan 09-25/09-28) —
+          y vive en `NOTICE_HEADING`/`NOTICE_BODY` precisamente para que un
+          test puro pueda comprobarlo sin montar este componente. Antes de
+          09-20/09-21 el `v-else` de aquí pintaba la misma frase de
+          recuperación para las dos variantes de fallo, incluida la que no
+          tiene nada que recuperar; esa es la promesa falsa que CR-01
+          encontró. Regla para el futuro: ninguna frase que esta banda
+          muestre puede escribirse aquí; si hace falta una nueva, se añade
+          como variante en el composable, respaldada por una LECTURA real que
+          conteste la MISMA pregunta que la frase plantea — nunca por el
+          booleano de una escritura.
         -->
         <h2
           class="text-heading font-bold text-primary-text"

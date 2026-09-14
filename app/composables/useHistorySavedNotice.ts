@@ -23,13 +23,14 @@ import type { ComputedRef } from 'vue'
 // porque el tipo desaparece al compilar.
 import type { StoredProgress } from '~/composables/useStoredProgress'
 
-export type NoticeVariant = 'success' | 'failure-recoverable' | 'failure-unrecoverable' | 'failure-unknown'
+export type NoticeVariant = 'success' | 'failure-recoverable' | 'failure-stale' | 'failure-unrecoverable' | 'failure-unknown'
 
 // D-03: «un aviso breve» que no pide ninguna acción se autocierra rápido; el
 // de fallo tiene dos frases que hay que poder leer a un brazo de distancia
 // desde la mesa, así que se le da mucho más margen. La asimetría es
-// intencionada (ver test 3). Las TRES variantes de fallo comparten la misma
-// duración larga — `failure-unknown` no es menos seria que las otras dos.
+// intencionada (ver test 3). Las CUATRO variantes de fallo comparten la
+// misma duración larga — ninguna de las tres nuevas (`failure-stale`
+// incluida) es menos seria que `failure-unrecoverable`.
 export const SUCCESS_AUTO_DISMISS_MS = 6000
 export const FAILURE_AUTO_DISMISS_MS = 20000
 
@@ -49,17 +50,19 @@ export function resolveAutoDismissMs(variant: NoticeVariant): number {
 // `boolean` en esta posición hace fallar `npm run typecheck`, no una promesa
 // en un comentario.
 //
-// Tabla TOTAL sobre los tres valores de `StoredProgress`, sin ninguna rama
-// más:
+// Tabla TOTAL sobre los CUATRO valores de `StoredProgress` (plan 09-28,
+// séptima cara del defecto de esta fase), sin ninguna rama más:
 // - `historyRecorded === true` → 'success' (el histórico ya está escrito;
 //   el estado del progreso es irrelevante porque no hay nada que
 //   reintentar).
 // - `stored === 'resumable'` → 'failure-recoverable'.
+// - `stored === 'stale'` → 'failure-stale'.
 // - `stored === 'absent'` → 'failure-unrecoverable'.
 // - `stored === 'unknown'` → 'failure-unknown'.
 export function resolveNoticeVariant(historyRecorded: boolean, stored: StoredProgress): NoticeVariant {
   if (historyRecorded) return 'success'
   if (stored === 'resumable') return 'failure-recoverable'
+  if (stored === 'stale') return 'failure-stale'
   if (stored === 'absent') return 'failure-unrecoverable'
   return 'failure-unknown'
 }
@@ -104,7 +107,7 @@ function clearPendingTimeout(): void {
   }
 }
 
-// Copy de las cuatro variantes, exportada como dato en vez de vivir suelta en
+// Copy de las cinco variantes, exportada como dato en vez de vivir suelta en
 // `HistorySavedNotice.vue`: es la afirmación que la app le hace al grupo
 // sobre sus propios datos, y una afirmación así tiene que ser comprobable
 // por un test puro — precedente del repo: `emptyTitle`/`emptyBody` de
@@ -115,6 +118,7 @@ function clearPendingTimeout(): void {
 export const NOTICE_HEADING: Record<NoticeVariant, string> = {
   'success': '✓ Partida registrada',
   'failure-recoverable': '⚠ No se pudo guardar la partida',
+  'failure-stale': '⚠ No se pudo guardar la partida',
   'failure-unrecoverable': '⚠ No se pudo guardar la partida',
   'failure-unknown': '⚠ No se pudo guardar la partida',
 }
@@ -132,16 +136,32 @@ export const NOTICE_HEADING: Record<NoticeVariant, string> = {
 // comprobado — que al volver a entrar aparece el mini-setup — ni una
 // palabra más.
 //
-// `failure-unknown` (nueva en el plan 09-26): existe porque un fallo de
-// LECTURA no autoriza a afirmar ni presencia (ronda 4) ni ausencia (ronda
-// 5) del progreso. La única frase honesta es decir que no se ha podido
-// comprobar y explicar cómo lo comprueba el grupo con sus propios ojos al
-// volver a entrar en el juego.
+// `failure-stale` (nueva en el plan 09-28, séptima cara del defecto de esta
+// fase, cierre de T-09-28-01): afirma exactamente lo que `esLaMismaPartida`
+// ha comprobado — hay algo en el dispositivo, y no coincide con la partida
+// que acaba de terminar — sin prometer identidad de partida y SIN ordenar el
+// reintento que las otras variantes de fallo sí ordenan. Ese reintento es
+// precisamente lo que escribiría en el histórico irreconstruible la ronda y
+// la selección de un autoguardado anterior (Gap #1 de la ronda 6,
+// `09-VERIFICATION.md`).
+//
+// `failure-unknown` (nueva en el plan 09-26, reescrita en el plan 09-28
+// —CR-02, `09-REVIEW.md`—): existe porque un fallo de LECTURA no autoriza a
+// afirmar ni presencia (ronda 4) ni ausencia (ronda 5) del progreso. La
+// versión anterior terminaba en «si os pide jugadores y dificultad, esa
+// partida ya no está» — una inferencia de ausencia delegada en el grupo que
+// la app no puede respaldar, porque el mini-setup aparece por tres caminos
+// distintos (ausencia genuina, fallo de lectura persistente, posición
+// existente pero inservible). Externalizar una afirmación no comprobada a
+// los ojos del usuario sigue siendo hacerla. El texto nuevo dice lo que se
+// ha comprobado (nada) y nombra las causas habituales, sin pedirle al grupo
+// que use el mini-setup como oráculo de ausencia.
 export const NOTICE_BODY: Record<NoticeVariant, string | null> = {
   'success': null,
   'failure-recoverable': 'La partida no se ha perdido: sigue guardada en el dispositivo. Volved a entrar en ella y pulsad «Partida terminada» otra vez para reintentar el registro. Si vuelve a fallar, puede deberse al modo privado del navegador, a la memoria llena, o a un histórico anterior que la app no consigue leer.',
+  'failure-stale': 'La partida no se ha registrado. En el dispositivo solo queda una versión anterior de esta partida —no la ronda en la que habéis terminado—, así que volver a entrar y registrarla desde ahí guardaría en el histórico datos que no son los de esta partida. Suele deberse al modo privado del navegador o a la memoria llena.',
   'failure-unrecoverable': 'Al volver a entrar en el juego no encontraréis esta partida, así que esta vez no hay nada que reintentar. Suele deberse al modo privado del navegador o a la memoria llena: revisadlo antes de la próxima partida.',
-  'failure-unknown': 'No hemos podido comprobar si la partida sigue en el dispositivo. Volved a entrar en el juego: si os ofrece continuar, pulsad «Partida terminada» otra vez para reintentar el registro; si os pide jugadores y dificultad, esa partida ya no está.',
+  'failure-unknown': 'No hemos podido comprobar si la partida sigue en el dispositivo. Volved a entrar en el juego: si os ofrece continuar, pulsad «Partida terminada» otra vez para reintentar el registro. Si no os la ofrece, puede que siga ahí y la app no consiga leerla: el modo privado del navegador y la memoria llena son las dos causas habituales.',
 }
 
 // `notifyHistorySaved` recibe la variante YA decidida, en vez de decidirla:
