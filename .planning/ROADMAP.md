@@ -33,7 +33,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 - [x] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente (completed 2026-09-08)
 - [x] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7 (verificación: gaps_found — CR-01 solape de zonas táctiles) (completed 2026-09-08)
 - [x] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz (completed 2026-09-09)
-- [x] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (27/27 planes ejecutados; verificación ronda 6: gaps_found 4/5 — el BLOCKER literal de la ronda 5 SÍ quedó cerrado (autoridad de lectura `readStoredProgress` + barrera de tipos real en CI), pero aparece la sexta cara del mismo defecto: la autoridad contesta «¿hay ALGUNA partida?» mientras la copy afirma «ESTA partida sigue guardada», y el gate de clase inspecciona el 1,9% del fichero que debía vigilar. Pendiente de lote de cierre ronda 6) (completed 2026-09-14)
+- [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (31/31 planes ejecutados; verificación ronda 7: gaps_found 4/5 — la ronda 6 cerró sus dos huecos literales (la autoridad de lectura ya compara identidad de partida vía `esLaMismaPartida`, y el gate de clase ya inspecciona el fichero entero, 34,9× más superficie), pero aparece la OCTAVA cara del mismo defecto dentro de la copy escrita para cerrar la séptima: `NOTICE_BODY['failure-stale']` afirma «no la ronda en la que habéis terminado», falso en el escenario canónico del propio test de regresión, y `endGameBody` promete un reintento que 2 de los 4 estados contradicen. Pendiente de lote de cierre ronda 7)
 - [ ] **Phase 10: Respaldo en Firestore** - Subida silenciosa, nunca bloqueante, aislada del resto
 
 ### Phase Details
@@ -257,7 +257,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
-| 9. Histórico y estadísticas | v1.8 | 31/31 | Complete   | 2026-09-14 |
+| 9. Histórico y estadísticas | v1.8 | 31/31 | In Progress | —          |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 
 ---
