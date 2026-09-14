@@ -59,7 +59,7 @@ const FICHEROS_CON_AFIRMACION_AUDITADA: string[] = []
 // propósito: su cuerpo es `null` (ver Gate B más abajo).
 const VARIANTES_RESPALDADAS_POR_LA_AUTORIDAD = ['failure-recoverable', 'failure-unrecoverable', 'failure-unknown']
 
-// Los tres únicos ficheros con motivo legítimo para nombrar el estado del
+// Los cuatro únicos ficheros con motivo legítimo para nombrar el estado del
 // dispositivo, cada uno con su motivo:
 // - `useStoredProgress.ts`: LOS PRODUCE (es la autoridad).
 // - `useHistorySavedNotice.ts`: los TRADUCE a copy (`resolveNoticeVariant`).
@@ -70,10 +70,21 @@ const VARIANTES_RESPALDADAS_POR_LA_AUTORIDAD = ['failure-recoverable', 'failure-
 //   es el valor que estaba en el centro del defecto de la ronda 5 (afirmar
 //   una ausencia sin comprobarla), así que dejarlo fuera del gate sería
 //   vigilar todo menos justo lo que falló.
+// - `app/pages/[game]/index.vue` (plan 09-28, arreglo mínimo del gate,
+//   `<scope_boundary>` de 09-28-PLAN.md): NO compara ni inventa un estado —
+//   usa `'unknown'` como valor de CAÍDA de una variable (`let stored:
+//   StoredProgress = 'unknown'`) que solo cambia si el `try` que envuelve a
+//   `readStoredProgress` tiene éxito (WR-06, blindaje de la ventana de
+//   cierre de partida). Sin este valor por defecto, una excepción de lectura
+//   dejaría `stored` sin inicializar y el cierre de partida sin poder
+//   avisar ni navegar — exactamente el defecto que ese blindaje cierra. No
+//   se añade aquí ninguna comparación `stored === '...'` (Gate C, segundo
+//   test, sigue sin necesitar tocarse).
 const FICHEROS_QUE_PUEDEN_NOMBRAR_EL_ESTADO_DEL_DISPOSITIVO = [
   'app/composables/useStoredProgress.ts',
   'app/composables/useHistorySavedNotice.ts',
   'app/composables/usePersistedSession.ts',
+  'app/pages/[game]/index.vue',
 ]
 
 function quitarComentariosHtml(html: string): string {

@@ -40,6 +40,7 @@ import { usePersistedSession } from '~/composables/usePersistedSession'
 import { usePreloadedAudio } from '~/composables/usePreloadedAudio'
 import { shortcutsEnabled, useStepShortcuts } from '~/composables/useStepShortcuts'
 import { readStoredProgress } from '~/composables/useStoredProgress'
+import type { StoredProgress } from '~/composables/useStoredProgress'
 import { useVoiceAnnouncer } from '~/composables/useVoiceAnnouncer'
 
 const route = useRoute()
@@ -619,7 +620,11 @@ function finishGame(preserveProgress = false) {
 //    `finishGame()`; la lectura de la autoridad se intercala entre `save()`
 //    y `notifyHistorySaved()`, el único hueco posible — tiene que ocurrir
 //    después del intento de escritura y antes de que se afirme nada, y todo
-//    ello antes de que `finishGame` vacíe la sesión.
+//    ello antes de que `finishGame` vacíe la sesión. Desde el plan 09-28 la
+//    autoridad recibe además, como segundo argumento, la sesión que acaba de
+//    terminar: sin ella solo puede contestar «¿hay algo reanudable?», nunca
+//    «¿es ESTO lo que acaba de terminar?» — Gap #1 de la ronda 6
+//    (`09-VERIFICATION.md`).
 // 4. La comprobación de que exista sesión Y juego: la autoridad necesita el
 //    `GameDefinition` para reconstruir su lectura, y que exista sesión sin
 //    juego es un estado inalcanzable (la sesión solo nace desde esta misma
@@ -636,9 +641,29 @@ function onOutcomeRecorded(outcome: GameOutcome) {
   // voz seguiría oyéndose ya en el selector de juego.
   silence()
   if (session.value && game) {
-    const guardado = record(session.value, outcome)
+    let guardado = false
+    try {
+      guardado = record(session.value, outcome)
+    }
+    catch {
+      // `false` y `'unknown'` son los valores honestos ante una excepción —
+      // «no se ha registrado» y «no he podido comprobarlo» es literalmente
+      // lo que ha pasado. Sin esto, si cualquiera de las tres líneas lanza,
+      // `awaitingEndConfirm` ya está en `false`, la locución ya está
+      // cortada, el diálogo ha desaparecido, no hay aviso y no se navega a
+      // `/`: el grupo se queda mirando el paso en curso sin ninguna señal
+      // (WR-10 de la ronda 4, WR-06 de la ronda 5).
+    }
     if (!guardado) save(session.value)
-    const { stored } = readStoredProgress(game)
+    let stored: StoredProgress = 'unknown'
+    try {
+      stored = readStoredProgress(game, session.value).stored
+    }
+    catch {
+      // Mismo razonamiento que el bloque de arriba: `'unknown'` es el valor
+      // honesto ante una excepción de lectura — «no he podido comprobarlo»
+      // es literalmente lo que ha pasado.
+    }
     const plan = planGameEnd(guardado, stored)
     notifyHistorySaved(plan.variant)
     finishGame(plan.preserveProgress)
