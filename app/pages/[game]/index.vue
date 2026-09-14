@@ -482,12 +482,33 @@ const savedSummary = computed(() => {
   return parts.join(' · ')
 })
 
+// discardBody: `onDiscardConfirm` llama a `clear(gameId)` de forma
+// INCONDICIONAL (ver más abajo), así que «se borrará» es cierto siempre que
+// este texto se muestra — no hay rama en la que no ocurra.
 const discardBody = computed(() =>
   `Se borrará el progreso guardado de la partida en curso (${savedSummary.value}). Esta acción no se puede deshacer.`,
 )
 
+// endGameBody (plan 09-30, cierre de IN-03/WR-04 de `09-REVIEW.md`, abierto
+// desde la ronda 4): el texto anterior («Se borrará… Esta acción no se puede
+// deshacer») era FALSO en la rama de fallo de registro, donde `planGameEnd`
+// devuelve `preserveProgress: true` precisamente para no convertir un fallo
+// recuperable en una pérdida definitiva. Comprobación de veracidad, rama por
+// rama, de las CUATRO salidas de <GameOutcomeDialog>:
+// - «Salir sin registrar» → `onOutcomeDismiss` → `finishGame()` sin
+//   argumento → `preserveProgress` es `false` → SE BORRA. Cierta.
+// - Registro con éxito → `planGameEnd(true, stored).preserveProgress` es
+//   `false` (`!historyRecorded`) → SE BORRA. Cierta.
+// - Registro fallido, cualquiera de los cuatro estados del dispositivo →
+//   `planGameEnd(false, stored).preserveProgress` es `true` → NO SE BORRA.
+//   Es la frase que faltaba.
+// Se retira la coletilla de irreversibilidad que llevaba el texto anterior
+// (ver discardBody arriba para la frase exacta que SÍ sigue siendo cierta
+// ahí): aquí convertía una descripción en una promesa absoluta, y además el
+// registro del histórico SÍ se puede deshacer desde /historico (HIST-08) —
+// no se restaura sin nombrar por qué.
 const endGameBody = computed(() =>
-  `Se borrará el progreso guardado (${savedSummary.value}) y volveréis a la pantalla de inicio. Esta acción no se puede deshacer.`,
+  `El progreso guardado de esta partida (${savedSummary.value}) se borrará y volveréis a la pantalla de inicio. Si el registro en el histórico falla, la app conservará el progreso para que podáis reintentarlo.`,
 )
 
 // outcomeContextLine (09-UI-SPEC.md §Layout 2): `{villano} · {n} jug ·
