@@ -749,11 +749,31 @@ describe('Gate C — procedencia del estado del dispositivo (09-26/09-30)', () =
   })
 })
 
-describe('Gate S — auto-verificación del propio gate (09-30)', () => {
+describe('Gate S — auto-verificación del propio gate (09-30, ampliada en el plan 09-35)', () => {
   // Todos los tests de este describe usan cadenas SINTÉTICAS construidas
   // aquí mismo — nunca leyendo el árbol — salvo las dos aserciones finales
   // de cobertura, que comprueban explícitamente que el gate mira de verdad
   // el fichero de mayor riesgo.
+  //
+  // Cierre de la vía (e) (plan 09-35): las cinco vías del gap que
+  // `09-VERIFICATION.md` ronda 8 enumeró, y qué caso concreto de este
+  // describe cierra cada una:
+  // (a) vocabulario cerrado sin «conservará»/«reintentarlo» — cerrado por el
+  //     caso con FRASE_NO_DETECTADA_EN_LA_RONDA_7: usa la INSTANCIA REAL que
+  //     `endGameBody` tenía en el árbol antes del plan 09-32 (tomada de
+  //     `git show`, no inventada), demostrando que `frasesSinAuditarDe` la
+  //     atrapa y que `VOCABULARIO_CERRADO_HASTA_LA_RONDA_7` no la atrapaba.
+  // (b) NOTICE_HEADING fuera de Gate A y Gate B — cerrado por los casos de
+  //     `variantesSinRespaldoDe` con titular/cuerpo sintéticos.
+  // (c) 'success' sin vigilar en Gate C — cerrado en el plan 09-34
+  //     (`LITERALES_VARIANTE` lo incluye; test dedicado en Gate C).
+  // (d) comparador sin normalizar espacios — cerrado por el caso de la raíz
+  //     partida en dos líneas dentro de un `sfc` sintético.
+  // (e) Gate S solo probaba `regionVigilada`, no la DECISIÓN de Gate A/B —
+  //     cerrado por todos los casos de este describe que llaman a
+  //     `frasesSinAuditarDe`/`variantesSinRespaldoDe`/`respaldoExiste`
+  //     directamente, más las cuatro pruebas de mutación ejecutadas y
+  //     registradas en el SUMMARY de este plan (09-35).
 
   it('una frase colocada DESPUÉS del cierre de un <template> anidado SÍ entra en la región vigilada (el hueco de CR-03)', () => {
     const frase = RAICES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
@@ -920,5 +940,41 @@ const aviso = '${frase}'
     // exige nada; la garantía de que nadie la pinta sin pasar por record()
     // la da Gate C, al vigilar el literal 'success' (vía (c)).
     expect(variantesSinRespaldoDe({ success: NOTICE_HEADING.success }, { success: NOTICE_BODY.success }, [])).toEqual([])
+  })
+
+  // --- Plan 09-35, Task 3: Gate S ejerce respaldoExiste y la calidad mínima del motivo ---
+
+  it('respaldoExiste resuelve un fichero real del repo (Gate S ejerce respaldoExiste, cierre del agravante de la ronda 8)', () => {
+    expect(respaldoExiste('app/composables/__tests__/useProgressMountPlan.test.ts')).toBe(true)
+  })
+
+  it('respaldoExiste devuelve false para una ruta inventada', () => {
+    expect(respaldoExiste('app/composables/__tests__/esteFicheroNoExiste.test.ts')).toBe(false)
+  })
+
+  it('respaldoExiste(\'\') es false', () => {
+    expect(respaldoExiste('')).toBe(false)
+  })
+
+  it('toda entrada de AFIRMACIONES_AUDITADAS tiene un motivo de al menos 40 caracteres — un motivo de una palabra no es un motivo', () => {
+    for (const [ruta, afirmaciones] of Object.entries(AFIRMACIONES_AUDITADAS)) {
+      for (const afirmacion of afirmaciones) {
+        expect(afirmacion.motivo.length, `${ruta} (${afirmacion.raiz}): motivo demasiado corto`).toBeGreaterThanOrEqual(40)
+      }
+    }
+  })
+
+  it('ningún motivo de AFIRMACIONES_AUDITADAS delega la garantía sin nombrar en qué consiste (prohibición de circularidad literal, ronda 8)', () => {
+    const FRASE_CIRCULAR = 'la garantía real la da'
+    for (const [ruta, afirmaciones] of Object.entries(AFIRMACIONES_AUDITADAS)) {
+      for (const afirmacion of afirmaciones) {
+        if (afirmacion.motivo.toLowerCase().includes(FRASE_CIRCULAR)) {
+          const nombraFichero = /\.(ts|vue)\b/.test(afirmacion.motivo)
+          const nombraIdentificadorCamelCase = (afirmacion.motivo.match(/\b[a-z][a-zA-Z0-9]*\b/g) ?? [])
+            .some(palabra => palabra.length >= 8 && /[A-Z]/.test(palabra))
+          expect(nombraFichero || nombraIdentificadorCamelCase, `${ruta} (${afirmacion.raiz}): motivo circular sin nombrar función/fichero`).toBe(true)
+        }
+      }
+    }
   })
 })
