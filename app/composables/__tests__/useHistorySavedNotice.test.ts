@@ -161,6 +161,40 @@ describe('resolveNoticeVariant (función pura — tabla de verdad TOTAL sobre St
     expect(NOTICE_BODY['failure-stale']).not.toContain('no se ha perdido')
   })
 
+  // Plan 09-32 (octava cara del defecto, `09-VERIFICATION.md` ronda 7): la
+  // frase de `failure-stale` afirmaba anterioridad temporal («versión
+  // anterior») y diferencia de ronda («no la ronda») que `esLaMismaPartida`
+  // no establece — ver el test 5 de `avisoTrasRegistroFallido.test.ts` para
+  // el contraejemplo concreto. Este bloque fija por texto que esas dos
+  // afirmaciones han desaparecido y que solo queda la que sí está
+  // respaldada.
+  it('failure-stale (plan 09-32) contiene la frase respaldada por esLaMismaPartida y ninguna otra', () => {
+    expect(NOTICE_BODY['failure-stale']).toContain('no coincide con el punto en el que habéis terminado')
+  })
+
+  it('failure-stale (plan 09-32) ya no afirma anterioridad temporal: "versión anterior" ha desaparecido del texto', () => {
+    expect(NOTICE_BODY['failure-stale']).not.toContain('versión anterior')
+  })
+
+  it('failure-stale (plan 09-32) ya no afirma diferencia de ronda: "no la ronda" ha desaparecido del texto', () => {
+    expect(NOTICE_BODY['failure-stale']).not.toContain('no la ronda')
+  })
+
+  it('failure-stale (plan 09-32) no ordena ningún reintento: ninguna forma de "reintentar" aparece en el cuerpo', () => {
+    expect(NOTICE_BODY['failure-stale']).not.toMatch(/reintentar/i)
+  })
+
+  it('failure-stale (plan 09-32) sigue conteniendo la advertencia modal, nunca certeza, sobre los datos que se guardarían', () => {
+    expect(NOTICE_BODY['failure-stale']).toContain('podría guardar')
+  })
+
+  it('las otras cuatro entradas de NOTICE_BODY no cambian ni un carácter (plan 09-32 solo toca failure-stale)', () => {
+    expect(NOTICE_BODY.success).toBe(null)
+    expect(NOTICE_BODY['failure-recoverable']).toBe('La partida no se ha perdido: sigue guardada en el dispositivo. Volved a entrar en ella y pulsad «Partida terminada» otra vez para reintentar el registro. Si vuelve a fallar, puede deberse al modo privado del navegador, a la memoria llena, o a un histórico anterior que la app no consigue leer.')
+    expect(NOTICE_BODY['failure-unrecoverable']).toBe('Al volver a entrar en el juego no encontraréis esta partida, así que esta vez no hay nada que reintentar. Suele deberse al modo privado del navegador o a la memoria llena: revisadlo antes de la próxima partida.')
+    expect(NOTICE_BODY['failure-unknown']).toBe('No hemos podido comprobar si la partida sigue en el dispositivo. Volved a entrar en el juego: si os ofrece continuar, pulsad «Partida terminada» otra vez para reintentar el registro. Si no os la ofrece, puede que siga ahí y la app no consiga leerla: el modo privado del navegador y la memoria llena son las dos causas habituales.')
+  })
+
   it('failure-unknown (plan 09-28) ya no delega en el grupo la inferencia de ausencia', () => {
     expect(NOTICE_BODY['failure-unknown']).not.toContain('ya no está')
   })

@@ -33,6 +33,7 @@ import rawTinyGame from '../../../engine/__tests__/fixtures/tiny-game.json'
 import { expand } from '~~/engine/expand'
 import { validateGameDefinition } from '~~/engine/schema'
 import type { EngineSession, GameHistoryEntry } from '~~/engine/types'
+import { toPersistedPosition } from '~~/engine/persistence'
 import { NOTICE_BODY, planGameEnd, resolveNoticeVariant } from '../useHistorySavedNotice'
 import { usePersistedSession } from '../usePersistedSession'
 import { readStoredProgress } from '../useStoredProgress'
@@ -198,9 +199,9 @@ describe('El escenario de la ronda 5, extremo a extremo, con un doble que falla 
     expect(NOTICE_BODY[variante]).toContain('sigue guardada en el dispositivo')
   })
 
-  it('5. EL TEST DE LA RONDA 6: el dispositivo conserva una versión ANTERIOR, no la partida que terminó — la variante no puede prometer identidad de partida', () => {
+  it('5. EL TEST DE LA RONDA 6/RONDA 7 (plan 09-32): el dispositivo conserva un autoguardado que no coincide con el punto en el que ha terminado la partida — el texto no afirma nada sobre la ronda, y aquí queda escrito el contraejemplo de por qué no puede', () => {
     ;(globalThis as unknown as { window: unknown }).window = { localStorage: createFakeLocalStorageFailingAfter(3) }
-    const { save, appendHistoryEntry } = usePersistedSession()
+    const { save, appendHistoryEntry, readProgress } = usePersistedSession()
 
     // El autoguardado escribe tres veces con éxito durante la partida —
     // progreso VIEJO escrito de verdad, no una suposición.
@@ -251,6 +252,31 @@ describe('El escenario de la ronda 5, extremo a extremo, con un doble que falla 
     expect(cuerpo).not.toContain('sigue guardada')
     expect(cuerpo).not.toContain('no se ha perdido')
     expect(cuerpo).not.toContain('Partida terminada')
+
+    // PLAN 09-32 (octava cara del defecto, `09-VERIFICATION.md` ronda 7): el
+    // texto anterior afirmaba «no la ronda en la que habéis terminado», y esa
+    // frase es literalmente falsa en este mismo montaje — la aserción que
+    // faltaba en el test 5 original.
+    expect(cuerpo).not.toContain('no la ronda')
+    expect(cuerpo).toContain('no coincide con el punto en el que habéis terminado')
+
+    // EL CONTRAEJEMPLO ESCRITO: se lee la posición que quedó en disco (el
+    // tercer autoguardado, `cursor: 2`) y se construye la de la partida que
+    // termina (`cursor: 3`) con la misma función que usa la app
+    // (`toPersistedPosition`). `expand()` fija `round` una sola vez y ningún
+    // `{ ...base, cursor: n }` posterior lo toca, así que las dos `round` son
+    // IGUALES aquí — la diferencia real está en `runtimeId` (el paso de la
+    // secuencia), no en la ronda. Por eso la frase retirada («no la ronda en
+    // la que habéis terminado») era falsa exactamente en este escenario.
+    const lecturaEnDisco = readProgress('tiny-game')
+    if (lecturaEnDisco.read !== 'ok' || lecturaEnDisco.position === null) {
+      throw new Error('el test 5 espera una posición legible en disco tras el tercer autoguardado')
+    }
+    const posicionEnDisco = lecturaEnDisco.position
+    const posicionQueTermina = toPersistedPosition(partidaQueTermina)
+
+    expect(posicionEnDisco.round).toBe(posicionQueTermina.round)
+    expect(posicionEnDisco.runtimeId).not.toBe(posicionQueTermina.runtimeId)
   })
 
   it('6. sin `esperada`, el mismo montaje sigue dando `failure-recoverable` — la prueba de que el segundo argumento es lo que cambia la respuesta', () => {
