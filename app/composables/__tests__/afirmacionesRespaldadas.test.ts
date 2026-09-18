@@ -359,18 +359,30 @@ export function frasesSinAuditarDe(ruta: string, contenido: string): string[] {
 const VARIANTES_RESPALDADAS_POR_LA_AUTORIDAD = ['failure-recoverable', 'failure-stale', 'failure-unrecoverable', 'failure-unknown']
 
 // variantesSinRespaldoDe (plan 09-35, extracción de la DECISIÓN de Gate B,
-// vías (b)/(e) de `09-VERIFICATION.md` ronda 8): STUB temporal para la fase
-// RED del ciclo TDD de este plan — devuelve siempre `[]` sin mirar ninguno
-// de los dos registros. La implementación real llega en el commit GREEN.
+// vías (b)/(e) de `09-VERIFICATION.md` ronda 8): mismo motivo que
+// `frasesSinAuditarDe` arriba — mientras la decisión vivía inline dentro de
+// un `it`, ningún otro gate podía ejercerla ni demostrar que se pone roja.
+// Concatena las entradas de los dos registros (nunca el spread
+// `{ ...titulares, ...cuerpos }`: comparten las mismas claves y el spread
+// descartaría los titulares — el plan 09-34 ya dejó escrito por qué). Un
+// cuerpo `null` nunca produce detección. Los parámetros son `Record<string,
+// ...>` genéricos (no `Record<NoticeVariant, ...>`) para que Gate S pueda
+// ejercerla con registros SINTÉTICOS de variantes inventadas, sin depender
+// de las cinco variantes reales.
 export function variantesSinRespaldoDe(
   titulares: Record<string, string | null>,
   cuerpos: Record<string, string | null>,
   respaldadas: string[],
 ): string[] {
-  void titulares
-  void cuerpos
-  void respaldadas
-  return []
+  const variantesSinRespaldo: string[] = []
+  for (const [variante, texto] of [...Object.entries(titulares), ...Object.entries(cuerpos)]) {
+    if (texto === null) continue
+    const tieneRaizVigilada = RAICES_SOBRE_LOS_DATOS_DEL_GRUPO.some(raiz => contieneRaizSobreLosDatosDelGrupo(texto, raiz))
+    if (tieneRaizVigilada && !respaldadas.includes(variante) && !variantesSinRespaldo.includes(variante)) {
+      variantesSinRespaldo.push(variante)
+    }
+  }
+  return variantesSinRespaldo
 }
 
 // LITERALES_VARIANTE (WR-03, 09-REVIEW.md ronda 6; ampliada en el plan
