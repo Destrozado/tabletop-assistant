@@ -97,6 +97,72 @@ function contieneFraseSobreLosDatosDelGrupo(region: string, frase: string): bool
   return regionEnMinusculas.includes(fraseEnMinusculas)
 }
 
+// RAICES_SOBRE_LOS_DATOS_DEL_GRUPO (plan 09-34, cierre de la vía (a) de
+// `09-VERIFICATION.md` ronda 8): reemplaza el vocabulario cerrado de
+// subcadenas literales de arriba. `FRASES_SOBRE_LOS_DATOS_DEL_GRUPO` era una
+// lista cerrada de 11 subcadenas que cada ronda de esta fase demostró
+// incapaz de alcanzar a la copy nueva a tiempo — ni «conservará» ni
+// «reintentarlo» estaban en ella, así que la frase exacta que hacía daño en
+// `endGameBody` (09-VERIFICATION.md ronda 8, vía (a)) ni siquiera entraba en
+// el barrido, pese a vivir en el fichero más vigilado del repo. Una RAÍZ
+// cubre todas las flexiones de su familia por construcción: `conserv`
+// alcanza «conservar», «conservará», «conservado»; `guardad` alcanza
+// «guardada», «guardado», «sigue guardado», «está guardada» («no se ha
+// borrado» NO — para eso está `se borrar`). Ampliar la copy futura deja de
+// exigir ampliar esta lista.
+const RAICES_SOBRE_LOS_DATOS_DEL_GRUPO = [
+  'conserv',
+  'guardad',
+  'guardar',
+  'dispositivo',
+  'progreso',
+  'reintent',
+  'no se ha perdido',
+  'ya no está',
+  'no encontraréis',
+  'se borrar',
+]
+
+// VOCABULARIO_CERRADO_HASTA_LA_RONDA_7 (plan 09-34): las 11 subcadenas
+// exactas que fueron el criterio ÚNICO hasta este plan, conservadas ahora
+// solo como constante de COMPROBACIÓN — no como criterio — para que el test
+// de subsunción de más abajo demuestre mecánicamente que el criterio nuevo
+// no pierde nada del viejo. Copiadas literalmente de
+// `FRASES_SOBRE_LOS_DATOS_DEL_GRUPO`.
+const VOCABULARIO_CERRADO_HASTA_LA_RONDA_7 = [
+  'en el dispositivo',
+  'sigue guardada',
+  'nada que reintentar',
+  'no se ha perdido',
+  'se ha guardado',
+  'se han guardado',
+  'se borrará',
+  'progreso guardado',
+  'partida guardada',
+  'ya no está',
+  'no encontraréis',
+]
+
+// normalizarEspacios (plan 09-34, vía (d) de `09-VERIFICATION.md` ronda 8):
+// una copy partida en dos líneas por un formateador evade un `includes`
+// literal sin mala fe — eso convierte al gate en algo que depende del
+// formateo, no del contenido. Se aplica a los dos lados de la comparación
+// antes de compararlos.
+// STUB deliberado (RED, plan 09-34 Task 1): todavía no colapsa nada, así
+// que una raíz partida en dos líneas por un formateador sigue evadiendo la
+// comparación — la implementación real llega en el commit GREEN.
+export function normalizarEspacios(texto: string): string {
+  return texto
+}
+
+// contieneRaizSobreLosDatosDelGrupo (renombre de
+// `contieneFraseSobreLosDatosDelGrupo`, plan 09-34): mismo criterio de
+// comparación insensible a mayúsculas de antes, ahora también con los
+// espacios normalizados en los dos lados (ver `normalizarEspacios` arriba).
+function contieneRaizSobreLosDatosDelGrupo(region: string, raiz: string): boolean {
+  return normalizarEspacios(region.toLowerCase()).includes(normalizarEspacios(raiz.toLowerCase()))
+}
+
 // Excepciones auditadas a mano, por FICHERO y por FRASE (plan 09-30, cierre
 // de T-09-30-06): un fichero auditado NO es una puerta abierta a cualquier
 // frase futura — solo las frases listadas para ese fichero, cada una con su
@@ -147,6 +213,20 @@ const AFIRMACIONES_AUDITADAS: Record<string, string[]> = {
   // podido comprobar si hay una partida guardada — nunca que la haya ni que
   // no la haya. Fijado por un test puro en `useProgressMountPlan.test.ts`.
   'app/composables/useProgressMountPlan.ts': ['partida guardada'],
+}
+
+// frasesSinAuditarDe (plan 09-34, preparación de la vía (e) de
+// `09-VERIFICATION.md` ronda 8): la DECISIÓN de Gate A extraída a una
+// función pura exportada. Hasta este plan vivía inline dentro del `it.each`
+// de Gate A, así que ningún otro gate (ni el futuro Gate S del plan 09-35)
+// podía ejercerla — un cambio futuro que invirtiera el filtro o cambiara el
+// valor por defecto de las auditadas dejaría Gate S en verde mientras Gate A
+// dejaba de detectar nada. El plan 09-35 es quien la ejerce.
+// STUB deliberado (RED, plan 09-34 Task 1): devuelve siempre `[]`, así que
+// cualquier raíz real y sin auditar en el contenido queda sin detectar — la
+// implementación real llega en el commit GREEN.
+export function frasesSinAuditarDe(_ruta: string, _contenido: string): string[] {
+  return []
 }
 
 // Las cuatro variantes que SÍ pueden afirmar algo sobre el dispositivo,
@@ -241,6 +321,50 @@ const ficherosTsGateA = import.meta.glob('/app/**/*.ts', { query: '?raw', import
 const copyDeLaAppGateA: Record<string, string> = Object.fromEntries(
   Object.entries({ ...ficherosVueGateA, ...ficherosTsGateA }).filter(([clave]) => !rutaRelativa(clave).includes('/__tests__/')),
 )
+
+describe('Criterio por raíces léxicas (plan 09-34, cierre de la vía (a) de 09-VERIFICATION.md ronda 8)', () => {
+  it('cada una de las 11 subcadenas del vocabulario cerrado de la ronda 7 contiene al menos una raíz nueva (subsunción: el criterio nuevo no pierde nada del viejo)', () => {
+    for (const fraseVieja of VOCABULARIO_CERRADO_HASTA_LA_RONDA_7) {
+      const laCubreAlgunaRaiz = RAICES_SOBRE_LOS_DATOS_DEL_GRUPO.some(raiz => fraseVieja.toLowerCase().includes(raiz.toLowerCase()))
+      expect(laCubreAlgunaRaiz, `«${fraseVieja}» no está cubierta por ninguna raíz nueva`).toBe(true)
+    }
+  })
+
+  it('la instancia real y sin detectar de la ronda 7 (endGameBody con "conservará ... reintentarlo") SÍ contiene una raíz nueva', () => {
+    const fraseSinDetectarEnLaRonda7 = 'la app conservará el progreso para que podáis reintentarlo'
+    expect(RAICES_SOBRE_LOS_DATOS_DEL_GRUPO.some(raiz => fraseSinDetectarEnLaRonda7.includes(raiz))).toBe(true)
+  })
+
+  it('contieneRaizSobreLosDatosDelGrupo("la partida\\n  sigue guardada aquí", "sigue guardad") es true', () => {
+    expect(contieneRaizSobreLosDatosDelGrupo('la partida\n  sigue guardada aquí', 'sigue guardad')).toBe(true)
+  })
+
+  it('contieneRaizSobreLosDatosDelGrupo detecta una RAÍZ partida en dos líneas por un formateador (vía (d), el caso real de normalizarEspacios)', () => {
+    const regionPartidaPorUnFormateador = 'la partida sigue\n      guardada en el dispositivo'
+    expect(contieneRaizSobreLosDatosDelGrupo(regionPartidaPorUnFormateador, 'sigue guardad')).toBe(true)
+  })
+
+  it('contieneRaizSobreLosDatosDelGrupo("SIGUE GUARDADA", "sigue guardad") es true (sigue siendo insensible a mayúsculas)', () => {
+    expect(contieneRaizSobreLosDatosDelGrupo('SIGUE GUARDADA', 'sigue guardad')).toBe(true)
+  })
+
+  it('frasesSinAuditarDe devuelve [] para un contenido sin ninguna raíz', () => {
+    expect(frasesSinAuditarDe('app/components/Cualquiera.vue', 'un texto sin nada que vigilar')).toEqual([])
+  })
+
+  it('frasesSinAuditarDe devuelve la raíz encontrada cuando el contenido la tiene y la ruta no la lleva auditada', () => {
+    expect(frasesSinAuditarDe('app/components/SinAuditar.vue', 'aquí hay dispositivo')).toEqual(['dispositivo'])
+  })
+
+  it('frasesSinAuditarDe devuelve [] cuando la raíz encontrada SÍ está auditada para esa ruta exacta', () => {
+    expect(frasesSinAuditarDe('app/components/ResumePrompt.vue', 'Partida guardada')).toEqual([])
+  })
+
+  it('frasesSinAuditarDe no mira comentarios ni bloques <style> (usa regionVigilada)', () => {
+    const sfcSintetico = '<template><p>hola</p></template>\n<!-- dispositivo -->\n<style>/* dispositivo */</style>'
+    expect(frasesSinAuditarDe('app/components/ConComentario.vue', sfcSintetico)).toEqual([])
+  })
+})
 
 describe('Gate A — ninguna copy de app/ (.vue ni .ts) afirma nada por su cuenta (09-26/09-30)', () => {
   it('barre al menos un fichero real (el gate no está vacío por accidente)', () => {
