@@ -158,7 +158,7 @@ const avisoLecturaNoComprobada = ref<string | null>(null)
 // de fin de partida — null en cualquier otro caso. Invariante exacto: esta
 // marca está puesta exactamente cuando el último cierre de partida de este
 // gameId encontró discrepancia y el progreso que dejó sigue ahí.
-const avisoProgresoAjeno = ref<string | null>(null)
+const avisoDiscrepancia = ref<string | null>(null)
 
 onMounted(() => {
   if (!game) {
@@ -199,7 +199,7 @@ onMounted(() => {
   // 'content-changed-notice' (la rama de 'mini-setup' ya ha retornado
   // arriba), así que este es exactamente el punto en el que la marca puesta
   // por un cierre de partida anterior (si la hay) vuelve a importar.
-  avisoProgresoAjeno.value = readProgressMismatchWarning(gameId)
+  avisoDiscrepancia.value = readProgressMismatchWarning(gameId)
   awaitingResumeChoice.value = plan.action === 'resume-prompt'
   awaitingContentChangedAck.value = plan.action === 'content-changed-notice'
   resumeResolved.value = true
@@ -824,7 +824,7 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
     <div v-else-if="awaitingResumeChoice" class="h-dvh">
       <ResumePrompt
         :saved-summary="savedSummary"
-        :mismatch-warning="avisoProgresoAjeno"
+        :mismatch-warning="avisoDiscrepancia"
         @resume="onResumeContinue"
         @new-game="onResumeNewGame"
       />

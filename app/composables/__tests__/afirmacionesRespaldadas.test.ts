@@ -66,41 +66,12 @@ import type { StoredProgress } from '../useStoredProgress'
 // pasaba desapercibido en el barrido de NOTICE_BODY.
 const TODOS_LOS_ESTADOS_DEL_DISPOSITIVO: StoredProgress[] = ['resumable', 'stale', 'absent', 'unknown']
 
-// Criterio de inclusión de `09-AUDIT-AFIRMACIONES-UI.md` §1, hecho literal:
-// cualquier fragmento de estas frases, en la plantilla/`<script setup>` de un
-// `.vue`, en cualquier `.ts` de `app/`, o en `NOTICE_BODY`, es una afirmación
-// sobre los datos persistidos del grupo. Las cinco últimas son WR-04
-// (09-REVIEW.md ronda 6): con solo las seis originales, `endGameBody`,
-// `ResumePrompt.vue` y `ContentChangedNotice.vue` se escapaban del barrido
-// aunque afirmaran sobre los mismos datos.
-const FRASES_SOBRE_LOS_DATOS_DEL_GRUPO = [
-  'en el dispositivo',
-  'sigue guardada',
-  'nada que reintentar',
-  'no se ha perdido',
-  'se ha guardado',
-  'se han guardado',
-  'se borrará',
-  'progreso guardado',
-  'partida guardada',
-  'ya no está',
-  'no encontraréis',
-]
-
-// Comparación insensible a mayúsculas (WR-04/09-30): sin esto, «Partida
-// guardada» (el <h1> de ResumePrompt) se escaparía por la mayúscula inicial
-// aunque la frase vigilada sea la misma. Se usa desde Gate A y Gate B, que
-// comparten el mismo criterio de inclusión.
-function contieneFraseSobreLosDatosDelGrupo(region: string, frase: string): boolean {
-  const regionEnMinusculas = region.toLowerCase()
-  const fraseEnMinusculas = frase.toLowerCase()
-  return regionEnMinusculas.includes(fraseEnMinusculas)
-}
-
 // RAICES_SOBRE_LOS_DATOS_DEL_GRUPO (plan 09-34, cierre de la vía (a) de
-// `09-VERIFICATION.md` ronda 8): reemplaza el vocabulario cerrado de
-// subcadenas literales de arriba. `FRASES_SOBRE_LOS_DATOS_DEL_GRUPO` era una
-// lista cerrada de 11 subcadenas que cada ronda de esta fase demostró
+// `09-VERIFICATION.md` ronda 8): sustituye por completo al vocabulario
+// cerrado de subcadenas literales que este fichero usaba hasta este plan
+// como criterio de Gate A/B (retirado; ver `VOCABULARIO_CERRADO_HASTA_LA_RONDA_7`
+// más abajo, que conserva sus 11 entradas solo como constante de
+// comprobación). Aquella lista cerrada de 11 subcadenas demostró
 // incapaz de alcanzar a la copy nueva a tiempo — ni «conservará» ni
 // «reintentarlo» estaban en ella, así que la frase exacta que hacía daño en
 // `endGameBody` (09-VERIFICATION.md ronda 8, vía (a)) ni siquiera entraba en
@@ -127,8 +98,8 @@ const RAICES_SOBRE_LOS_DATOS_DEL_GRUPO = [
 // exactas que fueron el criterio ÚNICO hasta este plan, conservadas ahora
 // solo como constante de COMPROBACIÓN — no como criterio — para que el test
 // de subsunción de más abajo demuestre mecánicamente que el criterio nuevo
-// no pierde nada del viejo. Copiadas literalmente de
-// `FRASES_SOBRE_LOS_DATOS_DEL_GRUPO`.
+// no pierde nada del viejo. Copiadas literalmente del vocabulario cerrado
+// que este plan retira como criterio (ver arriba).
 const VOCABULARIO_CERRADO_HASTA_LA_RONDA_7 = [
   'en el dispositivo',
   'sigue guardada',
@@ -147,12 +118,12 @@ const VOCABULARIO_CERRADO_HASTA_LA_RONDA_7 = [
 // una copy partida en dos líneas por un formateador evade un `includes`
 // literal sin mala fe — eso convierte al gate en algo que depende del
 // formateo, no del contenido. Se aplica a los dos lados de la comparación
-// antes de compararlos.
-// STUB deliberado (RED, plan 09-34 Task 1): todavía no colapsa nada, así
-// que una raíz partida en dos líneas por un formateador sigue evadiendo la
-// comparación — la implementación real llega en el commit GREEN.
+// antes de compararlos: cualquier RUN de espacios en blanco (incluidos
+// saltos de línea y la indentación que los sigue) colapsa a un único
+// espacio, así que una raíz partida en dos líneas por un formateador queda
+// contigua otra vez antes del `includes`.
 export function normalizarEspacios(texto: string): string {
-  return texto
+  return texto.replace(/\s+/g, ' ')
 }
 
 // contieneRaizSobreLosDatosDelGrupo (renombre de
@@ -163,13 +134,21 @@ function contieneRaizSobreLosDatosDelGrupo(region: string, raiz: string): boolea
   return normalizarEspacios(region.toLowerCase()).includes(normalizarEspacios(raiz.toLowerCase()))
 }
 
-// Excepciones auditadas a mano, por FICHERO y por FRASE (plan 09-30, cierre
-// de T-09-30-06): un fichero auditado NO es una puerta abierta a cualquier
-// frase futura — solo las frases listadas para ese fichero, cada una con su
-// motivo escrito como un hecho comprobable, pasan el gate. Medido con la
-// lista de frases y el alcance ya ampliados y esta lista todavía vacía (ver
-// SUMMARY del plan 09-30 para la salida exacta de esa medición); ningún
-// fichero ni frase apareció fuera de los previstos por WR-04.
+// Excepciones auditadas a mano, por FICHERO y por RAÍZ (plan 09-30, cierre
+// de T-09-30-06; migradas de FRASE a RAÍZ en el plan 09-34 junto con el
+// criterio de Gate A): un fichero auditado NO es una puerta abierta a
+// cualquier raíz futura — solo las raíces listadas para ese fichero, cada
+// una con su motivo escrito como un hecho comprobable, pasan el gate.
+// Re-medido en el plan 09-34 tras el criterio nuevo (ver el SUMMARY del plan
+// para la lista completa de la medición): tres ficheros que antes escapaban
+// al vocabulario cerrado por tener «dispositivo»/«progreso guardado» sin la
+// subcadena exacta vigilada entran ahora en el barrido
+// (`AppHeader.vue`/`VoiceUnavailableNotice.vue` por la raíz `dispositivo`,
+// `useProgressMismatchMark.ts` —nuevo en el plan 09-33— por `guardad`/
+// `progreso`). La forma de esta constante y el respaldo comprobable de cada
+// entrada se completan en la Task 2 de este mismo plan (interface
+// `AfirmacionAuditada`); esta Task 1 solo migra los VALORES de frase a raíz
+// para que Gate A siga en verde con el criterio nuevo.
 const AFIRMACIONES_AUDITADAS: Record<string, string[]> = {
   // Solo se monta cuando `planProgressMount` devuelve `action:
   // 'resume-prompt'`, es decir cuando la autoridad ya ha leído el
@@ -177,11 +156,11 @@ const AFIRMACIONES_AUDITADAS: Record<string, string[]> = {
   // nueva borrará el progreso guardado» describe lo que `onDiscardConfirm`
   // hace incondicionalmente (ver el comentario de `discardBody` en
   // index.vue). Auditado en `09-AUDIT-AFIRMACIONES-UI.md` §2 como RESPALDADA.
-  'app/components/ResumePrompt.vue': ['partida guardada', 'progreso guardado'],
+  'app/components/ResumePrompt.vue': ['guardad', 'progreso'],
   // Solo se monta con `outcome: 'content-changed'`, que `resume()` produce
   // únicamente tras leer una posición válida en el dispositivo. Auditado en
   // `09-AUDIT-AFIRMACIONES-UI.md` §2 como RESPALDADA.
-  'app/components/ContentChangedNotice.vue': ['partida guardada'],
+  'app/components/ContentChangedNotice.vue': ['guardad'],
   // MOVIDO desde `app/pages/[game]/index.vue` en el plan 09-32 (Task 2,
   // arreglo mínimo de Gate A para dejar la suite en verde tras la
   // reescritura de `endGameBody`, ver el SUMMARY del plan): `discardBody` y
@@ -190,21 +169,24 @@ const AFIRMACIONES_AUDITADAS: Record<string, string[]> = {
   // `useGameEndCopy.test.ts`. `buildDiscardBody`: `onDiscardConfirm` llama a
   // `clear(gameId)` SIN condición (verificado leyendo la función), así que
   // «se borrará»/«progreso guardado» son ciertos siempre que ese texto se
-  // muestra. `buildEndGameBody`: reescrito en la Task 2 de este mismo plan
-  // (09-32) para ser cierto en las cuatro salidas de <GameOutcomeDialog> —
-  // ver el comentario que acompaña a `buildEndGameBody` en ese fichero.
-  'app/composables/useGameEndCopy.ts': ['se borrará', 'progreso guardado'],
+  // muestra. `buildEndGameBody`: reescrito en la Task 2 del plan 09-32 para
+  // ser cierto en las cuatro salidas de <GameOutcomeDialog> — ver el
+  // comentario que acompaña a `buildEndGameBody` en ese fichero.
+  'app/composables/useGameEndCopy.ts': ['guardad', 'progreso', 'se borrar'],
   // Es LA casa de la copy respaldada por la autoridad: Gate B (más abajo) ya
   // audita NOTICE_BODY entrada por entrada contra las variantes que
   // `readStoredProgress`/`resolveNoticeVariant` pueden producir de verdad.
   // Auditarla aquí SIN ese matiz sería circular — la garantía real de este
   // fichero la da Gate B, no esta excepción; esta entrada solo evita que
   // Gate A (que ahora también barre `.ts`) duplique en falso lo que Gate B
-  // ya comprueba con más precisión.
+  // ya comprueba con más precisión. La raíz `guardar` es nueva en el 09-34:
+  // cubre los titulares de fallo de `NOTICE_HEADING` («No se pudo guardar la
+  // partida»), que el vocabulario cerrado de la ronda 7 no alcanzaba.
   'app/composables/useHistorySavedNotice.ts': [
-    'en el dispositivo',
-    'sigue guardada',
-    'nada que reintentar',
+    'dispositivo',
+    'guardad',
+    'guardar',
+    'reintent',
     'no se ha perdido',
     'no encontraréis',
   ],
@@ -212,7 +194,26 @@ const AFIRMACIONES_AUDITADAS: Record<string, string[]> = {
   // (ver `planProgressMount`), y afirma exactamente eso — que no se ha
   // podido comprobar si hay una partida guardada — nunca que la haya ni que
   // no la haya. Fijado por un test puro en `useProgressMountPlan.test.ts`.
-  'app/composables/useProgressMountPlan.ts': ['partida guardada'],
+  'app/composables/useProgressMountPlan.ts': ['guardad', 'guardar', 'dispositivo'],
+  // NUEVA en el plan 09-34: bajo el vocabulario cerrado de la ronda 7,
+  // «Sin voz en este dispositivo»/«Voz no disponible en este dispositivo»
+  // escapaban al barrido porque la subcadena exacta vigilada era «en el
+  // dispositivo», no «este dispositivo». La raíz `dispositivo` sí las
+  // alcanza — correctamente, porque SÍ nombran el dispositivo, aunque hablen
+  // de disponibilidad de VOZ, no de datos guardados del grupo:
+  // `resolveVoiceState`/`resolveEffectiveAvailability` (`useVoiceAnnouncer.ts`)
+  // calculan `voiceState`/`showVoiceUnavailableNotice` únicamente a partir
+  // de `audioAvailable`/`spanishVoiceAvailable`, sin leer `StoredProgress`
+  // en ningún punto — comprobado por sus tests puros.
+  'app/components/AppHeader.vue': ['dispositivo'],
+  'app/components/VoiceUnavailableNotice.vue': ['dispositivo'],
+  // NUEVO en el plan 09-33 (útil directamente en el plan 09-34, primera vez
+  // que Gate A lo barre bajo el criterio por raíces): `PROGRESS_MISMATCH_WARNING`
+  // solo se pinta cuando `readProgressMismatchWarning` encuentra una marca
+  // puesta por `planGameEnd`/`markProgressMismatch` al cerrar la partida
+  // anterior — nunca se inventa aquí. Fijado por el test de respaldo
+  // oración a oración de `useProgressMismatchMark.test.ts`.
+  'app/composables/useProgressMismatchMark.ts': ['guardad', 'progreso'],
 }
 
 // frasesSinAuditarDe (plan 09-34, preparación de la vía (e) de
@@ -222,11 +223,13 @@ const AFIRMACIONES_AUDITADAS: Record<string, string[]> = {
 // podía ejercerla — un cambio futuro que invirtiera el filtro o cambiara el
 // valor por defecto de las auditadas dejaría Gate S en verde mientras Gate A
 // dejaba de detectar nada. El plan 09-35 es quien la ejerce.
-// STUB deliberado (RED, plan 09-34 Task 1): devuelve siempre `[]`, así que
-// cualquier raíz real y sin auditar en el contenido queda sin detectar — la
-// implementación real llega en el commit GREEN.
-export function frasesSinAuditarDe(_ruta: string, _contenido: string): string[] {
-  return []
+export function frasesSinAuditarDe(ruta: string, contenido: string): string[] {
+  const region = regionVigilada(contenido)
+  const raicesEncontradas = RAICES_SOBRE_LOS_DATOS_DEL_GRUPO.filter(raiz => contieneRaizSobreLosDatosDelGrupo(region, raiz))
+  const raicesAuditadas = AFIRMACIONES_AUDITADAS[ruta] ?? []
+  // Auditar un fichero NO exime todas sus raíces futuras (T-09-30-06): solo
+  // las raíces explícitamente listadas para ESE fichero pasan el gate.
+  return raicesEncontradas.filter(raiz => !raicesAuditadas.includes(raiz))
 }
 
 // Las cuatro variantes que SÍ pueden afirmar algo sobre el dispositivo,
@@ -373,32 +376,32 @@ describe('Gate A — ninguna copy de app/ (.vue ni .ts) afirma nada por su cuent
 
   it.each(Object.entries(copyDeLaAppGateA))('%s no afirma nada sobre los datos del grupo en su plantilla, su <script setup> o su .ts sin auditoría', (clave, contenido) => {
     const ruta = rutaRelativa(clave)
-    const region = regionVigilada(contenido)
-    const frasesEncontradas = FRASES_SOBRE_LOS_DATOS_DEL_GRUPO.filter(frase => contieneFraseSobreLosDatosDelGrupo(region, frase))
-    const frasesAuditadas = AFIRMACIONES_AUDITADAS[ruta] ?? []
-    // Auditar un fichero NO exime todas sus frases futuras (T-09-30-06): solo
-    // las frases explícitamente listadas para ESE fichero pasan el gate.
-    const frasesSinAuditar = frasesEncontradas.filter(frase => !frasesAuditadas.includes(frase))
+    // La decisión vive en frasesSinAuditarDe (plan 09-34, vía (e) de
+    // 09-VERIFICATION.md ronda 8): este it.each solo la llama y traduce el
+    // resultado al mensaje de diagnóstico — ninguna copia de la lógica
+    // queda aquí, para que otro gate (el plan 09-35) pueda ejercer la misma
+    // función y comprobar que se pone rojo.
+    const raicesSinAuditar = frasesSinAuditarDe(ruta, contenido)
 
-    if (frasesSinAuditar.length > 0) {
+    if (raicesSinAuditar.length > 0) {
       throw new Error(
-        `${ruta} afirma sobre los datos guardados del grupo (${frasesSinAuditar.join(', ')}) `
+        `${ruta} afirma sobre los datos guardados del grupo (${raicesSinAuditar.join(', ')}) `
         + 'sin pasar por la autoridad y sin estar en AFIRMACIONES_AUDITADAS con su motivo escrito. '
-        + 'Si hace falta una frase nueva sobre los datos guardados del grupo, tiene que venir de una '
+        + 'Si hace falta una raíz nueva sobre los datos guardados del grupo, tiene que venir de una '
         + 'variante respaldada por readStoredProgress (useHistorySavedNotice.ts), o auditarse aquí '
         + 'con un motivo comprobable.',
       )
     }
 
-    expect(frasesSinAuditar.length).toBe(0)
+    expect(raicesSinAuditar.length).toBe(0)
   })
 })
 
 describe('Gate B — la copy del composable solo afirma desde variantes respaldadas por la autoridad (09-26/09-30)', () => {
   it('toda entrada de NOTICE_BODY que afirme algo sobre los datos del grupo tiene una variante respaldada por la autoridad', () => {
     for (const [variante, cuerpo] of Object.entries(NOTICE_BODY)) {
-      const frasesEncontradas = cuerpo === null ? [] : FRASES_SOBRE_LOS_DATOS_DEL_GRUPO.filter(frase => contieneFraseSobreLosDatosDelGrupo(cuerpo, frase))
-      if (frasesEncontradas.length > 0) {
+      const raicesEncontradas = cuerpo === null ? [] : RAICES_SOBRE_LOS_DATOS_DEL_GRUPO.filter(raiz => contieneRaizSobreLosDatosDelGrupo(cuerpo, raiz))
+      if (raicesEncontradas.length > 0) {
         expect(VARIANTES_RESPALDADAS_POR_LA_AUTORIDAD).toContain(variante)
       }
     }
@@ -532,7 +535,7 @@ describe('Gate S — auto-verificación del propio gate (09-30)', () => {
   // el fichero de mayor riesgo.
 
   it('una frase colocada DESPUÉS del cierre de un <template> anidado SÍ entra en la región vigilada (el hueco de CR-03)', () => {
-    const frase = FRASES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
+    const frase = RAICES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
     const sfcSintetico = `
 <script setup lang="ts">
 const x = 1
@@ -557,7 +560,7 @@ const x = 1
   })
 
   it('una frase dentro de un comentario HTML NO entra en la región vigilada (los comentarios no son copy)', () => {
-    const frase = FRASES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
+    const frase = RAICES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
     const sfcSintetico = `
 <template>
   <!-- ${frase} -->
@@ -568,7 +571,7 @@ const x = 1
   })
 
   it('una frase dentro de un comentario de línea JS de un <script setup> NO entra en la región vigilada', () => {
-    const frase = FRASES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
+    const frase = RAICES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
     const sfcSintetico = `
 <script setup lang="ts">
 // ${frase}
@@ -583,7 +586,7 @@ const x = 1
   })
 
   it('una frase dentro de un bloque <style> NO entra en la región vigilada', () => {
-    const frase = FRASES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
+    const frase = RAICES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
     const sfcSintetico = `
 <template>
   <p>hola</p>
@@ -598,7 +601,7 @@ const x = 1
   })
 
   it('una frase dentro de un <script setup> (fuera de comentario) SÍ entra en la región vigilada', () => {
-    const frase = FRASES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
+    const frase = RAICES_SOBRE_LOS_DATOS_DEL_GRUPO[0]!
     const sfcSintetico = `
 <script setup lang="ts">
 const aviso = '${frase}'
