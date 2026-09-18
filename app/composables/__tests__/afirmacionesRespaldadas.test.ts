@@ -56,7 +56,7 @@
 // funciona igual bajo Vitest (que transforma con Vite) sin depender de
 // ningún módulo de Node.
 import { beforeAll, describe, expect, it } from 'vitest'
-import { NOTICE_BODY, resolveNoticeVariant } from '../useHistorySavedNotice'
+import { NOTICE_BODY, NOTICE_HEADING, resolveNoticeVariant } from '../useHistorySavedNotice'
 import type { StoredProgress } from '../useStoredProgress'
 
 // Los cuatro valores de `StoredProgress`, escritos como constante del test —
@@ -351,10 +351,19 @@ const VARIANTES_RESPALDADAS_POR_LA_AUTORIDAD = ['failure-recoverable', 'failure-
 // módulo (no dentro del `it` de Gate C, como hasta este plan) para que este
 // test de arriba (RED, plan 09-34) y el propio Gate C compartan la MISMA
 // lista — nunca dos copias que puedan divergir en silencio.
-const LITERALES_VARIANTE = ['\'failure-recoverable\'', '\'failure-stale\'', '\'failure-unrecoverable\'', '\'failure-unknown\'']
+// `'success'` es NUEVO en el plan 09-34: el literal más peligroso de
+// escribir a mano, porque pinta «✓ Partida registrada» sin haber pasado por
+// `record()`. El único fichero autorizado sigue siendo
+// `useHistorySavedNotice.ts`, que es quien lo define — el plan 09-32 ya
+// retiró la única aparición que existía fuera (`HistorySavedNotice.vue`,
+// sustituida por `isSuccessVariant`).
+const LITERALES_VARIANTE = ['\'failure-recoverable\'', '\'failure-stale\'', '\'failure-unrecoverable\'', '\'failure-unknown\'', '\'success\'']
 
-// Los cuatro únicos ficheros con motivo legítimo para nombrar el estado del
-// dispositivo, cada uno con su motivo:
+// Los CINCO únicos ficheros con motivo legítimo para nombrar el estado del
+// dispositivo, cada uno con su motivo (WR-10, 09-REVIEW.md ronda 6: esta
+// cabecera decía «cuatro» mientras la lista de abajo ya tenía cinco
+// entradas desde el plan 09-30 — corregido en el plan 09-34 para que el
+// número que anuncia coincida con el número de entradas):
 // - `useStoredProgress.ts`: LOS PRODUCE (es la autoridad).
 // - `useHistorySavedNotice.ts`: los TRADUCE a copy (`resolveNoticeVariant`).
 // - `usePersistedSession.ts`: usa `'absent'` (y `'unreadable'`, fuera del
@@ -374,16 +383,16 @@ const LITERALES_VARIANTE = ['\'failure-recoverable\'', '\'failure-stale\'', '\'f
 //   avisar ni navegar — exactamente el defecto que ese blindaje cierra. No
 //   se añade aquí ninguna comparación `stored === '...'` (Gate C, segundo
 //   test, sigue sin necesitar tocarse).
-// - `useProgressMountPlan.ts` (plan 09-29, TODO(09-30) — entrada provisional,
-//   el `<scope_boundary>` de 09-29-PLAN.md prohíbe reformar este gate y pide
-//   dejar constancia en el SUMMARY en vez de tocarlo): traduce
-//   `StoredProgress` a la decisión de montaje (`MountAction`), el mismo
-//   papel que `useHistorySavedNotice.ts` ya tiene en esta lista (traducir a
-//   copy). El `switch (stored)` de `planProgressMount` nombra los cuatro
-//   valores porque ES la decisión total sobre ellos, no una invención — pero
-//   la entrada definitiva de auditoría (con el razonamiento completo, igual
-//   que las de arriba) la escribe el plan 09-30, que es quien reforma este
-//   fichero para cubrir también `'stale'`.
+// - `useProgressMountPlan.ts` (plan 09-29, entrada definitiva escrita en el
+//   plan 09-30 —que reformó este fichero para cubrir también `'stale'`—, y
+//   cerrada aquí en el 09-34 al retirar el marcador provisional de más
+//   arriba, WR-10): traduce `StoredProgress` a la decisión de montaje
+//   (`MountAction`), el mismo papel que `useHistorySavedNotice.ts` ya tiene
+//   en esta lista (traducir a copy). El `switch (stored)` de
+//   `planProgressMount` nombra los cuatro valores porque ES la decisión
+//   total sobre ellos — fijada por completo por
+//   `app/composables/__tests__/useProgressMountPlan.test.ts` — no una
+//   invención.
 const FICHEROS_QUE_PUEDEN_NOMBRAR_EL_ESTADO_DEL_DISPOSITIVO = [
   'app/composables/useStoredProgress.ts',
   'app/composables/useHistorySavedNotice.ts',
@@ -554,9 +563,21 @@ describe('Gate A — ninguna copy de app/ (.vue ni .ts) afirma nada por su cuent
 })
 
 describe('Gate B — la copy del composable solo afirma desde variantes respaldadas por la autoridad (09-26/09-30)', () => {
-  it('toda entrada de NOTICE_BODY que afirme algo sobre los datos del grupo tiene una variante respaldada por la autoridad', () => {
-    for (const [variante, cuerpo] of Object.entries(NOTICE_BODY)) {
-      const raicesEncontradas = cuerpo === null ? [] : RAICES_SOBRE_LOS_DATOS_DEL_GRUPO.filter(raiz => contieneRaizSobreLosDatosDelGrupo(cuerpo, raiz))
+  it('toda entrada de NOTICE_HEADING y de NOTICE_BODY que afirme algo sobre los datos del grupo tiene una variante respaldada por la autoridad', () => {
+    // vía (b), 09-VERIFICATION.md ronda 8: hasta este plan Gate B solo
+    // recorría NOTICE_BODY, así que un titular nuevo en NOTICE_HEADING
+    // podía afirmar algo sobre los datos del grupo sin que ningún gate lo
+    // mirara. Se CONCATENAN las entradas (no se usa `{ ...NOTICE_HEADING,
+    // ...NOTICE_BODY }`, que la propia verificación propone y que sería un
+    // error: los dos registros comparten las MISMAS cinco claves
+    // (`NoticeVariant`), así que el spread descartaría los cinco titulares y
+    // Gate B seguiría mirando solo los cuerpos — el mismo hueco con otra
+    // forma). El titular de éxito («✓ Partida registrada») no contiene
+    // ninguna raíz vigilada, así que este bucle no le exige nada — la
+    // garantía de que nadie lo pinta sin haber pasado por `record()` la da
+    // Gate C, más abajo, al vigilar el literal `'success'` (vía (c)).
+    for (const [variante, texto] of [...Object.entries(NOTICE_HEADING), ...Object.entries(NOTICE_BODY)]) {
+      const raicesEncontradas = texto === null ? [] : RAICES_SOBRE_LOS_DATOS_DEL_GRUPO.filter(raiz => contieneRaizSobreLosDatosDelGrupo(texto, raiz))
       if (raicesEncontradas.length > 0) {
         expect(VARIANTES_RESPALDADAS_POR_LA_AUTORIDAD).toContain(variante)
       }
@@ -673,10 +694,11 @@ describe('Gate C — procedencia del estado del dispositivo (09-26/09-30)', () =
       if (contieneLiteral && !FICHEROS_QUE_DEFINEN_NOTICE_VARIANT.includes(ruta)) {
         throw new Error(
           `${ruta} nombra un literal de NoticeVariant ('failure-recoverable'/'failure-stale'/`
-          + `'failure-unrecoverable'/'failure-unknown') sin ser useHistorySavedNotice.ts, que es quien lo `
-          + 'define. Escribir aquí una variante a mano en vez de obtenerla de planGameEnd es exactamente '
-          + 'el gesto que este gate persigue (WR-03, 09-REVIEW.md ronda 6): afirmar sobre el dispositivo '
-          + 'sin haber pasado por readStoredProgress.',
+          + `'failure-unrecoverable'/'failure-unknown'/'success') sin ser useHistorySavedNotice.ts, que es `
+          + 'quien lo define. Escribir aquí una variante a mano en vez de obtenerla de planGameEnd es '
+          + 'exactamente el gesto que este gate persigue (WR-03, 09-REVIEW.md ronda 6; ampliado a \'success\' '
+          + 'en el plan 09-34, vía (c) de 09-VERIFICATION.md ronda 8): afirmar sobre el dispositivo sin haber '
+          + 'pasado por readStoredProgress, o pintar el éxito sin haber pasado por record().',
         )
       }
     }
