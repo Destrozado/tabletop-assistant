@@ -150,15 +150,15 @@ interface AfirmacionAuditada {
   respaldo: string
 }
 
-// respaldoExiste (plan 09-34, Task 2): glob PROPIO — a diferencia de los
-// globs de Gate A/C, éste NO filtra `/__tests__/`, porque el respaldo típico
-// de una excepción es justamente un test puro. Incluye también `engine/`
-// (no solo `app/`): un respaldo puede apoyarse en el motor puro.
-// STUB deliberado (RED, plan 09-34 Task 2): devuelve siempre `false`, así
-// que ningún respaldo —ni siquiera uno real— resuelve todavía. La
-// implementación real llega en el commit GREEN.
-export function respaldoExiste(_ruta: string): boolean {
-  return false
+// respaldoExiste (plan 09-34, Task 2): declarada como `export function` aquí
+// (hoisted) pero su Set de rutas posibles se construye más abajo, DESPUÉS de
+// `ficherosVueGateA`/`ficherosTsGateA`/`rutaRelativa` (ver justo debajo de
+// `copyDeLaAppGateA`) — esas son `const` de módulo, no hoisted, y este
+// fichero las declara en orden textual descendente. Ningún test puede llamar
+// a `respaldoExiste` antes de que el módulo entero termine de cargar, así
+// que el orden textual no afecta al comportamiento en tiempo de test.
+export function respaldoExiste(ruta: string): boolean {
+  return rutasConRespaldoPosible.has(ruta)
 }
 
 // Excepciones auditadas a mano, por FICHERO y por RAÍZ (plan 09-30, cierre
@@ -176,71 +176,143 @@ export function respaldoExiste(_ruta: string): boolean {
 // entrada se completan en la Task 2 de este mismo plan (interface
 // `AfirmacionAuditada`); esta Task 1 solo migra los VALORES de frase a raíz
 // para que Gate A siga en verde con el criterio nuevo.
-const AFIRMACIONES_AUDITADAS: Record<string, string[]> = {
-  // Solo se monta cuando `planProgressMount` devuelve `action:
-  // 'resume-prompt'`, es decir cuando la autoridad ya ha leído el
-  // dispositivo y `resume()` ha resuelto una posición real. «Empezar una
-  // nueva borrará el progreso guardado» describe lo que `onDiscardConfirm`
-  // hace incondicionalmente (ver el comentario de `discardBody` en
-  // index.vue). Auditado en `09-AUDIT-AFIRMACIONES-UI.md` §2 como RESPALDADA.
-  'app/components/ResumePrompt.vue': ['guardad', 'progreso'],
-  // Solo se monta con `outcome: 'content-changed'`, que `resume()` produce
-  // únicamente tras leer una posición válida en el dispositivo. Auditado en
-  // `09-AUDIT-AFIRMACIONES-UI.md` §2 como RESPALDADA.
-  'app/components/ContentChangedNotice.vue': ['guardad'],
-  // MOVIDO desde `app/pages/[game]/index.vue` en el plan 09-32 (Task 2,
-  // arreglo mínimo de Gate A para dejar la suite en verde tras la
-  // reescritura de `endGameBody`, ver el SUMMARY del plan): `discardBody` y
-  // `endGameBody` ya no viven como literales de plantilla en el SFC, sino
-  // como funciones puras exportadas aquí, con test propio en
-  // `useGameEndCopy.test.ts`. `buildDiscardBody`: `onDiscardConfirm` llama a
-  // `clear(gameId)` SIN condición (verificado leyendo la función), así que
-  // «se borrará»/«progreso guardado» son ciertos siempre que ese texto se
-  // muestra. `buildEndGameBody`: reescrito en la Task 2 del plan 09-32 para
-  // ser cierto en las cuatro salidas de <GameOutcomeDialog> — ver el
-  // comentario que acompaña a `buildEndGameBody` en ese fichero.
-  'app/composables/useGameEndCopy.ts': ['guardad', 'progreso', 'se borrar'],
-  // Es LA casa de la copy respaldada por la autoridad: Gate B (más abajo) ya
-  // audita NOTICE_BODY entrada por entrada contra las variantes que
-  // `readStoredProgress`/`resolveNoticeVariant` pueden producir de verdad.
-  // Auditarla aquí SIN ese matiz sería circular — la garantía real de este
-  // fichero la da Gate B, no esta excepción; esta entrada solo evita que
-  // Gate A (que ahora también barre `.ts`) duplique en falso lo que Gate B
-  // ya comprueba con más precisión. La raíz `guardar` es nueva en el 09-34:
-  // cubre los titulares de fallo de `NOTICE_HEADING` («No se pudo guardar la
-  // partida»), que el vocabulario cerrado de la ronda 7 no alcanzaba.
-  'app/composables/useHistorySavedNotice.ts': [
-    'dispositivo',
-    'guardad',
-    'guardar',
-    'reintent',
-    'no se ha perdido',
-    'no encontraréis',
+const AFIRMACIONES_AUDITADAS: Record<string, AfirmacionAuditada[]> = {
+  'app/components/ResumePrompt.vue': [
+    {
+      raiz: 'guardad',
+      motivo: 'Solo se monta cuando planProgressMount devuelve action: \'resume-prompt\', es decir cuando la autoridad ya ha leído el dispositivo y resume() ha resuelto una posición real.',
+      respaldo: 'app/composables/__tests__/useProgressMountPlan.test.ts',
+    },
+    {
+      raiz: 'progreso',
+      motivo: '«Empezar una nueva borrará el progreso guardado» describe lo que onDiscardConfirm hace incondicionalmente al pulsar «Empezar nueva» en este mismo modal, y el modal solo se monta tras la lectura real que useProgressMountPlan.test.ts fija.',
+      respaldo: 'app/composables/__tests__/useProgressMountPlan.test.ts',
+    },
   ],
-  // `UNVERIFIED_PROGRESS_NOTICE` solo se emite cuando `stored === 'unknown'`
-  // (ver `planProgressMount`), y afirma exactamente eso — que no se ha
-  // podido comprobar si hay una partida guardada — nunca que la haya ni que
-  // no la haya. Fijado por un test puro en `useProgressMountPlan.test.ts`.
-  'app/composables/useProgressMountPlan.ts': ['guardad', 'guardar', 'dispositivo'],
-  // NUEVA en el plan 09-34: bajo el vocabulario cerrado de la ronda 7,
+  'app/components/ContentChangedNotice.vue': [
+    {
+      raiz: 'guardad',
+      motivo: 'Solo se monta con outcome: \'content-changed\', que resume() produce únicamente tras leer una posición válida en el dispositivo — mismo respaldo que ResumePrompt.vue, el otro componente cuyo montaje depende de la misma decisión.',
+      respaldo: 'app/composables/__tests__/useProgressMountPlan.test.ts',
+    },
+  ],
+  // MOVIDO desde `app/pages/[game]/index.vue` en el plan 09-32 (arreglo
+  // mínimo de Gate A tras la reescritura de `endGameBody`): `discardBody` y
+  // `endGameBody` ya no viven como literales de plantilla en el SFC, sino
+  // como funciones puras exportadas aquí, con test propio.
+  'app/composables/useGameEndCopy.ts': [
+    {
+      raiz: 'guardad',
+      motivo: 'onDiscardConfirm llama a clear(gameId) SIN condición, así que «se borrará» es cierto siempre que buildDiscardBody se muestra; buildEndGameBody solo promete lo que preserveProgress garantiza en las cuatro salidas de <GameOutcomeDialog>.',
+      respaldo: 'app/composables/__tests__/useGameEndCopy.test.ts',
+    },
+    {
+      raiz: 'progreso',
+      motivo: 'Misma comprobación rama por rama que la raíz "guardad" de esta entrada: buildDiscardBody/buildEndGameBody nombran "el progreso guardado" solo donde preserveProgress/clear(gameId) lo respaldan.',
+      respaldo: 'app/composables/__tests__/useGameEndCopy.test.ts',
+    },
+    {
+      raiz: 'se borrar',
+      motivo: 'buildEndGameBody/buildDiscardBody: "se borrará" describe exactamente lo que preserveProgress === false / clear(gameId) incondicional garantizan, verificado rama por rama sobre las cuatro salidas de <GameOutcomeDialog>.',
+      respaldo: 'app/composables/__tests__/useGameEndCopy.test.ts',
+    },
+  ],
+  // useHistorySavedNotice.ts es LA casa de la copy respaldada por la
+  // autoridad: Gate B (más abajo) ya audita NOTICE_BODY/NOTICE_HEADING
+  // entrada por entrada contra las variantes que
+  // `readStoredProgress`/`resolveNoticeVariant` pueden producir de verdad.
+  // El respaldo elegido aquí (`avisoTrasRegistroFallido.test.ts`) es el test
+  // de COSTURA que recorre almacenamiento → autoridad → decisión → copy —
+  // deliberadamente NO circular, a diferencia del motivo que este plan
+  // retira («la garantía real la da Gate B», 09-VERIFICATION.md ronda 8):
+  // aquí se nombra el fichero concreto que EJERCE el camino completo, no
+  // solo otro gate de este mismo fichero.
+  'app/composables/useHistorySavedNotice.ts': [
+    {
+      raiz: 'dispositivo',
+      motivo: 'Las cuatro variantes de fallo solo se alcanzan pasando por readStoredProgress; el camino completo (lectura → planGameEnd → NoticeVariant → NOTICE_HEADING/NOTICE_BODY) está recorrido de punta a punta.',
+      respaldo: 'app/composables/__tests__/avisoTrasRegistroFallido.test.ts',
+    },
+    {
+      raiz: 'guardad',
+      motivo: 'NOTICE_BODY[\'failure-recoverable\'] ("sigue guardada en el dispositivo") solo se pinta cuando planGameEnd decide esa variante a partir de una lectura real de StoredProgress.',
+      respaldo: 'app/composables/__tests__/avisoTrasRegistroFallido.test.ts',
+    },
+    {
+      raiz: 'guardar',
+      motivo: 'Los cuatro titulares de fallo de NOTICE_HEADING ("No se pudo guardar la partida") y el cuerpo de failure-stale comparten el mismo origen: planGameEnd, nunca un literal escrito a mano.',
+      respaldo: 'app/composables/__tests__/avisoTrasRegistroFallido.test.ts',
+    },
+    {
+      raiz: 'reintent',
+      motivo: 'La instrucción de reintento de failure-recoverable, y su ausencia deliberada en failure-unrecoverable/failure-stale, están fijadas rama por rama contra el resultado real de planGameEnd.',
+      respaldo: 'app/composables/__tests__/avisoTrasRegistroFallido.test.ts',
+    },
+    {
+      raiz: 'no se ha perdido',
+      motivo: 'NOTICE_BODY[\'failure-recoverable\'] solo afirma "la partida no se ha perdido" cuando stored === \'resumable\', el único caso que planGameEnd produce para esa variante.',
+      respaldo: 'app/composables/__tests__/avisoTrasRegistroFallido.test.ts',
+    },
+    {
+      raiz: 'no encontraréis',
+      motivo: 'NOTICE_BODY[\'failure-unrecoverable\'] ("no encontraréis esta partida") solo se pinta cuando stored === \'absent\', comprobado por readStoredProgress, nunca inventado.',
+      respaldo: 'app/composables/__tests__/avisoTrasRegistroFallido.test.ts',
+    },
+  ],
+  'app/composables/useProgressMountPlan.ts': [
+    {
+      raiz: 'guardad',
+      motivo: 'UNVERIFIED_PROGRESS_NOTICE ("una partida guardada") y el resto de planProgressMount son función pura y TOTAL sobre los cuatro valores de StoredProgress, fijada rama por rama.',
+      respaldo: 'app/composables/__tests__/useProgressMountPlan.test.ts',
+    },
+    {
+      raiz: 'guardar',
+      motivo: '"al guardar la nueva podríais sustituirla" describe la consecuencia real de mini-setup tras stored === \'unknown\', la única rama que produce este aviso.',
+      respaldo: 'app/composables/__tests__/useProgressMountPlan.test.ts',
+    },
+    {
+      raiz: 'dispositivo',
+      motivo: '"este dispositivo tiene una partida guardada" solo se afirma —como ignorancia, no como hecho— cuando stored === \'unknown\'; planProgressMount es total y testeada sobre los cuatro valores.',
+      respaldo: 'app/composables/__tests__/useProgressMountPlan.test.ts',
+    },
+  ],
+  // NUEVAS en el plan 09-34: bajo el vocabulario cerrado de la ronda 7,
   // «Sin voz en este dispositivo»/«Voz no disponible en este dispositivo»
   // escapaban al barrido porque la subcadena exacta vigilada era «en el
   // dispositivo», no «este dispositivo». La raíz `dispositivo` sí las
   // alcanza — correctamente, porque SÍ nombran el dispositivo, aunque hablen
-  // de disponibilidad de VOZ, no de datos guardados del grupo:
-  // `resolveVoiceState`/`resolveEffectiveAvailability` (`useVoiceAnnouncer.ts`)
-  // calculan `voiceState`/`showVoiceUnavailableNotice` únicamente a partir
-  // de `audioAvailable`/`spanishVoiceAvailable`, sin leer `StoredProgress`
-  // en ningún punto — comprobado por sus tests puros.
-  'app/components/AppHeader.vue': ['dispositivo'],
-  'app/components/VoiceUnavailableNotice.vue': ['dispositivo'],
-  // NUEVO en el plan 09-33 (útil directamente en el plan 09-34, primera vez
-  // que Gate A lo barre bajo el criterio por raíces): `PROGRESS_MISMATCH_WARNING`
-  // solo se pinta cuando `readProgressMismatchWarning` encuentra una marca
-  // puesta por `planGameEnd`/`markProgressMismatch` al cerrar la partida
-  // anterior — nunca se inventa aquí. Fijado por el test de respaldo
-  // oración a oración de `useProgressMismatchMark.test.ts`.
-  'app/composables/useProgressMismatchMark.ts': ['guardad', 'progreso'],
+  // de disponibilidad de VOZ, no de datos guardados del grupo.
+  'app/components/AppHeader.vue': [
+    {
+      raiz: 'dispositivo',
+      motivo: '"Voz no disponible en este dispositivo" describe voiceState/showVoiceUnavailableNotice, calculados por resolveVoiceState/resolveEffectiveAvailability únicamente a partir de audioAvailable/spanishVoiceAvailable — nunca de StoredProgress.',
+      respaldo: 'app/composables/__tests__/useVoiceAnnouncer.test.ts',
+    },
+  ],
+  'app/components/VoiceUnavailableNotice.vue': [
+    {
+      raiz: 'dispositivo',
+      motivo: '"Sin voz en este dispositivo" es el mismo aviso de disponibilidad de voz que AppHeader.vue, con el mismo respaldo: resolveEffectiveAvailability nunca lee el progreso guardado del grupo.',
+      respaldo: 'app/composables/__tests__/useVoiceAnnouncer.test.ts',
+    },
+  ],
+  // NUEVO en el plan 09-33 (primera vez que Gate A lo barre, bajo el
+  // criterio por raíces del 09-34): PROGRESS_MISMATCH_WARNING solo se pinta
+  // cuando readProgressMismatchWarning encuentra una marca puesta por
+  // planGameEnd/markProgressMismatch al cerrar la partida anterior — nunca
+  // se inventa aquí.
+  'app/composables/useProgressMismatchMark.ts': [
+    {
+      raiz: 'guardad',
+      motivo: 'PROGRESS_MISMATCH_WARNING solo se pinta tras markProgressMismatch, que solo se llama cuando planGameEnd (useHistorySavedNotice.ts) decide progressMismatch === true a partir de una lectura real.',
+      respaldo: 'app/composables/__tests__/useProgressMismatchMark.test.ts',
+    },
+    {
+      raiz: 'progreso',
+      motivo: 'El texto tiene comprobación de respaldo oración a oración, con tests dedicados por cada aserción positiva y negativa sobre lo que planGameEnd comprobó de verdad.',
+      respaldo: 'app/composables/__tests__/useProgressMismatchMark.test.ts',
+    },
+  ],
 }
 
 // frasesSinAuditarDe (plan 09-34, preparación de la vía (e) de
@@ -253,7 +325,10 @@ const AFIRMACIONES_AUDITADAS: Record<string, string[]> = {
 export function frasesSinAuditarDe(ruta: string, contenido: string): string[] {
   const region = regionVigilada(contenido)
   const raicesEncontradas = RAICES_SOBRE_LOS_DATOS_DEL_GRUPO.filter(raiz => contieneRaizSobreLosDatosDelGrupo(region, raiz))
-  const raicesAuditadas = AFIRMACIONES_AUDITADAS[ruta] ?? []
+  // Task 2 (plan 09-34): AFIRMACIONES_AUDITADAS pasó de Record<string,
+  // string[]> a Record<string, AfirmacionAuditada[]> — se extrae `.raiz` de
+  // cada entrada para mantener la misma comparación de antes.
+  const raicesAuditadas = (AFIRMACIONES_AUDITADAS[ruta] ?? []).map(afirmacion => afirmacion.raiz)
   // Auditar un fichero NO exime todas sus raíces futuras (T-09-30-06): solo
   // las raíces explícitamente listadas para ESE fichero pasan el gate.
   return raicesEncontradas.filter(raiz => !raicesAuditadas.includes(raiz))
@@ -352,6 +427,16 @@ const copyDeLaAppGateA: Record<string, string> = Object.fromEntries(
   Object.entries({ ...ficherosVueGateA, ...ficherosTsGateA }).filter(([clave]) => !rutaRelativa(clave).includes('/__tests__/')),
 )
 
+// Set de rutas para `respaldoExiste` (plan 09-34, Task 2): a diferencia de
+// `copyDeLaAppGateA` de arriba, éste NO filtra `/__tests__/` — el respaldo
+// típico de una excepción auditada es justamente un test puro — y añade
+// `engine/**/*.ts`: un respaldo puede apoyarse en el motor puro, no solo en
+// `app/`.
+const ficherosEngineParaRespaldo = import.meta.glob('/engine/**/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
+const rutasConRespaldoPosible = new Set(
+  [...Object.keys(ficherosVueGateA), ...Object.keys(ficherosTsGateA), ...Object.keys(ficherosEngineParaRespaldo)].map(rutaRelativa),
+)
+
 describe('Criterio por raíces léxicas (plan 09-34, cierre de la vía (a) de 09-VERIFICATION.md ronda 8)', () => {
   it('cada una de las 11 subcadenas del vocabulario cerrado de la ronda 7 contiene al menos una raíz nueva (subsunción: el criterio nuevo no pierde nada del viejo)', () => {
     for (const fraseVieja of VOCABULARIO_CERRADO_HASTA_LA_RONDA_7) {
@@ -403,6 +488,31 @@ describe('Respaldo comprobable de cada excepción auditada (plan 09-34, Task 2, 
 
   it('respaldoExiste devuelve false para una ruta que no existe en el árbol', () => {
     expect(respaldoExiste('app/composables/no-existe-de-verdad.ts')).toBe(false)
+  })
+
+  it('toda entrada de AFIRMACIONES_AUDITADAS tiene motivo y respaldo no vacíos, y el respaldo resuelve a un fichero real', () => {
+    for (const [ruta, afirmaciones] of Object.entries(AFIRMACIONES_AUDITADAS)) {
+      for (const afirmacion of afirmaciones) {
+        expect(afirmacion.motivo.trim().length, `${ruta} (${afirmacion.raiz}) no tiene motivo`).toBeGreaterThan(0)
+        expect(afirmacion.respaldo.trim().length, `${ruta} (${afirmacion.raiz}) no tiene respaldo`).toBeGreaterThan(0)
+        expect(respaldoExiste(afirmacion.respaldo), `${ruta} (${afirmacion.raiz}) nombra un respaldo que no existe: ${afirmacion.respaldo}`).toBe(true)
+      }
+    }
+  })
+
+  // Cierre explícito de T-09-34: el fichero donde han vivido cinco de las
+  // ocho caras del defecto ya NO necesita ninguna excepción auditada — no
+  // porque se le perdone una frase, sino porque, tras 09-32/09-33, ya no
+  // contiene ninguna afirmación sobre los datos guardados del grupo.
+  it('AFIRMACIONES_AUDITADAS no tiene ninguna clave para app/pages/[game]/index.vue', () => {
+    expect(Object.keys(AFIRMACIONES_AUDITADAS)).not.toContain('app/pages/[game]/index.vue')
+  })
+
+  it('frasesSinAuditarDe sobre el contenido REAL de app/pages/[game]/index.vue devuelve [] — ya no contiene ninguna raíz, no porque esté auditado', () => {
+    const clave = Object.keys(ficherosVueGateA).find(k => k.endsWith('/pages/[game]/index.vue'))
+    expect(clave, 'no se encontró app/pages/[game]/index.vue en el glob de Gate A').toBeDefined()
+    const contenido = ficherosVueGateA[clave!]!
+    expect(frasesSinAuditarDe('app/pages/[game]/index.vue', contenido)).toEqual([])
   })
 })
 
