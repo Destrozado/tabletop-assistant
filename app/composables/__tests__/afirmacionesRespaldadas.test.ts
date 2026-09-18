@@ -358,6 +358,21 @@ export function frasesSinAuditarDe(ruta: string, contenido: string): string[] {
 // B no lo trate como una afirmación no respaldada.
 const VARIANTES_RESPALDADAS_POR_LA_AUTORIDAD = ['failure-recoverable', 'failure-stale', 'failure-unrecoverable', 'failure-unknown']
 
+// variantesSinRespaldoDe (plan 09-35, extracción de la DECISIÓN de Gate B,
+// vías (b)/(e) de `09-VERIFICATION.md` ronda 8): STUB temporal para la fase
+// RED del ciclo TDD de este plan — devuelve siempre `[]` sin mirar ninguno
+// de los dos registros. La implementación real llega en el commit GREEN.
+export function variantesSinRespaldoDe(
+  titulares: Record<string, string | null>,
+  cuerpos: Record<string, string | null>,
+  respaldadas: string[],
+): string[] {
+  void titulares
+  void cuerpos
+  void respaldadas
+  return []
+}
+
 // LITERALES_VARIANTE (WR-03, 09-REVIEW.md ronda 6; ampliada en el plan
 // 09-34, Task 3, vía (c) de 09-VERIFICATION.md ronda 8): promovida a
 // ámbito de módulo para que un test pueda comprobar directamente su
@@ -578,24 +593,17 @@ describe('Gate A — ninguna copy de app/ (.vue ni .ts) afirma nada por su cuent
 
 describe('Gate B — la copy del composable solo afirma desde variantes respaldadas por la autoridad (09-26/09-30)', () => {
   it('toda entrada de NOTICE_HEADING y de NOTICE_BODY que afirme algo sobre los datos del grupo tiene una variante respaldada por la autoridad', () => {
-    // vía (b), 09-VERIFICATION.md ronda 8: hasta este plan Gate B solo
+    // vía (b), 09-VERIFICATION.md ronda 8: hasta el plan 09-34 Gate B solo
     // recorría NOTICE_BODY, así que un titular nuevo en NOTICE_HEADING
     // podía afirmar algo sobre los datos del grupo sin que ningún gate lo
-    // mirara. Se CONCATENAN las entradas (no se usa `{ ...NOTICE_HEADING,
-    // ...NOTICE_BODY }`, que la propia verificación propone y que sería un
-    // error: los dos registros comparten las MISMAS cinco claves
-    // (`NoticeVariant`), así que el spread descartaría los cinco titulares y
-    // Gate B seguiría mirando solo los cuerpos — el mismo hueco con otra
-    // forma). El titular de éxito («✓ Partida registrada») no contiene
-    // ninguna raíz vigilada, así que este bucle no le exige nada — la
-    // garantía de que nadie lo pinta sin haber pasado por `record()` la da
-    // Gate C, más abajo, al vigilar el literal `'success'` (vía (c)).
-    for (const [variante, texto] of [...Object.entries(NOTICE_HEADING), ...Object.entries(NOTICE_BODY)]) {
-      const raicesEncontradas = texto === null ? [] : RAICES_SOBRE_LOS_DATOS_DEL_GRUPO.filter(raiz => contieneRaizSobreLosDatosDelGrupo(texto, raiz))
-      if (raicesEncontradas.length > 0) {
-        expect(VARIANTES_RESPALDADAS_POR_LA_AUTORIDAD).toContain(variante)
-      }
-    }
+    // mirara. La decisión vive ahora en `variantesSinRespaldoDe` (plan
+    // 09-35, vía (e)): este test solo la llama, para que Gate S pueda
+    // ejercer la misma función y demostrar que se pone roja. El titular de
+    // éxito («✓ Partida registrada») no contiene ninguna raíz vigilada, así
+    // que no le exige nada — la garantía de que nadie lo pinta sin haber
+    // pasado por `record()` la da Gate C, más abajo, al vigilar el literal
+    // `'success'` (vía (c)).
+    expect(variantesSinRespaldoDe(NOTICE_HEADING, NOTICE_BODY, VARIANTES_RESPALDADAS_POR_LA_AUTORIDAD)).toEqual([])
   })
 
   it('las cuatro variantes respaldadas cubren EXACTAMENTE los cuatro valores de StoredProgress, sin hueco ni solape', () => {
@@ -868,5 +876,37 @@ const aviso = '${frase}'
   it('una raíz que solo aparece dentro de un comentario NO se detecta (garantía complementaria: el gate no se pone rojo por narrativa)', () => {
     const sfcSintetico = '<template><p>hola</p></template>\n<!-- dispositivo -->'
     expect(frasesSinAuditarDe('app/components/RutaSinAuditar.vue', sfcSintetico)).toEqual([])
+  })
+
+  // --- Plan 09-35, Task 2: Gate S ejerce la DECISIÓN de Gate B ---
+
+  it('variantesSinRespaldoDe devuelve [] sobre los registros reales de la app (NOTICE_HEADING/NOTICE_BODY)', () => {
+    expect(variantesSinRespaldoDe(NOTICE_HEADING, NOTICE_BODY, VARIANTES_RESPALDADAS_POR_LA_AUTORIDAD)).toEqual([])
+  })
+
+  it('un titular sintético con una raíz vigilada fuera de la lista de respaldadas SÍ es detectado (cierra la vía (b): NOTICE_HEADING dejaba de mirarse)', () => {
+    const titularesSinteticos = { 'variante-inventada': 'este dispositivo guarda vuestra partida' }
+    const cuerposSinteticos = { 'variante-inventada': null }
+    expect(variantesSinRespaldoDe(titularesSinteticos, cuerposSinteticos, [])).toContain('variante-inventada')
+  })
+
+  it('un cuerpo sintético con una raíz vigilada fuera de la lista de respaldadas SÍ es detectado', () => {
+    const titularesSinteticos = { 'variante-inventada': 'Aviso' }
+    const cuerposSinteticos = { 'variante-inventada': 'este dispositivo guarda vuestra partida' }
+    expect(variantesSinRespaldoDe(titularesSinteticos, cuerposSinteticos, [])).toContain('variante-inventada')
+  })
+
+  it('un cuerpo null nunca produce detección en variantesSinRespaldoDe', () => {
+    const titularesSinteticos = { 'variante-inventada': 'Aviso' }
+    const cuerposSinteticos = { 'variante-inventada': null }
+    expect(variantesSinRespaldoDe(titularesSinteticos, cuerposSinteticos, [])).toEqual([])
+  })
+
+  it('una variante sin ninguna raíz vigilada no produce detección aunque no esté respaldada — el caso de la variante de éxito', () => {
+    // El titular de éxito («✓ Partida registrada») y su cuerpo (null) no
+    // contienen ninguna raíz vigilada, así que variantesSinRespaldoDe no le
+    // exige nada; la garantía de que nadie la pinta sin pasar por record()
+    // la da Gate C, al vigilar el literal 'success' (vía (c)).
+    expect(variantesSinRespaldoDe({ success: NOTICE_HEADING.success }, { success: NOTICE_BODY.success }, [])).toEqual([])
   })
 })
