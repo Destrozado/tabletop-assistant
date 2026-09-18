@@ -114,6 +114,20 @@ const VOCABULARIO_CERRADO_HASTA_LA_RONDA_7 = [
   'no encontraréis',
 ]
 
+// FRASE_NO_DETECTADA_EN_LA_RONDA_7 (plan 09-35, cierre de la vía (e) de
+// `09-VERIFICATION.md` ronda 8): la segunda oración LITERAL que `endGameBody`
+// tenía en `app/pages/[game]/index.vue` justo ANTES del plan 09-32 —
+// `git show e09f661^:'app/pages/[game]/index.vue'`, línea 511, no reescrita
+// de memoria: `` `El progreso guardado de esta partida (${savedSummary.value})
+// se borrará y volveréis a la pantalla de inicio. Si el registro en el
+// histórico falla, la app conservará el progreso para que podáis
+// reintentarlo.` ``. Esta constante fija solo la SEGUNDA oración, la que la
+// ronda 7 encontró viviendo sin detectar en el fichero más vigilado del
+// repo. Se fija aquí como fixture SINTÉTICO permanente (Gate S la usa dentro
+// de un `sfc` inventado, nunca leyendo el árbol real) para que el gate no
+// dependa de que el defecto siga existiendo en el repo.
+const FRASE_NO_DETECTADA_EN_LA_RONDA_7 = 'Si el registro en el histórico falla, la app conservará el progreso para que podáis reintentarlo.'
+
 // normalizarEspacios (plan 09-34, vía (d) de `09-VERIFICATION.md` ronda 8):
 // una copy partida en dos líneas por un formateador evade un `includes`
 // literal sin mala fe — eso convierte al gate en algo que depende del
@@ -813,5 +827,46 @@ const aviso = '${frase}'
     expect(clave, 'no se encontró app/pages/[game]/index.vue en el glob de Gate A').toBeDefined()
     const contenido = ficherosVueGateA[clave!]!
     expect(regionVigilada(contenido)).toContain('endGameBody')
+  })
+
+  // --- Plan 09-35, Task 1: Gate S ejerce la DECISIÓN de Gate A ---
+
+  it('frasesSinAuditarDe detecta una raíz vigilada en un sfc sintético sobre una ruta sin auditar (vía (e): la decisión, no solo la extracción)', () => {
+    const sfcSintetico = '<template><p>este dispositivo</p></template>'
+    expect(frasesSinAuditarDe('app/components/FicheroQueNoExiste.vue', sfcSintetico)).toContain('dispositivo')
+  })
+
+  it('el mismo sfc sintético sobre una ruta con esa raíz auditada devuelve [] (frasesSinAuditarDe respeta la auditoría)', () => {
+    const sfcSintetico = '<template><p>este dispositivo</p></template>'
+    expect(frasesSinAuditarDe('app/components/AppHeader.vue', sfcSintetico)).toEqual([])
+  })
+
+  it('un fichero auditado para una raíz no queda exento de las demás (auditoría parcial, T-09-30-06 ejercida por Gate S)', () => {
+    // app/components/ResumePrompt.vue está auditado para 'guardad' y
+    // 'progreso' (AFIRMACIONES_AUDITADAS), pero NO para 'dispositivo' —
+    // combinación real, sin necesitar ninguna tabla sintética.
+    const sfcSintetico = '<template><p>la partida sigue guardada en este dispositivo</p></template>'
+    expect(frasesSinAuditarDe('app/components/ResumePrompt.vue', sfcSintetico)).toEqual(['dispositivo'])
+  })
+
+  it('la frase real que evadió el gate en la ronda 7, dentro de un sfc sintético sobre una ruta sin auditar, SÍ es atrapada — el criterio cerrado anterior NO la habría atrapado (vía (a), instancia real)', () => {
+    const sfcSintetico = `<template><p>${FRASE_NO_DETECTADA_EN_LA_RONDA_7}</p></template>`
+    // El gate nuevo (por raíces léxicas) SÍ la atrapa:
+    expect(frasesSinAuditarDe('app/components/RutaSinAuditar.vue', sfcSintetico)).not.toHaveLength(0)
+    // El criterio cerrado de la ronda 7 (11 subcadenas literales) NO la
+    // habría atrapado — la prueba ejecutable de que este cierre resuelve un
+    // defecto real, no una hipótesis.
+    const laCubreAlgunaSubcadenaVieja = VOCABULARIO_CERRADO_HASTA_LA_RONDA_7.some(sub => FRASE_NO_DETECTADA_EN_LA_RONDA_7.toLowerCase().includes(sub.toLowerCase()))
+    expect(laCubreAlgunaSubcadenaVieja).toBe(false)
+  })
+
+  it('una raíz partida en dos líneas dentro de un sfc sintético también se detecta (vía (d) ejercida por Gate S)', () => {
+    const sfcSintetico = '<template><p>la partida sigue\n      guardada en el dispositivo</p></template>'
+    expect(frasesSinAuditarDe('app/components/RutaSinAuditar.vue', sfcSintetico)).toContain('guardad')
+  })
+
+  it('una raíz que solo aparece dentro de un comentario NO se detecta (garantía complementaria: el gate no se pone rojo por narrativa)', () => {
+    const sfcSintetico = '<template><p>hola</p></template>\n<!-- dispositivo -->'
+    expect(frasesSinAuditarDe('app/components/RutaSinAuditar.vue', sfcSintetico)).toEqual([])
   })
 })
