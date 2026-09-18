@@ -24,6 +24,7 @@ import { tableOfContents } from '~~/engine/toc'
 import type { GameOutcome } from '~~/engine/types'
 import { useCharacterCatalogue } from '~/composables/useCharacterCatalogue'
 import { useGameContent } from '~/composables/useGameContent'
+import { buildDiscardBody, buildEndGameBody } from '~/composables/useGameEndCopy'
 import { useGameHistory } from '~/composables/useGameHistory'
 import { useGameSession } from '~/composables/useGameSession'
 import {
@@ -146,7 +147,7 @@ const awaitingDiscardConfirm = ref(false)
 const awaitingEndConfirm = ref(false)
 // Plan 09-29: aviso del mini-setup cuando la lectura del dispositivo ha
 // fallado — null en cualquier otro caso.
-const avisoProgresoNoComprobado = ref<string | null>(null)
+const avisoLecturaNoComprobada = ref<string | null>(null)
 
 onMounted(() => {
   if (!game) {
@@ -170,12 +171,12 @@ onMounted(() => {
   // la que `StoredProgress` existe. Ahora la decisión vive en
   // `planProgressMount`, que es total y testeada sobre los cuatro estados,
   // y el estado «no comprobado» tiene superficie propia en pantalla
-  // (`avisoProgresoNoComprobado`) en vez de delegarse en los ojos del
+  // (`avisoLecturaNoComprobada`) en vez de delegarse en los ojos del
   // grupo. Sin `esperada`: al montar no hay ninguna sesión con la que
   // comparar (a diferencia de `onOutcomeRecorded`, que sí la tiene).
   const informe = readStoredProgress(game)
   const plan = planProgressMount(informe.stored, informe.outcome)
-  avisoProgresoNoComprobado.value = plan.unverifiedNotice
+  avisoLecturaNoComprobada.value = plan.unverifiedNotice
 
   if (plan.action === 'mini-setup') {
     resumeResolved.value = true
@@ -482,34 +483,12 @@ const savedSummary = computed(() => {
   return parts.join(' · ')
 })
 
-// discardBody: `onDiscardConfirm` llama a `clear(gameId)` de forma
-// INCONDICIONAL (ver más abajo), así que «se borrará» es cierto siempre que
-// este texto se muestra — no hay rama en la que no ocurra.
-const discardBody = computed(() =>
-  `Se borrará el progreso guardado de la partida en curso (${savedSummary.value}). Esta acción no se puede deshacer.`,
-)
-
-// endGameBody (plan 09-30, cierre de IN-03/WR-04 de `09-REVIEW.md`, abierto
-// desde la ronda 4): el texto anterior («Se borrará… Esta acción no se puede
-// deshacer») era FALSO en la rama de fallo de registro, donde `planGameEnd`
-// devuelve `preserveProgress: true` precisamente para no convertir un fallo
-// recuperable en una pérdida definitiva. Comprobación de veracidad, rama por
-// rama, de las CUATRO salidas de <GameOutcomeDialog>:
-// - «Salir sin registrar» → `onOutcomeDismiss` → `finishGame()` sin
-//   argumento → `preserveProgress` es `false` → SE BORRA. Cierta.
-// - Registro con éxito → `planGameEnd(true, stored).preserveProgress` es
-//   `false` (`!historyRecorded`) → SE BORRA. Cierta.
-// - Registro fallido, cualquiera de los cuatro estados del dispositivo →
-//   `planGameEnd(false, stored).preserveProgress` es `true` → NO SE BORRA.
-//   Es la frase que faltaba.
-// Se retira la coletilla de irreversibilidad que llevaba el texto anterior
-// (ver discardBody arriba para la frase exacta que SÍ sigue siendo cierta
-// ahí): aquí convertía una descripción en una promesa absoluta, y además el
-// registro del histórico SÍ se puede deshacer desde /historico (HIST-08) —
-// no se restaura sin nombrar por qué.
-const endGameBody = computed(() =>
-  `El progreso guardado de esta partida (${savedSummary.value}) se borrará y volveréis a la pantalla de inicio. Si el registro en el histórico falla, la app conservará el progreso para que podáis reintentarlo.`,
-)
+// discardBody/endGameBody (plan 09-32, Task 2): la copy y su comprobación
+// de veracidad rama por rama viven en `useGameEndCopy.ts`, que sí tiene test
+// puro — el proyecto `app-logic` de Vitest no monta componentes, así que un
+// literal aquí dentro no podía tener test (09-VERIFICATION.md ronda 7).
+const discardBody = computed(() => buildDiscardBody(savedSummary.value))
+const endGameBody = computed(() => buildEndGameBody(savedSummary.value))
 
 // outcomeContextLine (09-UI-SPEC.md §Layout 2): `{villano} · {n} jug ·
 // {dificultad} · ronda {N}` — el segmento del villano se OMITE por completo
@@ -681,9 +660,9 @@ function onOutcomeRecorded(outcome: GameOutcome) {
   // voz seguiría oyéndose ya en el selector de juego.
   silence()
   if (session.value && game) {
-    let guardado = false
+    let registrado = false
     try {
-      guardado = record(session.value, outcome)
+      registrado = record(session.value, outcome)
     }
     catch {
       // `false` y `'unknown'` son los valores honestos ante una excepción —
@@ -694,7 +673,7 @@ function onOutcomeRecorded(outcome: GameOutcome) {
       // `/`: el grupo se queda mirando el paso en curso sin ninguna señal
       // (WR-10 de la ronda 4, WR-06 de la ronda 5).
     }
-    if (!guardado) save(session.value)
+    if (!registrado) save(session.value)
     let stored: StoredProgress = 'unknown'
     try {
       stored = readStoredProgress(game, session.value).stored
@@ -704,7 +683,7 @@ function onOutcomeRecorded(outcome: GameOutcome) {
       // honesto ante una excepción de lectura — «no he podido comprobarlo»
       // es literalmente lo que ha pasado.
     }
-    const plan = planGameEnd(guardado, stored)
+    const plan = planGameEnd(registrado, stored)
     notifyHistorySaved(plan.variant)
     finishGame(plan.preserveProgress)
   } else {
@@ -843,7 +822,7 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
       :game-title="game.title"
       :min-players="game.minPlayers ?? 1"
       :max-players="game.maxPlayers ?? 4"
-      :unverified-progress-notice="avisoProgresoNoComprobado"
+      :unverified-progress-notice="avisoLecturaNoComprobada"
       @update:player-count="playerCount = $event"
       @update:difficulty="difficulty = $event"
       @confirm="onConfirm"

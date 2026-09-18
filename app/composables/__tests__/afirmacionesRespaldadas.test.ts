@@ -116,13 +116,18 @@ const AFIRMACIONES_AUDITADAS: Record<string, string[]> = {
   // únicamente tras leer una posición válida en el dispositivo. Auditado en
   // `09-AUDIT-AFIRMACIONES-UI.md` §2 como RESPALDADA.
   'app/components/ContentChangedNotice.vue': ['partida guardada'],
-  // `discardBody`: `onDiscardConfirm` llama a `clear(gameId)` SIN condición
-  // (verificado leyendo la función), así que «se borrará»/«progreso
-  // guardado» son ciertos siempre que ese texto se muestra.
-  // `endGameBody`: reescrito en la Task 2 de este mismo plan (09-30) para
-  // ser cierto en las cuatro salidas de <GameOutcomeDialog> — ver el
-  // comentario que acompaña a `endGameBody` en este fichero.
-  'app/pages/[game]/index.vue': ['se borrará', 'progreso guardado'],
+  // MOVIDO desde `app/pages/[game]/index.vue` en el plan 09-32 (Task 2,
+  // arreglo mínimo de Gate A para dejar la suite en verde tras la
+  // reescritura de `endGameBody`, ver el SUMMARY del plan): `discardBody` y
+  // `endGameBody` ya no viven como literales de plantilla en el SFC, sino
+  // como funciones puras exportadas aquí, con test propio en
+  // `useGameEndCopy.test.ts`. `buildDiscardBody`: `onDiscardConfirm` llama a
+  // `clear(gameId)` SIN condición (verificado leyendo la función), así que
+  // «se borrará»/«progreso guardado» son ciertos siempre que ese texto se
+  // muestra. `buildEndGameBody`: reescrito en la Task 2 de este mismo plan
+  // (09-32) para ser cierto en las cuatro salidas de <GameOutcomeDialog> —
+  // ver el comentario que acompaña a `buildEndGameBody` en ese fichero.
+  'app/composables/useGameEndCopy.ts': ['se borrará', 'progreso guardado'],
   // Es LA casa de la copy respaldada por la autoridad: Gate B (más abajo) ya
   // audita NOTICE_BODY entrada por entrada contra las variantes que
   // `readStoredProgress`/`resolveNoticeVariant` pueden producir de verdad.
