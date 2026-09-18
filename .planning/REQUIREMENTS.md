@@ -186,6 +186,43 @@
 > **Este cierre no se da por bueno hasta que una ronda de verificación independiente lo
 > confirme: cuatro notas anteriores de este mismo documento dieron por cerrado lo que no lo
 > estaba.**
+>
+> **Ronda 7 (`09-VERIFICATION.md`, planes 09-32/09-33/09-34/09-35):** el hallazgo, en una
+> frase: el cierre de la ronda 6 sustituyó la pregunta «¿hay alguna partida reanudable?» por
+> «¿es ESTA?» —eso quedó genuinamente cerrado—, pero la copy escrita para anunciar la
+> respuesta nueva afirmaba tres hechos que la comparación no establece: anterioridad temporal
+> (imposible, `updatedAt` queda excluido por escrito de `esLaMismaPartida`), identidad de
+> partida (`runtimeId` identifica un paso, no una instancia) y diferencia de ronda — esta
+> última **literalmente falsa** en el escenario canónico que el propio plan 09-28 construyó
+> como test de regresión, donde la diferencia real está en `runtimeId` y las dos rondas valen
+> 1.
+>
+> El agravante, sin suavizarlo: `endGameBody` prometía un reintento que 2 de los 4 estados del
+> dispositivo contradicen, y el motivo escrito que lo auditaba afirmaba por escrito que era
+> «cierto en las cuatro salidas». Un motivo falso sellando un hueco es peor que no tener
+> excepción.
+>
+> Qué se ha hecho (con los planes): 09-32 reescribe la copy de `failure-stale` retirando las
+> tres afirmaciones sin respaldo, y saca la copy del diálogo de fin de partida a
+> `app/composables/useGameEndCopy.ts` con test puro, sin promesa de reintento; 09-33 transporta
+> la discrepancia comprobada al cerrar la partida hasta el modal de reanudación con una marca en
+> memoria (`useProgressMismatchMark.ts`); 09-34 cambia el criterio del gate de clase de una
+> lista cerrada de 11 subcadenas literales a un conjunto de raíces léxicas
+> (`RAICES_SOBRE_LOS_DATOS_DEL_GRUPO`), obliga a que cada excepción auditada nombre un fichero
+> real que la respalde, y cierra los huecos de Gate B (titulares, `NOTICE_HEADING`) y Gate C
+> (el literal `'success'`); 09-35 hace que Gate S ejerza directamente las funciones de decisión
+> de Gate A y Gate B y demuestre, por mutación EJECUTADA y revertida, que se ponen rojas.
+>
+> Qué NO se ha hecho, con su motivo: no se ha convertido `esLaMismaPartida` en un resultado con
+> motivo estructurado (ver el razonamiento de 09-32, que el párrafo resume en dos líneas: no
+> arreglaría la anterioridad, multiplicaría por seis la superficie de afirmación, y no
+> cambiaría la acción del grupo porque `buildHistoryEntry` solo lee `round` y `context`); y la
+> marca de discrepancia de progreso no se escribe en el dispositivo — es estado de módulo en
+> memoria, ver `deferred-items.md` para la evaluación de riesgo completa.
+>
+> **La frase de cierre, repetida a propósito: este cierre no se da por bueno hasta que una
+> ronda de verificación independiente lo confirme; cinco notas anteriores de este mismo
+> documento dieron por cerrado lo que no lo estaba.**
 
 ### STAT — Estadísticas
 
@@ -220,7 +257,7 @@
 ### Deuda de dispositivo real (heredada de v1.7)
 
 - **DEV-01**: Identificar el modelo y SO/navegador de la tablet de mesa
-- **DEV-02**: Ejecutar en ella el guion de pruebas pendiente: VOZ-08 (respaldo silencioso), foco del modal de detalle en Safari, control de silencio con audio pregenerado, instalación PWA, el aviso de lectura no comprobada en el mini-setup (ronda 6, `09-31`) y la variante `failure-stale` del aviso de guardado (20 s, texto largo — ronda 6, `09-31`)
+- **DEV-02**: Ejecutar en ella el guion de pruebas pendiente: VOZ-08 (respaldo silencioso), foco del modal de detalle en Safari, control de silencio con audio pregenerado, instalación PWA, el aviso de lectura no comprobada en el mini-setup (ronda 6, `09-31`), la variante `failure-stale` del aviso de guardado (20 s, texto largo, reescrito de nuevo en la ronda 7 por el plan 09-32 para no afirmar anterioridad ni diferencia de ronda) y el aviso de progreso que no coincide dentro del modal de reanudación (`ResumePrompt`, ronda 7, plan 09-33) — sigue PENDIENTE, ninguno de estos puntos se ha comprobado en dispositivo real
 
 ### Ampliación de alcance
 
@@ -292,12 +329,12 @@
 | HIST-01 | Fase 9 | Satisfecho |
 | HIST-02 | Fase 9 | Satisfecho |
 | HIST-03 | Fase 9 | Satisfecho |
-| HIST-04 | Fase 9 (09-13..09-17, 09-28) | Satisfecho (flujo normal) — matiz de riesgo: el registro podía construirse a partir de un `session` desactualizado en la rama de reintento tras un fallo de escritura; ese camino es el que 09-28 cierra (`esLaMismaPartida`) — ver nota de cierre de hueco (rondas 3 y 6) abajo |
+| HIST-04 | Fase 9 (09-13..09-17, 09-28, 09-33) | Satisfecho (flujo normal) — matiz de riesgo: el registro podía construirse a partir de un `session` desactualizado en la rama de reintento tras un fallo de escritura; ese camino es el que 09-28 cierra (`esLaMismaPartida`), y la rama de reintento sobre un snapshot que no coincide queda además señalizada al reentrar (plan 09-33, aviso en `ResumePrompt`), sin afirmar que el riesgo desaparezca — la marca es en memoria — ver nota de cierre de hueco (rondas 3, 6 y 7) abajo |
 | HIST-05 | Fase 9 | Satisfecho |
-| HIST-06 | Fase 9 (09-13..09-31) | Reabierto en la ronda 5, séptima variante encontrada en la ronda 6 — ver nota de cierre de hueco abajo |
+| HIST-06 | Fase 9 (09-13..09-36) | Reabierto en la ronda 5; séptima variante en la ronda 6; octava variante encontrada en la ronda 7 (planes 09-32..09-35) — sigue pendiente de confirmación por una ronda de verificación independiente — ver nota de cierre de hueco abajo |
 | HIST-07 | Fase 9 | Satisfecho |
 | HIST-08 | Fase 9 | Satisfecho |
-| HIST-09 | Fase 9 (09-13..09-31) | Satisfecho |
+| HIST-09 | Fase 9 (09-13..09-36) | Satisfecho |
 | STAT-01 | Fase 9 | Satisfecho |
 | STAT-02 | Fase 9 | Satisfecho |
 | STAT-03 | Fase 9 | Satisfecho |
