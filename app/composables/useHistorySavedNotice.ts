@@ -137,13 +137,35 @@ export const NOTICE_HEADING: Record<NoticeVariant, string> = {
 // palabra más.
 //
 // `failure-stale` (nueva en el plan 09-28, séptima cara del defecto de esta
-// fase, cierre de T-09-28-01): afirma exactamente lo que `esLaMismaPartida`
-// ha comprobado — hay algo en el dispositivo, y no coincide con la partida
-// que acaba de terminar — sin prometer identidad de partida y SIN ordenar el
-// reintento que las otras variantes de fallo sí ordenan. Ese reintento es
-// precisamente lo que escribiría en el histórico irreconstruible la ronda y
-// la selección de un autoguardado anterior (Gap #1 de la ronda 6,
-// `09-VERIFICATION.md`).
+// fase, cierre de T-09-28-01; REESCRITA en el plan 09-32, OCTAVA cara,
+// cierre del `missing:` de SC3 en `09-VERIFICATION.md` ronda 7): la versión
+// de la ronda 7 afirmaba tres hechos que `esLaMismaPartida` no establece, y
+// el propio test de regresión (`avisoTrasRegistroFallido.test.ts` test 5) lo
+// demuestra en verde en su escenario canónico:
+// - «una versión anterior» — anterioridad TEMPORAL. Imposible de afirmar:
+//   `updatedAt` está excluido de `esLaMismaPartida` por escrito y a
+//   propósito (incluirlo haría `'stale'` a toda partida), así que no existe
+//   ningún orden temporal comprobado.
+// - «no la ronda en la que habéis terminado» — diferencia de RONDA. Falsa en
+//   el escenario canónico del test 5: `expand()` fija `round` una sola vez y
+//   ningún `{ ...base, cursor: n }` posterior lo cambia, así que la `round`
+//   en disco (`cursor: 2`) y la de la partida que termina (`cursor: 3`) son
+//   la MISMA. La diferencia real está en `runtimeId` (el paso de la
+//   secuencia), no en la ronda.
+// - Certeza sobre lo que se guardaría — `esLaMismaPartida` no identifica QUÉ
+//   campo difirió, así que no puede respaldar ninguna afirmación concreta
+//   sobre el contenido; y `buildHistoryEntry` (`engine/history.ts`) solo lee
+//   `round`/`context`, así que cuando la única diferencia es `runtimeId` el
+//   registro resultante sería IDÉNTICO — afirmarlo con certeza sería otra
+//   afirmación sin respaldo.
+// El texto nuevo solo afirma: (a) hay algo en el dispositivo
+// (`readStoredProgress` llegó a `'stale'`, que exige una posición
+// reanudable), (b) no coincide con el punto en el que ha terminado la
+// partida (`esLaMismaPartida` devolvió `false`), (c) explícitamente que la
+// app NO sabe si es la misma partida u otra (declaración de ignorancia, no
+// una inferencia), y (d) de forma MODAL («podría»), nunca con certeza, que
+// registrar desde ahí podría guardar datos de otra partida. Sigue sin
+// ordenar ningún reintento, igual que la versión anterior.
 //
 // `failure-unknown` (nueva en el plan 09-26, reescrita en el plan 09-28
 // —CR-02, `09-REVIEW.md`—): existe porque un fallo de LECTURA no autoriza a
@@ -159,7 +181,7 @@ export const NOTICE_HEADING: Record<NoticeVariant, string> = {
 export const NOTICE_BODY: Record<NoticeVariant, string | null> = {
   'success': null,
   'failure-recoverable': 'La partida no se ha perdido: sigue guardada en el dispositivo. Volved a entrar en ella y pulsad «Partida terminada» otra vez para reintentar el registro. Si vuelve a fallar, puede deberse al modo privado del navegador, a la memoria llena, o a un histórico anterior que la app no consigue leer.',
-  'failure-stale': 'La partida no se ha registrado. En el dispositivo solo queda una versión anterior de esta partida —no la ronda en la que habéis terminado—, así que volver a entrar y registrarla desde ahí guardaría en el histórico datos que no son los de esta partida. Suele deberse al modo privado del navegador o a la memoria llena.',
+  'failure-stale': 'La partida no se ha registrado. En el dispositivo queda guardada una partida de este juego, pero no coincide con el punto en el que habéis terminado: la app no puede saber si es esta misma partida o es otra. Registrarla desde ahí podría guardar en el histórico datos que no son los de esta partida. Suele deberse al modo privado del navegador o a la memoria llena.',
   'failure-unrecoverable': 'Al volver a entrar en el juego no encontraréis esta partida, así que esta vez no hay nada que reintentar. Suele deberse al modo privado del navegador o a la memoria llena: revisadlo antes de la próxima partida.',
   'failure-unknown': 'No hemos podido comprobar si la partida sigue en el dispositivo. Volved a entrar en el juego: si os ofrece continuar, pulsad «Partida terminada» otra vez para reintentar el registro. Si no os la ofrece, puede que siga ahí y la app no consiga leerla: el modo privado del navegador y la memoria llena son las dos causas habituales.',
 }
