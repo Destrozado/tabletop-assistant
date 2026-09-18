@@ -109,3 +109,39 @@ describe('useProgressMismatchMark — tabla de verdad completa del ciclo de vida
     expect(readProgressMismatchWarning(JUEGO_B)).toBe(PROGRESS_MISMATCH_WARNING)
   })
 })
+
+// PROGRESS_MISMATCH_WARNING — respaldo oración a oración (Task 3, plan
+// 09-33): cada aserción de este describe se puede señalar a un hecho
+// comprobado por otro fichero de este mismo repo (ver la tabla de respaldo
+// que acompaña a la constante en useProgressMismatchMark.ts). Las tres
+// aserciones negativas existen porque 09-VERIFICATION.md (ronda 7) encontró
+// exactamente esas tres afirmaciones sin respaldo en `failure-stale`
+// (useHistorySavedNotice.ts) — «anterior», «la ronda» y una instrucción de
+// reintento — y este aviso nuevo no puede repetir la misma cara del
+// defecto.
+describe('PROGRESS_MISMATCH_WARNING — respaldo oración a oración (Task 3, plan 09-33)', () => {
+  it('10. contiene «no pudo registrarla»: respaldo — la marca solo se pone cuando historyRecorded es false', () => {
+    expect(PROGRESS_MISMATCH_WARNING).toContain('no pudo registrarla')
+  })
+
+  it('11. contiene «no era el punto en el que habíais terminado»: respaldo — la comparación de posiciones de la autoridad de lectura devolvió que no coinciden', () => {
+    expect(PROGRESS_MISMATCH_WARNING).toContain('no era el punto en el que habíais terminado')
+  })
+
+  it('12. contiene «podría» en la oración sobre el histórico: modal a propósito, nunca certeza — buildHistoryEntry solo lee round/context', () => {
+    expect(PROGRESS_MISMATCH_WARNING).toContain('podría')
+  })
+
+  it('13. NO contiene «anterior»: no hay ningún orden temporal comprobado (09-VERIFICATION.md ronda 7)', () => {
+    expect(PROGRESS_MISMATCH_WARNING).not.toContain('anterior')
+  })
+
+  it('14. NO contiene «la ronda»: la comparación no identifica qué campo difirió (09-VERIFICATION.md ronda 7)', () => {
+    expect(PROGRESS_MISMATCH_WARNING).not.toContain('la ronda')
+  })
+
+  it('15. NO contiene ninguna forma de «reintentar»: el aviso informa, no ordena ninguna acción (09-VERIFICATION.md ronda 7)', () => {
+    expect(PROGRESS_MISMATCH_WARNING).not.toContain('reintentar')
+    expect(PROGRESS_MISMATCH_WARNING).not.toMatch(/reintentar/i)
+  })
+})
