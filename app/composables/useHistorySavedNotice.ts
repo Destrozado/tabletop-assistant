@@ -34,8 +34,23 @@ export type NoticeVariant = 'success' | 'failure-recoverable' | 'failure-stale' 
 export const SUCCESS_AUTO_DISMISS_MS = 6000
 export const FAILURE_AUTO_DISMISS_MS = 20000
 
+// isSuccessVariant (plan 09-32, Task 3): única vía para que un `.vue` (hoy
+// `HistorySavedNotice.vue`) distinga el tono de la variante sin escribir a
+// mano un literal de `NoticeVariant` — quien escribe una variante a mano es
+// quien afirma sobre el dispositivo sin haber pasado por
+// `readStoredProgress`, el gesto exacto que el gate de clase persigue
+// (WR-03, `afirmacionesRespaldadas.test.ts`) y que el plan 09-34 extiende
+// también a `'success'`, el literal más peligroso de escribir a mano porque
+// pinta el aviso de éxito sin haber pasado por `record()`. `resolveAutoDismissMs`
+// ya hacía esta misma comparación por su cuenta; se reutiliza aquí para que
+// la comparación literal `variant === 'success'` exista en un único sitio de
+// este fichero.
+export function isSuccessVariant(variant: NoticeVariant): boolean {
+  return variant === 'success'
+}
+
 export function resolveAutoDismissMs(variant: NoticeVariant): number {
-  return variant === 'success' ? SUCCESS_AUTO_DISMISS_MS : FAILURE_AUTO_DISMISS_MS
+  return isSuccessVariant(variant) ? SUCCESS_AUTO_DISMISS_MS : FAILURE_AUTO_DISMISS_MS
 }
 
 // CIERRE DEL BLOCKER DE LA RONDA 5 (09-VERIFICATION.md, plan 09-26): el

@@ -8,7 +8,7 @@
 // aviso se dispara en `/[game]` justo antes de volver a `/`, así que ya se
 // ve en la pantalla de destino — app.vue es el único punto compartido por
 // todas las rutas.
-import { useHistorySavedNotice } from '~/composables/useHistorySavedNotice'
+import { isSuccessVariant, useHistorySavedNotice } from '~/composables/useHistorySavedNotice'
 
 const { variant, heading, body, dismiss } = useHistorySavedNotice()
 </script>
@@ -81,7 +81,7 @@ const { variant, heading, body, dismiss } = useHistorySavedNotice()
         -->
         <h2
           class="text-heading font-bold text-primary-text"
-          :class="variant === 'success' ? 'first-letter:text-accent' : 'first-letter:text-warning'"
+          :class="isSuccessVariant(variant) ? 'first-letter:text-accent' : 'first-letter:text-warning'"
         >
           {{ heading }}
         </h2>
