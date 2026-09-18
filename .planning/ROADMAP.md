@@ -33,7 +33,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 - [x] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente (completed 2026-09-08)
 - [x] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7 (verificación: gaps_found — CR-01 solape de zonas táctiles) (completed 2026-09-08)
 - [x] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz (completed 2026-09-09)
-- [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (31/31 planes ejecutados; verificación ronda 7: gaps_found 4/5 — la ronda 6 cerró sus dos huecos literales (la autoridad de lectura ya compara identidad de partida vía `esLaMismaPartida`, y el gate de clase ya inspecciona el fichero entero, 34,9× más superficie), pero aparece la OCTAVA cara del mismo defecto dentro de la copy escrita para cerrar la séptima: `NOTICE_BODY['failure-stale']` afirma «no la ronda en la que habéis terminado», falso en el escenario canónico del propio test de regresión, y `endGameBody` promete un reintento que 2 de los 4 estados contradicen. Lote de cierre de la ronda 7 PLANIFICADO y pendiente de ejecución: 09-32..09-36, olas 25-29)
+- [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (36/36 planes ejecutados; verificación vigente: ronda 7 de `09-VERIFICATION.md`, gaps_found 4/5 — la ronda 6 cerró sus dos huecos literales (la autoridad de lectura ya compara identidad de partida vía `esLaMismaPartida`, y el gate de clase ya inspecciona el fichero entero), pero esa misma ronda 7 encontró una OCTAVA cara del mismo defecto dentro de la copy escrita para cerrar la séptima. El lote de cierre 09-32..09-36 (olas 25-29) ya está EJECUTADO: `failure-stale` y `endGameBody` reescritos sin las tres afirmaciones sin respaldo, la discrepancia comprobada al cerrar viaja hasta `ResumePrompt` como marca en memoria, y el gate de clase pasa de subcadenas cerradas a raíces léxicas con Gate S ejerciendo la decisión y demostrando por mutación EJECUTADA que se pone rojo — esta fase NO se marca verificada aquí: solo una ronda de verificación independiente puede confirmarlo, y siete notas anteriores de este mismo hito dieron por cerrado lo que no lo estaba)
 - [ ] **Phase 10: Respaldo en Firestore** - Subida silenciosa, nunca bloqueante, aislada del resto
 
 ### Phase Details
@@ -180,7 +180,7 @@ Plans:
   4. Hay una pantalla de estadísticas accesible desde el inicio que muestra el % de victorias por héroe y por villano, con un estado vacío claro (no un error ni porcentajes engañosos) cuando el histórico está vacío.
   5. La pantalla de estadísticas lee exclusivamente localStorage — verificable en esta fase de forma trivial, porque Firestore ni siquiera existe todavía en el código en este punto del hito.
 
-**Plans**: 35/36 plans executed (29 olas) — 31 ejecutados + 5 planificados para el cierre de la ronda 7
+**Plans**: 36/36 plans executed (29 olas) — lote de cierre de la ronda 7 (09-32..09-36) completo
 **Wave 1**
 
 - [x] 09-01-PLAN.md — Motor: tipos aditivos del histórico, `buildHistoryEntry` y formateadores puros (ola 1)
@@ -302,7 +302,7 @@ Plans:
 
 **Wave 29** *(blocked on Wave 28 completion)*
 
-- [ ] 09-36-PLAN.md — Cierre de huecos ronda 7: octava variante registrada en REQUIREMENTS.md sin cerrar HIST-06, contrato de copy al día, deuda de la marca en memoria evaluada por riesgo (ola 29)
+- [x] 09-36-PLAN.md — Cierre de huecos ronda 7: octava variante registrada en REQUIREMENTS.md sin cerrar HIST-06, contrato de copy al día, deuda de la marca en memoria evaluada por riesgo (ola 29)
 
 **Cross-cutting constraints:**
 
@@ -353,7 +353,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
-| 9. Histórico y estadísticas | v1.8 | 35/36 | In Progress|  |
+| 9. Histórico y estadísticas | v1.8 | 36/36 | In Progress|  |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 
 ---
