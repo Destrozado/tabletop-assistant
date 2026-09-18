@@ -180,7 +180,7 @@ Plans:
   4. Hay una pantalla de estadísticas accesible desde el inicio que muestra el % de victorias por héroe y por villano, con un estado vacío claro (no un error ni porcentajes engañosos) cuando el histórico está vacío.
   5. La pantalla de estadísticas lee exclusivamente localStorage — verificable en esta fase de forma trivial, porque Firestore ni siquiera existe todavía en el código en este punto del hito.
 
-**Plans**: 32/36 plans executed (29 olas) — 31 ejecutados + 5 planificados para el cierre de la ronda 7
+**Plans**: 33/36 plans executed (29 olas) — 31 ejecutados + 5 planificados para el cierre de la ronda 7
 **Wave 1**
 
 - [x] 09-01-PLAN.md — Motor: tipos aditivos del histórico, `buildHistoryEntry` y formateadores puros (ola 1)
@@ -290,7 +290,7 @@ Plans:
 
 **Wave 26** *(blocked on Wave 25 completion)*
 
-- [ ] 09-33-PLAN.md — Cierre de huecos ronda 7: la discrepancia comprobada al cerrar viaja hasta `ResumePrompt` como marca en memoria, sin escribir nada en el dispositivo (ola 26)
+- [x] 09-33-PLAN.md — Cierre de huecos ronda 7: la discrepancia comprobada al cerrar viaja hasta `ResumePrompt` como marca en memoria, sin escribir nada en el dispositivo (ola 26)
 
 **Wave 27** *(blocked on Wave 26 completion)*
 
@@ -353,7 +353,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 6. Selección de villano, héroes y jugadores | v1.8 | 7/7 | Complete   | 2026-09-08 |
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
-| 9. Histórico y estadísticas | v1.8 | 32/36 | In Progress|  |
+| 9. Histórico y estadísticas | v1.8 | 33/36 | In Progress|  |
 | 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
 
 ---
