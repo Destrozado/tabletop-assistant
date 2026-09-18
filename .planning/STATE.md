@@ -5,17 +5,17 @@ milestone_name: Elección de personajes, contadores en mesa e histórico de part
 current_phase: 09
 current_phase_name: Histórico y estadísticas
 status: executing
-stopped_at: Completed 09-33-PLAN.md
-last_updated: "2026-09-18T22:48:47.629Z"
+stopped_at: Completed 09-34-PLAN.md
+last_updated: "2026-09-18T23:18:03.680Z"
 last_activity: 2026-09-19
 last_activity_desc: Phase 09 execution started
-state_head: 5f842277c0f735788f26468aa41d7ea18d29bedf
+state_head: 92152a62460105f9d2fb479573a743cff3518ebb
 progress:
   total_phases: 6
   completed_phases: 9
   total_plans: 64
-  completed_plans: 61
-  percent: 95
+  completed_plans: 62
+  percent: 97
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 09 (Histórico y estadísticas) — EXECUTING
-Plan: 3 of 36
+Plan: 4 of 36
 Status: Ready to execute
 Last activity: 2026-09-19 — Phase 09 execution started
 
@@ -83,6 +83,7 @@ Last activity: 2026-09-19 — Phase 09 execution started
 |------|----------|-------|-------|
 | Phase 09 P32 | 12min | 3 tasks | 8 files |
 | Phase 09 P33 | 10min | 3 tasks | 6 files |
+| Phase 09 P34 | 23min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -143,6 +144,9 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-32: AFIRMACIONES_AUDITADAS movida de app/pages/[game]/index.vue a app/composables/useGameEndCopy.ts (arreglo minimo de Gate A/C, autorizado por el scope_boundary del plan) — la copy movio de sitio real (endGameBody/discardBody ahora son funciones puras en useGameEndCopy.ts), asi que la auditoria tenia que moverse con ella o quedaria una excepcion sin uso
 - [Phase 09]: 09-33: Set<string> de módulo (no localStorage) para la marca de discrepancia de progreso — una tercera escritura justo después de dos fallidas sería la menos fiable del sistema — Una marca que no se puede escribir en su propio escenario no es una mitigación; el límite aceptado (recarga completa la pierde) se documenta como deuda explícita del plan 09-36
 - [Phase 09]: 09-33: texto provisional en la Task 1 GREEN, definitivo con respaldo oración a oración en la Task 3 (su propio ciclo RED->GREEN) — Evita un unexpected GREEN en la Task 3 al escribir el texto final desde el principio
+- [Phase 09]: 09-34: Gate A/B pasa de vocabulario cerrado (11 subcadenas) a raices lexicas (10), con test de subsuncion; decision extraida a frasesSinAuditarDe (funcion pura) para que el plan 09-35 la ejerza
+- [Phase 09]: 09-34: AFIRMACIONES_AUDITADAS pasa a {raiz, motivo, respaldo} con gate respaldoExiste; index.vue confirmado sin ninguna excepcion, ref avisoProgresoAjeno renombrado a avisoDiscrepancia (ruido de identificador, no copy)
+- [Phase 09]: 09-34: Gate B concatena NOTICE_HEADING+NOTICE_BODY (no el spread propuesto por la verificacion, que perderia los titulares); Gate C vigila tambien 'success'; WR-10 cerrado
 
 ### Pending Todos
 
@@ -189,6 +193,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-18T22:48:47.545Z
-Stopped at: Completed 09-33-PLAN.md
+Last session: 2026-09-18T23:18:03.595Z
+Stopped at: Completed 09-34-PLAN.md
 Resume file: None
