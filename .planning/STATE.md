@@ -5,17 +5,17 @@ milestone_name: Elección de personajes, contadores en mesa e histórico de part
 current_phase: 09
 current_phase_name: Histórico y estadísticas
 status: executing
-stopped_at: Completed 09-27-PLAN.md
-last_updated: "2026-09-18T21:30:27.190Z"
-last_activity: 2026-09-14
+stopped_at: Completed 09-32-PLAN.md
+last_updated: "2026-09-18T22:25:53.160Z"
+last_activity: 2026-09-19
 last_activity_desc: Phase 09 execution started
-state_head: 7bcf23f4c900fc341eeb188bca914a14a2e0151c
+state_head: 4ed53f6fd246791fda9c4c456e4aae5a91e9772d
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 9
   total_plans: 64
-  completed_plans: 55
-  percent: 92
+  completed_plans: 60
+  percent: 94
 ---
 
 # Project State
@@ -25,14 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-28)
 
 **Core value:** Que un grupo pueda jugar una partida completa de Marvel Champions de principio a fin sin abrir el reglamento y sin olvidarse de ningún paso.
-**Current focus:** Phase 09 — hist-rico-y-estad-sticas
+**Current focus:** Phase 09 — Histórico y estadísticas
 
 ## Current Position
 
-Phase: 09 (Histórico y estadísticas) — READY TO EXECUTE
-Plan: 1 of 31
+Phase: 09 (Histórico y estadísticas) — EXECUTING
+Plan: 2 of 36
 Status: Ready to execute
-Last activity: 2026-09-14 -- Phase 09 execution started
+Last activity: 2026-09-19 — Phase 09 execution started
 
 ## Performance Metrics
 
@@ -77,6 +77,11 @@ Last activity: 2026-09-14 -- Phase 09 execution started
 | Phase 09 P25 | 6min | 2 tasks | 4 files |
 | Phase 09 P26 | 10min | 2 tasks | 5 files |
 | Phase 09 P27 | 15min | 2 tasks | 3 files |
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 09 P32 | 12min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -133,6 +138,8 @@ Recent decisions affecting current work:
 - [Phase 09]: 26: planGameEnd(historyRecorded, stored) tipado contra StoredProgress (nunca boolean); cierra WR-01/WR-09 de 09-REVIEW.md y el BLOCKER de la ronda 5
 - [Phase 09-27]: HIST-06 vuelve a [ ] en REQUIREMENTS.md — un requisito no se remarca porque un plan diga haberlo cerrado, sino cuando una ronda de verificación lo confirme; la nota nombra readStoredProgress/StoredProgress/planGameEnd como autoridad real
 - [Phase 09-27]: cuatro diferidos nuevos (WR-04/05/06/02, ronda 4) en deferred-items.md con justificación de RIESGO, nunca de alcance de plan; Q5 añadida a 09-AUDIT-AFIRMACIONES-UI.md como la pregunta de método que habría cazado la ronda 5
+- [Phase 09]: 09-32: NOTICE_BODY['failure-stale'] reescrita retirando anterioridad temporal y diferencia de ronda (alternativa A elegida sobre B: motivo estructurado en esLaMismaPartida rechazado por multiplicar la superficie de afirmación sin cambiar la acción del grupo) — buildHistoryEntry solo lee round/context; en el escenario canonico donde solo difiere runtimeId el registro seria identico con o sin motivo estructurado
+- [Phase 09]: 09-32: AFIRMACIONES_AUDITADAS movida de app/pages/[game]/index.vue a app/composables/useGameEndCopy.ts (arreglo minimo de Gate A/C, autorizado por el scope_boundary del plan) — la copy movio de sitio real (endGameBody/discardBody ahora son funciones puras en useGameEndCopy.ts), asi que la auditoria tenia que moverse con ella o quedaria una excepcion sin uso
 
 ### Pending Todos
 
@@ -179,6 +186,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-13T12:23:15.834Z
-Stopped at: Completed 09-27-PLAN.md
+Last session: 2026-09-18T22:25:53.073Z
+Stopped at: Completed 09-32-PLAN.md
 Resume file: None
