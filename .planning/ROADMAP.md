@@ -33,7 +33,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 - [x] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente (completed 2026-09-08)
 - [x] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7 (verificación: gaps_found — CR-01 solape de zonas táctiles) (completed 2026-09-08)
 - [x] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz (completed 2026-09-09)
-- [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (31/31 planes ejecutados; verificación ronda 7: gaps_found 4/5 — la ronda 6 cerró sus dos huecos literales (la autoridad de lectura ya compara identidad de partida vía `esLaMismaPartida`, y el gate de clase ya inspecciona el fichero entero, 34,9× más superficie), pero aparece la OCTAVA cara del mismo defecto dentro de la copy escrita para cerrar la séptima: `NOTICE_BODY['failure-stale']` afirma «no la ronda en la que habéis terminado», falso en el escenario canónico del propio test de regresión, y `endGameBody` promete un reintento que 2 de los 4 estados contradicen. Pendiente de lote de cierre ronda 7)
+- [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (31/31 planes ejecutados; verificación ronda 7: gaps_found 4/5 — la ronda 6 cerró sus dos huecos literales (la autoridad de lectura ya compara identidad de partida vía `esLaMismaPartida`, y el gate de clase ya inspecciona el fichero entero, 34,9× más superficie), pero aparece la OCTAVA cara del mismo defecto dentro de la copy escrita para cerrar la séptima: `NOTICE_BODY['failure-stale']` afirma «no la ronda en la que habéis terminado», falso en el escenario canónico del propio test de regresión, y `endGameBody` promete un reintento que 2 de los 4 estados contradicen. Lote de cierre de la ronda 7 PLANIFICADO y pendiente de ejecución: 09-32..09-36, olas 25-29)
 - [ ] **Phase 10: Respaldo en Firestore** - Subida silenciosa, nunca bloqueante, aislada del resto
 
 ### Phase Details
@@ -180,7 +180,7 @@ Plans:
   4. Hay una pantalla de estadísticas accesible desde el inicio que muestra el % de victorias por héroe y por villano, con un estado vacío claro (no un error ni porcentajes engañosos) cuando el histórico está vacío.
   5. La pantalla de estadísticas lee exclusivamente localStorage — verificable en esta fase de forma trivial, porque Firestore ni siquiera existe todavía en el código en este punto del hito.
 
-**Plans**: 31 plans (24 olas)
+**Plans**: 36 plans (29 olas) — 31 ejecutados + 5 planificados para el cierre de la ronda 7
 - [x] 09-01-PLAN.md — Motor: tipos aditivos del histórico, `buildHistoryEntry` y formateadores puros (ola 1)
 - [x] 09-02-PLAN.md — `GameOutcomeDialog` y el aviso de guardado montado en `app.vue` (ola 1)
 - [x] 09-03-PLAN.md — Motor: `aggregateStatistics` con la cascada de orden de D-24 (ola 2)
@@ -212,6 +212,11 @@ Plans:
 - [x] 09-29-PLAN.md — Cierre de huecos ronda 6: el montaje deja de colapsar «no hay nada» con «no he podido mirar» (`planProgressMount` + aviso en el mini-setup) y el test contraproducente se corrige (ola 22)
 - [x] 09-30-PLAN.md — Cierre de huecos ronda 6: el gate de clase barre el fichero entero y `app/**/*.ts`, se autocomprueba, y `endGameBody` deja de afirmar un borrado que no siempre ocurre (ola 23)
 - [x] 09-31-PLAN.md — Cierre de huecos ronda 6: séptima variante registrada en REQUIREMENTS.md sin cerrar HIST-06, Q6 en la auditoría, diferidos con riesgo y contrato de copy al día (ola 24)
+- [ ] 09-32-PLAN.md — Cierre de huecos ronda 7: `failure-stale` deja de afirmar anterioridad, identidad y ronda; la copy del diálogo de fin de partida sale a `useGameEndCopy.ts` con test puro y sin promesa de reintento (ola 25)
+- [ ] 09-33-PLAN.md — Cierre de huecos ronda 7: la discrepancia comprobada al cerrar viaja hasta `ResumePrompt` como marca en memoria, sin escribir nada en el dispositivo (ola 26)
+- [ ] 09-34-PLAN.md — Cierre de huecos ronda 7: el gate de clase pasa de subcadenas cerradas a raíces léxicas, cada excepción nombra un respaldo comprobable, y Gate B/Gate C cubren titulares y `'success'` (ola 27)
+- [ ] 09-35-PLAN.md — Cierre de huecos ronda 7: Gate S ejerce las funciones de decisión de Gate A y Gate B y demuestra por mutación que se ponen rojas (ola 28)
+- [ ] 09-36-PLAN.md — Cierre de huecos ronda 7: octava variante registrada en REQUIREMENTS.md sin cerrar HIST-06, contrato de copy al día, deuda de la marca en memoria evaluada por riesgo (ola 29)
 **UI hint**: yes
 **Verificación humana**: Sí, recomendable pero no bloqueante por dispositivo — el flujo de fin de partida y las dos pantallas nuevas se verifican jugando una partida real de principio a fin (puede hacerse en portátil/móvil, no requiere la tablet de mesa) y comprobando que el registro y las estadísticas resultantes coinciden con lo jugado.
 
