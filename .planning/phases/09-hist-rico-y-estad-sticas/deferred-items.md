@@ -328,6 +328,67 @@ de condicionar el autoguardado.
 
 ---
 
+## La marca de progreso que no coincide vive en memoria (ronda 7)
+
+**Encontrado durante:** plan 09-33 (cierre del tercer hallazgo de SC3 en `09-VERIFICATION.md`
+ronda 7); evaluado explícitamente por riesgo en el plan 09-36.
+
+**Descripción:** `useProgressMismatchMark.ts` transporta desde el cierre de una partida hasta
+el modal de reanudación el hecho, ya comprobado, de que el progreso guardado en el dispositivo
+no corresponde al punto en el que el grupo acaba de terminar (`stored === 'stale'`). La marca
+es un `Set<string>` de estado de MÓDULO, nunca `localStorage`.
+
+**Por qué no se corrige aquí (evaluación de riesgo, no de alcance de plan):**
+- `'stale'` solo es alcanzable cuando el registro en el histórico **y** el guardado de cierre
+  han fallado los dos; escribir la marca en `localStorage` en ese instante exacto sería la
+  operación menos fiable de todo el sistema, y una marca que no se puede escribir en su propio
+  escenario no es una mitigación — es otra afirmación sin respaldo.
+- Lo que la marca en memoria SÍ cubre: el recorrido real del grupo, `/{juego}` → `/` →
+  `/{juego}`, que es navegación de cliente de `vue-router` tras la hidratación del prerender de
+  Nuxt, nunca una recarga de documento — comprobado en `09-33-SUMMARY.md` por razonamiento
+  directo desde `nuxt.config.ts` (`ssr: true` + `nitro.prerender`) y un `grep -rn "external:
+  true" app/` sin resultados, no observado en un navegador real (entorno de ejecución sin
+  navegador disponible).
+- Lo que NO cubre: una recarga completa del navegador, cerrar la pestaña, o reabrir la app al
+  día siguiente. En esos casos el estado de módulo se vacía y el modal de reanudación vuelve a
+  ofrecer el snapshot sin ningún aviso.
+- **Por qué el riesgo residual es aceptable hoy, dicho como riesgo y no como excusa:** cuando la
+  marca no está, la app no afirma nada — no dice algo falso —, y la copy del aviso de fin de
+  partida (`endGameBody`, plan 09-32) ya no ordena el reintento en esa variante. Lo que se
+  pierde en ese caso es la advertencia, no la corrección: el peor desenlace posible sigue siendo
+  el mismo que antes de este lote (un registro que podría llevar datos de otra partida), nunca
+  uno peor.
+
+**Acción sugerida:** si algún día deja de ser aceptable, una clave hermana
+(`tga:progress-mismatch:<gameId>`) escrita **en el siguiente arranque con éxito** — cuando el
+almacenamiento vuelve a funcionar —, en vez de en el instante del fallo, que es precisamente el
+instante menos fiable.
+
+---
+
+## La sonda de cobertura de bordes no clasificó ninguna fila (ronda 7)
+
+**Encontrado durante:** plan 09-36, al preparar el cierre de la ronda 7.
+
+**Descripción:** la sonda determinista de cobertura de bordes se ejecutó sobre los 14 IDs de la
+fase (HIST-01..HIST-09, STAT-01..STAT-05) y devolvió las 14 filas como
+`unclassified`/`unresolved`. Se registra como HECHO, no como problema resuelto: ninguna
+garantía de este lote (09-32..09-35) se apoya en esa sonda, porque la sonda no dijo nada sobre
+ninguna de las 14 filas — no hay que confundir «la sonda no dijo nada» con «la sonda dijo que
+estaba bien».
+
+**Por qué no se corrige aquí (evaluación de riesgo):** clasificar las 14 filas exigiría
+reconstruir o repactar el criterio de la sonda misma, un cambio de herramienta ajeno al
+contenido de este plan (cuatro ficheros de `.planning/`); y la garantía real de este lote no
+depende de la sonda — depende de los tests y de las cuatro mutaciones ejecutadas que
+`09-35-SUMMARY.md` registra con su mensaje de error real.
+
+**Acción sugerida:** revisar el criterio de clasificación de la sonda antes de apoyar ninguna
+garantía futura en ella; hasta entonces, tratar las 14 filas como información ausente, no como
+aprobación.
+
+---
+
 ## Nota de cierre (ronda 6, plan 09-31) — qué NO se difiere de la ronda 5
 
 Para que ningún WARNING de la ronda 5 reaparezca aquí como «pendiente» sin serlo, y para
@@ -363,10 +424,53 @@ Lo que sigue **ABIERTO**, sin cambios de este lote:
   sigue **ABIERTA** desde `09-22-SUMMARY.md`. En ningún sitio de este documento ni de
   `REQUIREMENTS.md` puede aparecer como hecha; el guion de esa comprobación gana dos puntos
   nuevos con este lote (aviso de lectura no comprobada del mini-setup, variante
-  `failure-stale`), pero la comprobación en sí no se ha realizado.
+  `failure-stale`), pero la comprobación en sí no se ha realizado. **Actualización (ronda 7,
+  plan 09-36):** el lote 09-32..09-35 añade dos puntos MÁS al mismo guion —el texto reescrito
+  de `failure-stale` (ya no afirma anterioridad ni diferencia de ronda) y el aviso nuevo de
+  progreso que no coincide dentro del modal de reanudación (`ResumePrompt`, plan 09-33)—; la
+  comprobación en tablet real sigue sin realizarse, en ningún sitio de este documento ni de
+  `REQUIREMENTS.md` puede aparecer como hecha.
 
 Ningún hallazgo nuevo, distinto de WR-02 (ronda 6) arriba, aparece en los SUMMARY de los
 planes 09-28/09-29/09-30: la medición del punto 1 de la Task 3 de 09-30 (barrido ampliado
 a `.vue`+`.ts` con el vocabulario ampliado de WR-04) coincidió EXACTAMENTE con los ficheros
 y frases previstos por el propio WR-04 — «ningún fichero ni frase apareció fuera de lo
 anticipado», según el propio `09-30-SUMMARY.md`.
+
+---
+
+## Nota de cierre (ronda 7, planes 09-32..09-36) — qué cierra este lote y qué sigue abierto
+
+Repaso explícito, nombrado uno a uno con su plan, para que nada de lo cerrado reaparezca como
+pendiente y nada de lo abierto se dé por cerrado por descuido:
+
+- **La copy de `failure-stale` que afirmaba anterioridad temporal y diferencia de ronda** —
+  **CERRADO por el plan 09-32**: `NOTICE_BODY['failure-stale']` reescrita sin esas dos
+  afirmaciones; `useGameEndCopy.ts` extrae la copy del diálogo de fin de partida sin promesa de
+  reintento.
+- **El tercer hallazgo de SC3 (snapshot `'stale'` reofrecido sin marca al reentrar)** —
+  **CERRADO SOLO A MEDIAS por el plan 09-33**: la discrepancia comprobada al cerrar viaja hasta
+  `ResumePrompt` mediante una marca en memoria. Sigue como deuda explícita (ver «La marca de
+  progreso que no coincide vive en memoria (ronda 7)» arriba): una recarga completa del
+  navegador la pierde.
+- **El gate de clase evadible por cinco vías** (vocabulario cerrado, `NOTICE_HEADING` fuera de
+  Gate A/B, `'success'` sin vigilar en Gate C, comparador sin normalizar espacios, Gate S sin
+  ejercer la decisión de Gate A) — **CERRADO por los planes 09-34 y 09-35**: criterio por
+  raíces léxicas con respaldo comprobable (09-34); Gate S ejerciendo directamente
+  `frasesSinAuditarDe`/`variantesSinRespaldoDe`/`respaldoExiste`, con cuatro mutaciones
+  EJECUTADAS y revertidas (09-35).
+- **HIST-06** — sigue **ABIERTO**, `[ ]` en `REQUIREMENTS.md`. Este lote cierra la octava cara
+  concreta que la ronda 7 encontró; no cierra el requisito, que solo lo cierra una ronda de
+  verificación independiente.
+- **La sonda de cobertura de bordes** — sigue sin clasificar ninguna de las 14 filas (entrada
+  nueva arriba, «ronda 7»). Ninguna garantía de este lote se apoya en ella.
+- **`DEV-02`** (comprobación visual humana en tablet) — sigue **ABIERTA**, con dos puntos más de
+  guion (ver la entrada de la nota de cierre de la ronda 6, ampliada arriba).
+- **`WR-04` (ronda 4, solapamiento `UpdateBanner`/`HistorySavedNotice`) y `WR-05` (ronda 4,
+  `pointer-events-none` tapa la cabecera de `/historico`)** — siguen **ABIERTOS**; este lote no
+  los toca.
+- **`WR-02` (ronda 6, autoguardado sobrescribe una lectura fallida)** — sigue **ABIERTO**; este
+  lote no lo toca.
+
+Ningún hallazgo nuevo, distinto de los dos registrados arriba (la marca en memoria y la sonda
+sin clasificar), aparece en los SUMMARY de los planes 09-32/09-33/09-34/09-35.
