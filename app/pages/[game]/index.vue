@@ -39,6 +39,11 @@ import {
 import { notifyHistorySaved, planGameEnd } from '~/composables/useHistorySavedNotice'
 import { usePersistedSession } from '~/composables/usePersistedSession'
 import { usePreloadedAudio } from '~/composables/usePreloadedAudio'
+import {
+  clearProgressMismatch,
+  markProgressMismatch,
+  readProgressMismatchWarning,
+} from '~/composables/useProgressMismatchMark'
 import { planProgressMount } from '~/composables/useProgressMountPlan'
 import { shortcutsEnabled, useStepShortcuts } from '~/composables/useStepShortcuts'
 import { readStoredProgress } from '~/composables/useStoredProgress'
@@ -148,6 +153,12 @@ const awaitingEndConfirm = ref(false)
 // Plan 09-29: aviso del mini-setup cuando la lectura del dispositivo ha
 // fallado — null en cualquier otro caso.
 const avisoLecturaNoComprobada = ref<string | null>(null)
+// Plan 09-33: aviso del modal de reanudación cuando el ÚLTIMO cierre de
+// ESTA partida comprobó que el progreso guardado no correspondía al punto
+// de fin de partida — null en cualquier otro caso. Invariante exacto: esta
+// marca está puesta exactamente cuando el último cierre de partida de este
+// gameId encontró discrepancia y el progreso que dejó sigue ahí.
+const avisoProgresoAjeno = ref<string | null>(null)
 
 onMounted(() => {
   if (!game) {
@@ -184,6 +195,11 @@ onMounted(() => {
   }
 
   session.value = informe.session
+  // Plan 09-33: se llega aquí solo cuando plan.action es 'resume-prompt' o
+  // 'content-changed-notice' (la rama de 'mini-setup' ya ha retornado
+  // arriba), así que este es exactamente el punto en el que la marca puesta
+  // por un cierre de partida anterior (si la hay) vuelve a importar.
+  avisoProgresoAjeno.value = readProgressMismatchWarning(gameId)
   awaitingResumeChoice.value = plan.action === 'resume-prompt'
   awaitingContentChangedAck.value = plan.action === 'content-changed-notice'
   resumeResolved.value = true
@@ -530,6 +546,9 @@ function onDiscardCancel() {
 
 function onDiscardConfirm() {
   clear(gameId)
+  // Plan 09-33: la marca describe un progreso concreto; si ese progreso se
+  // borra (esta rama SIEMPRE lo borra), la marca deja de tener referente.
+  clearProgressMismatch(gameId)
   session.value = null
   awaitingResumeChoice.value = false
   awaitingDiscardConfirm.value = false
@@ -573,7 +592,13 @@ function finishGame(preserveProgress = false) {
   // progreso funcione: la clave queda tal como la dejó el último
   // autoguardado, sin que esta escritura tardía la reescriba.
   session.value = null
-  if (!preserveProgress) clear(gameId)
+  if (!preserveProgress) {
+    clear(gameId)
+    // Plan 09-33: mismo razonamiento que onDiscardConfirm — la marca
+    // describe un progreso concreto; si ese progreso se borra, la marca
+    // deja de tener referente.
+    clearProgressMismatch(gameId)
+  }
   // NO se llama a releaseWakeLock() aquí: navigateTo desmonta esta página y
   // el tryOnScopeDispose interno de useWakeLock ya libera el bloqueo solo
   // (mismo razonamiento que el «Atrás» del mini-setup, líneas 434-439 más
@@ -684,6 +709,13 @@ function onOutcomeRecorded(outcome: GameOutcome) {
       // es literalmente lo que ha pasado.
     }
     const plan = planGameEnd(registrado, stored)
+    // Plan 09-33: se pone/retira la marca en el MISMO instante en que
+    // planGameEnd decide si hubo discrepancia — el else es obligatorio, no
+    // cosmético: un cierre posterior de esta misma partida que NO encuentra
+    // discrepancia deja el progreso que sí corresponde, así que una marca
+    // anterior dejaría de ser cierta y hay que retirarla aquí mismo.
+    if (plan.progressMismatch) markProgressMismatch(gameId)
+    else clearProgressMismatch(gameId)
     notifyHistorySaved(plan.variant)
     finishGame(plan.preserveProgress)
   } else {
@@ -792,6 +824,7 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
     <div v-else-if="awaitingResumeChoice" class="h-dvh">
       <ResumePrompt
         :saved-summary="savedSummary"
+        :mismatch-warning="avisoProgresoAjeno"
         @resume="onResumeContinue"
         @new-game="onResumeNewGame"
       />
