@@ -8,9 +8,9 @@
 //
 // El estado es de módulo (ver justificación en el propio fichero), así que
 // se comparte entre tests: cada test que lo modifique debe dejarlo limpio
-// (afterEach, añadido en la Task 2) para no filtrar estado a los
-// siguientes — mismo criterio que useHistorySavedNotice.test.ts.
-import { describe, expect, it } from 'vitest'
+// (enganche de limpieza añadido en la Task 2, más abajo) para no filtrar
+// estado a los siguientes — mismo criterio que useHistorySavedNotice.test.ts.
+import { afterEach, describe, expect, it } from 'vitest'
 import { planGameEnd } from '../useHistorySavedNotice'
 import {
   PROGRESS_MISMATCH_WARNING,
@@ -19,22 +19,93 @@ import {
   readProgressMismatchWarning,
 } from '../useProgressMismatchMark'
 
+// Los dos gameId que usan estos tests, tal y como los nombra el propio plan
+// (09-33-PLAN.md, <behavior> de la Task 1): una marca sobre uno no puede
+// afectar al otro.
+const JUEGO_A = 'marvel-champions'
+const JUEGO_B = 'tiny-game'
+
+// El estado es de módulo (ver justificación en useProgressMismatchMark.ts)
+// y se comparte entre tests de este fichero: cada test que lo modifique
+// debe dejarlo limpio para no filtrar estado al siguiente. `clearProgressMismatch`
+// ya es la vía pública para eso — no se exporta ninguna función de reinicio
+// solo para los tests (el propio `clearProgressMismatch` es además una
+// comprobación extra de que retirar una marca inexistente no lanza).
+afterEach(() => {
+  clearProgressMismatch(JUEGO_A)
+  clearProgressMismatch(JUEGO_B)
+})
+
 describe('useProgressMismatchMark — camino completo (Task 1, plan 09-33)', () => {
   it('1. camino de discrepancia: planGameEnd(false, \'stale\').progressMismatch → markProgressMismatch(gameId) → readProgressMismatchWarning(gameId) devuelve el aviso', () => {
     const plan = planGameEnd(false, 'stale')
     expect(plan.progressMismatch).toBe(true)
 
-    markProgressMismatch('marvel-champions')
+    markProgressMismatch(JUEGO_A)
 
-    expect(readProgressMismatchWarning('marvel-champions')).toBe(PROGRESS_MISMATCH_WARNING)
+    expect(readProgressMismatchWarning(JUEGO_A)).toBe(PROGRESS_MISMATCH_WARNING)
   })
 
   it('2. camino de retirada: tras clearProgressMismatch(gameId), readProgressMismatchWarning(gameId) vuelve a devolver null', () => {
-    markProgressMismatch('marvel-champions')
-    expect(readProgressMismatchWarning('marvel-champions')).toBe(PROGRESS_MISMATCH_WARNING)
+    markProgressMismatch(JUEGO_A)
+    expect(readProgressMismatchWarning(JUEGO_A)).toBe(PROGRESS_MISMATCH_WARNING)
 
-    clearProgressMismatch('marvel-champions')
+    clearProgressMismatch(JUEGO_A)
 
-    expect(readProgressMismatchWarning('marvel-champions')).toBe(null)
+    expect(readProgressMismatchWarning(JUEGO_A)).toBe(null)
+  })
+})
+
+describe('useProgressMismatchMark — tabla de verdad completa del ciclo de vida (Task 2, plan 09-33)', () => {
+  // Forma ejecutable de la limitación documentada en el propio fichero: una
+  // recarga completa del navegador vacía este módulo, así que el estado
+  // inicial (y el estado tras el enganche de limpieza de este fichero)
+  // tiene que ser exactamente "sin ninguna marca" — nunca null como
+  // ausencia de dato, sino null como garantía de que la app no afirma nada.
+  it('3. el módulo arranca sin ninguna marca: readProgressMismatchWarning devuelve null antes de poner ninguna', () => {
+    expect(readProgressMismatchWarning(JUEGO_A)).toBe(null)
+    expect(readProgressMismatchWarning(JUEGO_B)).toBe(null)
+  })
+
+  it('4. poner y leer: tras markProgressMismatch(gameId), readProgressMismatchWarning(gameId) devuelve el aviso exacto', () => {
+    markProgressMismatch(JUEGO_A)
+    expect(readProgressMismatchWarning(JUEGO_A)).toBe(PROGRESS_MISMATCH_WARNING)
+  })
+
+  it('5. retirar tras poner: clearProgressMismatch(gameId) deja readProgressMismatchWarning(gameId) en null', () => {
+    markProgressMismatch(JUEGO_A)
+    clearProgressMismatch(JUEGO_A)
+    expect(readProgressMismatchWarning(JUEGO_A)).toBe(null)
+  })
+
+  it('6. poner dos veces seguidas es idempotente: un único clearProgressMismatch la deja retirada (es un conjunto, no un contador)', () => {
+    markProgressMismatch(JUEGO_A)
+    markProgressMismatch(JUEGO_A)
+
+    clearProgressMismatch(JUEGO_A)
+
+    expect(readProgressMismatchWarning(JUEGO_A)).toBe(null)
+  })
+
+  it('7. retirar una marca que no existe no lanza', () => {
+    expect(() => clearProgressMismatch(JUEGO_A)).not.toThrow()
+    expect(readProgressMismatchWarning(JUEGO_A)).toBe(null)
+  })
+
+  it('8. dos gameId distintos no se interfieren: marcar uno no afecta al otro', () => {
+    markProgressMismatch(JUEGO_A)
+
+    expect(readProgressMismatchWarning(JUEGO_A)).toBe(PROGRESS_MISMATCH_WARNING)
+    expect(readProgressMismatchWarning(JUEGO_B)).toBe(null)
+  })
+
+  it('9. dos gameId distintos no se interfieren: retirar uno no afecta al otro que sigue marcado', () => {
+    markProgressMismatch(JUEGO_A)
+    markProgressMismatch(JUEGO_B)
+
+    clearProgressMismatch(JUEGO_A)
+
+    expect(readProgressMismatchWarning(JUEGO_A)).toBe(null)
+    expect(readProgressMismatchWarning(JUEGO_B)).toBe(PROGRESS_MISMATCH_WARNING)
   })
 })

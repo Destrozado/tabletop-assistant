@@ -225,6 +225,47 @@ describe('resolveNoticeVariant (función pura — tabla de verdad TOTAL sobre St
   })
 })
 
+describe('planGameEnd.progressMismatch (tabla de verdad TOTAL sobre los ocho pares registro×dispositivo, plan 09-33)', () => {
+  it.each(TODOS_LOS_ESTADOS_DEL_DISPOSITIVO)('(true, %s) → progressMismatch false: el histórico ya se escribió, no queda nada que advertir sobre el progreso', (stored) => {
+    expect(planGameEnd(true, stored).progressMismatch).toBe(false)
+  })
+
+  it('(false, \'resumable\') → progressMismatch false: lo guardado SÍ corresponde a la partida que termina', () => {
+    expect(planGameEnd(false, 'resumable').progressMismatch).toBe(false)
+  })
+
+  it('(false, \'stale\') → progressMismatch true: es el único de los ocho pares con discrepancia', () => {
+    expect(planGameEnd(false, 'stale').progressMismatch).toBe(true)
+  })
+
+  it('(false, \'absent\') → progressMismatch false: no hay nada guardado con lo que pudiera haber discrepancia', () => {
+    expect(planGameEnd(false, 'absent').progressMismatch).toBe(false)
+  })
+
+  it('(false, \'unknown\') → progressMismatch false: no se ha podido comprobar el dispositivo, así que no se puede afirmar discrepancia', () => {
+    expect(planGameEnd(false, 'unknown').progressMismatch).toBe(false)
+  })
+
+  it('de los cuatro estados con historyRecorded === false, exactamente UNO produce progressMismatch === true', () => {
+    const conDiscrepancia = TODOS_LOS_ESTADOS_DEL_DISPOSITIVO.filter(stored => planGameEnd(false, stored).progressMismatch)
+    expect(conDiscrepancia).toEqual(['stale'])
+  })
+
+  // progressMismatch y preserveProgress contestan preguntas distintas
+  // («¿hay que conservar el progreso?» y «¿el progreso que se conserva
+  // corresponde a esta partida?») y confundirlas es la misma clase de
+  // defecto que esta fase lleva ocho caras cerrando (09-VERIFICATION.md).
+  // Este caso lo fija por test: (false, 'resumable') conserva el progreso
+  // (preserveProgress true) porque el histórico no se escribió, pero SÍ
+  // corresponde a la partida que termina (progressMismatch false) — la
+  // independencia que el plan 09-33 exige comprobar.
+  it('progressMismatch y preserveProgress son independientes: (false, \'resumable\') conserva el progreso sin discrepancia', () => {
+    const plan = planGameEnd(false, 'resumable')
+    expect(plan.preserveProgress).toBe(true)
+    expect(plan.progressMismatch).toBe(false)
+  })
+})
+
 // isSuccessVariant (plan 09-32, Task 3): única vía para que un `.vue`
 // distinga el tono del aviso sin escribir a mano un literal de
 // `NoticeVariant` — mismo criterio que ya aplica `resolveAutoDismissMs`
