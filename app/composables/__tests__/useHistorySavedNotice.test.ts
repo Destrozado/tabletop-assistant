@@ -19,17 +19,24 @@ import {
   NOTICE_BODY,
   SUCCESS_AUTO_DISMISS_MS,
   dismissHistorySavedNotice,
+  isSuccessVariant,
   notifyHistorySaved,
   planGameEnd,
   resolveAutoDismissMs,
   resolveNoticeVariant,
   useHistorySavedNotice,
 } from '../useHistorySavedNotice'
+import type { NoticeVariant } from '../useHistorySavedNotice'
 import type { StoredProgress } from '../useStoredProgress'
 
 // Las cuatro respuestas posibles de la autoridad de lectura (`readStoredProgress`),
 // escritas como constante del test — nunca se inventa un quinto valor.
 const TODOS_LOS_ESTADOS_DEL_DISPOSITIVO: StoredProgress[] = ['resumable', 'stale', 'absent', 'unknown']
+
+// Las CINCO variantes de NoticeVariant (a diferencia de la constante de
+// arriba, que son los cuatro estados del DISPOSITIVO): plan 09-32 Task 3,
+// tabla de verdad de `isSuccessVariant`.
+const TODAS_LAS_VARIANTES_DEL_AVISO: NoticeVariant[] = ['success', 'failure-recoverable', 'failure-stale', 'failure-unrecoverable', 'failure-unknown']
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -215,5 +222,29 @@ describe('resolveNoticeVariant (función pura — tabla de verdad TOTAL sobre St
       NOTICE_BODY['failure-unknown'],
     ]
     expect(new Set(cuerpos).size).toBe(cuerpos.length)
+  })
+})
+
+// isSuccessVariant (plan 09-32, Task 3): única vía para que un `.vue`
+// distinga el tono del aviso sin escribir a mano un literal de
+// `NoticeVariant` — mismo criterio que ya aplica `resolveAutoDismissMs`
+// internamente. Gate C (WR-03, `afirmacionesRespaldadas.test.ts`) vigila
+// hoy los literales de `StoredProgress` y de `NoticeVariant`; este export
+// existe para que `HistorySavedNotice.vue` no tenga que escribir
+// `variant === 'success'` a mano.
+describe('isSuccessVariant (función pura, plan 09-32)', () => {
+  it('isSuccessVariant(\'success\') es true', () => {
+    expect(isSuccessVariant('success')).toBe(true)
+  })
+
+  it.each(['failure-recoverable', 'failure-stale', 'failure-unrecoverable', 'failure-unknown'] as const)('isSuccessVariant(%s) es false', (variante) => {
+    expect(isSuccessVariant(variante)).toBe(false)
+  })
+
+  it('coincide con resolveAutoDismissMs: la duración corta es exactamente la de la variante de éxito', () => {
+    for (const variante of TODAS_LAS_VARIANTES_DEL_AVISO) {
+      const duracionCorta = resolveAutoDismissMs(variante) === SUCCESS_AUTO_DISMISS_MS
+      expect(duracionCorta).toBe(isSuccessVariant(variante))
+    }
   })
 })
