@@ -46,13 +46,35 @@
 // no afirma nada — nunca afirma algo falso.
 const juegosConProgresoQueNoCoincide = new Set<string>()
 
-// PROGRESS_MISMATCH_WARNING lleva aquí un texto PROVISIONAL (GREEN de la
-// Task 1 de 09-33-PLAN.md): basta con declararlo y usarlo para que el
-// camino completo funcione de extremo a extremo. El texto DEFINITIVO, con
-// su comprobación de respaldo oración a oración contra 09-VERIFICATION.md
-// ronda 7, lo fija la Task 3 de este mismo plan mediante su propio ciclo
-// RED → GREEN.
-export const PROGRESS_MISMATCH_WARNING = 'Aviso: la última partida de este juego no pudo registrarse correctamente. (Texto provisional, pendiente de la Task 3 de 09-33-PLAN.md.)'
+// Comprobación de respaldo, oración a oración (Task 3, plan 09-33): el
+// motivo escrito de una afirmación es lo que 09-VERIFICATION.md (ronda 7)
+// encontró falsificado en `failure-stale`, así que aquí se deja explícito y
+// comprobable por test — ver useProgressMismatchMark.test.ts, describe
+// «PROGRESS_MISMATCH_WARNING — respaldo oración a oración»:
+// - «al terminar la última partida de este juego» ← el invariante de esta
+//   marca: se pone en el cierre de partida (onOutcomeRecorded) y se retira
+//   en cuanto un cierre posterior no encuentra discrepancia o el progreso
+//   que describe se borra — nunca se afirma sobre nada más antiguo que eso.
+// - «la app no pudo registrarla» ← la marca solo se pone cuando el
+//   histórico no llegó a escribirse (GameEndPlan.progressMismatch exige
+//   historyRecorded === false).
+// - «comprobó que lo que había guardado no era el punto en el que habíais
+//   terminado» ← la comparación de posiciones de la autoridad de lectura
+//   del progreso devolvió que no coinciden. Se dice «el punto», que es
+//   justo lo que esa comparación representa, y no se dice qué campo
+//   difirió, que es lo que esa comparación no sabe identificar.
+// - «Puede que…», «podría…» ← forma modal a propósito: el histórico solo
+//   registra un subconjunto pequeño de campos (ronda y contexto), así que
+//   cuando la única diferencia real está en otro campo, la entrada
+//   resultante podría ser idéntica a la de la partida real — afirmarlo con
+//   certeza sería otra afirmación sin respaldo, la misma clase de defecto
+//   que esta fase lleva ocho caras cerrando.
+// - No contiene «anterior»: no hay ningún orden temporal comprobado. No
+//   contiene «la ronda» ni ninguna mención al campo que difirió: la
+//   comparación no lo sabe identificar. No ordena ningún «reintentar»:
+//   este aviso informa, no instruye — las tres, prohibidas por aserción
+//   negativa en el test.
+export const PROGRESS_MISMATCH_WARNING = 'Aviso: al terminar la última partida de este juego, la app no pudo registrarla y comprobó que lo que había guardado no era el punto en el que habíais terminado. Puede que esta partida no sea la que terminasteis: si la continuáis y la registráis, el histórico podría quedar con datos que no son los de aquella partida.'
 
 // Poner la marca es idempotente: `Set.add` sobre una clave ya presente no
 // duplica nada. Se llama desde `onOutcomeRecorded`
