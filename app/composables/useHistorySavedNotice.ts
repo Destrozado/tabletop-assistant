@@ -99,12 +99,28 @@ export function resolveNoticeVariant(historyRecorded: boolean, stored: StoredPro
 export interface GameEndPlan {
   variant: NoticeVariant
   preserveProgress: boolean
+  // progressMismatch (plan 09-33, cierre del tercer hallazgo de SC3 en
+  // `09-VERIFICATION.md` ronda 7): la decisión de si el progreso que ha
+  // quedado en el dispositivo corresponde o no a la partida que acaba de
+  // terminar vive AQUÍ, donde ya viven `variant`/`preserveProgress`, por la
+  // misma razón escrita arriba en este fichero — para que no puedan
+  // divergir nunca. `planGameEnd` es el ÚNICO productor de esta respuesta
+  // fuera de los tests, igual que ya lo es de `NoticeVariant`: ningún otro
+  // fichero necesita nombrar `'stale'` para saber si hubo discrepancia,
+  // solo leer este campo.
+  progressMismatch: boolean
 }
 
 export function planGameEnd(historyRecorded: boolean, stored: StoredProgress): GameEndPlan {
   return {
     variant: resolveNoticeVariant(historyRecorded, stored),
     preserveProgress: !historyRecorded,
+    // Solo hay discrepancia que advertir cuando el histórico NO se escribió
+    // Y la autoridad de lectura ha comprobado que lo guardado no es la
+    // partida que termina (`stored === 'stale'`). Si el histórico se
+    // escribió, `preserveProgress` ya es `false` y no queda ningún progreso
+    // que pudiera confundirse con otra partida.
+    progressMismatch: !historyRecorded && stored === 'stale',
   }
 }
 
