@@ -134,6 +134,33 @@ function contieneRaizSobreLosDatosDelGrupo(region: string, raiz: string): boolea
   return normalizarEspacios(region.toLowerCase()).includes(normalizarEspacios(raiz.toLowerCase()))
 }
 
+// AfirmacionAuditada (plan 09-34, Task 2, cierre del agravante que hace falso
+// el sello: una excepción auditada cuyo motivo escrito afirma lo contrario
+// de lo verificado). La ronda 8 (09-VERIFICATION.md) encontró una excepción
+// cuyo motivo afirmaba que `endGameBody` «es cierto en las cuatro salidas» —
+// falso — y otra cuyo motivo era explícitamente circular («la garantía real
+// la da Gate B»). Un motivo en prosa no se puede comprobar; una RUTA sí:
+// `respaldo` obliga a nombrar un fichero real del repo que EJERCE la
+// comprobación que el motivo describe (normalmente el test puro que fija la
+// copy o la decisión), y `respaldoExiste` (más abajo) es el gate que
+// comprueba que esa ruta existe de verdad.
+interface AfirmacionAuditada {
+  raiz: string
+  motivo: string
+  respaldo: string
+}
+
+// respaldoExiste (plan 09-34, Task 2): glob PROPIO — a diferencia de los
+// globs de Gate A/C, éste NO filtra `/__tests__/`, porque el respaldo típico
+// de una excepción es justamente un test puro. Incluye también `engine/`
+// (no solo `app/`): un respaldo puede apoyarse en el motor puro.
+// STUB deliberado (RED, plan 09-34 Task 2): devuelve siempre `false`, así
+// que ningún respaldo —ni siquiera uno real— resuelve todavía. La
+// implementación real llega en el commit GREEN.
+export function respaldoExiste(_ruta: string): boolean {
+  return false
+}
+
 // Excepciones auditadas a mano, por FICHERO y por RAÍZ (plan 09-30, cierre
 // de T-09-30-06; migradas de FRASE a RAÍZ en el plan 09-34 junto con el
 // criterio de Gate A): un fichero auditado NO es una puerta abierta a
@@ -366,6 +393,16 @@ describe('Criterio por raíces léxicas (plan 09-34, cierre de la vía (a) de 09
   it('frasesSinAuditarDe no mira comentarios ni bloques <style> (usa regionVigilada)', () => {
     const sfcSintetico = '<template><p>hola</p></template>\n<!-- dispositivo -->\n<style>/* dispositivo */</style>'
     expect(frasesSinAuditarDe('app/components/ConComentario.vue', sfcSintetico)).toEqual([])
+  })
+})
+
+describe('Respaldo comprobable de cada excepción auditada (plan 09-34, Task 2, cierre del agravante de la ronda 8)', () => {
+  it('respaldoExiste resuelve un fichero real del repo (app/composables/__tests__/useProgressMountPlan.test.ts)', () => {
+    expect(respaldoExiste('app/composables/__tests__/useProgressMountPlan.test.ts')).toBe(true)
+  })
+
+  it('respaldoExiste devuelve false para una ruta que no existe en el árbol', () => {
+    expect(respaldoExiste('app/composables/no-existe-de-verdad.ts')).toBe(false)
   })
 })
 
