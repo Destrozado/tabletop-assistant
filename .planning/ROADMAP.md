@@ -181,42 +181,133 @@ Plans:
   5. La pantalla de estadísticas lee exclusivamente localStorage — verificable en esta fase de forma trivial, porque Firestore ni siquiera existe todavía en el código en este punto del hito.
 
 **Plans**: 36 plans (29 olas) — 31 ejecutados + 5 planificados para el cierre de la ronda 7
+**Wave 1**
+
 - [x] 09-01-PLAN.md — Motor: tipos aditivos del histórico, `buildHistoryEntry` y formateadores puros (ola 1)
 - [x] 09-02-PLAN.md — `GameOutcomeDialog` y el aviso de guardado montado en `app.vue` (ola 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [x] 09-03-PLAN.md — Motor: `aggregateStatistics` con la cascada de orden de D-24 (ola 2)
 - [x] 09-04-PLAN.md — Costura de almacenamiento: clave `tga:history` y escritura que informa de fallo (ola 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [x] 09-05-PLAN.md — Costura reactiva `useGameHistory` con las vistas ya formateadas (ola 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [x] 09-06-PLAN.md — Pantallas `/historico` y `/estadisticas` con sus estados vacíos (ola 4)
 - [x] 09-07-PLAN.md — Fin de partida: `startedAt` en `start()` y cableado del diálogo en `index.vue` (ola 4)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [x] 09-08-PLAN.md — Accesos desde el inicio, prerender de las dos rutas y verificación humana (ola 5)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [x] 09-09-PLAN.md — Cierre de huecos: escritura no destructiva de `tga:history` y frontera de tipos (CR-03) (ola 6)
 - [x] 09-10-PLAN.md — Cierre de huecos: motor que no lanza ante ids no-string y orden cronológico real (CR-02) (ola 6)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
 - [x] 09-11-PLAN.md — Cierre de huecos: `/historico` y `/estadisticas` que no se caen ante datos inconsistentes (CR-01) (ola 7)
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
 - [x] 09-12-PLAN.md — Cierre de huecos: la escritura del histórico valida con el mismo predicado que la lectura (CR-01 ronda 2 + WR-03) (ola 8)
+
+**Wave 9** *(blocked on Wave 8 completion)*
+
 - [x] 09-13-PLAN.md — Cierre de huecos ronda 3: un fallo transitorio de LECTURA deja de destruir el histórico (CR-01 r3) (ola 9)
 - [x] 09-14-PLAN.md — Cierre de huecos ronda 3: ningún mapa indexado por dato no confiable resuelve por la cadena de prototipos (CR-02 r3 + WR-08) (ola 9)
 - [x] 09-15-PLAN.md — Cierre de huecos ronda 3: un `context` que no se puede validar deja de anunciarse como partida reanudada (WR-03 r3) (ola 9)
+
+**Wave 10** *(blocked on Wave 9 completion)*
+
 - [x] 09-16-PLAN.md — Cierre de huecos ronda 3: un registro fallido deja de llevarse la partida por delante, y el aviso deja de atribuir causa (amplificador de CR-02 + WR-02/WR-05a) (ola 10)
+
+**Wave 11** *(blocked on Wave 10 completion)*
+
 - [x] 09-17-PLAN.md — Barrido exhaustivo de las tres fronteras, con inventario escrito, cierre en lote y registro de lo aplazado (petición explícita del verificador) (ola 11)
+
+**Wave 12** *(blocked on Wave 11 completion)*
+
 - [x] 09-18-PLAN.md — Cierre de huecos ronda 4: `save()` devuelve si el progreso quedó escrito de verdad, y el comentario deja de prohibir el arreglo (CR-01 r4, causa raíz) (ola 12)
 - [x] 09-19-PLAN.md — Cierre de huecos ronda 4: `GameOutcomeDialog` con nombre accesible y foco gestionado; `Escape` resuelto por escrito contra el contrato de diseño (WR-04 reclasificado) (ola 12)
+
+**Wave 13** *(blocked on Wave 12 completion)*
+
 - [x] 09-20-PLAN.md — Cierre de huecos ronda 4: tres variantes de aviso atadas a dos booleanos reales, progreso reescrito y comprobado, y el test de regresión exigido (CR-01 r4) (ola 13)
+
+**Wave 14** *(blocked on Wave 13 completion)*
+
 - [x] 09-21-PLAN.md — Cierre de huecos ronda 4: la banda deja de tener copy propia y solo pinta lo que el composable ha comprobado (CR-01 r4) (ola 14)
+
+**Wave 15** *(blocked on Wave 14 completion)*
+
 - [x] 09-22-PLAN.md — Cierre de huecos ronda 4: las bandas de aviso dejan de empujar fuera de la tablet la pantalla de destino (WR-05b reclasificado) (ola 15)
+
+**Wave 16** *(blocked on Wave 15 completion)*
+
 - [x] 09-23-PLAN.md — Barrido Q4 de las afirmaciones que la interfaz hace al grupo, cierre de los dos diferidos reclasificados y sincronización de trazabilidad (ola 16)
+
+**Wave 17** *(blocked on Wave 16 completion)*
+
 - [x] 09-24-PLAN.md — Barrera de tipos real: el proyecto no tenía comprobador (ni typescript ni vue-tsc, y `nuxt build` no comprueba tipos) — instalación, `npm run typecheck`, paso de CI y triaje de lo preexistente (ola 17)
+
+**Wave 18** *(blocked on Wave 17 completion)*
+
 - [x] 09-25-PLAN.md — Cierre de huecos ronda 5: la autoridad de lectura que contesta qué hay de verdad en el dispositivo, con «no he podido comprobarlo» como tercera respuesta (CR-01 r5, causa raíz) (ola 18)
+
+**Wave 19** *(blocked on Wave 18 completion)*
+
 - [x] 09-26-PLAN.md — Cierre de huecos ronda 5: los dos consumidores hablan por la autoridad, guarda de reentrada (WR-01) y gate automatizado contra afirmaciones sin respaldo (ola 19)
+
+**Wave 20** *(blocked on Wave 19 completion)*
+
 - [x] 09-27-PLAN.md — Cierre de huecos ronda 5: corrección de la nota de cierre prematura sobre HIST-06, diferidos con justificación de riesgo y pregunta Q5 en la auditoría de afirmaciones (ola 20)
+
+**Wave 21** *(blocked on Wave 20 completion)*
+
 - [x] 09-28-PLAN.md — Cierre de huecos ronda 6: la autoridad de lectura compara contra la partida que acaba de terminar (`'stale'`), cuarta variante `failure-stale`, y cierre de WR-05/WR-06/WR-07 (ola 21)
+
+**Wave 22** *(blocked on Wave 21 completion)*
+
 - [x] 09-29-PLAN.md — Cierre de huecos ronda 6: el montaje deja de colapsar «no hay nada» con «no he podido mirar» (`planProgressMount` + aviso en el mini-setup) y el test contraproducente se corrige (ola 22)
+
+**Wave 23** *(blocked on Wave 22 completion)*
+
 - [x] 09-30-PLAN.md — Cierre de huecos ronda 6: el gate de clase barre el fichero entero y `app/**/*.ts`, se autocomprueba, y `endGameBody` deja de afirmar un borrado que no siempre ocurre (ola 23)
+
+**Wave 24** *(blocked on Wave 23 completion)*
+
 - [x] 09-31-PLAN.md — Cierre de huecos ronda 6: séptima variante registrada en REQUIREMENTS.md sin cerrar HIST-06, Q6 en la auditoría, diferidos con riesgo y contrato de copy al día (ola 24)
+
+**Wave 25** *(blocked on Wave 24 completion)*
+
 - [ ] 09-32-PLAN.md — Cierre de huecos ronda 7: `failure-stale` deja de afirmar anterioridad, identidad y ronda; la copy del diálogo de fin de partida sale a `useGameEndCopy.ts` con test puro y sin promesa de reintento (ola 25)
+
+**Wave 26** *(blocked on Wave 25 completion)*
+
 - [ ] 09-33-PLAN.md — Cierre de huecos ronda 7: la discrepancia comprobada al cerrar viaja hasta `ResumePrompt` como marca en memoria, sin escribir nada en el dispositivo (ola 26)
+
+**Wave 27** *(blocked on Wave 26 completion)*
+
 - [ ] 09-34-PLAN.md — Cierre de huecos ronda 7: el gate de clase pasa de subcadenas cerradas a raíces léxicas, cada excepción nombra un respaldo comprobable, y Gate B/Gate C cubren titulares y `'success'` (ola 27)
+
+**Wave 28** *(blocked on Wave 27 completion)*
+
 - [ ] 09-35-PLAN.md — Cierre de huecos ronda 7: Gate S ejerce las funciones de decisión de Gate A y Gate B y demuestra por mutación que se ponen rojas (ola 28)
+
+**Wave 29** *(blocked on Wave 28 completion)*
+
 - [ ] 09-36-PLAN.md — Cierre de huecos ronda 7: octava variante registrada en REQUIREMENTS.md sin cerrar HIST-06, contrato de copy al día, deuda de la marca en memoria evaluada por riesgo (ola 29)
+
+**Cross-cutting constraints:**
+
+- La comprobación visual humana en tablet (DEV-02) sigue nombrada como ABIERTA, en ningún sitio como hecha
+
 **UI hint**: yes
 **Verificación humana**: Sí, recomendable pero no bloqueante por dispositivo — el flujo de fin de partida y las dos pantallas nuevas se verifican jugando una partida real de principio a fin (puede hacerse en portátil/móvil, no requiere la tablet de mesa) y comprobando que el registro y las estadísticas resultantes coinciden con lo jugado.
 
