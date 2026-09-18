@@ -344,6 +344,15 @@ export function frasesSinAuditarDe(ruta: string, contenido: string): string[] {
 // B no lo trate como una afirmación no respaldada.
 const VARIANTES_RESPALDADAS_POR_LA_AUTORIDAD = ['failure-recoverable', 'failure-stale', 'failure-unrecoverable', 'failure-unknown']
 
+// LITERALES_VARIANTE (WR-03, 09-REVIEW.md ronda 6; ampliada en el plan
+// 09-34, Task 3, vía (c) de 09-VERIFICATION.md ronda 8): promovida a
+// ámbito de módulo para que un test pueda comprobar directamente su
+// contenido, además de que Gate C la use para barrer el árbol. Ámbito de
+// módulo (no dentro del `it` de Gate C, como hasta este plan) para que este
+// test de arriba (RED, plan 09-34) y el propio Gate C compartan la MISMA
+// lista — nunca dos copias que puedan divergir en silencio.
+const LITERALES_VARIANTE = ['\'failure-recoverable\'', '\'failure-stale\'', '\'failure-unrecoverable\'', '\'failure-unknown\'']
+
 // Los cuatro únicos ficheros con motivo legítimo para nombrar el estado del
 // dispositivo, cada uno con su motivo:
 // - `useStoredProgress.ts`: LOS PRODUCE (es la autoridad).
@@ -656,7 +665,6 @@ describe('Gate C — procedencia del estado del dispositivo (09-26/09-30)', () =
   // no por código, exactamente el mismo tipo de falso positivo que Gate S ya
   // demuestra que `regionVigilada` evita para las frases de datos del grupo.
   it('ningún fichero fuera de useHistorySavedNotice.ts nombra un literal de NoticeVariant a mano (WR-03)', () => {
-    const LITERALES_VARIANTE = ['\'failure-recoverable\'', '\'failure-stale\'', '\'failure-unrecoverable\'', '\'failure-unknown\'']
     const FICHEROS_QUE_DEFINEN_NOTICE_VARIANT = ['app/composables/useHistorySavedNotice.ts']
     for (const [clave, contenidoOriginal] of ficherosVigilados()) {
       const ruta = rutaRelativa(clave)
@@ -672,6 +680,16 @@ describe('Gate C — procedencia del estado del dispositivo (09-26/09-30)', () =
         )
       }
     }
+  })
+
+  // vía (c), 09-VERIFICATION.md ronda 8: 'success' es el literal más
+  // peligroso de escribir a mano porque pinta «✓ Partida registrada» sin
+  // haber pasado por record(). Este test comprueba directamente la lista
+  // que Gate C usa (LITERALES_VARIANTE, arriba, ámbito de módulo) — si
+  // faltara 'success' aquí, el fichero SINTÉTICO del test siguiente ya no
+  // demostraría nada real.
+  it('LITERALES_VARIANTE vigila también \'success\' (vía (c), 09-VERIFICATION.md ronda 8)', () => {
+    expect(LITERALES_VARIANTE).toContain('\'success\'')
   })
 })
 
