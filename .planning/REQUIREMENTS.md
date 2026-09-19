@@ -73,15 +73,15 @@
 
 ### HIST — Histórico de partidas
 
-- [x] **HIST-01**: Al pulsar «Partida terminada» la app ofrece registrar el resultado
-- [x] **HIST-02**: Los resultados posibles son Ganada y Perdida, y siempre se puede cerrar la partida sin registrar nada
-- [x] **HIST-03**: Si el resultado es Perdida, se puede indicar la causa: plan principal completado o todos los héroes derrotados
-- [x] **HIST-04**: El registro guarda resultado, causa, villano, héroe y nombre de cada jugador, fecha, dificultad, nº de jugadores, duración y nº de rondas jugadas
-- [x] **HIST-05**: El motor expone el instante de inicio de la partida y la ronda actual, para poder calcular duración y rondas sin que el usuario los teclee
+- [ ] **HIST-01**: Al pulsar «Partida terminada» la app ofrece registrar el resultado
+- [ ] **HIST-02**: Los resultados posibles son Ganada y Perdida, y siempre se puede cerrar la partida sin registrar nada
+- [ ] **HIST-03**: Si el resultado es Perdida, se puede indicar la causa: plan principal completado o todos los héroes derrotados
+- [ ] **HIST-04**: El registro guarda resultado, causa, villano, héroe y nombre de cada jugador, fecha, dificultad, nº de jugadores, duración y nº de rondas jugadas
+- [ ] **HIST-05**: El motor expone el instante de inicio de la partida y la ronda actual, para poder calcular duración y rondas sin que el usuario los teclee
 - [ ] **HIST-06**: El histórico vive en localStorage y es la fuente de verdad de la app
-- [x] **HIST-07**: Hay una pantalla que lista las partidas registradas, de la más reciente a la más antigua
-- [x] **HIST-08**: Una entrada del histórico se puede borrar, con confirmación previa
-- [x] **HIST-09**: «Partida terminada» borra la sesión en curso pero nunca el histórico
+- [ ] **HIST-07**: Hay una pantalla que lista las partidas registradas, de la más reciente a la más antigua
+- [ ] **HIST-08**: Una entrada del histórico se puede borrar, con confirmación previa
+- [ ] **HIST-09**: «Partida terminada» borra la sesión en curso pero nunca el histórico
 
 > **Nota de cierre de hueco (HIST-04/HIST-06), rondas 2 y 3 de `09-VERIFICATION.md`:** la
 > verificación encontró, en dos rondas consecutivas, defectos reproducibles sobre estos dos
@@ -226,11 +226,11 @@
 
 ### STAT — Estadísticas
 
-- [x] **STAT-01**: Hay una pantalla de estadísticas accesible desde el inicio
-- [x] **STAT-02**: Muestra el porcentaje de victorias por héroe
-- [x] **STAT-03**: Muestra el porcentaje de victorias por villano
-- [x] **STAT-04**: La pantalla lee exclusivamente localStorage y **nunca** consulta Firestore
-- [x] **STAT-05**: Con el histórico vacío muestra un estado vacío claro, no un error ni porcentajes engañosos
+- [ ] **STAT-01**: Hay una pantalla de estadísticas accesible desde el inicio
+- [ ] **STAT-02**: Muestra el porcentaje de victorias por héroe
+- [ ] **STAT-03**: Muestra el porcentaje de victorias por villano
+- [ ] **STAT-04**: La pantalla lee exclusivamente localStorage y **nunca** consulta Firestore
+- [ ] **STAT-05**: Con el histórico vacío muestra un estado vacío claro, no un error ni porcentajes engañosos
 
 ### SYNC — Respaldo en Firestore
 
@@ -352,6 +352,7 @@
 | COMP-03 | Fase 10 | Pendiente |
 
 **Cobertura:**
+
 - Requisitos v1.8: 58 en total
 - Mapeados a fases: 58
 - Sin mapear: 0 ✓
