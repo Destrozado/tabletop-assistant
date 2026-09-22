@@ -1,21 +1,14 @@
 ---
-status: testing
+status: complete
 phase: 09-hist-rico-y-estad-sticas
 source: [09-VERIFICATION.md]
 started: 2026-09-22T15:14:14Z
-updated: 2026-09-22T15:14:14Z
+updated: 2026-09-22T19:02:29Z
 ---
 
 ## Current Test
 
-number: 1
-name: Comprobación visual en tablet horizontal real (DEV-02, guion acumulado + aviso de discrepancia en ContentChangedNotice)
-expected: |
-  Ningún control de cabecera queda tapado de forma invisible por las bandas fijas; el texto de
-  `failure-stale`, y el aviso de `PROGRESS_MISMATCH_WARNING` dentro de `ResumePrompt` Y dentro de
-  `ContentChangedNotice`, se leen completos, sin desbordar el modal ni el aviso, a un brazo de
-  distancia.
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -29,7 +22,7 @@ discrepancia (`PROGRESS_MISMATCH_WARNING`) se lee completo y sin desbordar dentr
 un dispositivo físico).
 
 expected: Ningún control de cabecera queda tapado de forma invisible por las bandas fijas; el texto de `failure-stale`, y el aviso de `PROGRESS_MISMATCH_WARNING` dentro de `ResumePrompt` Y dentro de `ContentChangedNotice`, se leen completos, sin desbordar el modal ni el aviso, a un brazo de distancia.
-result: [pending]
+result: pass
 
 why_human: El solapamiento y el desbordamiento son juicios visuales sobre un viewport físico que el
 grep de CSS no puede sustituir. Sigue PENDIENTE explícitamente bajo DEV-02 de `REQUIREMENTS.md`
@@ -39,9 +32,9 @@ estrictamente nueva desde el plan 09-38 (ronda 8) que ningún humano ha visto re
 ## Summary
 
 total: 1
-passed: 0
+passed: 1
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 
