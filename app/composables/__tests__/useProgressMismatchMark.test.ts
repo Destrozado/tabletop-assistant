@@ -130,7 +130,7 @@ describe('useProgressMismatchMark — tabla de verdad completa del ciclo de vida
 // test pasa a verde por la validación de huella, sin haber cambiado el
 // test.
 describe('useProgressMismatchMark — ciclo de vida completo con testigo del referente (Task 1, plan 09-38)', () => {
-  it('16. pone con una huella y lee con OTRA distinta: el lector devuelve null porque el referente ya no es el mismo', () => {
+  it('16. pone con una huella y lee con OTRA distinta: el lector devuelve null porque el referente ya no es el mismo (aserción negativa: una huella distinta no produce aviso)', () => {
     markProgressMismatch(JUEGO_A, HUELLA_A)
     expect(readProgressMismatchWarning(JUEGO_A, HUELLA_B)).toBe(null)
   })
@@ -140,6 +140,57 @@ describe('useProgressMismatchMark — ciclo de vida completo con testigo del ref
     expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(PROGRESS_MISMATCH_WARNING)
   })
 })
+
+// Tabla de verdad completa del lector con testigo (Task 3, plan 09-38): las
+// cinco filas del <behavior> del plan, más la comprobación de que dos
+// juegos con huellas DISTINTAS no se interfieren entre sí. Las filas «marca
+// puesta + huella igual → aviso» (test 17) y «marca puesta + huella
+// distinta → null» (test 16) ya están cubiertas arriba; este describe cubre
+// las que faltaban.
+describe('useProgressMismatchMark — tabla de verdad del lector con testigo (Task 3, plan 09-38)', () => {
+  it('18. marca puesta + huella null: el lector devuelve null (aserción negativa: no poder huellar el presente tampoco produce aviso)', () => {
+    markProgressMismatch(JUEGO_A, HUELLA_A)
+    expect(readProgressMismatchWarning(JUEGO_A, null)).toBe(null)
+  })
+
+  it('19. sin marca + cualquier huella: el lector devuelve null (ninguna huella puede producir un aviso que nadie puso)', () => {
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(null)
+    expect(readProgressMismatchWarning(JUEGO_A, null)).toBe(null)
+  })
+
+  it('20. marca retirada + huella igual: el lector devuelve null (retirar deja sin referente incluso a la huella exacta con la que se puso)', () => {
+    markProgressMismatch(JUEGO_A, HUELLA_A)
+    clearProgressMismatch(JUEGO_A)
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(null)
+  })
+
+  it('21. dos juegos con marcas puestas con huellas DISTINTAS no se interfieren: leer uno con la huella del otro devuelve null', () => {
+    markProgressMismatch(JUEGO_A, HUELLA_A)
+    markProgressMismatch(JUEGO_B, HUELLA_B)
+
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_B)).toBe(null)
+    expect(readProgressMismatchWarning(JUEGO_B, HUELLA_A)).toBe(null)
+  })
+
+  it('22. dos juegos con marcas puestas con huellas DISTINTAS: leer cada uno con SU PROPIA huella sigue devolviendo el aviso', () => {
+    markProgressMismatch(JUEGO_A, HUELLA_A)
+    markProgressMismatch(JUEGO_B, HUELLA_B)
+
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(PROGRESS_MISMATCH_WARNING)
+    expect(readProgressMismatchWarning(JUEGO_B, HUELLA_B)).toBe(PROGRESS_MISMATCH_WARNING)
+  })
+})
+
+// Comentario de cierre (Task 3, plan 09-38): qué cubre ESTE fichero y qué
+// cubre el gate de invariantes. Aquí se fija el comportamiento de ESTA
+// marca concreta, fila a fila, con huellas de fixture arbitrarias
+// (HUELLA_A/HUELLA_B, cadenas cualesquiera — este fichero no depende de que
+// sean huellas reales de `huellaDelProgreso`, solo de que sean distintas
+// entre sí). En `app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts`
+// se fija algo distinto y más general: que CUALQUIER marca de estado de
+// módulo futura sobre los datos del grupo tenga que tener un fichero de
+// pruebas hermano con este mismo recorrido (Pata 3, `faltaPruebaDeCicloDeVidaEn`)
+// — sin que nadie tenga que acordarse de escribirlo a mano cada vez.
 
 // PROGRESS_MISMATCH_WARNING — respaldo oración a oración (Task 3, plan
 // 09-33): cada aserción de este describe se puede señalar a un hecho

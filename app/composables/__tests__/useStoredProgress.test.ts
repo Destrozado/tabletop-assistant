@@ -18,7 +18,7 @@ import { validateGameDefinition } from '~~/engine/schema'
 import { toPersistedPosition } from '~~/engine/persistence'
 import type { PersistedPosition } from '~~/engine/persistence'
 import { usePersistedSession } from '../usePersistedSession'
-import { esLaMismaPartida, PLACEHOLDER_CONTEXT, readStoredProgress } from '../useStoredProgress'
+import { esLaMismaPartida, huellaDelProgreso, PLACEHOLDER_CONTEXT, readStoredProgress } from '../useStoredProgress'
 
 const tinyGame = validateGameDefinition(rawTinyGame)
 
@@ -243,6 +243,118 @@ describe('readStoredProgress — la autoridad sobre lo que hay en el dispositivo
       expect(report.outcome).toBe('content-changed')
       expect(report.stored).toBe('stale')
     })
+  })
+})
+
+describe('huella — testigo del referente exacto para useProgressMismatchMark.ts (Task 3, plan 09-38)', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = { localStorage: fakeStorage }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('\'absent\' (sin nada escrito): huella es null', () => {
+    const report = readStoredProgress(tinyGame)
+    expect(report.stored).toBe('absent')
+    expect(report.huella).toBe(null)
+  })
+
+  it('\'resumable\' (tras save() de una sesión real): huella NO es null', () => {
+    const { save } = usePersistedSession()
+    save(expand(tinyGame, { playerCount: 2, difficulty: 'normal' }))
+
+    const report = readStoredProgress(tinyGame)
+    expect(report.stored).toBe('resumable')
+    expect(report.huella).not.toBe(null)
+  })
+
+  it('\'stale\' (contentVersion distinto + esperada): huella NO es null', () => {
+    const structural = expand(tinyGame, { playerCount: 2, difficulty: 'normal' })
+    const persisted: PersistedPosition = {
+      formatVersion: 1,
+      gameId: tinyGame.gameId,
+      contentVersion: 99,
+      runtimeId: structural.sequence[0]!.runtimeId,
+      round: 1,
+      context: { playerCount: 2, difficulty: 'normal' },
+      updatedAt: new Date().toISOString(),
+    }
+    fakeStorage.setItem(`tga:progress:${tinyGame.gameId}`, JSON.stringify(persisted))
+
+    const report = readStoredProgress(tinyGame, structural)
+    expect(report.stored).toBe('stale')
+    expect(report.huella).not.toBe(null)
+  })
+
+  it('\'unknown\' (getItem que lanza): huella es null', () => {
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+
+    const report = readStoredProgress(tinyGame)
+    expect(report.stored).toBe('unknown')
+    expect(report.huella).toBe(null)
+  })
+
+  // Invariante (Task 1, punto 4 del <behavior>): el escenario canónico de
+  // useProgressMismatchMark.ts SIEMPRE tiene un referente que huellar. Es
+  // justo lo que impide que el `&& huella !== null` de `onOutcomeRecorded`
+  // (app/pages/[game]/index.vue) sea un agujero silencioso: si esta
+  // aserción alguna vez fallara, esa rama dejaría de poner la marca
+  // exactamente en el caso para el que existe.
+  it('invariante: stored === \'stale\' implica huella no nula (nunca hay \'stale\' sin referente que huellar)', () => {
+    const structural = expand(tinyGame, { playerCount: 2, difficulty: 'normal' })
+    const enDisco = { ...structural, cursor: 1 }
+    const { save } = usePersistedSession()
+    save(enDisco)
+
+    const esperada = structural
+    const report = readStoredProgress(tinyGame, esperada)
+    expect(report.stored).toBe('stale')
+    expect(report.huella).not.toBe(null)
+  })
+
+  it('huellaDelProgreso: estable frente al orden de claves del `context` (mismas claves, otro orden de serialización)', () => {
+    const base: PersistedPosition = {
+      formatVersion: 1,
+      gameId: 'tiny-game',
+      contentVersion: 1,
+      runtimeId: 'r1',
+      round: 1,
+      context: { playerCount: 2, difficulty: 'normal' },
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const mismoContextOtroOrden: PersistedPosition = {
+      ...base,
+      context: { difficulty: 'normal', playerCount: 2 },
+    }
+
+    expect(huellaDelProgreso(base)).toBe(huellaDelProgreso(mismoContextOtroOrden))
+  })
+
+  it('huellaDelProgreso: SENSIBLE a `updatedAt` (a diferencia de esLaMismaPartida, que lo excluye a propósito)', () => {
+    const base: PersistedPosition = {
+      formatVersion: 1,
+      gameId: 'tiny-game',
+      contentVersion: 1,
+      runtimeId: 'r1',
+      round: 1,
+      context: { playerCount: 2, difficulty: 'normal' },
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const otroUpdatedAt: PersistedPosition = { ...base, updatedAt: '2026-06-01T00:00:00.000Z' }
+
+    expect(huellaDelProgreso(base)).not.toBe(huellaDelProgreso(otroUpdatedAt))
+    // Contraste explícito con esLaMismaPartida (plan 09-28), que SÍ excluye
+    // updatedAt porque contesta otra pregunta — las dos funciones conviven
+    // a propósito, ver el comentario de huellaDelProgreso en useStoredProgress.ts.
+    expect(esLaMismaPartida(base, otroUpdatedAt)).toBe(true)
   })
 })
 
