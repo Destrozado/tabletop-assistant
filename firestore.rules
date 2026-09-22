@@ -1,0 +1,98 @@
+// firestore.rules
+//
+// Fase 10 (D-09/D-11/D-12/D-15): la ÚNICA barrera de seguridad real del
+// respaldo de histórico. El repo es público — la configuración web de
+// Firebase es visible en el bundle, así que lo que impide que un
+// desconocido lea, borre o corrompa las partidas del grupo es este
+// fichero, evaluado por Google, nunca por el cliente.
+//
+// (1) La lista de `hasOnly()` de abajo es EXACTAMENTE `SYNC_PAYLOAD_FIELDS`
+//     (`engine/sync.ts`) más `uid` y `createdAt` (D-12: los añade el
+//     cliente, no forman parte de la proyección pura). Este acoplamiento se
+//     comprueba MECÁNICAMENTE por `e2e/firestore-rules-contract.spec.ts` —
+//     si alguien añade un campo a `SYNC_PAYLOAD_FIELDS` sin añadirlo aquí (o
+//     viceversa), ese test se pone en rojo. No editar esta lista sin tocar
+//     también `engine/sync.ts` y volver a correr ese gate.
+//
+// (2) Limitación aceptada a propósito: el lenguaje de reglas de Firestore no
+//     puede iterar `players[]` para validar la forma de cada objeto —
+//     no hay un `forEach`/`map` sobre listas en `hasOnly()`/comprobación de
+//     tipos. Un documento con `players` de elementos basura (p. ej.
+//     `[{ basura: 'x' }]`) pasaría esta regla mientras respete el tope de
+//     tamaño (máximo 8 elementos, ver la condición de tamaño en la regla de
+//     abajo) y se acepta: el peor caso es basura parcialmente inválida en un
+//     campo anidado de un documento write-only que ninguna pantalla de la
+//     app lee jamás.
+//
+// (3) Despliegue MANUAL (D-15), nunca desde CI:
+//       npx firebase-tools login
+//       npx firebase-tools deploy --only firestore:rules
+//     `firebase-tools` se invoca puntualmente con `npx` y NUNCA se instala
+//     como dependencia del proyecto (comprobado por
+//     `grep -c 'firebase-tools' package.json` == 0 en el gate de esta tarea).
+//
+// (4) Este fichero committeado ES la única fuente de verdad. No existe, y
+//     no debe existir nunca, una copia distinta editada a mano en la
+//     consola de Firebase — ambas podrían divergir sin que nada lo avisara,
+//     que es exactamente el fallo que la revisión humana de la Task 3 de
+//     este plan existe para detectar (comparación carácter a carácter
+//     contra la consola, antes de la primera escritura real).
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /history/{docId} {
+      // D-11: denegación EXPLÍCITA de lectura/actualización/borrado, escrita
+      // a propósito aunque la denegación por defecto de Firestore ya las
+      // cubriría — este fichero es lo que una persona revisa en la Task 3, y
+      // una denegación que se lee es mejor que una que se deduce.
+      allow read, update, delete: if false;
+
+      allow create: if
+        // Forma exacta del documento: catorce claves, ni una más ni una
+        // menos. Ver nota (1) arriba sobre el gate mecánico.
+        request.resource.data.keys().hasOnly([
+          'id', 'gameId', 'result', 'lossCause', 'villainId', 'villainName',
+          'players', 'difficulty', 'playerCount', 'round', 'durationMs',
+          'recordedAt', 'uid', 'createdAt'
+        ]) &&
+        // Las diez que nunca pueden faltar (las cuatro nullable —
+        // lossCause, villainId, villainName, durationMs— quedan fuera de
+        // hasAll() porque su ausencia de valor es `null`, no ausencia de
+        // clave).
+        request.resource.data.keys().hasAll([
+          'id', 'gameId', 'result', 'players', 'difficulty', 'playerCount',
+          'round', 'recordedAt', 'uid', 'createdAt'
+        ]) &&
+        request.resource.data.id is string &&
+        request.resource.data.gameId is string &&
+        request.resource.data.result in ['won', 'lost'] &&
+        (request.resource.data.lossCause == null ||
+         request.resource.data.lossCause in ['mainSchemeCompleted', 'heroesEliminated']) &&
+        (request.resource.data.villainId == null || request.resource.data.villainId is string) &&
+        (request.resource.data.villainName == null || request.resource.data.villainName is string) &&
+        request.resource.data.players is list &&
+        // Tope de tamaño defensivo — 8 es holgado frente al maxPlayers:4 de
+        // Marvel Champions hoy (content/marvel-champions.json), con margen
+        // para un juego futuro sin tener que redesplegar reglas solo por
+        // ese motivo. Ver nota (2) sobre la limitación de validar cada
+        // elemento.
+        request.resource.data.players.size() <= 8 &&
+        request.resource.data.difficulty in ['normal', 'expert'] &&
+        request.resource.data.playerCount is int && request.resource.data.playerCount > 0 &&
+        request.resource.data.round is int && request.resource.data.round > 0 &&
+        (request.resource.data.durationMs == null || request.resource.data.durationMs is int) &&
+        request.resource.data.recordedAt is string &&
+        request.resource.data.recordedAt.size() <= 64 &&
+        // D-12: identidad expresada en el propio documento (uid del usuario
+        // anónimo autenticado, nunca uno ajeno) y createdAt SOLO puede ser
+        // la hora del servidor — nadie puede antedatar basura.
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.createdAt == request.time;
+    }
+
+    // D-11: no hay ninguna otra colección declarada — cualquier otro path
+    // queda denegado por defecto al no tener ningún `match` que lo cubra.
+  }
+}
