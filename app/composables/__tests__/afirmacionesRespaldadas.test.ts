@@ -82,10 +82,13 @@ import {
   contieneRaizSobreLosDatosDelGrupo,
   ficherosTsDelArbol,
   ficherosVueDelArbol,
+  identificadoresComprobablesDe,
+  motivoNombraAlgoComprobable,
   normalizarEspacios,
   quitarComentarios,
   regionVigilada,
   respaldoExiste,
+  respaldoRespaldaA,
   rutaRelativa,
 } from './vocabularioDeAfirmaciones'
 
@@ -252,7 +255,13 @@ const AFIRMACIONES_AUDITADAS: Record<string, AfirmacionAuditada[]> = {
     },
     {
       raiz: 'guardar',
-      motivo: '"al guardar la nueva podríais sustituirla" describe la consecuencia real de mini-setup tras stored === \'unknown\', la única rama que produce este aviso.',
+      // Motivo reescrito (plan 09-39, Task 1, medición de WR-02): la
+      // redacción anterior no nombraba ningún identificador comprobable —
+      // «mini-setup» no es código— y la raíz 'guardar' no aparece en el
+      // contenido del respaldo citado, así que respaldoRespaldaA la ponía en
+      // ROJO. Se nombra planProgressMount, la función que de verdad produce
+      // este aviso (única cadena para stored === 'unknown').
+      motivo: '"al guardar la nueva podríais sustituirla" es parte de UNVERIFIED_PROGRESS_NOTICE, la única cadena que planProgressMount devuelve para stored === \'unknown\', fijada rama por rama contra los cuatro valores de StoredProgress.',
       respaldo: 'app/composables/__tests__/useProgressMountPlan.test.ts',
     },
     {
@@ -296,6 +305,20 @@ const AFIRMACIONES_AUDITADAS: Record<string, AfirmacionAuditada[]> = {
       raiz: 'progreso',
       motivo: 'El texto tiene comprobación de respaldo oración a oración, con tests dedicados por cada aserción positiva y negativa sobre lo que planGameEnd comprobó de verdad.',
       respaldo: 'app/composables/__tests__/useProgressMismatchMark.test.ts',
+    },
+  ],
+  // NUEVA en el plan 09-39 (deferred-items.md, ronda 8/plan 09-38, hallazgo
+  // 1): huellaDelProgreso contiene, en código real, la subcadena «progreso»
+  // — una raíz vigilada — pero no es una afirmación EXTERNA sin respaldo:
+  // es la propia autoridad (`readStoredProgress`) calculando su huella
+  // sobre lo que ACABA de leer del dispositivo, en el único sitio con
+  // permiso para producir ese hecho. Un falso positivo estructural de Gate A
+  // (basado en subcadenas, no en quién produce el dato), no un hallazgo real.
+  'app/composables/useStoredProgress.ts': [
+    {
+      raiz: 'progreso',
+      motivo: 'huellaDelProgreso es la propia autoridad de lectura calculando su huella sobre PersistedPosition, nunca una afirmación externa sobre el progreso guardado del grupo — la autoridad tiene permiso para producir este hecho, fijado por sus propios tests de huella.',
+      respaldo: 'app/composables/__tests__/useStoredProgress.test.ts',
     },
   ],
 }
@@ -479,12 +502,22 @@ describe('Respaldo comprobable de cada excepción auditada (plan 09-34, Task 2, 
     expect(respaldoExiste('app/composables/no-existe-de-verdad.ts')).toBe(false)
   })
 
-  it('toda entrada de AFIRMACIONES_AUDITADAS tiene motivo y respaldo no vacíos, y el respaldo resuelve a un fichero real', () => {
+  it('toda entrada de AFIRMACIONES_AUDITADAS tiene motivo y respaldo no vacíos, el respaldo resuelve a un fichero real y ESE fichero respalda de verdad la afirmación (WR-02)', () => {
     for (const [ruta, afirmaciones] of Object.entries(AFIRMACIONES_AUDITADAS)) {
       for (const afirmacion of afirmaciones) {
         expect(afirmacion.motivo.trim().length, `${ruta} (${afirmacion.raiz}) no tiene motivo`).toBeGreaterThan(0)
         expect(afirmacion.respaldo.trim().length, `${ruta} (${afirmacion.raiz}) no tiene respaldo`).toBeGreaterThan(0)
         expect(respaldoExiste(afirmacion.respaldo), `${ruta} (${afirmacion.raiz}) nombra un respaldo que no existe: ${afirmacion.respaldo}`).toBe(true)
+        // WR-02 (09-REVIEW.md ronda 8, plan 09-39): que el respaldo EXISTA no
+        // basta — cualquier entrada podría citar un fichero real pero sin
+        // relación y pasaría igual con solo la comprobación de arriba.
+        // respaldoRespaldaA lee el CONTENIDO del respaldo y exige que
+        // contenga la raíz o un identificador comprobable del motivo.
+        expect(
+          respaldoRespaldaA(afirmacion.respaldo, afirmacion.raiz, afirmacion.motivo),
+          `${ruta} (raíz «${afirmacion.raiz}»): el respaldo citado (${afirmacion.respaldo}) no contiene ni la `
+          + `raíz ni ningún identificador comprobable del motivo — cita un fichero real, pero no lo respalda (WR-02).`,
+        ).toBe(true)
       }
     }
   })
@@ -884,6 +917,35 @@ const aviso = '${frase}'
 
   it('respaldoExiste(\'\') es false', () => {
     expect(respaldoExiste('')).toBe(false)
+  })
+
+  // --- Plan 09-39, Task 1: Gate S ejerce respaldoRespaldaA (WR-02) ---
+  //
+  // Las cuatro viñetas de <behavior> del plan, en el mismo orden en que las
+  // enumera. La tercera usa a propósito una ruta REAL del árbol
+  // (app/composables/useVoiceAnnouncer.ts) sin relación con la raíz
+  // 'guardad' — es el contraejemplo exacto de WR-02 (09-REVIEW.md ronda 8),
+  // el mismo que la mutación EJECUTADA y revertida de este plan demuestra
+  // (ver el SUMMARY: salida VERDE antes de este test, ROJA después).
+
+  it('respaldoRespaldaA es true cuando el contenido del respaldo contiene la RAÍZ (comparación insensible a mayúsculas y con espacios normalizados)', () => {
+    expect(respaldoRespaldaA('app/composables/__tests__/useProgressMountPlan.test.ts', 'guardad', '')).toBe(true)
+  })
+
+  it('respaldoRespaldaA es true cuando el contenido contiene un IDENTIFICADOR del motivo, aunque no contenga la raíz', () => {
+    // avisoTrasRegistroFallido.test.ts no contiene la raíz 'guardar' (medido
+    // en la Task 1 de este plan al corregir la entrada real de
+    // useProgressMountPlan.ts), pero SÍ contiene planGameEnd — el
+    // identificador que este motivo sintético nombra.
+    expect(respaldoRespaldaA('app/composables/__tests__/avisoTrasRegistroFallido.test.ts', 'guardar', 'esto lo respalda planGameEnd')).toBe(true)
+  })
+
+  it('respaldoRespaldaA es false para un fichero REAL del árbol sin ninguna relación con la raíz ni con el motivo (el contraejemplo exacto de WR-02)', () => {
+    expect(respaldoRespaldaA('app/composables/useVoiceAnnouncer.ts', 'guardad', 'un motivo sin ningún identificador comprobable')).toBe(false)
+  })
+
+  it('respaldoRespaldaA es false para una ruta que no existe en el árbol', () => {
+    expect(respaldoRespaldaA('app/composables/no-existe-de-verdad.ts', 'guardad', 'planGameEnd')).toBe(false)
   })
 
   it('toda entrada de AFIRMACIONES_AUDITADAS tiene un motivo de al menos 40 caracteres — un motivo de una palabra no es un motivo', () => {

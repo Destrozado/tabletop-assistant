@@ -115,13 +115,81 @@ export const ficherosTsDelArbol = import.meta.glob('/app/**/*.ts', { query: '?ra
 // justamente un test puro — y suma `engine/**/*.ts`: un respaldo puede
 // apoyarse en el motor puro, no solo en `app/`.
 export const ficherosEngineDelArbol = import.meta.glob('/engine/**/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
-const rutasConRespaldoPosible = new Set(
-  [...Object.keys(ficherosVueDelArbol), ...Object.keys(ficherosTsDelArbol), ...Object.keys(ficherosEngineDelArbol)].map(rutaRelativa),
+
+// contenidoDelArbolPorRuta (plan 09-39, Task 1, cierre de WR-02): mapa ÚNICO
+// de ruta relativa → contenido, construido a partir de los mismos tres
+// `import.meta.glob` de arriba, SIN filtrar `/__tests__/` — el respaldo
+// típico de una excepción auditada es justamente un test puro. Es EL MISMO
+// conjunto de rutas del que hasta este plan se derivaba `rutasConRespaldoPosible`
+// (un Set que solo sabía «existe», nunca «qué contiene»): a partir de aquí
+// `respaldoExiste` comprueba la presencia de la clave en ESTE mapa —una sola
+// fuente de verdad sobre qué ficheros existen— y `respaldoRespaldaA` (más
+// abajo) lee su CONTENIDO para comprobar si de verdad respalda la
+// afirmación, no solo si el fichero citado existe.
+export const contenidoDelArbolPorRuta: Record<string, string> = Object.fromEntries(
+  [...Object.entries(ficherosVueDelArbol), ...Object.entries(ficherosTsDelArbol), ...Object.entries(ficherosEngineDelArbol)]
+    .map(([clave, contenido]) => [rutaRelativa(clave), contenido]),
 )
 
-// respaldoExiste (plan 09-34, Task 2): comprueba que la ruta citada en un
+// respaldoExiste (plan 09-34, Task 2; reescrita en el plan 09-39, Task 1,
+// sobre `contenidoDelArbolPorRuta`): comprueba que la ruta citada en un
 // campo `respaldo` existe de verdad en el árbol del repo. Un motivo en
-// prosa no se puede comprobar; una RUTA sí.
+// prosa no se puede comprobar; una RUTA sí. Sigue siendo SOLO una
+// comprobación de existencia — WR-02 (09-REVIEW.md ronda 8) ya deja escrito
+// que una comprobación de existencia pura no basta: cualquier entrada podría
+// citar un fichero real pero sin relación y pasaría igual. `respaldoRespaldaA`
+// (más abajo) es quien añade la comprobación de RELEVANCIA que falta aquí.
 export function respaldoExiste(ruta: string): boolean {
-  return rutasConRespaldoPosible.has(ruta)
+  return ruta in contenidoDelArbolPorRuta
+}
+
+// identificadoresComprobablesDe (plan 09-39, Task 1, WR-02): los nombres de
+// fichero (`.ts`/`.vue`) que el motivo cite, más las palabras del motivo que
+// parezcan un identificador de código —longitud mínima 8 y con alguna
+// mayúscula INTERIOR (no la inicial: un identificador de código en camelCase
+// empieza en minúscula)—. El criterio es ESTRUCTURAL (forma de un
+// identificador, forma de un nombre de fichero), NUNCA una lista de palabras
+// concretas: una lista de palabras sería exactamente el mismo error que
+// WR-03 documenta un nivel más abajo, en `motivoNombraAlgoComprobable`.
+const PATRON_NOMBRE_DE_FICHERO_EN_MOTIVO = /[\w.[\]-]+\.(?:ts|vue)\b/g
+const PATRON_PALABRA_EN_MOTIVO = /\b[a-z][a-zA-Z0-9]*\b/g
+
+export function identificadoresComprobablesDe(motivo: string): string[] {
+  const nombresDeFichero = motivo.match(PATRON_NOMBRE_DE_FICHERO_EN_MOTIVO) ?? []
+  const identificadoresDeCodigo = (motivo.match(PATRON_PALABRA_EN_MOTIVO) ?? []).filter(
+    palabra => palabra.length >= 8 && /[A-Z]/.test(palabra),
+  )
+  return [...nombresDeFichero, ...identificadoresDeCodigo]
+}
+
+// motivoNombraAlgoComprobable (plan 09-39, Task 2, WR-03): una línea, pero
+// con nombre propio y comentario propio, para que el gate la pueda llamar
+// sin reimplementar el criterio y para que Gate S la pueda poner roja con
+// casos sintéticos. `true` si el motivo nombra al menos un fichero o un
+// identificador de código; `false` para cualquier prosa de relleno, sin
+// importar cómo esté redactada — el criterio no depende de la REDACCIÓN del
+// motivo (eso era el vocabulario cerrado que WR-03 encontró), solo de que
+// nombre algo que se puede ir a mirar.
+export function motivoNombraAlgoComprobable(motivo: string): boolean {
+  return identificadoresComprobablesDe(motivo).length > 0
+}
+
+// respaldoRespaldaA (plan 09-39, Task 1, WR-02): comprobación de RELEVANCIA
+// que `respaldoExiste` no hace. `false` si la ruta no está en el árbol; en
+// caso contrario, `true` si su contenido contiene la raíz vigilada (con
+// `contieneRaizSobreLosDatosDelGrupo`, ya normalizada e insensible a
+// mayúsculas) o alguno de los identificadores comprobables que el motivo
+// nombra. Dos ideas, a propósito, por escrito:
+// (a) esto NO es análisis estático exhaustivo y no pretende serlo — el
+//     propio WR-02 dice que una comprobación de SUBCADENA ya cierra el
+//     hueco que deja la comprobación de existencia pura, no que resuelva
+//     todo lo que un análisis estático real resolvería;
+// (b) lo que SÍ hace imposible es la evasión CONCRETA que WR-02 describe:
+//     citar un fichero real sin ninguna relación con la afirmación que dice
+//     respaldar.
+export function respaldoRespaldaA(rutaDelRespaldo: string, raiz: string, motivo: string): boolean {
+  const contenido = contenidoDelArbolPorRuta[rutaDelRespaldo]
+  if (contenido === undefined) return false
+  if (contieneRaizSobreLosDatosDelGrupo(contenido, raiz)) return true
+  return identificadoresComprobablesDe(motivo).some(identificador => contenido.includes(identificador))
 }
