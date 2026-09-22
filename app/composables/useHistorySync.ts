@@ -2,19 +2,20 @@
 //
 // Fase 10 (D-02/D-03/D-05/D-06/D-12/D-13): módulo de red — la ÚNICA pieza de
 // esta app que habla con un servicio externo desde el cliente. `record()`
-// (useGameHistory.ts) lo invoca dispara-y-olvida tras escribir en local;
-// aquí vive todo lo que decide SI de verdad hay algo que subir, y solo
-// entonces carga el SDK de Firebase.
+// (useGameHistory.ts) lo invoca dispara-y-olvida tras escribir en local, y
+// desde este plan (10-03) el propio evento `online` del navegador dispara
+// el mismo `flush()` — dos disparadores, un solo camino de subida (D-02).
 //
 // TERCERA excepción documentada de estado de módulo en app/composables/ (la
 // primera es useHistorySavedNotice.ts, la segunda useProgressMismatchMark.ts
 // — ver su razonamiento extenso, citado aquí en vez de repetido): la
-// configuración cacheada y la bandera «hay un flush en vuelo» necesitan
-// sobrevivir entre invocaciones distintas de useHistorySync() (una por cada
-// vez que useGameHistory() se instancia), y un `ref` creado dentro del
-// cuerpo del composable no lo hace. La bandera evita que dos disparadores
-// solapen el mismo trabajo de subida (este plan solo tiene uno, record();
-// el listener `online` llega en el plan 10-03).
+// configuración cacheada, la bandera «hay un flush en vuelo» y la bandera
+// «el listener `online` ya está registrado» necesitan sobrevivir entre
+// invocaciones distintas de useHistorySync() (una por cada vez que
+// useGameHistory() se instancia), y un `ref` creado dentro del cuerpo del
+// composable no lo hace. La bandera «en vuelo» evita que los dos
+// disparadores (record() y el evento `online`) solapen el mismo trabajo de
+// subida.
 //
 // SYNC-05: NINGUNA importación estática del SDK de Firebase en este fichero
 // — las tres entradas (`firebase/app`, `firebase/auth`, `firebase/firestore`)
@@ -52,6 +53,11 @@ type FirebaseUser = import('firebase/auth').User
 let configRead = false
 let cachedConfig: FirebaseSyncConfig | null = null
 let flushInFlight = false
+// D-02 (plan 10-03): el listener `online` se registra UNA sola vez por
+// carga de página — la primera invocación de `useHistorySync()` lo
+// registra, las siguientes no hacen nada. Ver el registro más abajo para el
+// razonamiento completo de por qué nunca se retira al desmontar.
+let onlineListenerRegistered = false
 
 // D-13: lee `useRuntimeConfig().public` DENTRO de un try/catch — no es
 // defensa decorativa. En el proyecto `app-logic` de Vitest no hay
@@ -179,7 +185,9 @@ export function useHistorySync(): { flush: () => void } {
 
   // D-05/D-06/D-07: síncrona, devuelve void, NUNCA lanza. Guardas en este
   // orden exacto — el orden es lo que hace cierto SYNC-05 (el import()
-  // dinámico solo ocurre si las cuatro se superan).
+  // dinámico solo ocurre si las cuatro se superan) y D-02 (el listener
+  // `online`, registrado más abajo, no importa Firebase mientras no haya
+  // nada pendiente: la guarda (2) se evalúa antes que cualquier import()).
   function flush(): void {
     try {
       // (1) SSR/prerender: mismo idioma que toda la capa de persistencia.
@@ -204,7 +212,8 @@ export function useHistorySync(): { flush: () => void } {
       const config = cachedConfig
       if (!config || !config.firebaseProjectId) return
 
-      // (4) Ya hay un flush en vuelo: no solapar el mismo trabajo.
+      // (4) Ya hay un flush en vuelo (disparado por record() o por el
+      // listener online): no solapar el mismo trabajo.
       if (flushInFlight) return
 
       flushInFlight = true
@@ -223,6 +232,33 @@ export function useHistorySync(): { flush: () => void } {
     catch {
       // record() no puede propagar nada a su llamador.
     }
+  }
+
+  // D-02 (plan 10-03): segundo disparador — el evento `online` del
+  // navegador. Registro idempotente (bandera de módulo): la primera
+  // invocación de useHistorySync() en la vida de la página lo registra, las
+  // siguientes no hacen nada. Detrás de la misma guarda SSR que el resto
+  // del módulo: durante el prerender no hay `window`.
+  //
+  // NO se retira al desmontar, y el motivo hay que dejarlo escrito: el
+  // escenario real de D-02 es una tablet apoyada en la mesa durante horas
+  // cuya wifi se cayó a mitad de partida y vuelve antes de recoger — un
+  // listener que muriera con el componente sería un listener que no está
+  // cuando hace falta. Es estado de módulo deliberado (ver cabecera del
+  // fichero), la TERCERA excepción de app/composables/, con el mismo
+  // razonamiento ya escrito en useProgressMismatchMark.ts (citado, no
+  // repetido).
+  //
+  // Esto NO contradice el compromiso de que /historico y /estadisticas
+  // sigan siendo pantallas 100% locales: lo que D-02 descarta es un empujón
+  // al ABRIR esas pantallas. Aquí el disparador es la recuperación de la
+  // red, nunca una navegación; el camino sigue siendo de una sola dirección
+  // (nada se lee de la nube); y sin nada pendiente, flush() no hace
+  // absolutamente nada (guarda (2) de arriba) — el listener no importa
+  // Firebase hasta que hay algo que subir Y hay red.
+  if (typeof window !== 'undefined' && !onlineListenerRegistered) {
+    onlineListenerRegistered = true
+    window.addEventListener('online', flush)
   }
 
   return { flush }

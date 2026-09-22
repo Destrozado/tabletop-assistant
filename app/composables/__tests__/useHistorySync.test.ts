@@ -72,6 +72,10 @@ function mockWorkingAuthAndApp(uid = 'anon-uid'): void {
   vi.doMock('firebase/app', () => ({ initializeApp: vi.fn(() => ({})), getApps: vi.fn(() => []) }))
 }
 
+function windowAddEventListenerMock(): ReturnType<typeof vi.fn> {
+  return (globalThis as unknown as { window: { addEventListener: ReturnType<typeof vi.fn> } }).window.addEventListener
+}
+
 describe('useHistorySync — extremo a extremo con el SDK doblado', () => {
   let fakeStorage: ReturnType<typeof createFakeLocalStorage>
 
@@ -326,5 +330,87 @@ describe('useHistorySync — Task 1 (plan 10-03): arrastre del atraso completo y
 
     const syncedKeyWrites = fakeStorage.setItem.mock.calls.filter(call => call[0] === SYNCED_KEY)
     expect(syncedKeyWrites).toHaveLength(1)
+  })
+})
+
+describe('useHistorySync — Task 2 (plan 10-03): el listener `online`, segundo disparador de D-02', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    vi.resetModules()
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    delete (globalThis as { useRuntimeConfig?: unknown }).useRuntimeConfig
+    vi.doUnmock('firebase/app')
+    vi.doUnmock('firebase/auth')
+    vi.doUnmock('firebase/firestore')
+    vi.restoreAllMocks()
+  })
+
+  it('la primera invocación de useHistorySync() registra exactamente un listener de online y una segunda invocación no registra ninguno más', async () => {
+    stubRuntimeConfig('test-project')
+    vi.doMock('firebase/firestore', () => ({ getFirestore: vi.fn(), doc: vi.fn(), setDoc: vi.fn(), serverTimestamp: vi.fn() }))
+    mockWorkingAuthAndApp()
+
+    const { useHistorySync } = await import('../useHistorySync')
+    useHistorySync()
+    useHistorySync()
+
+    const addEventListener = windowAddEventListenerMock()
+    expect(addEventListener).toHaveBeenCalledTimes(1)
+    expect(addEventListener).toHaveBeenCalledWith('online', expect.any(Function))
+  })
+
+  it('invocar el manejador de online con entradas pendientes y projectId configurado produce las llamadas a setDoc esperadas', async () => {
+    seedHistory(fakeStorage, [baseEntry({ id: 'online-entry' })])
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    mockWorkingAuthAndApp()
+
+    const { useHistorySync } = await import('../useHistorySync')
+    useHistorySync()
+
+    const onlineHandler = windowAddEventListenerMock().mock.calls[0]![1] as () => void
+    onlineHandler()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1))
+  })
+
+  it('invocar el manejador de online SIN entradas pendientes no registra ni una sola llamada en los tres módulos doblados del SDK', async () => {
+    // tga:history vacío — equivalente a que nadie haya terminado nunca una
+    // partida en este dispositivo.
+    stubRuntimeConfig('test-project')
+
+    const getApps = vi.fn()
+    vi.doMock('firebase/app', () => ({ getApps, initializeApp: vi.fn() }))
+    const getAuth = vi.fn()
+    vi.doMock('firebase/auth', () => ({ getAuth, onAuthStateChanged: vi.fn(), signInAnonymously: vi.fn() }))
+    const getFirestore = vi.fn()
+    vi.doMock('firebase/firestore', () => ({ getFirestore, doc: vi.fn(), setDoc: vi.fn(), serverTimestamp: vi.fn() }))
+
+    const { useHistorySync } = await import('../useHistorySync')
+    useHistorySync()
+
+    const onlineHandler = windowAddEventListenerMock().mock.calls[0]![1] as () => void
+    onlineHandler()
+
+    expect(getApps).not.toHaveBeenCalled()
+    expect(getAuth).not.toHaveBeenCalled()
+    expect(getFirestore).not.toHaveBeenCalled()
   })
 })
