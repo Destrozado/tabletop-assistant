@@ -133,6 +133,23 @@ const VOCABULARIO_CERRADO_HASTA_LA_RONDA_7 = [
 // dependa de que el defecto siga existiendo en el repo.
 const FRASE_NO_DETECTADA_EN_LA_RONDA_7 = 'Si el registro en el histórico falla, la app conservará el progreso para que podáis reintentarlo.'
 
+// REDACCIONES_CIRCULARES_DE_LA_RONDA_8 (plan 09-39, Task 2, WR-03): las
+// redacciones circulares que 09-REVIEW.md ronda 8 nombró como evasivas del
+// detector anterior (gateado tras la subcadena literal única 'la garantía
+// real la da'). Fijadas aquí como fixture SINTÉTICO permanente —igual que
+// FRASE_NO_DETECTADA_EN_LA_RONDA_7 arriba— para que el gate no dependa de
+// que la frase original siga viviendo en ningún fichero: la primera es la
+// frase LITERAL que dio nombre al defecto; las otras dos son las
+// alternativas que 09-REVIEW.md enumera explícitamente para demostrar que
+// el vocabulario cerrado de una sola subcadena no las alcanzaba. Ninguna
+// nombra un fichero (`.ts`/`.vue`) ni un identificador de código — las tres
+// tienen que dar `false` en `motivoNombraAlgoComprobable`.
+const REDACCIONES_CIRCULARES_DE_LA_RONDA_8 = [
+  'la garantía real la da el otro gate de este mismo fichero, así que no hace falta repetirla aquí',
+  'el respaldo real lo garantiza Gate B más abajo, sin que haga falta detallar nada más en este sitio',
+  'eso ya lo cubre el otro gate de este fichero, así que no hace falta repetir nada más aquí en detalle',
+]
+
 // AfirmacionAuditada (plan 09-34, Task 2, cierre del agravante que hace falso
 // el sello: una excepción auditada cuyo motivo escrito afirma lo contrario
 // de lo verificado). La ronda 8 (09-VERIFICATION.md) encontró una excepción
@@ -948,7 +965,21 @@ const aviso = '${frase}'
     expect(respaldoRespaldaA('app/composables/no-existe-de-verdad.ts', 'guardad', 'planGameEnd')).toBe(false)
   })
 
-  it('toda entrada de AFIRMACIONES_AUDITADAS tiene un motivo de al menos 40 caracteres — un motivo de una palabra no es un motivo', () => {
+  // IN-01 (09-REVIEW.md, INFO-01; 09-VERIFICATION.md ronda 8): el umbral de
+  // 40 caracteres MIDE LONGITUD, NUNCA SUSTANCIA — por sí solo es
+  // trivialmente rellenable con prosa de relleno («esto está bien, de
+  // verdad, en serio, créeme, funciona correctamente» ya pasa el umbral sin
+  // decir nada comprobable). Se CONSERVA (no se retira: sigue siendo una
+  // condición de calidad legítima — un motivo de una palabra tampoco es un
+  // motivo), pero deja de ser la única defensa: la sustancia la comprueban
+  // ahora las otras dos condiciones de este mismo describe —
+  // `respaldoRespaldaA` (WR-02, Task 1: el respaldo citado tiene que
+  // contener de verdad la raíz o un identificador del motivo) y
+  // `motivoNombraAlgoComprobable` (WR-03, más abajo: el motivo tiene que
+  // nombrar algo que se puede ir a mirar). Las tres juntas hacen que
+  // rellenar con prosa deje de bastar — ninguna de las tres, por separado,
+  // lo habría impedido.
+  it('toda entrada de AFIRMACIONES_AUDITADAS tiene un motivo de al menos 40 caracteres — un motivo de una palabra no es un motivo (IN-01: mide longitud, no sustancia)', () => {
     for (const [ruta, afirmaciones] of Object.entries(AFIRMACIONES_AUDITADAS)) {
       for (const afirmacion of afirmaciones) {
         expect(afirmacion.motivo.length, `${ruta} (${afirmacion.raiz}): motivo demasiado corto`).toBeGreaterThanOrEqual(40)
@@ -956,18 +987,63 @@ const aviso = '${frase}'
     }
   })
 
-  it('ningún motivo de AFIRMACIONES_AUDITADAS delega la garantía sin nombrar en qué consiste (prohibición de circularidad literal, ronda 8)', () => {
-    const FRASE_CIRCULAR = 'la garantía real la da'
+  // WR-03 (09-REVIEW.md ronda 8, plan 09-39): el detector de motivo
+  // circular anterior solo se activaba tras encontrar la subcadena literal
+  // 'la garantía real la da' — cualquier motivo IGUAL DE CIRCULAR redactado
+  // con otras palabras («eso ya lo cubre el otro gate», «el respaldo real
+  // lo garantiza Gate B más abajo»…) nunca entraba en el `if` y pasaba solo
+  // con el umbral de 40 caracteres, reproduciendo un nivel más arriba
+  // exactamente el mismo vocabulario cerrado que el plan 09-34 sustituyó
+  // por raíces léxicas en Gate A/B. La exigencia nueva es INCONDICIONAL —
+  // se aplica a TODA entrada, sin ningún `if` que decida primero si el
+  // motivo "parece" circular — y no depende de CÓMO esté redactado el
+  // motivo, solo de que nombre algo que se puede ir a mirar
+  // (`motivoNombraAlgoComprobable`, módulo compartido).
+  it('todo motivo de AFIRMACIONES_AUDITADAS nombra algo comprobable — un fichero o un identificador de código, no solo prosa (WR-03: incondicional, sin puerta de entrada por subcadena)', () => {
     for (const [ruta, afirmaciones] of Object.entries(AFIRMACIONES_AUDITADAS)) {
       for (const afirmacion of afirmaciones) {
-        if (afirmacion.motivo.toLowerCase().includes(FRASE_CIRCULAR)) {
-          const nombraFichero = /\.(ts|vue)\b/.test(afirmacion.motivo)
-          const nombraIdentificadorCamelCase = (afirmacion.motivo.match(/\b[a-z][a-zA-Z0-9]*\b/g) ?? [])
-            .some(palabra => palabra.length >= 8 && /[A-Z]/.test(palabra))
-          expect(nombraFichero || nombraIdentificadorCamelCase, `${ruta} (${afirmacion.raiz}): motivo circular sin nombrar función/fichero`).toBe(true)
-        }
+        expect(
+          motivoNombraAlgoComprobable(afirmacion.motivo),
+          `${ruta} (raíz «${afirmacion.raiz}»): el motivo no nombra ningún fichero ni identificador comprobable — `
+          + 'no basta con que sea largo (IN-01) ni con que evite una frase circular concreta (WR-03): tiene que '
+          + 'nombrar algo que se puede ir a mirar.',
+        ).toBe(true)
       }
     }
+  })
+
+  // --- Plan 09-39, Task 2: Gate S ejerce motivoNombraAlgoComprobable (WR-03) ---
+  //
+  // Las tres redacciones circulares que 09-REVIEW.md ronda 8 nombró como
+  // evasivas (REDACCIONES_CIRCULARES_DE_LA_RONDA_8, fixture permanente
+  // arriba): las tres tienen que dar `false`, sin ninguna condición previa
+  // que decida primero si "parecen" circulares — la comprobación se ejecuta
+  // para TODO motivo, nunca solo para los que contengan una subcadena
+  // conocida.
+  it.each(REDACCIONES_CIRCULARES_DE_LA_RONDA_8)('motivoNombraAlgoComprobable es false para la redacción circular de la ronda 8: "%s"', (redaccionCircular) => {
+    expect(motivoNombraAlgoComprobable(redaccionCircular)).toBe(false)
+  })
+
+  it('motivoNombraAlgoComprobable es false para cualquier prosa de relleno de más de 40 caracteres sin identificadores (relleno vacío, IN-01)', () => {
+    const prosaDeRelleno = 'esto está bien, de verdad, en serio, créeme, funciona correctamente y sin problemas'
+    expect(prosaDeRelleno.length).toBeGreaterThanOrEqual(40)
+    expect(motivoNombraAlgoComprobable(prosaDeRelleno)).toBe(false)
+  })
+
+  it('motivoNombraAlgoComprobable es true para los ocho motivos reales del mapa (ejecutado sobre el árbol real, no solo sobre fixtures)', () => {
+    for (const [ruta, afirmaciones] of Object.entries(AFIRMACIONES_AUDITADAS)) {
+      for (const afirmacion of afirmaciones) {
+        expect(motivoNombraAlgoComprobable(afirmacion.motivo), `${ruta} (${afirmacion.raiz})`).toBe(true)
+      }
+    }
+  })
+
+  it('identificadoresComprobablesDe reconoce un nombre de fichero (.ts/.vue) y un identificador camelCase de al menos 8 caracteres con mayúscula interior, nunca por lista de palabras', () => {
+    expect(identificadoresComprobablesDe('esto lo respalda planGameEnd')).toContain('planGameEnd')
+    expect(identificadoresComprobablesDe('ver useProgressMountPlan.test.ts para el detalle')).toContain('useProgressMountPlan.test.ts')
+    // Una palabra corta o sin mayúscula interior NO es un identificador comprobable — el criterio es ESTRUCTURAL, no una lista de palabras concretas.
+    expect(identificadoresComprobablesDe('corto')).toEqual([])
+    expect(identificadoresComprobablesDe('minuscula')).toEqual([])
   })
 
   // Plan 09-37, Task 3, cierre del tercer `missing:` del segundo gap de
