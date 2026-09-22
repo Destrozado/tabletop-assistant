@@ -268,13 +268,13 @@
 
 - [x] **SYNC-01**: Cada partida registrada se sube a Firebase Firestore como respaldo duradero
 - [x] **SYNC-02**: La subida es «dispara y olvida»: no se hace `await` de la escritura en el flujo de fin de partida, porque la promesa de Firestore solo se resuelve cuando el servidor confirma y colgaría sin red
-- [ ] **SYNC-03**: Cada registro lleva una marca de sincronizado; los pendientes se reintentan cuando vuelve la red
+- [x] **SYNC-03**: Cada registro lleva una marca de sincronizado; los pendientes se reintentan cuando vuelve la red
 - [ ] **SYNC-04**: Sin conexión, registrar el resultado, listar el histórico y ver las estadísticas funcionan exactamente igual
 - [ ] **SYNC-05**: El SDK de Firebase se carga de forma diferida y solo en cliente; no participa del arranque, del prerender ni del primer pintado
 - [ ] **SYNC-06**: No hay cuentas de usuario: la escritura usa autenticación anónima
 - [ ] **SYNC-07**: Las reglas de seguridad de Firestore permiten añadir registros pero no leer ni borrar los de otros, y limitan los campos aceptados
 - [ ] **SYNC-08**: Un fallo de Firestore (cuota agotada, reglas, red, proyecto caído) nunca impide jugar, ni registrar el resultado localmente, ni ver las estadísticas
-- [ ] **SYNC-09**: No se activa la persistencia IndexedDB de Firestore — la cola de reintentos es propia y vive en localStorage
+- [x] **SYNC-09**: No se activa la persistencia IndexedDB de Firestore — la cola de reintentos es propia y vive en localStorage
 
 ### COMP — Compatibilidad con lo ya desplegado
 
