@@ -1,206 +1,109 @@
 ---
 phase: 09-hist-rico-y-estad-sticas
-verified: 2026-09-19T02:20:00Z
-status: gaps_found
-score: 4/5 must-haves verified
-covered_files: [".planning/REQUIREMENTS.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-32-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-32-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-33-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-33-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-34-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-34-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-35-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-35-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-36-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-36-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-REVIEW.md", "app/components/ContentChangedNotice.vue", "app/components/HistorySavedNotice.vue", "app/components/ResumePrompt.vue", "app/composables/__tests__/afirmacionesRespaldadas.test.ts", "app/composables/__tests__/avisoTrasRegistroFallido.test.ts", "app/composables/__tests__/useGameEndCopy.test.ts", "app/composables/__tests__/useHistorySavedNotice.test.ts", "app/composables/__tests__/useProgressMismatchMark.test.ts", "app/composables/useGameEndCopy.ts", "app/composables/useHistorySavedNotice.ts", "app/composables/useProgressMismatchMark.ts", "app/composables/useStoredProgress.ts", "app/pages/[game]/index.vue"]
-covered_digest: "v1:sha256:0f73261f51e59609dba36c0355efe91465081cda168a474db5464b148bdec947"
+verified: 2026-09-22T17:10:00Z
+status: human_needed
+score: 5/5 must-haves verified
+behavior_unverified: 0
 overrides_applied: 0
+covered_files: [".planning/REQUIREMENTS.md", ".planning/ROADMAP.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-37-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-37-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-38-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-38-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-39-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-39-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-40-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-40-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-REVIEW.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-VERIFICATION.md", ".planning/phases/09-hist-rico-y-estad-sticas/deferred-items.md", "app/components/ContentChangedNotice.vue", "app/components/ResumePrompt.vue", "app/composables/__tests__/afirmacionesRespaldadas.test.ts", "app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts", "app/composables/__tests__/useProgressMismatchMark.test.ts", "app/composables/__tests__/useStoredProgress.test.ts", "app/composables/__tests__/vocabularioDeAfirmaciones.ts", "app/composables/useProgressMismatchMark.ts", "app/composables/useStoredProgress.ts", "app/pages/[game]/index.vue"]
+covered_digest: "v1:sha256:dbe65c37f342bdd5d727beb50f9acd57b2092dffa8fef70a8f02200792e12ae0"
 re_verification:
   previous_status: gaps_found
   previous_score: 4/5
   gaps_closed:
-    - "Los tres hallazgos LITERALES de la ronda 7 (CR-01/CR-02/CR-03 de la ronda 6 de `09-REVIEW.md`, adjudicados por el veredicto anterior) están genuinamente cerrados en su forma textual: `NOTICE_BODY['failure-stale']` (`useHistorySavedNotice.ts:77`) ya no afirma anterioridad temporal ni diferencia de ronda — confirmado leyendo el texto nuevo y el test 5 de `avisoTrasRegistroFallido.test.ts`, que fija por escrito el contraejemplo (round igual, runtimeId distinto) del propio escenario canónico."
-    - "`endGameBody` (ahora `buildEndGameBody` en `app/composables/useGameEndCopy.ts`) ya no promete un reintento que dos de los cuatro estados del dispositivo contradecían; su única promesa («el progreso no se borrará y la app os avisará») está pinchada por un test puro (`useGameEndCopy.test.ts`) con aserciones negativas dedicadas contra 'conservar'/'reintentar' — confirmado por lectura directa del `.ts` y de `index.vue:504-506`, donde los dos `computed` quedan reducidos a la llamada."
-    - "El motivo escrito falso en `AFIRMACIONES_AUDITADAS` que afirmaba 'cierto en las cuatro salidas' ya no existe: la entrada se movió a `useGameEndCopy.ts` con un motivo corregido, y el gate de clase ahora exige que todo `motivo` venga acompañado de un `respaldo` que resuelva a un fichero real (`respaldoExiste`) — confirmado leyendo `afirmacionesRespaldadas.test.ts:150-220`."
-    - "El gate de clase cerró las cinco vías concretas que la ronda 7 documentó como evasión: (a) vocabulario cerrado de 11 subcadenas sustituido por `RAICES_SOBRE_LOS_DATOS_DEL_GRUPO` (raíces léxicas con test de subsunción contra las 11 subcadenas viejas); (b) Gate B ahora recorre `NOTICE_HEADING` además de `NOTICE_BODY`; (c) `LITERALES_VARIANTE` de Gate C incluye `'success'`, con test dedicado; (d) `normalizarEspacios` colapsa espacios/saltos de línea antes de comparar, con un caso de Gate S que ejercita una raíz partida en dos líneas; (e) la decisión de Gate A se extrajo a `frasesSinAuditarDe`, función pura exportada, y Gate S la ejerce con mutaciones sintéticas (confirmado leyendo el fichero, no solo el SUMMARY del plan 09-35)."
-    - "Ningún `.vue` escribe ya a mano un literal de `NoticeVariant`: `isSuccessVariant(variant)` centraliza la comparación (`useHistorySavedNotice.ts`), consumida por `HistorySavedNotice.vue` — confirmado por lectura directa."
-  gaps_remaining:
-    - "SC3 SIGUE FALLANDO — novena cara del mismo defecto de fondo, esta vez dentro del propio mecanismo (`useProgressMismatchMark.ts`) que el lote 09-32..09-35 construyó para cerrar la octava. Confirmado por trazado de código independiente (no por importar el veredicto de `09-REVIEW.md` sin contrastar): `onResumeContinue` (`app/pages/[game]/index.vue`, función sin llamada a `clearProgressMismatch` en ningún punto de su cuerpo — verificado con `grep -n clearProgressMismatch` sobre el fichero completo, que solo devuelve las líneas de `onDiscardConfirm`, `finishGame` y `onOutcomeRecorded`) deja la marca puesta cuando el grupo pulsa «Continuar» sobre el snapshot ajeno. El autoguardado de 300 ms (`watchDebounced`, líneas 205-213) sobrescribe después ese mismo snapshot con progreso legítimo de la partida en curso — el referente de la marca deja de existir. Si el grupo abandona esa partida sin terminarla (navegación de cliente confirmada, sin recarga de documento) y vuelve a entrar, `onMounted` vuelve a leer `readProgressMismatchWarning(gameId)` y sigue devolviendo el aviso, ahora **falso**: ningún cierre de partida ha ocurrido desde entonces y lo que hay en disco no es ya el snapshot que la marca describía. `ResumePrompt` mostraría una frase de la clase exacta que esta fase lleva ocho rondas cerrando, pero esta vez producida por el propio mecanismo de mitigación. CONFIRMO CR-01 de `09-REVIEW.md` por lectura directa e independiente."
-    - "Segundo hallazgo confirmado por separado: cuando el montaje resuelve `content-changed-notice` en vez de `resume-prompt` (mismo escenario de snapshot ajeno, pero con contenido desactualizado entre sesiones), `onMounted` calcula igualmente `avisoDiscrepancia.value = readProgressMismatchWarning(gameId)` (línea 202, ejecutada sin condición de rama), pero `<ContentChangedNotice>` (montada en la plantilla, líneas 844-849) no acepta ninguna prop de aviso y no lo pinta — confirmado leyendo `ContentChangedNotice.vue` completo (`defineProps<{ sessionContext, sectionLabel }>()`, sin `mismatchWarning`) y la plantilla de `index.vue`. Además `onContentChangedAcknowledge` (línea 746) tampoco retira la marca, así que el mismo problema de fondo del hallazgo anterior aplica también por esta rama. CONFIRMO WR-01 de `09-REVIEW.md` por lectura directa."
-    - "Un tercer hallazgo, no de código sino de la propia documentación que este lote escribió para cerrar la ronda: `deferred-items.md` (sección «La marca de progreso que no coincide vive en memoria», añadida por el plan 09-36) evalúa el riesgo residual únicamente para el caso de PÉRDIDA de la marca (recarga completa) y concluye por escrito que «cuando la marca no está, la app no afirma nada — no dice algo falso» y que «lo que se pierde en ese caso es la advertencia, no la corrección». Esa evaluación no contempla el caso que CR-01 confirma — la marca SIGUE puesta pero ya es falsa — que es exactamente lo contrario de lo que el texto garantiza por escrito. Es la misma clase de anti-patrón que la ronda 7 encontró en `AFIRMACIONES_AUDITADAS` (un motivo/evaluación de riesgo escrito que no cubre el caso que de verdad importa), reproducida ahora en `deferred-items.md`."
-    - "El gate de clase (`afirmacionesRespaldadas.test.ts`) mejoró de forma sustancial y cierra genuinamente las cinco vías literales que la ronda 7 documentó (ver gaps_closed), pero sigue sin poder cumplir su propósito declarado frente a la NOVENA cara: (1) estructuralmente, el gate audita texto (`NOTICE_BODY`/`NOTICE_HEADING`/literales de variante) contra su respaldo, no invariantes de ciclo de vida de estado — CR-01 no es una frase sin respaldo en el momento en que se escribe, es una frase que TENÍA respaldo y lo pierde por un camino de código que nunca la invalida; ningún gate de este fichero mira los puntos de invalidación de `useProgressMismatchMark`. (2) El propio mecanismo de auditoría que el lote reforzó tiene dos evasiones propias, confirmadas por lectura directa del test: `respaldoExiste` (líneas 167-176) solo comprueba que la ruta citada en `respaldo` existe en el árbol, nunca que su contenido respalde la `raiz`/motivo citados — una entrada de `AFIRMACIONES_AUDITADAS` podría citar cualquier fichero real no relacionado y pasaría igual (CONFIRMO WR-02). (3) El detector de motivo circular (líneas 967-979) solo se activa si el motivo contiene literalmente la subcadena `'la garantía real la da'` — cualquier motivo circular con otra redacción (p. ej. «eso ya lo cubre el otro gate») nunca entra en el `if` y pasa con solo el umbral de 40 caracteres, reproduciendo un nivel más arriba exactamente el patrón de vocabulario cerrado que este mismo lote sustituyó por raíces en Gate A/B (CONFIRMO WR-03). Ninguno de los tres es hipotético: (1) tiene una instancia real hoy en el árbol (CR-01)."
+    - "CR-01 (09-REVIEW.md ronda 8, confirmado en 09-VERIFICATION.md ronda 8): `onResumeContinue` no llamaba a `clearProgressMismatch`. Cerrado por el plan 09-38 por DOS vías independientes, ambas confirmadas por lectura directa y por ejecución: (a) `onResumeContinue` (`app/pages/[game]/index.vue:546`) ahora llama a `clearProgressMismatch(gameId)`; (b) la marca (`useProgressMismatchMark.ts`) ahora exige una huella del referente (`huellaDelProgreso`, `useStoredProgress.ts`) en el momento de LEER, no solo de escribir — así que aunque (a) no existiera, el autoguardado que sigue a «Continuar» cambia `updatedAt` y por tanto la huella, invalidando la marca por construcción. Confirmado con un test ad-hoc ejecutado y retirado en esta misma verificación (ver Behavioral Spot-Checks) que reproduce el ciclo completo SIN llamar nunca a `clearProgressMismatch`, y el lector devuelve `null` igualmente."
+    - "WR-01 (mismo informe): la rama `content-changed-notice` calculaba el aviso sin pintarlo ni retirarlo. Cerrado por el plan 09-38: `ContentChangedNotice.vue` ahora acepta y pinta `mismatchWarning` (confirmado por lectura del `.vue`, prop declarada y `v-if` en la plantilla), y `onContentChangedAcknowledge` (`index.vue:788`) llama a `clearProgressMismatch`."
+    - "El hallazgo sobre la propia documentación (`deferred-items.md` afirmaba «no dice algo falso» sin cubrir el caso en que la marca persiste siendo falsa) — cerrado por el plan 09-40: la sección «La marca de progreso que no coincide vive en memoria» distingue ahora por escrito el Caso A (pérdida, aceptado) del Caso B (persistencia falsa, cerrado por 09-38 por construcción), y registra el nuevo camino de pérdida que introduce la huella (cualquier reescritura, incluido el propio autoguardado, invalida la marca) como coste conocido, no como sorpresa."
+    - "WR-02/WR-03 de 09-REVIEW.md ronda 8 (evasiones del mecanismo de excepción auditada: `respaldoExiste` solo comprobaba existencia de ruta, no relevancia; el detector de motivo circular dependía de una única subcadena literal) — cerrado por el plan 09-39: `respaldoRespaldaA` exige ahora relevancia de contenido (raíz o identificador comprobable presente en el fichero citado) y `motivoNombraAlgoComprobable` es incondicional para toda entrada. Confirmado leyendo el código y los tests dedicados con el contraejemplo literal de la ronda 8 (`useVoiceAnnouncer.ts` sin relación, ahora `respaldoRespaldaA(...) === false`)."
+  gaps_remaining: []
   regressions: []
-gaps:
-  - truth: "SC3: «Partida terminada» borra la sesión en curso pero nunca el histórico, que vive en localStorage como fuente de verdad — y ninguna afirmación de la interfaz sobre esos datos puede carecer de comprobación real"
-    status: failed
-    reason: >
-      Confirmado por trazado de código independiente, no por aceptar el veredicto de
-      `09-REVIEW.md` sin contrastar. El lote 09-32..09-35 cerró genuinamente las tres caras
-      literales que la ronda 7 dejó documentadas (copy de `failure-stale` sin afirmaciones no
-      respaldadas; `endGameBody` sin promesa de reintento falsa; una marca en memoria que hace
-      viajar en el tiempo el conocimiento de que el snapshot guardado no coincide). Pero el propio
-      mecanismo construido para cerrar el tercer hallazgo introduce una NOVENA cara del mismo
-      defecto de fondo:
-
-      (1) `onResumeContinue` (`app/pages/[game]/index.vue`) no llama a `clearProgressMismatch`.
-      Cuando el grupo pulsa «Continuar» sobre un snapshot que la app ya identificó como ajeno, la
-      marca queda puesta. El autoguardado de 300 ms sobrescribe después ese snapshot con progreso
-      legítimo de la partida en curso — el referente de la marca ya no existe. Si el grupo
-      abandona esa partida sin terminarla (navegación de cliente, sin recarga) y reentra, el
-      modal de reanudación vuelve a mostrar el aviso «la app no pudo registrarla y comprobó que
-      lo que había guardado no era el punto en el que habíais terminado» — una frase que en ese
-      momento es literalmente falsa: ningún cierre de partida ha ocurrido desde el momento en que
-      la marca se puso. Confirmado leyendo `app/pages/[game]/index.vue` completo: las únicas tres
-      llamadas a `clearProgressMismatch` en todo el fichero son `onDiscardConfirm`, `finishGame` y
-      la rama `else` de `onOutcomeRecorded` — ninguna cubre `onResumeContinue`.
-
-      (2) Cuando el montaje resuelve `content-changed-notice` en vez de `resume-prompt`,
-      `onMounted` calcula igualmente el aviso de discrepancia, pero `<ContentChangedNotice>` no
-      tiene ninguna prop para mostrarlo y `onContentChangedAcknowledge` tampoco retira la marca —
-      confirmado leyendo `ContentChangedNotice.vue` completo (sin prop `mismatchWarning`) y el
-      cuerpo de `onContentChangedAcknowledge` (`index.vue:746-748`, solo cierra el `ref` de la
-      pantalla, no la marca).
-
-      (3) La documentación que el propio lote escribió para cerrar la ronda
-      (`deferred-items.md`, sección de la marca en memoria) evalúa el riesgo residual solo para
-      el caso de PÉRDIDA de la marca y concluye por escrito que «cuando la marca no está, la app
-      no afirma nada — no dice algo falso»; no contempla el caso, confirmado arriba, en el que la
-      marca SIGUE puesta y ya es falsa — lo contrario exacto de la garantía escrita. Es el mismo
-      patrón de motivo/evaluación de riesgo que no cubre el caso que importa, ya visto en rondas
-      anteriores con `AFIRMACIONES_AUDITADAS`.
-
-      `npm test` (976/976) y `npm run typecheck` (exit 0) están en verde: ninguno de los tres
-      hallazgos rompe ningún test existente, porque ningún test ejercita el camino
-      «Continuar» → autoguardado → navegar fuera sin terminar → reentrar. Un test suite en verde
-      vuelve a no ser evidencia de que SC3 se cumpla.
-    artifacts:
-      - path: "app/pages/[game]/index.vue"
-        issue: "onResumeContinue no llama a clearProgressMismatch(gameId): tras continuar sobre un snapshot marcado como ajeno, la marca sobrevive al autoguardado que sustituye su referente por progreso legítimo. onContentChangedAcknowledge tampoco la retira."
-      - path: "app/composables/useProgressMismatchMark.ts"
-        issue: "Documenta su propio invariante ('la marca está puesta exactamente cuando... el progreso que dejó sigue ahí') sin que ningún llamante lo haga cumplir en el camino de continuar la partida"
-      - path: "app/components/ContentChangedNotice.vue"
-        issue: "No acepta ninguna prop de aviso de discrepancia; el aviso calculado en onMounted para esta rama no tiene ningún destino de render"
-      - path: ".planning/phases/09-hist-rico-y-estad-sticas/deferred-items.md"
-        issue: "La entrada 'La marca de progreso que no coincide vive en memoria' evalúa el riesgo residual solo para la pérdida de la marca y afirma por escrito 'no dice algo falso', sin cubrir el caso confirmado en el que la marca persiste y ya es falsa"
-    missing:
-      - "Llamar a clearProgressMismatch(gameId) en onResumeContinue, en el mismo instante en que continuar supera al snapshot que la marca describía (fix propuesto literalmente por CR-01 de 09-REVIEW.md)"
-      - "Decidir y aplicar una de las dos vías de WR-01 para la rama content-changed-notice: extender ContentChangedNotice con la misma prop opcional que ResumePrompt, o al menos retirar la marca en onContentChangedAcknowledge para que no pueda resurgir después como afirmación falsa"
-      - "Corregir la evaluación de riesgo de deferred-items.md para que distinga explícitamente 'la marca se pierde' (aceptado) de 'la marca persiste y deja de ser cierta' (el caso que CR-01 confirma, no evaluado hoy)"
-      - "Un test de extremo a extremo sobre useProgressMismatchMark que reproduzca el camino completo: marcar → onResumeContinue → autoguardado → clearProgressMismatch ya no puesta, para que la novena cara no dependa de que otra ronda de verificación la vuelva a encontrar a mano"
-  - truth: "El gate automatizado que protege la garantía de SC3 para toda la clase de defecto (no solo el caso puntual de cada ronda) inspecciona de verdad las superficies de riesgo y detendría la siguiente cara del defecto"
-    status: failed
-    reason: >
-      El gate de clase (`afirmacionesRespaldadas.test.ts`) cerró de verdad las cinco vías
-      concretas que la ronda 7 dejó documentadas (vocabulario por raíces con test de subsunción,
-      NOTICE_HEADING dentro de Gate B, 'success' en Gate C, normalización de espacios, decisión
-      de Gate A extraída a función pura y ejercida por Gate S) — confirmado leyendo el fichero
-      completo y las pruebas dedicadas a cada vía. Pero sigue sin poder cumplir su propósito
-      declarado frente a la clase de defecto que existe para prevenir, por dos razones distintas,
-      ninguna hipotética:
-
-      (1) Estructuralmente, el gate audita TEXTO (NOTICE_BODY/NOTICE_HEADING/literales de
-      variante) contra su respaldo en el momento en que se escribe. CR-01 no es una frase sin
-      respaldo al escribirse — es una frase que SÍ tenía respaldo y lo pierde por un camino de
-      código (onResumeContinue → autoguardado) que ningún gate de este fichero recorre: el gate no
-      mira invariantes de ciclo de vida de estado de módulo, solo compara cadenas de texto contra
-      un mapa de excepciones auditadas. La clase de defecto que esta ronda encuentra (una
-      afirmación que ERA cierta y deja de serlo sin que nada la invalide) es estructuralmente
-      invisible para un gate que solo compara texto contra respaldo estático.
-
-      (2) El propio mecanismo de auditoría que este lote reforzó (`respaldoExiste`,
-      el detector de motivo circular) tiene dos evasiones confirmadas por lectura directa:
-      `respaldoExiste` solo comprueba que la ruta citada existe en el árbol, nunca que su
-      contenido respalde la raíz/motivo citados — una cita a un fichero real pero no relacionado
-      pasaría igual (WR-02). El detector de motivo circular solo se activa si el motivo contiene
-      la subcadena literal 'la garantía real la da' — cualquier motivo circular con otra
-      redacción nunca entra en esa comprobación y pasa solo con el umbral de 40 caracteres,
-      reproduciendo un nivel más arriba el mismo patrón de vocabulario cerrado que este lote
-      sustituyó por raíces en Gate A/B (WR-03). El umbral de longitud (40 caracteres) es además
-      trivialmente rellenable con prosa sin sustancia (INFO-01 de 09-REVIEW.md, confirmado).
-
-      Ninguno de los dos es hipotético: (1) tiene una instancia real y sin detectar hoy mismo en
-      el árbol (CR-01, la marca de useProgressMismatchMark.ts).
-    artifacts:
-      - path: "app/composables/__tests__/afirmacionesRespaldadas.test.ts"
-        issue: "líneas 167-176 (respaldoExiste solo comprueba existencia de ruta, no relevancia de contenido); líneas 967-979 (detector de motivo circular gateado tras una subcadena literal única, evasible con otra redacción); líneas 959-965 (umbral de 40 caracteres, gameable por relleno); el fichero entero no tiene ningún gate que recorra invariantes de ciclo de vida de estado de módulo (useProgressMismatchMark.ts no está cubierto por ninguna vía de Gate A/B/C/S para el defecto de CR-01, que no es de texto sino de invalidación)"
-    missing:
-      - "Aplicar el fix de WR-03: hacer incondicional la comprobación de 'nombra un fichero o identificador comprobable' para todo motivo de AFIRMACIONES_AUDITADAS, no solo cuando coincide con la frase circular conocida"
-      - "Aplicar el fix de WR-02: una comprobación mínima de relevancia de contenido (que el fichero de respaldo contenga la raíz o el símbolo exportado que el motivo nombra), no solo su existencia en el árbol"
-      - "Reconocer por escrito, en el propio fichero del gate, que su alcance es texto-contra-respaldo y que NO cubre invariantes de estado de módulo como el de useProgressMismatchMark.ts — y decidir si esa clase de invariante necesita su propio gate (p. ej. un test que reproduzca el camino continuar→autoguardado→reentrar) en vez de asumir que Gate A/B/C/S ya la cubre"
+gaps: []
 deferred: []
+advisory:
+  - finding: "El gate de invariantes de ciclo de vida (`invariantesDeMarcaDeEstado.test.ts`, nuevo en este lote) tiene dos huecos estructurales propios, confirmados por lectura directa contra el código (no por aceptar `09-REVIEW.md` sin contrastar): (1) `indiceDeCierre`/`argumentosDeNivelSuperior` no cuentan `<`/`>` como profundidad, así que un parámetro o argumento con una coma dentro de un tipo genérico (`Record<string, string>`) inflaría el recuento de argumentos y podría hacer que Pata 1/Pata 2 den un veredicto equivocado sobre una firma futura. (2) `PATRON_ESTADO_DE_MODULO_MUTABLE` (línea 192) acepta `const X = ...` sin anotación de tipo pero RECHAZA `const X: Tipo = ...` — una marca de estado de módulo futura escrita con anotación de tipo explícita (estilo idiomático de TypeScript) evadiría el descubrimiento por completo, en contra de lo que el propio comentario del fichero (línea 191) afirma por escrito («una marca DÉCIMA... entra sola, sin editar ninguna lista»)."
+    category: architectural
+    reason: "Ninguna de las dos vías afecta a ningún fichero real de hoy (confirmado: ninguna marca ni llamada existente usa genéricos con coma ni `const` con anotación de tipo), así que no hay ningún BLOCKER de producción vivo — coincide con la propia clasificación de `09-REVIEW.md` (WARNING, no critical, 0 hallazgos críticos). Pero es la misma clase de sobre-promesa escrita que esta fase lleva nueve rondas cerrando, reproducida un nivel más abajo en la máquina construida para prevenirla. Se resolvería con los dos parches ya redactados por `09-REVIEW.md` (WR-01/WR-02): añadir `<`/`>` al tracking de profundidad, y permitir una anotación de tipo opcional en la rama `const` del regex de descubrimiento."
+    evidence_status: "confirmado por lectura directa de línea (WR-01: líneas 94-128; WR-02: línea 192), sin evidencia de que exista hoy ningún fichero real afectado — no se ha intentado una mutación ejecutada de este hallazgo en esta ronda, a diferencia de CR-01/WR-01 de la ronda 8"
+  - finding: "La 'segunda defensa' explícita (`clearProgressMismatch` en `onResumeContinue`/`onContentChangedAcknowledge`) no tiene ningún test que la ejerza directamente: borrar cualquiera de las dos llamadas no pone en rojo ningún test de la suite actual (WR-03 de `09-REVIEW.md`, confirmado por el propio razonamiento de esa revisión y no contradicho por nada encontrado en esta verificación)."
+    category: other
+    reason: "No es un BLOCKER porque la garantía de SC3 no depende hoy de esa segunda defensa: la validación de huella (defensa primaria) ya hace el caso imposible por construcción, confirmado en esta misma ronda con un test ad-hoc que reproduce el ciclo completo de CR-01 sin invocar `clearProgressMismatch` en ningún momento y obtiene `null` igualmente (ver Behavioral Spot-Checks). La defensa sin test sigue siendo deuda de cobertura genuina — un futuro refactor podría romperla sin aviso — pero no una afirmación falsa hoy."
+    evidence_status: "confirmado por test ad-hoc ejecutado y retirado en esta verificación (ver Behavioral Spot-Checks); ningún test permanente en el árbol ejerce las dos llamadas de la página directamente"
 human_verification:
-  - test: "Comprobación visual en tablet horizontal real (viewport ~1180×820, npm run dev): terminar una partida con la variante de aviso de fallo (larga, 20s) visible y observar si tapa controles de la cabecera de /historico, y provocar (o simular con devtools) una detección de actualización de PWA simultánea al aviso de histórico para confirmar visualmente si una banda tapa por completo a la otra. Añadido por esta ronda: comprobar también que el texto reescrito de NOTICE_BODY['failure-stale'] (útil-composables/useHistorySavedNotice.ts) se lee bien a un brazo de distancia con su longitud nueva, y que el aviso nuevo de discrepancia dentro de ResumePrompt (PROGRESS_MISMATCH_WARNING, useProgressMismatchMark.ts) no desborda ni se corta visualmente dentro del modal de reanudación en el mismo viewport."
-    expected: "Ninguna banda debería impedir ver o tocar los controles de cabecera de /historico, y si ambas bandas coinciden en el tiempo, ambas deberían seguir siendo visibles y utilizables (apiladas, no superpuestas). El texto de failure-stale y el aviso de ResumePrompt deben leerse completos, sin desbordar el modal ni el aviso."
-    why_human: "Es un juicio visual sobre solapamiento y desbordamiento real en un viewport físico — greppear el CSS ya demuestra que ambas bandas comparten exactamente `fixed top-0 inset-x-0 z-40` con fondo opaco y se montan como hermanas (sin cambios de estructura CSS desde la ronda 5), pero solo un humano puede confirmar el impacto real en pantalla. Sigue PENDIENTE explícitamente bajo DEV-02 de REQUIREMENTS.md desde 09-22-SUMMARY.md; los dos puntos de guion añadidos por esta ronda (texto de failure-stale reescrito, aviso nuevo de ResumePrompt) son superficie de pantalla nueva desde la ronda 7 que nadie ha visto renderizada todavía en un dispositivo físico."
+  - test: "Comprobación visual en tablet horizontal real (viewport ~1180×820, npm run dev): repetir el guion acumulado de rondas anteriores (DEV-02) — variante de aviso de fallo larga (20s), posible solapamiento con `UpdateBanner`, texto de `failure-stale`, aviso de discrepancia dentro de `ResumePrompt` — y comprobar AHORA TAMBIÉN, por primera vez desde que existe, que el mismo aviso de discrepancia (`PROGRESS_MISMATCH_WARNING`) se lee completo y sin desbordar dentro de `ContentChangedNotice.vue` (superficie de pantalla nueva del plan 09-38, nunca vista renderizada en un dispositivo físico)."
+    expected: "Ningún control de cabecera queda tapado de forma invisible por las bandas fijas; el texto de `failure-stale`, y el aviso de `PROGRESS_MISMATCH_WARNING` dentro de `ResumePrompt` Y dentro de `ContentChangedNotice`, se leen completos, sin desbordar el modal ni el aviso, a un brazo de distancia."
+    why_human: "El solapamiento y el desbordamiento son juicios visuales sobre un viewport físico que el grep de CSS no puede sustituir. Sigue PENDIENTE explícitamente bajo DEV-02 de REQUIREMENTS.md desde 09-22-SUMMARY.md; el punto de `ContentChangedNotice.vue` es superficie de pantalla estrictamente nueva desde el plan 09-38 (ronda 8) que ningún humano ha visto renderizada todavía."
 ---
 
-# Fase 9: Histórico y estadísticas — Informe de verificación (8ª ronda)
+# Fase 9: Histórico y estadísticas — Informe de verificación (9ª ronda)
 
 **Objetivo de la fase:** Al terminar una partida el grupo puede registrar si ganó o perdió (y por qué), consultar después el histórico completo, y ver un resumen de porcentaje de victorias por héroe y por villano — todo ello construido y verificado enteramente sin conexión, antes de que Firestore exista en el código.
 
-**Verificado:** 2026-09-19
-**Estado:** gaps_found (SC3 sigue sin cumplirse — novena cara del mismo defecto de fondo, esta vez dentro del propio mecanismo construido para cerrar la octava; el gate de clase sigue sin poder detener esta clase concreta de fallo)
-**Re-verificación:** Sí — tras el lote de cierre 09-32..09-36 y el code review de la ronda 7 (`09-REVIEW.md`)
+**Verificado:** 2026-09-22
+**Estado:** human_needed (todos los must-haves de código están VERIFIED; queda una comprobación visual humana pendiente, DEV-02, ampliada esta ronda con una superficie de pantalla nueva)
+**Re-verificación:** Sí — tras el lote de cierre 09-37..09-40 (gap_closure de la ronda 8) y el code review de esta sesión (`09-REVIEW.md`)
 
 ## Resumen ejecutivo
 
-El lote 09-32..09-36 cierra genuinamente los tres hallazgos LITERALES que la ronda 7 dejó
-documentados, confirmado leyendo el código fuente, no los SUMMARY:
+Esta ronda parte de `09-VERIFICATION.md` (ronda 8, `gaps_found`, 4/5), que dejó dos hallazgos
+abiertos: (1) SC3 fallaba por NOVENA vez, esta vez dentro del propio mecanismo construido para
+cerrar la octava (`onResumeContinue` no invalidaba la marca de discrepancia, la rama
+`content-changed-notice` no la pintaba ni la retiraba, y `deferred-items.md` documentaba una
+garantía que no cubría ese caso); (2) el gate de clase, aun cerrando las cinco vías literales de
+la ronda 7, seguía sin poder atrapar esta clase de defecto porque solo audita texto, no
+invariantes de ciclo de vida de estado.
 
-- **Hallazgo 1 (copy de `failure-stale`):** cerrado. La frase nueva ya no afirma anterioridad
-  temporal ni diferencia de ronda; el test 5 de `avisoTrasRegistroFallido.test.ts` fija por
-  escrito el contraejemplo del propio escenario canónico.
-- **Hallazgo 2 (promesa de reintento de `endGameBody`):** cerrado. `buildEndGameBody`
-  (`app/composables/useGameEndCopy.ts`, nuevo) solo promete lo que `preserveProgress` garantiza
-  en las cuatro salidas, con test puro y aserciones negativas dedicadas. El motivo falso de
-  `AFIRMACIONES_AUDITADAS` que sellaba el hueco («cierto en las cuatro salidas») ya no existe.
-- **Hallazgo 3 (snapshot `'stale'` reofrecido sin marca):** cerrado en su forma directa. Una
-  marca en memoria (`app/composables/useProgressMismatchMark.ts`, nuevo) transporta el hecho
-  comprobado al cerrar hasta el modal de reanudación.
+**He confirmado, por trazado de código independiente y por un test de comportamiento ejecutado
+en esta misma verificación (no por aceptar los SUMMARY de los planes 09-37..09-40 sin
+contrastar), que los dos hallazgos están cerrados en la forma que importa:**
 
-El gate de clase (`afirmacionesRespaldadas.test.ts`) también cerró las cinco vías de evasión
-concretas que la ronda 7 documentó: vocabulario por raíces léxicas (con test de subsunción
-contra las 11 subcadenas viejas), `NOTICE_HEADING` dentro de Gate B, `'success'` vigilado en
-Gate C, normalización de espacios/saltos de línea, y la decisión de Gate A extraída a una
-función pura (`frasesSinAuditarDe`) que Gate S ejerce con mutaciones sintéticas. Confirmado
-leyendo el fichero completo, no el SUMMARY del plan 09-34/09-35.
+1. **CR-01/WR-01 (producción):** `onResumeContinue` (`app/pages/[game]/index.vue:546`) y
+   `onContentChangedAcknowledge` (`:788`) llaman ahora a `clearProgressMismatch`, confirmado por
+   lectura directa. Pero además — y esto es lo que hace la garantía estructural, no solo
+   disciplinar — `useProgressMismatchMark.ts` exige desde el plan 09-38 una huella del referente
+   (`huellaDelProgreso`, `useStoredProgress.ts`, los siete campos de `PersistedPosition`,
+   `updatedAt` incluido) en el momento de LEER. Escribí y ejecuté un test ad-hoc (ver
+   *Behavioral Spot-Checks*) que reproduce el ciclo completo de CR-01 **sin llamar nunca a
+   `clearProgressMismatch`** — marca con una huella, simula el autoguardado que cambia
+   `updatedAt`, lee con la huella nueva — y el lector devuelve `null` igualmente. Esto confirma
+   independientemente la afirmación central de `09-REVIEW.md`: el mecanismo primario ya hace el
+   caso imposible por construcción; la llamada explícita en la página es una segunda defensa
+   genuinamente redundante hoy, no la única barrera.
+   `ContentChangedNotice.vue` acepta y pinta la prop `mismatchWarning` (confirmado leyendo el
+   `.vue` completo: `defineProps` la declara, la plantilla la pinta con `v-if`).
+2. **La evaluación de riesgo (`deferred-items.md`):** la sección de la marca en memoria distingue
+   ahora por escrito el Caso A (la marca se pierde — aceptado) del Caso B (la marca persiste
+   siendo falsa — el que CR-01 confirmó, cerrado por 09-38), y documenta el nuevo camino de
+   pérdida que la huella introduce (cualquier reescritura invalida la marca) como coste conocido,
+   no como afirmación absoluta sin matiz. Ya no dice «no dice algo falso» sin cualificar el caso.
+3. **El gate de clase (`afirmacionesRespaldadas.test.ts`):** las dos evasiones de su propio
+   mecanismo de auditoría (WR-02/WR-03 de la ronda 8) están cerradas — `respaldoRespaldaA` exige
+   relevancia de contenido, `motivoNombraAlgoComprobable` es incondicional — confirmado con el
+   contraejemplo literal de la ronda 8 (`useVoiceAnnouncer.ts`, sin relación, ahora rechazado).
+4. **El gate de invariantes de ciclo de vida (`invariantesDeMarcaDeEstado.test.ts`, nuevo):**
+   existe, descubre marcas por glob (no por lista tecleada), y sus cinco patas pasan contra el
+   árbol real (`npx vitest run` sobre los cuatro ficheros relevantes → 242/242, confirmado en
+   esta verificación).
 
-**Pero el objetivo de la fase (SC3) sigue sin alcanzarse.** El propio mecanismo construido para
-cerrar el tercer hallazgo de la ronda 7 introduce una **novena cara** del mismo defecto de
-fondo. He adjudicado independientemente, releyendo el código fuente (no importando el veredicto
-de `09-REVIEW.md` sin contrastar), los tres hallazgos de esa revisión, y los confirmo:
+**Pero una revisión de código fresca de esta misma sesión (`09-REVIEW.md`, 0 críticos / 3
+warnings / 3 info) encontró dos huecos estructurales propios en esa máquina nueva** —
+confirmados aquí por lectura directa de línea, no por aceptar el informe: el partidor de
+argumentos del gate de invariantes no cuenta `<`/`>` como profundidad (una firma con un genérico
+con coma podría inflar el recuento), y el regex de descubrimiento acepta `const X = ...` pero
+rechaza `const X: Tipo = ...` (una marca futura con anotación de tipo evadiría el descubrimiento
+por completo). Ninguna de las dos afecta a ningún fichero real de hoy, y ninguna produce una
+afirmación falsa que el grupo pueda ver — se reportan como hallazgos ADVISORY (no BLOCKER), en
+la misma línea de severidad que la propia revisión les asignó (WARNING, no crítico). Se listan en
+el frontmatter para que no se pierdan, y quedan como candidatos naturales para un futuro
+gap-closure si el proyecto decide cerrarlos antes de que una marca real los alcance.
 
-1. **CR-01 (crítico, confirmado):** `onResumeContinue` no llama a `clearProgressMismatch`. Tras
-   pulsar «Continuar» sobre un snapshot ya identificado como ajeno, la marca sobrevive al
-   autoguardado de 300 ms que sustituye ese snapshot por progreso legítimo de la partida en
-   curso. Si el grupo abandona esa partida sin terminarla y reentra, el modal de reanudación
-   vuelve a mostrar el aviso — ahora **falso**: ningún cierre de partida ha ocurrido desde
-   entonces. Confirmado leyendo el fichero completo: las únicas tres llamadas a
-   `clearProgressMismatch` son `onDiscardConfirm`, `finishGame` y la rama `else` de
-   `onOutcomeRecorded` — ninguna cubre `onResumeContinue`.
-2. **WR-01 (confirmado):** en la rama `content-changed-notice`, el aviso se calcula pero
-   `<ContentChangedNotice>` no tiene ninguna prop para mostrarlo, y `onContentChangedAcknowledge`
-   tampoco retira la marca — mismo problema de fondo, segunda rama sin cubrir.
-3. **Hallazgo adicional de esta ronda, sobre la propia documentación del lote:**
-   `deferred-items.md` evalúa el riesgo residual de la marca solo para el caso de PÉRDIDA
-   (recarga completa) y afirma por escrito que «cuando la marca no está, la app no afirma
-   nada — no dice algo falso». Esa afirmación no cubre el caso que CR-01 confirma: la marca
-   SIGUE puesta y ya es falsa. Es el mismo patrón — un texto que sella un hueco sin cubrir el
-   caso que de verdad importa — que rondas anteriores encontraron en `AFIRMACIONES_AUDITADAS`.
-
-`npm test` (976/976) y `npm run typecheck` (exit 0) están en verde: ninguno de los tres
-hallazgos rompe ningún test existente porque ningún test ejercita el camino completo
-«continuar → autoguardado → salir sin terminar → reentrar». Un test suite en verde vuelve a no
-ser evidencia de que SC3 se cumpla.
-
-Un segundo hallazgo, sobre el gate de clase mismo: aunque cerró las cinco vías de la ronda 7,
-sigue sin poder atrapar esta novena cara por dos razones. Estructuralmente, el gate audita texto
-contra respaldo en el momento en que se escribe — CR-01 es una frase que SÍ tenía respaldo y lo
-pierde por un camino de código que ningún gate de este fichero recorre; no es un defecto de
-copy sin respaldo, es un defecto de invalidación de estado. Además, el propio mecanismo de
-auditoría reforzado por este lote tiene dos evasiones confirmadas por lectura directa:
-`respaldoExiste` (WR-02) solo comprueba que la ruta citada existe, nunca que su contenido
-respalde la afirmación; el detector de motivo circular (WR-03) solo se activa ante una subcadena
-literal única, reproduciendo un nivel más arriba el mismo patrón de vocabulario cerrado que este
-lote sustituyó por raíces en Gate A/B.
-
-**Nota de trazabilidad:** `REQUIREMENTS.md` sigue marcando HIST-06 como `[ ]` (correctamente,
-tal como el plan 09-36 documenta explícitamente que debía quedar pendiente de esta
-verificación). `ROADMAP.md` cuenta 36/36 planes según el plan 09-36; no se ha revisado en esta
-ronda si esa entrada marca o no la Fase 9 como completa — el SUMMARY del plan 09-36 afirma que
-no lo hace («sin marcar la fase como verificada ni completa»), confirmado con
-`grep -c "^- \[ \] \*\*Phase 9:" ROADMAP.md` → 1.
+**Conclusión: las cinco Success Criteria del ROADMAP están VERIFICADAS.** El defecto que esta
+fase persiguió durante nueve rondas —una afirmación de la interfaz sobre los datos guardados del
+grupo que no está respaldada, o que lo estuvo y dejó de estarlo sin invalidarse— está cerrado en
+producción por una garantía estructural (comparación de huella), no solo por disciplina de
+invalidación manual, y lo he confirmado con un test de comportamiento propio, no solo con lectura
+de código. Lo único que impide un `passed` es la comprobación visual humana en tablet (DEV-02),
+que sigue pendiente y gana esta ronda un punto de guion nuevo (`ContentChangedNotice.vue`) sin que
+nadie lo haya marcado como realizado.
 
 ## Goal Achievement
 
@@ -208,138 +111,131 @@ no lo hace («sin marcar la fase como verificada ni completa»), confirmado con
 
 | # | Truth (Success Criteria del ROADMAP) | Status | Evidence |
 |---|---|---|---|
-| 1 | SC1: al pulsar «Partida terminada» se puede registrar Ganada/Perdida (con causa) o cerrar sin registrar | ✓ VERIFIED | Sin cambios desde rondas anteriores; `onOutcomeDismiss` (`index.vue:736`) sigue terminando sin registrar, sin condiciones. Regresión rápida confirmada en el árbol actual |
-| 2 | SC2: el registro incluye resultado/causa/villano/héroe/nombres/fecha/dificultad/nº jugadores/duración/rondas, calculados por el motor | ✓ VERIFIED (flujo normal) | `buildHistoryEntry` (`engine/history.ts`) sin cambios en este lote. Mismo matiz que rondas anteriores en la rama de reintento — ver gap de SC3 |
-| 3 | SC3: histórico listable/borrable con confirmación; «Partida terminada» borra solo la sesión, nunca el histórico — sin confirmaciones falsas ante un fallo | ✗ FAILED | Mecánica de listar/borrar/no-tocar-histórico sigue VERIFICADA sin cambios. La garantía de «ninguna afirmación no comprobada» FALLA de nuevo, novena variante — confirmado por trazado de código independiente sobre `onResumeContinue`/`useProgressMismatchMark.ts`/`ContentChangedNotice.vue` |
-| 4 | SC4: pantalla de estadísticas accesible desde inicio, % victorias por héroe/villano, estado vacío claro | ✓ VERIFIED | Sin cambios desde rondas anteriores. Regresión rápida: `app/pages/estadisticas.vue` presente (91 líneas), sin cambios en este lote |
-| 5 | SC5: estadísticas lee exclusivamente localStorage, nunca Firestore | ✓ VERIFIED | `grep -rniE "firestore|firebase" app/ engine/` sigue sin producir ningún resultado, ejecutado de nuevo en esta ronda |
+| 1 | SC1: al pulsar «Partida terminada» se puede registrar Ganada/Perdida (con causa) o cerrar sin registrar | ✓ VERIFIED | Regresión rápida: `onOutcomeDismiss` (`index.vue:770`) sigue terminando sin registrar, sin condiciones. Sin cambios de este lote. |
+| 2 | SC2: el registro incluye resultado/causa/villano/héroe/nombres/fecha/dificultad/nº jugadores/duración/rondas, calculados por el motor | ✓ VERIFIED (flujo normal) | `buildHistoryEntry` (`engine/history.ts`) sin cambios en este lote. |
+| 3 | SC3: histórico listable/borrable con confirmación; «Partida terminada» borra solo la sesión, nunca el histórico — sin confirmaciones falsas ante un fallo | ✓ VERIFIED | Novena cara cerrada: doble defensa (huella estructural + invalidación explícita) confirmada por lectura de `onResumeContinue`/`onContentChangedAcknowledge`/`ContentChangedNotice.vue` y por test de comportamiento ad-hoc ejecutado en esta ronda (ver Behavioral Spot-Checks) que demuestra que la defensa primaria por sí sola ya cierra el caso. |
+| 4 | SC4: pantalla de estadísticas accesible desde inicio, % victorias por héroe/villano, estado vacío claro | ✓ VERIFIED | Regresión rápida: `app/pages/estadisticas.vue` presente (91 líneas), sin cambios en este lote. |
+| 5 | SC5: estadísticas lee exclusivamente localStorage, nunca Firestore | ✓ VERIFIED | `grep -rniE "firestore|firebase" app/ engine/` sin resultados, ejecutado de nuevo en esta ronda. |
 
-**Score:** 4/5 truths verified
+**Score:** 5/5 truths verified
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |---|---|---|---|
-| `app/composables/useHistorySavedNotice.ts` `NOTICE_BODY['failure-stale']` | Copy que afirma exactamente lo que `esLaMismaPartida` comprobó | ✓ VERIFIED | Reescrita (línea 77); confirmado por lectura y por `useHistorySavedNotice.test.ts`/`avisoTrasRegistroFallido.test.ts` en verde |
-| `app/composables/useGameEndCopy.ts` `buildEndGameBody`/`buildDiscardBody` | Copy del diálogo de fin de partida sin promesa falsa, con test puro | ✓ VERIFIED | Fichero nuevo, confirmado por lectura; `index.vue` reducido a la llamada |
-| `app/composables/useHistorySavedNotice.ts` `isSuccessVariant` | Única vía para distinguir el tono del aviso sin literal a mano | ✓ VERIFIED | Confirmado por lectura de `useHistorySavedNotice.ts` y `HistorySavedNotice.vue` |
-| `app/composables/useProgressMismatchMark.ts` | Marca en memoria que hace viajar el conocimiento de discrepancia hasta el modal de reanudación | ⚠ INSUFICIENTE (invariante documentado, no forzado en todos los caminos) | La marca se pone y se lee correctamente (confirmado con `useProgressMismatchMark.test.ts`), pero `onResumeContinue` y `onContentChangedAcknowledge` no la invalidan cuando su referente deja de existir — CR-01/WR-01 |
-| `app/pages/[game]/index.vue` `onResumeContinue` | No dejar sobrevivir una marca cuyo referente el propio flujo va a sustituir | ✗ STUB (para este camino) | Ninguna llamada a `clearProgressMismatch` en su cuerpo, confirmado por lectura completa del fichero |
-| `app/components/ContentChangedNotice.vue` | Mostrar (o al menos no dejar resurgir) el aviso de discrepancia en su propia rama de montaje | ✗ STUB | Sin prop `mismatchWarning`; `onContentChangedAcknowledge` no retira la marca |
-| `app/composables/__tests__/afirmacionesRespaldadas.test.ts` (gate de clase) | Impide que CUALQUIER afirmación nueva sobre los datos del grupo pase sin respaldo, en cualquier `.vue`/`.ts` | ⚠ MEJORADO PERO INSUFICIENTE | Las cinco vías literales de la ronda 7 están cerradas (confirmado). Pero `respaldoExiste` (WR-02) y el detector de motivo circular (WR-03) tienen evasiones propias, y el gate en su conjunto no cubre invariantes de ciclo de vida de estado de módulo — la clase de defecto de CR-01 |
-| `.planning/phases/09-hist-rico-y-estad-sticas/deferred-items.md` | Evaluación de riesgo honesta del residuo aceptado de la marca en memoria | ✗ STUB (respecto a la garantía escrita) | Afirma «no dice algo falso» sin cubrir el caso, confirmado en esta ronda, en el que la marca persiste y ya es falsa |
-| `app/pages/estadisticas.vue`, `app/pages/historico.vue` | Pantallas completas, wireadas a `useGameHistory` | ✓ VERIFIED | Sin cambios desde rondas anteriores (91 y 101 líneas, presentes) |
+| `app/composables/useStoredProgress.ts` `huellaDelProgreso`/`StoredProgressReport.huella` | Testigo exacto (7 campos, `updatedAt` incluido) del referente en el momento de leer | ✓ VERIFIED | Confirmado por lectura y por test ad-hoc: dos posiciones idénticas salvo `updatedAt` producen huellas distintas. |
+| `app/composables/useProgressMismatchMark.ts` | Marca (`Map<gameId, huella>`) que solo afirma cuando la huella coincide en lectura ESTRICTA | ✓ VERIFIED | `readProgressMismatchWarning` exige `huellaActual !== null` y comparación `===`; confirmado por lectura y por `useProgressMismatchMark.test.ts` (tests 16-22, 22/22 en verde). |
+| `app/pages/[game]/index.vue` `onResumeContinue`/`onContentChangedAcknowledge` | Invalidan la marca al continuar/reconocer sobre un snapshot marcado | ✓ VERIFIED | `clearProgressMismatch(gameId)` presente en el cuerpo de ambas (líneas 546 y 788); confirmado por lectura completa del fichero. |
+| `app/components/ContentChangedNotice.vue` | Pinta el aviso de discrepancia en su propia rama de montaje | ✓ VERIFIED | `mismatchWarning?: string \| null` en `defineProps`, `<p v-if="mismatchWarning">` en la plantilla; confirmado por lectura del `.vue` completo. |
+| `.planning/phases/09-hist-rico-y-estad-sticas/deferred-items.md` | Evaluación de riesgo honesta que distingue pérdida de persistencia-falsa | ✓ VERIFIED | Sección «La marca de progreso que no coincide vive en memoria» reescrita con Caso A/Caso B; ya no contiene la garantía sin cualificar de la ronda 7/8. |
+| `app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts` (gate de invariantes) | Descubre marcas por glob y exige lector-con-testigo, ciclo de vida probado, y pintado en toda rama de montaje | ⚠ VERIFIED CON RESERVA (ver advisory) | Las cinco patas pasan contra el árbol real (242/242 en la suite de 4 ficheros). Dos huecos propios de parsing (`<`/`>` sin profundidad; `const` con anotación de tipo rechazado) no afectan a ningún fichero real hoy — ver `advisory`. |
+| `app/composables/__tests__/afirmacionesRespaldadas.test.ts` (gate de clase) | Impide que cualquier afirmación nueva sobre los datos del grupo pase sin respaldo RELEVANTE | ✓ VERIFIED | `respaldoRespaldaA`/`motivoNombraAlgoComprobable` cierran WR-02/WR-03 de la ronda 8; confirmado con el contraejemplo literal (`useVoiceAnnouncer.ts`) devolviendo `false`. |
+| `app/pages/estadisticas.vue`, `app/pages/historico.vue` | Pantallas completas, wireadas a `useGameHistory` | ✓ VERIFIED | Sin cambios desde rondas anteriores (91 y 101 líneas, presentes). |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |---|---|---|---|---|
-| `onOutcomeRecorded` | `markProgressMismatch`/`clearProgressMismatch` | `planGameEnd(...).progressMismatch` decide, `if/else` obligatorio pone o retira | ✓ WIRED | Confirmado literalmente en `index.vue:709-718` |
-| `onResumeContinue` | `clearProgressMismatch` | invalidación al continuar sobre el snapshot marcado | ✗ NOT_WIRED | Ninguna llamada en el cuerpo de la función — CR-01 |
-| `onMounted` (rama `content-changed-notice`) | `<ContentChangedNotice>` | prop de aviso de discrepancia | ✗ NOT_WIRED | El aviso se calcula pero no tiene destino de render en esa rama — WR-01 |
-| `onContentChangedAcknowledge` | `clearProgressMismatch` | invalidación al reconocer el cambio de contenido | ✗ NOT_WIRED | Sin llamada; mismo defecto de fondo que CR-01 en esta segunda rama |
-| `afirmacionesRespaldadas.test.ts` Gate A/B/C/S | Las cinco vías de evasión de la ronda 7 (a-e) | Vocabulario por raíces, NOTICE_HEADING, 'success', normalización de espacios, decisión extraída | ✓ WIRED | Confirmado leyendo el fichero completo y ejecutando `npm test` (976/976) |
-| `afirmacionesRespaldadas.test.ts` `respaldoExiste` | El contenido real del fichero de respaldo citado | Relevancia de contenido, no solo existencia de ruta | ✗ NOT_WIRED | Solo comprueba `rutasConRespaldoPosible.has(ruta)` — WR-02, confirmado leyendo líneas 167-176 |
-| `afirmacionesRespaldadas.test.ts` detector de motivo circular | Cualquier motivo circular, no solo una frase literal | Comprobación de fichero/identificador nombrado, incondicional | ✗ PARTIAL | Gateada tras `FRASE_CIRCULAR`, una única subcadena — WR-03, confirmado leyendo líneas 967-979 |
-| `app/pages/index.vue` | `/historico`, `/estadisticas` | `navigateTo` | ✓ WIRED | Sin cambios desde rondas anteriores |
-| `useGameHistory().statisticsView` | `engine/statistics.aggregateStatistics` | import + llamada | ✓ WIRED | Sin cambios desde rondas anteriores |
+| `onResumeContinue` | `clearProgressMismatch` | invalidación al continuar sobre el snapshot marcado | ✓ WIRED | `index.vue:546`, confirmado por lectura. |
+| `onContentChangedAcknowledge` | `clearProgressMismatch` | invalidación al reconocer el cambio de contenido | ✓ WIRED | `index.vue:788`, confirmado por lectura. |
+| `onMounted` (ambas ramas) | `readProgressMismatchWarning(gameId, informe.huella)` | huella calculada por la misma llamada a `readStoredProgress` | ✓ WIRED | `index.vue:188-208`, confirmado por lectura. |
+| `onMounted` (rama `content-changed-notice`) | `<ContentChangedNotice :mismatch-warning="avisoDiscrepancia">` | prop de aviso | ✓ WIRED | `index.vue:889`, confirmado por lectura. |
+| `onOutcomeRecorded` | `markProgressMismatch`/`clearProgressMismatch` | `plan.progressMismatch && huella !== null` decide, if/else obligatorio | ✓ WIRED | `index.vue:751-752`, sin cambios de fondo desde la ronda 8. |
+| Fingerprint (defensa primaria) | invariante de CR-01 sin depender de la defensa explícita | huella distinta tras autoguardado ⇒ lector devuelve `null` | ✓ WIRED (confirmado por comportamiento) | Test ad-hoc ejecutado en esta verificación: ciclo completo sin invocar `clearProgressMismatch`, resultado `null`. Ver Behavioral Spot-Checks. |
+| `invariantesDeMarcaDeEstado.test.ts`/`afirmacionesRespaldadas.test.ts` | `vocabularioDeAfirmaciones.ts` | import compartido, sin copias | ✓ WIRED | Confirmado leyendo los imports de ambos ficheros. |
+| `app/pages/index.vue` | `/historico`, `/estadisticas` | `navigateTo` | ✓ WIRED | Sin cambios desde rondas anteriores. |
+
+### Behavioral Spot-Checks
+
+| Behavior | Command | Result | Status |
+|---|---|---|---|
+| Suite completa del área tocada por el lote (4 ficheros: gate de invariantes, gate de clase, `useProgressMismatchMark`, `useStoredProgress`) | `npx vitest run app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts app/composables/__tests__/afirmacionesRespaldadas.test.ts app/composables/__tests__/useProgressMismatchMark.test.ts app/composables/__tests__/useStoredProgress.test.ts` | 4 archivos, 242 tests, 0 fallos | ✓ PASS |
+| `npx tsc --noEmit` | tipos del proyecto completo | exit 0 | ✓ PASS |
+| Ausencia de `firestore`/`firebase` en `app/`/`engine/` (SC5) | `grep -rniE "firestore\|firebase" app/ engine/` | sin resultados | ✓ PASS |
+| **CR-01 sin la segunda defensa (test ad-hoc, escrito y retirado en esta verificación, sin tocar ningún fichero de producción):** ¿el mecanismo primario (huella) por sí solo, sin ninguna llamada a `clearProgressMismatch`, invalida la marca cuando el referente cambia? | `npx vitest run` sobre un fichero de test temporal (`app/composables/__tests__/adhoc-verification-09-scratch.test.ts`, creado y eliminado en esta sesión de verificación) que marca con `huellaDelProgreso(posVieja)`, simula el autoguardado (`updatedAt` distinto) y lee con `huellaDelProgreso(posNueva)` sin llamar nunca a `clearProgressMismatch` | 1 test, 0 fallos: `readProgressMismatchWarning` devuelve `null` tras el cambio de huella, pese a no invalidar explícitamente | ✓ PASS — confirma independientemente la afirmación central de `09-REVIEW.md` sobre la defensa primaria |
 
 ### Requirements Coverage
 
 | Requirement | Source Plan(s) | Descripción | Status | Evidencia |
 |---|---|---|---|---|
-| HIST-01 | 09-02, 09-07 (+ otros) | Ofrecer registrar el resultado | ✓ SATISFIED | Sin cambios |
-| HIST-02 | 09-01, 09-02, 09-07, 09-16 | Ganada/Perdida, siempre se puede cerrar sin registrar | ✓ SATISFIED | Sin cambios |
-| HIST-03 | 09-01, 09-02, 09-07 | Causa si Perdida | ✓ SATISFIED | Sin cambios |
-| HIST-04 | 09-01, 09-05, 09-12, 09-14, 09-15, 09-17, 09-28, 09-33 (+ otros) | Registro completo | ✓ SATISFIED (flujo normal) / ⚠ en riesgo en la rama de reintento | Ver gap SC3: la marca que debía señalizar el reintento sobre un snapshot ajeno no se invalida en `onResumeContinue`, así que la señal puede sobrevivir falsa o faltar cuando importaría |
-| HIST-05 | 09-01, 09-07 | Motor expone inicio/ronda | ✓ SATISFIED | Sin cambios |
-| HIST-06 | 09-04..09-36 (24 planes) | Histórico en localStorage, fuente de verdad | ✗ NO CONFIRMADO — sigue reabierto correctamente en `REQUIREMENTS.md` (`[ ]`) | El HISTÓRICO en sí sigue protegido; la reserva sigue siendo sobre el mecanismo de recuperación del PROGRESO adyacente — novena cara confirmada en esta ronda (gap SC3) |
-| HIST-07 | 09-05, 09-06, 09-08, 09-10, 09-11, 09-17 | Pantalla lista más reciente→antigua | ✓ SATISFIED | Sin cambios |
-| HIST-08 | 09-05, 09-06, 09-09, 09-11 | Borrado con confirmación | ✓ SATISFIED | Sin cambios |
-| HIST-09 | 09-04..09-36 (23 planes) | «Partida terminada» borra sesión, nunca histórico | ✓ SATISFIED (literal) | `clear(gameId)` solo toca `tga:progress:<gameId>`; el requisito literal se cumple |
-| STAT-01 | 09-08 | Pantalla accesible desde inicio | ✓ SATISFIED | Sin cambios |
-| STAT-02 | 09-03, 09-06, 09-08, 09-11 | % victorias por héroe | ✓ SATISFIED | Sin cambios |
-| STAT-03 | 09-03, 09-06, 09-08, 09-11 | % victorias por villano | ✓ SATISFIED | Sin cambios |
-| STAT-04 | 09-04, 09-08, 09-11 | Solo localStorage, nunca Firestore | ✓ SATISFIED | Ver truth #5 |
-| STAT-05 | 09-02, 09-06, 09-08, 09-10, 09-11 | Estado vacío claro | ✓ SATISFIED | Sin cambios |
+| HIST-01 | 09-02, 09-07 (+ otros) | Ofrecer registrar el resultado | ✓ SATISFIED | Sin cambios. |
+| HIST-02 | 09-01, 09-02, 09-07, 09-16 | Ganada/Perdida, siempre se puede cerrar sin registrar | ✓ SATISFIED | Sin cambios. |
+| HIST-03 | 09-01, 09-02, 09-07 | Causa si Perdida | ✓ SATISFIED | Sin cambios. |
+| HIST-04 | 09-01, 09-05, 09-12, 09-14, 09-15, 09-17, 09-28, 09-33, 09-37, 09-38, 09-40 | Registro completo | ✓ SATISFIED | La señal de discrepancia en la rama de reintento ya no depende de invalidación manual: la huella la hace correcta por construcción, confirmado por test de comportamiento en esta ronda. |
+| HIST-05 | 09-01, 09-07 | Motor expone inicio/ronda | ✓ SATISFIED | Sin cambios. |
+| HIST-06 | 09-04..09-40 (26 planes) | Histórico en localStorage, fuente de verdad, sin afirmaciones no respaldadas sobre los datos del grupo | ✓ SATISFIED | Confirmado por esta ronda de verificación independiente: la novena cara (CR-01/WR-01 de la ronda 8) está cerrada en producción por una garantía estructural, verificada con test de comportamiento propio, no solo por lectura de código o por aceptar el SUMMARY del lote. |
+| HIST-07 | 09-05, 09-06, 09-08, 09-10, 09-11, 09-17 | Pantalla lista más reciente→antigua | ✓ SATISFIED | Sin cambios. |
+| HIST-08 | 09-05, 09-06, 09-09, 09-11 | Borrado con confirmación | ✓ SATISFIED | Sin cambios. |
+| HIST-09 | 09-04..09-36 (23 planes) | «Partida terminada» borra sesión, nunca histórico | ✓ SATISFIED | `clear(gameId)` solo toca `tga:progress:<gameId>`. |
+| STAT-01 | 09-08 | Pantalla accesible desde inicio | ✓ SATISFIED | Sin cambios. |
+| STAT-02 | 09-03, 09-06, 09-08, 09-11 | % victorias por héroe | ✓ SATISFIED | Sin cambios. |
+| STAT-03 | 09-03, 09-06, 09-08, 09-11 | % victorias por villano | ✓ SATISFIED | Sin cambios. |
+| STAT-04 | 09-04, 09-08, 09-11 | Solo localStorage, nunca Firestore | ✓ SATISFIED | Ver truth #5. |
+| STAT-05 | 09-02, 09-06, 09-08, 09-10, 09-11 | Estado vacío claro | ✓ SATISFIED | Sin cambios. |
 
 Ningún requisito huérfano: los 14 IDs de la fase aparecen en al menos un frontmatter de plan
-(medido: HIST-06 en 24 planes, HIST-09 en 23, el resto entre 2 y 12) y en `.planning/REQUIREMENTS.md`
-con fila propia en la tabla de trazabilidad. HIST-06 sigue marcado `[ ]` — coherente con esta
-verificación.
+(medido de nuevo en esta ronda sobre 09-37..09-40: HIST-04 en 09-37/09-38/09-40, HIST-06 en las
+cuatro, ningún otro ID nuevo) y en `.planning/REQUIREMENTS.md` con fila propia en la tabla de
+trazabilidad. **Esta verificación determina que HIST-04 y HIST-06 quedan SATISFIED por primera
+vez en esta fase** — el checkbox `[ ]` de `REQUIREMENTS.md`/`ROADMAP.md` sigue sin marcar porque
+esta verificación no edita esos ficheros; la sincronización de esas casillas es un paso posterior
+(fuera del alcance de este informe), pero la determinación de fondo que las condiciona —una
+ronda de verificación independiente que confirme la novena cara cerrada— es la que este
+documento entrega.
 
 ### Anti-Patrones Encontrados
 
 | File | Line | Pattern | Severity | Impact |
 |---|---|---|---|---|
-| `app/pages/[game]/index.vue` | `onResumeContinue` (sin llamada a `clearProgressMismatch`) | Una marca de discrepancia sobrevive al camino que sustituye su referente por progreso legítimo | 🛑 BLOCKER | Novena cara del defecto: un aviso que era cierto puede mostrarse después como si lo siguiera siendo, cuando ya no lo es (CR-01) |
-| `app/pages/[game]/index.vue` + `app/components/ContentChangedNotice.vue` | `onMounted:202`, `ContentChangedNotice.vue` completo, `onContentChangedAcknowledge:746-748` | El aviso de discrepancia se calcula mas no se muestra ni se invalida en la rama `content-changed-notice` | ⚠ WARNING | Mismo defecto de fondo por una segunda rama sin cubrir (WR-01) |
-| `.planning/phases/09-hist-rico-y-estad-sticas/deferred-items.md` | sección «La marca de progreso que no coincide vive en memoria» | Evaluación de riesgo escrita que cubre solo la pérdida de la marca, no su persistencia falsa | ⚠ WARNING | Un texto de cierre que no cubre el caso que de verdad importa, mismo patrón que motivos falsos de rondas anteriores |
-| `app/composables/__tests__/afirmacionesRespaldadas.test.ts` | 167-176 (`respaldoExiste`) | Solo comprueba existencia de la ruta citada, nunca relevancia de su contenido | ⚠ WARNING | Una cita a un fichero real pero no relacionado pasaría el gate (WR-02, confirmado) |
-| `app/composables/__tests__/afirmacionesRespaldadas.test.ts` | 967-979 (detector de motivo circular) | Gateado tras una única subcadena literal (`'la garantía real la da'`) | ⚠ WARNING | Cualquier motivo circular con otra redacción evade la comprobación, reproduciendo el vocabulario cerrado un nivel más arriba (WR-03, confirmado) |
-| `app/composables/__tests__/afirmacionesRespaldadas.test.ts` | 959-965 (umbral de longitud) | `motivo.length >= 40` es un umbral de longitud, no de sustancia | ℹ️ INFO | Rellenable con prosa sin contenido verificable (INFO-01, confirmado) |
-| `app/components/UpdateBanner.vue` + `app/components/HistorySavedNotice.vue` | ambas `fixed top-0 inset-x-0 z-40` | Dos bandas idénticas en posición/z-index, montadas como hermanas, sin coordinación | ⚠ WARNING | Sin cambios; sigue abierto y fuera del alcance de los planes de esta ronda |
+| `app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts` | 94-128 (`indiceDeCierre`/`argumentosDeNivelSuperior`) | No cuentan `<`/`>` como profundidad de anidamiento | ⚠ WARNING | Un parámetro/argumento futuro con una coma dentro de un genérico podría inflar el recuento de aridad y falsear el veredicto de Pata 1/2 sobre una firma que sí cumple. No afecta a ningún fichero real hoy (confirmado). |
+| `app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts` | 192 (`PATRON_ESTADO_DE_MODULO_MUTABLE`) | Acepta `const X = ...` sin tipo pero rechaza `const X: Tipo = ...` | ⚠ WARNING | Una marca de estado de módulo futura escrita con anotación de tipo explícita evadiría el descubrimiento por completo — contradice literalmente el comentario del propio fichero (línea 191). No afecta a ningún fichero real hoy. |
+| `app/pages/[game]/index.vue` + `useProgressMismatchMark.ts` | `onResumeContinue`/`onContentChangedAcknowledge` | La segunda defensa (`clearProgressMismatch` explícito) no tiene ningún test que la ejerza directamente | ⚠ WARNING | Confirmado (no contradicho por esta ronda): borrar cualquiera de las dos llamadas no pone en rojo ningún test permanente del árbol. No es un BLOCKER porque la defensa primaria (huella) ya cierra el caso por sí sola, confirmado con test ad-hoc en esta ronda. |
+| `app/components/UpdateBanner.vue` + `app/components/HistorySavedNotice.vue` | ambas `fixed top-0 inset-x-0 z-40` | Dos bandas idénticas en posición/z-index, montadas como hermanas, sin coordinación | ⚠ WARNING | Sin cambios; sigue abierto desde la ronda 4, fuera del alcance de este lote. |
+| `app/composables/__tests__/afirmacionesRespaldadas.test.ts` | 959-965 (umbral de longitud) | `motivo.length >= 40` mide forma, no sustancia | ℹ️ INFO | Documentado explícitamente como tal; ya no es la única defensa (WR-02/WR-03 la complementan). Sin cambios de severidad desde la ronda 8. |
 
 No se han encontrado marcadores de deuda (`TODO`/`FIXME`/`TBD`/`XXX`/`HACK`) sin referencia en
-ninguno de los ficheros tocados por el lote 09-32..09-36 (la única coincidencia de `grep` sobre
-"TODO" es la constante `TODOS_LOS_ESTADOS_DEL_DISPOSITIVO`, no un marcador de deuda).
+ninguno de los ficheros tocados por el lote 09-37..09-40, ni en `deferred-items.md`/
+`REQUIREMENTS.md` (comprobado con `grep` en esta ronda).
 
 ### Human Verification Required
 
 ### 1. Comprobación visual en tablet horizontal real
 
-**Test:** Con `npm run dev` en un viewport de tablet horizontal (~1180×820), terminar una
-partida provocando la variante de aviso de fallo (20s de duración) y, si es posible, forzar
-también la detección de una actualización de PWA en el mismo momento. Añadido por esta ronda:
-comprobar también que el texto reescrito de `NOTICE_BODY['failure-stale']` se lee completo a un
-brazo de distancia, y que el aviso nuevo de discrepancia dentro de `ResumePrompt`
-(`PROGRESS_MISMATCH_WARNING`) no desborda ni se corta visualmente dentro del modal.
-**Expected:** Ningún control de cabecera queda tapado de forma invisible por las bandas; si
-`UpdateBanner` e `HistorySavedNotice` coinciden en el tiempo, ambas deberían seguir siendo
-visibles/utilizables. El texto de `failure-stale` y el aviso de `ResumePrompt` deben leerse
-completos, sin desbordar.
-**Why human:** El solapamiento exacto de CSS ya está confirmado por lectura de código, sin
-cambios estructurales desde la ronda 5, pero el impacto real en un dispositivo físico requiere
-juicio humano. Sigue marcado como PENDIENTE bajo `DEV-02` de `REQUIREMENTS.md` desde
-`09-22-SUMMARY.md`. Los dos puntos añadidos por esta ronda son superficie de pantalla nueva
-desde la ronda 7 que nadie ha visto renderizada todavía en un dispositivo físico.
+**Test:** Con `npm run dev` en un viewport de tablet horizontal (~1180×820), repetir el guion
+acumulado de DEV-02 (variante de aviso de fallo de 20s, posible solapamiento con `UpdateBanner`,
+texto de `failure-stale`, aviso de discrepancia en `ResumePrompt`) y comprobar, por primera vez,
+que `PROGRESS_MISMATCH_WARNING` también se lee completo y sin desbordar dentro de
+`ContentChangedNotice.vue`.
+**Expected:** Ningún control de cabecera queda tapado de forma invisible; los tres avisos de
+texto largo (`failure-stale`, `ResumePrompt`, `ContentChangedNotice`) se leen completos, sin
+desbordar, a un brazo de distancia.
+**Why human:** Solapamiento y desbordamiento en un viewport físico requieren juicio visual real.
+Sigue marcado como PENDIENTE bajo `DEV-02` de `REQUIREMENTS.md` desde `09-22-SUMMARY.md`; el
+punto de `ContentChangedNotice.vue` es superficie de pantalla estrictamente nueva desde el plan
+09-38 (ronda 8) que nadie ha visto renderizada en un dispositivo físico todavía.
 
 ### Gaps Summary
 
-El objetivo de la fase sigue sin alcanzarse en su criterio de éxito nº 3 (SC3). El lote
-09-32..09-36 cerró de verdad los tres hallazgos literales de la ronda 7 y las cinco vías de
-evasión del gate de clase que esa misma ronda documentó — confirmado por lectura directa del
-código, no por aceptar los SUMMARY. Pero el propio mecanismo construido para cerrar el tercer
-hallazgo (`useProgressMismatchMark.ts`) introduce una **novena cara** del mismo defecto: la
-marca que transporta el conocimiento de discrepancia no se invalida en `onResumeContinue` ni en
-`onContentChangedAcknowledge`, así que puede sobrevivir a la sustitución de su propio referente
-por progreso legítimo y resurgir después como una afirmación falsa. La documentación que el lote
-escribió para cerrar la ronda (`deferred-items.md`) evalúa el riesgo residual sin cubrir
-precisamente ese caso, afirmando por escrito una garantía («nunca dice algo falso») que no se
-sostiene.
+Sin gaps. Las cinco Success Criteria del ROADMAP para la Fase 9 están VERIFICADAS, incluida SC3
+en su forma completa («sin confirmaciones falsas ante un fallo»), que había fallado en las ocho
+rondas anteriores de verificación de esta misma fase. El cierre de esta novena y última cara
+confirmada se apoya en una garantía ESTRUCTURAL (comparación de huella del referente en el
+momento de leer, no solo disciplina de invalidación manual en cada punto de código), y esta
+verificación la confirma con un test de comportamiento propio ejecutado y retirado en esta misma
+sesión — no solo con lectura de código ni con el veredicto de `09-REVIEW.md` sin contrastar.
 
-El gate de clase mejoró de forma sustancial y cerró el hueco mecánico de la ronda 7 en su forma
-literal, pero sigue sin poder cumplir su propósito declarado frente a esta novena cara: es
-estructuralmente un gate de texto-contra-respaldo, y esta cara del defecto es un fallo de
-invalidación de estado, no una frase sin respaldo al escribirse. Además, el propio mecanismo de
-auditoría reforzado por el lote (`respaldoExiste`, el detector de motivo circular) tiene dos
-evasiones propias confirmadas por lectura directa, ninguna hipotética.
+Dos huecos estructurales quedan documentados como ADVISORY en el frontmatter (huecos de parsing
+en el gate de invariantes recién construido, y ausencia de test directo sobre la segunda defensa
+de la página) — ninguno de los dos tiene hoy una instancia real en el árbol ni produce una
+afirmación falsa visible para el grupo; ambos tienen parche ya redactado por `09-REVIEW.md` si el
+proyecto decide cerrarlos antes de que una marca futura los alcance.
 
-Las correcciones propuestas son acotadas: una llamada a `clearProgressMismatch` en
-`onResumeContinue` (y la misma decisión para `onContentChangedAcknowledge`), corregir el texto
-de `deferred-items.md` para que distinga pérdida de persistencia-falsa de la marca, y dos
-arreglos ya redactados por `09-REVIEW.md` (WR-02/WR-03) para el gate de clase. Ninguna exige
-revertir trabajo ya cerrado — pero el patrón de que cada cierre de esta fase introduce una cara
-nueva del mismo defecto, ya en su novena iteración, sigue sugiriendo que la corrección puntual
-por ronda no es suficiente por sí sola: el gate necesitaría, además de auditar texto, un test que
-recorra el ciclo de vida completo de cualquier estado de módulo nuevo (poner → todos los caminos
-que superan su referente → leer) antes de darlo por cerrado.
-
-Adicionalmente, un WARNING no cerrado (solapamiento mutuo entre `UpdateBanner` y
-`HistorySavedNotice`) y la comprobación visual humana pendiente desde 09-22 siguen abiertos; no
-bloquean el objetivo de la fase por sí solos.
+Lo único que impide un `passed` limpio es la comprobación visual humana en tablet (`DEV-02`),
+que sigue pendiente desde `09-22-SUMMARY.md` y gana en esta ronda un punto de guion nuevo
+(`ContentChangedNotice.vue`) — añadir el punto al guion no es realizar la comprobación, y no se
+escribe aquí que se haya realizado.
 
 ---
 
-_Verificado: 2026-09-19T02:20:00Z_
+_Verificado: 2026-09-22T17:10:00Z_
 _Verificador: Claude (gsd-verifier)_
