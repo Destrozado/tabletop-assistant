@@ -220,8 +220,29 @@
 > marca de discrepancia de progreso no se escribe en el dispositivo — es estado de módulo en
 > memoria, ver `deferred-items.md` para la evaluación de riesgo completa.
 >
+> **Ronda 8 (`09-VERIFICATION.md`, planes 09-37/09-38/09-39):** la ronda 8 confirmó por trazado
+> de código independiente una NOVENA cara del mismo patrón, esta vez dentro del propio mecanismo
+> construido para cerrar la octava: la marca de discrepancia de progreso
+> (`useProgressMismatchMark.ts`, plan 09-33) no se invalidaba al continuar sobre el snapshot
+> marcado, y su rama alternativa de montaje en `app/pages/[game]/index.vue`
+> (`awaitingContentChangedAck`) ni la pintaba ni la retiraba (CR-01/WR-01). El lote 09-37..09-40
+> la cierra por dos vías independientes: validación del referente en el momento de leer — el
+> lector compara la huella del progreso que había cuando se puso la marca (`huellaDelProgreso`,
+> `app/composables/useStoredProgress.ts`) con la huella de lo que hay AHORA, y no devuelve nada
+> si no coinciden — e invalidación explícita en los dos caminos que faltaban
+> (`onResumeContinue`/`onContentChangedAcknowledge` retiran la marca, y `ContentChangedNotice.vue`
+> pinta el aviso). El lote añade además un gate nuevo,
+> `app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts`, que audita invariantes de
+> ciclo de vida de estado de módulo por descubrimiento (glob sobre `app/composables/**`) — una
+> clase de defecto que los gates de texto existentes no podían cubrir, porque comprueban texto
+> contra respaldo, nunca comportamiento en tiempo de ejecución. Las dos evasiones propias del
+> mecanismo de excepción auditada de los dos gates (WR-02, el respaldo tenía que respaldar de
+> verdad y no solo existir; WR-03, todo motivo tiene que nombrar algo comprobable, sin puerta de
+> entrada por subcadena literal) quedan cerradas por el plan 09-39. **Nada de esto da HIST-06
+> por cerrado:** queda pendiente de confirmación por una ronda de verificación independiente.
+>
 > **La frase de cierre, repetida a propósito: este cierre no se da por bueno hasta que una
-> ronda de verificación independiente lo confirme; cinco notas anteriores de este mismo
+> ronda de verificación independiente lo confirme; seis notas anteriores de este mismo
 > documento dieron por cerrado lo que no lo estaba.**
 
 ### STAT — Estadísticas
@@ -257,7 +278,7 @@
 ### Deuda de dispositivo real (heredada de v1.7)
 
 - **DEV-01**: Identificar el modelo y SO/navegador de la tablet de mesa
-- **DEV-02**: Ejecutar en ella el guion de pruebas pendiente: VOZ-08 (respaldo silencioso), foco del modal de detalle en Safari, control de silencio con audio pregenerado, instalación PWA, el aviso de lectura no comprobada en el mini-setup (ronda 6, `09-31`), la variante `failure-stale` del aviso de guardado (20 s, texto largo, reescrito de nuevo en la ronda 7 por el plan 09-32 para no afirmar anterioridad ni diferencia de ronda) y el aviso de progreso que no coincide dentro del modal de reanudación (`ResumePrompt`, ronda 7, plan 09-33) — sigue PENDIENTE, ninguno de estos puntos se ha comprobado en dispositivo real
+- **DEV-02**: Ejecutar en ella el guion de pruebas pendiente: VOZ-08 (respaldo silencioso), foco del modal de detalle en Safari, control de silencio con audio pregenerado, instalación PWA, el aviso de lectura no comprobada en el mini-setup (ronda 6, `09-31`), la variante `failure-stale` del aviso de guardado (20 s, texto largo, reescrito de nuevo en la ronda 7 por el plan 09-32 para no afirmar anterioridad ni diferencia de ronda), el aviso de progreso que no coincide dentro del modal de reanudación (`ResumePrompt`, ronda 7, plan 09-33) y —nuevo en la ronda 8, plan 09-38— el mismo aviso de discrepancia pintado también dentro de la pantalla de contenido cambiado (`ContentChangedNotice.vue`), que nadie ha visto renderizado en un dispositivo físico — sigue PENDIENTE, ninguno de estos puntos se ha comprobado en dispositivo real; añadir este último punto al guion no es realizar la comprobación
 
 ### Ampliación de alcance
 
@@ -329,9 +350,9 @@
 | HIST-01 | Fase 9 | Satisfecho |
 | HIST-02 | Fase 9 | Satisfecho |
 | HIST-03 | Fase 9 | Satisfecho |
-| HIST-04 | Fase 9 (09-13..09-17, 09-28, 09-33) | Satisfecho (flujo normal) — matiz de riesgo: el registro podía construirse a partir de un `session` desactualizado en la rama de reintento tras un fallo de escritura; ese camino es el que 09-28 cierra (`esLaMismaPartida`), y la rama de reintento sobre un snapshot que no coincide queda además señalizada al reentrar (plan 09-33, aviso en `ResumePrompt`), sin afirmar que el riesgo desaparezca — la marca es en memoria — ver nota de cierre de hueco (rondas 3, 6 y 7) abajo |
+| HIST-04 | Fase 9 (09-13..09-17, 09-28, 09-33, 09-37..09-40) | Satisfecho (flujo normal) — matiz de riesgo: el registro podía construirse a partir de un `session` desactualizado en la rama de reintento tras un fallo de escritura; ese camino es el que 09-28 cierra (`esLaMismaPartida`), la rama de reintento sobre un snapshot que no coincide queda además señalizada al reentrar (plan 09-33, aviso en `ResumePrompt`), y la marca que señaliza esa discrepancia pasa a validar su propio referente por huella (`huellaDelProgreso`, plan 09-38) en vez de depender de que se la invalide a mano — sin afirmar que el riesgo desaparezca del todo — ver nota de cierre de hueco (rondas 3, 6, 7 y 8) abajo |
 | HIST-05 | Fase 9 | Satisfecho |
-| HIST-06 | Fase 9 (09-13..09-36) | Reabierto en la ronda 5; séptima variante en la ronda 6; octava variante encontrada en la ronda 7 (planes 09-32..09-35) — sigue pendiente de confirmación por una ronda de verificación independiente — ver nota de cierre de hueco abajo |
+| HIST-06 | Fase 9 (09-13..09-40) | Reabierto en la ronda 5; séptima variante en la ronda 6; octava variante encontrada en la ronda 7 (planes 09-32..09-35); novena variante encontrada y cerrada en la ronda 8 (planes 09-37..09-40) — sigue pendiente de confirmación por una ronda de verificación independiente — ver nota de cierre de hueco abajo |
 | HIST-07 | Fase 9 | Satisfecho |
 | HIST-08 | Fase 9 | Satisfecho |
 | HIST-09 | Fase 9 (09-13..09-36) | Satisfecho |
