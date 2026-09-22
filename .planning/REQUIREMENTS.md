@@ -73,15 +73,15 @@
 
 ### HIST — Histórico de partidas
 
-- [ ] **HIST-01**: Al pulsar «Partida terminada» la app ofrece registrar el resultado
-- [ ] **HIST-02**: Los resultados posibles son Ganada y Perdida, y siempre se puede cerrar la partida sin registrar nada
-- [ ] **HIST-03**: Si el resultado es Perdida, se puede indicar la causa: plan principal completado o todos los héroes derrotados
-- [ ] **HIST-04**: El registro guarda resultado, causa, villano, héroe y nombre de cada jugador, fecha, dificultad, nº de jugadores, duración y nº de rondas jugadas
-- [ ] **HIST-05**: El motor expone el instante de inicio de la partida y la ronda actual, para poder calcular duración y rondas sin que el usuario los teclee
-- [ ] **HIST-06**: El histórico vive en localStorage y es la fuente de verdad de la app
-- [ ] **HIST-07**: Hay una pantalla que lista las partidas registradas, de la más reciente a la más antigua
-- [ ] **HIST-08**: Una entrada del histórico se puede borrar, con confirmación previa
-- [ ] **HIST-09**: «Partida terminada» borra la sesión en curso pero nunca el histórico
+- [x] **HIST-01**: Al pulsar «Partida terminada» la app ofrece registrar el resultado
+- [x] **HIST-02**: Los resultados posibles son Ganada y Perdida, y siempre se puede cerrar la partida sin registrar nada
+- [x] **HIST-03**: Si el resultado es Perdida, se puede indicar la causa: plan principal completado o todos los héroes derrotados
+- [x] **HIST-04**: El registro guarda resultado, causa, villano, héroe y nombre de cada jugador, fecha, dificultad, nº de jugadores, duración y nº de rondas jugadas
+- [x] **HIST-05**: El motor expone el instante de inicio de la partida y la ronda actual, para poder calcular duración y rondas sin que el usuario los teclee
+- [x] **HIST-06**: El histórico vive en localStorage y es la fuente de verdad de la app
+- [x] **HIST-07**: Hay una pantalla que lista las partidas registradas, de la más reciente a la más antigua
+- [x] **HIST-08**: Una entrada del histórico se puede borrar, con confirmación previa
+- [x] **HIST-09**: «Partida terminada» borra la sesión en curso pero nunca el histórico
 
 > **Nota de cierre de hueco (HIST-04/HIST-06), rondas 2 y 3 de `09-VERIFICATION.md`:** la
 > verificación encontró, en dos rondas consecutivas, defectos reproducibles sobre estos dos
@@ -244,14 +244,25 @@
 > **La frase de cierre, repetida a propósito: este cierre no se da por bueno hasta que una
 > ronda de verificación independiente lo confirme; seis notas anteriores de este mismo
 > documento dieron por cerrado lo que no lo estaba.**
+>
+> **Actualización (ronda 10, 2026-09-22): esa ronda independiente se ha ejecutado y ha pasado
+> (5/5 must-haves, `status: passed`).** Comprobó las afirmaciones de este lote contra el árbol
+> —incluido un test ad-hoc que reproduce la carrera CR-01 sin llamar nunca a `clearProgressMismatch`
+> y aun así no produce aviso—, no contra los SUMMARY que las declaraban. La condición que estas
+> notas imponían queda por tanto satisfecha; la frase de arriba se conserva porque describe el
+> listón que hubo que superar, no una deuda todavía abierta. Lo que SIGUE abierto y registrado
+> como deuda no bloqueante: las dos llamadas explícitas a `clearProgressMismatch` de
+> `app/pages/[game]/index.vue` no tienen test directo, y `invariantesDeMarcaDeEstado.test.ts`
+> tiene dos huecos de parsing propios (no sigue la profundidad de `<`/`>`; su rama `const` de
+> descubrimiento rechaza una declaración con anotación de tipo).**
 
 ### STAT — Estadísticas
 
-- [ ] **STAT-01**: Hay una pantalla de estadísticas accesible desde el inicio
-- [ ] **STAT-02**: Muestra el porcentaje de victorias por héroe
-- [ ] **STAT-03**: Muestra el porcentaje de victorias por villano
-- [ ] **STAT-04**: La pantalla lee exclusivamente localStorage y **nunca** consulta Firestore
-- [ ] **STAT-05**: Con el histórico vacío muestra un estado vacío claro, no un error ni porcentajes engañosos
+- [x] **STAT-01**: Hay una pantalla de estadísticas accesible desde el inicio
+- [x] **STAT-02**: Muestra el porcentaje de victorias por héroe
+- [x] **STAT-03**: Muestra el porcentaje de victorias por villano
+- [x] **STAT-04**: La pantalla lee exclusivamente localStorage y **nunca** consulta Firestore
+- [x] **STAT-05**: Con el histórico vacío muestra un estado vacío claro, no un error ni porcentajes engañosos
 
 ### SYNC — Respaldo en Firestore
 
@@ -278,7 +289,7 @@
 ### Deuda de dispositivo real (heredada de v1.7)
 
 - **DEV-01**: Identificar el modelo y SO/navegador de la tablet de mesa
-- **DEV-02**: Ejecutar en ella el guion de pruebas pendiente: VOZ-08 (respaldo silencioso), foco del modal de detalle en Safari, control de silencio con audio pregenerado, instalación PWA, el aviso de lectura no comprobada en el mini-setup (ronda 6, `09-31`), la variante `failure-stale` del aviso de guardado (20 s, texto largo, reescrito de nuevo en la ronda 7 por el plan 09-32 para no afirmar anterioridad ni diferencia de ronda), el aviso de progreso que no coincide dentro del modal de reanudación (`ResumePrompt`, ronda 7, plan 09-33) y —nuevo en la ronda 8, plan 09-38— el mismo aviso de discrepancia pintado también dentro de la pantalla de contenido cambiado (`ContentChangedNotice.vue`), que nadie ha visto renderizado en un dispositivo físico — sigue PENDIENTE, ninguno de estos puntos se ha comprobado en dispositivo real; añadir este último punto al guion no es realizar la comprobación
+- **DEV-02**: Ejecutar en ella el guion de pruebas pendiente: VOZ-08 (respaldo silencioso), foco del modal de detalle en Safari, control de silencio con audio pregenerado, instalación PWA, el aviso de lectura no comprobada en el mini-setup (ronda 6, `09-31`), la variante `failure-stale` del aviso de guardado (20 s, texto largo, reescrito de nuevo en la ronda 7 por el plan 09-32 para no afirmar anterioridad ni diferencia de ronda), el aviso de progreso que no coincide dentro del modal de reanudación (`ResumePrompt`, ronda 7, plan 09-33) y —nuevo en la ronda 8, plan 09-38— el mismo aviso de discrepancia pintado también dentro de la pantalla de contenido cambiado (`ContentChangedNotice.vue`), que nadie había visto renderizado en un dispositivo físico. **COMPROBADO Y PASADO el 2026-09-22** en la UAT de la ronda 10 (`09-UAT.md`, test 1, `result: pass`, 0 incidencias): el guion acumulado se ejecutó en tablet horizontal real y ningún control de cabecera quedó tapado, y el texto de `failure-stale` y el aviso `PROGRESS_MISMATCH_WARNING` se leyeron completos y sin desbordar tanto dentro de `ResumePrompt` como dentro de `ContentChangedNotice`. El punto de `ContentChangedNotice.vue`, superficie nueva del plan 09-38, queda así visto en dispositivo físico por primera vez
 
 ### Ampliación de alcance
 
@@ -352,7 +363,7 @@
 | HIST-03 | Fase 9 | Satisfecho |
 | HIST-04 | Fase 9 (09-13..09-17, 09-28, 09-33, 09-37..09-40) | Satisfecho (flujo normal) — matiz de riesgo: el registro podía construirse a partir de un `session` desactualizado en la rama de reintento tras un fallo de escritura; ese camino es el que 09-28 cierra (`esLaMismaPartida`), la rama de reintento sobre un snapshot que no coincide queda además señalizada al reentrar (plan 09-33, aviso en `ResumePrompt`), y la marca que señaliza esa discrepancia pasa a validar su propio referente por huella (`huellaDelProgreso`, plan 09-38) en vez de depender de que se la invalide a mano — sin afirmar que el riesgo desaparezca del todo — ver nota de cierre de hueco (rondas 3, 6, 7 y 8) abajo |
 | HIST-05 | Fase 9 | Satisfecho |
-| HIST-06 | Fase 9 (09-13..09-40) | Reabierto en la ronda 5; séptima variante en la ronda 6; octava variante encontrada en la ronda 7 (planes 09-32..09-35); novena variante encontrada y cerrada en la ronda 8 (planes 09-37..09-40) — sigue pendiente de confirmación por una ronda de verificación independiente — ver nota de cierre de hueco abajo |
+| HIST-06 | Fase 9 (09-13..09-40) | Satisfecho — Reabierto en la ronda 5; séptima variante en la ronda 6; octava variante encontrada en la ronda 7 (planes 09-32..09-35); novena variante encontrada y cerrada en la ronda 8 (planes 09-37..09-40). **La ronda 10 de `09-VERIFICATION.md` es la ronda de verificación independiente que estas notas exigían, y pasó (5/5)**: comprobó la marca validada por huella contra el árbol, no contra los SUMMARY. Deuda registrada y NO bloqueante: las dos llamadas explícitas a `clearProgressMismatch` no tienen test directo (la defensa primaria por huella las hace redundantes), y el gate nuevo tiene dos huecos de parsing propios — ver nota de cierre de hueco abajo |
 | HIST-07 | Fase 9 | Satisfecho |
 | HIST-08 | Fase 9 | Satisfecho |
 | HIST-09 | Fase 9 (09-13..09-36) | Satisfecho |
