@@ -5,17 +5,17 @@ milestone_name: Elección de personajes, contadores en mesa e histórico de part
 current_phase: 09
 current_phase_name: Histórico y estadísticas
 status: executing
-stopped_at: Completed 09-39-PLAN.md
-last_updated: "2026-09-22T14:38:02.732Z"
+stopped_at: Completed 09-40-PLAN.md
+last_updated: "2026-09-22T14:48:30.238Z"
 last_activity: 2026-09-22
 last_activity_desc: Phase 09 execution started
-state_head: c27f22fb266f142d5e2c1e3fb60743faffc5ddfe
+state_head: d61e31e13a3718bff62f665540e0eb6850f46804
 progress:
   total_phases: 6
   completed_phases: 9
   total_plans: 68
-  completed_plans: 67
-  percent: 99
+  completed_plans: 68
+  percent: 100
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 
 ## Current Position
 
-Phase: 09 (Histórico y estadísticas) — EXECUTING
-Plan: 4 of 40
-Status: Ready to execute
-Last activity: 2026-09-22 — Phase 09 execution started
+Phase: 09 (Histórico y estadísticas) — 40/40 planes ejecutados
+Plan: 40 of 40
+Status: Pendiente de ronda de verificación independiente (HIST-06, DEV-02)
+Last activity: 2026-09-22 — Completado 09-40-PLAN.md (cierre de documentación de la ronda 8)
 
 ## Performance Metrics
 
@@ -89,6 +89,7 @@ Last activity: 2026-09-22 — Phase 09 execution started
 | Phase 09 P37 | 25min | 3 tasks | 3 files |
 | Phase 09 P38 | 27min | 3 tasks | 6 files |
 | Phase 09 P39 | ~50min | 3 tasks | 3 files |
+| Phase 09-hist-rico-y-estad-sticas P40 | 20min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -160,6 +161,8 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-37: HIST-04/HIST-06 NO se marcan completados en REQUIREMENTS.md — el scope_boundary del plan lo prohíbe explícitamente — El gate nuevo queda ROJO a propósito (CR-01/WR-01); el arreglo es el plan 09-38 y la confirmación es una ronda de verificación independiente, no este plan
 - [Phase 09]: 09-38: huella incluye los siete campos de PersistedPosition (updatedAt incluido); Map<gameId,huella> con testigo obligatorio en el lector; ninguno de los dos gates de 09-37 se edita en este plan (reservados a 09-39 por scope_boundary) aunque el arreglo introduce 5 tests rojos confinados a esos dos ficheros (self-tests de fixture obsoletos + Gate A false-positive), documentados en deferred-items.md y .planning/WINDOWS.md
 - [Phase 09]: 09-39: respaldoRespaldaA/motivoNombraAlgoComprobable cierran WR-02/WR-03 del mecanismo de excepcion auditada; MARCAS_CON_REFERENTE_NO_PERSISTENTE gana raiz para reusar respaldoRespaldaA; el it de cierre de cobertura exige >=2 ocurrencias (cita + it real), nunca .toContain simple; npm test vuelve a 0 fallos (arreglados Gate A/useStoredProgress.ts y 4 self-tests de fixture heredados del plan 09-38); HIST-06 sigue [ ] por scope_boundary explicito
+- [Phase 09]: 09-40: deferred-items.md corrige la evaluacion de riesgo de la marca en memoria (useProgressMismatchMark.ts) distinguiendo Caso A (se pierde, aceptado) de Caso B (persiste incorrecta, cerrado por 09-38); registra el camino de perdida nuevo por updatedAt en la huella como coste conocido
+- [Phase 09]: 09-40: REQUIREMENTS.md gana el parrafo Ronda 8 y sincroniza HIST-04/HIST-06 con los planes 09-37..09-40; HIST-06 sigue [ ] y DEV-02 sigue abierta con el punto nuevo de ContentChangedNotice.vue - la confirmacion queda para una ronda de verificacion independiente; fase 09 (40/40 planes) queda cerrada por completo, pendiente de una ronda de verificacion independiente
 
 ### Pending Todos
 
@@ -206,6 +209,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-22T14:37:32.552Z
-Stopped at: Completed 09-39-PLAN.md
+Last session: 2026-09-22T14:48:30.147Z
+Stopped at: Completed 09-40-PLAN.md
 Resume file: None
