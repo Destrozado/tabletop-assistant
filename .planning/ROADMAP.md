@@ -33,7 +33,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 - [x] **Phase 6: Selección de villano, héroes y jugadores** - Selectores con filtro en el paso de setup, opcional, persistente (completed 2026-09-08)
 - [x] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7 (verificación: gaps_found — CR-01 solape de zonas táctiles) (completed 2026-09-08)
 - [x] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz (completed 2026-09-09)
-- [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (36/36 planes ejecutados; verificación vigente: ronda 7 de `09-VERIFICATION.md`, gaps_found 4/5 — la ronda 6 cerró sus dos huecos literales (la autoridad de lectura ya compara identidad de partida vía `esLaMismaPartida`, y el gate de clase ya inspecciona el fichero entero), pero esa misma ronda 7 encontró una OCTAVA cara del mismo defecto dentro de la copy escrita para cerrar la séptima. El lote de cierre 09-32..09-36 (olas 25-29) ya está EJECUTADO: `failure-stale` y `endGameBody` reescritos sin las tres afirmaciones sin respaldo, la discrepancia comprobada al cerrar viaja hasta `ResumePrompt` como marca en memoria, y el gate de clase pasa de subcadenas cerradas a raíces léxicas con Gate S ejerciendo la decisión y demostrando por mutación EJECUTADA que se pone rojo — esta fase NO se marca verificada aquí: solo una ronda de verificación independiente puede confirmarlo, y siete notas anteriores de este mismo hito dieron por cerrado lo que no lo estaba)
+- [ ] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (36/36 planes ejecutados; verificación vigente: ronda 8 de `09-VERIFICATION.md`, gaps_found 4/5, que confirmó por trazado de código independiente una NOVENA cara del mismo defecto dentro del propio mecanismo construido para cerrar la octava (la marca de discrepancia no se invalidaba al continuar, y su rama alternativa de montaje ni la pintaba ni la retiraba). Lote de cierre de la ronda 8 PLANIFICADO y sin ejecutar: 09-37 (gate nuevo de invariantes de ciclo de vida de estado, rojo hoy), 09-38 (la marca valida su referente por huella al leer, más las dos invalidaciones que faltaban), 09-39 (las dos evasiones del propio mecanismo de excepciones auditadas) y 09-40 (la evaluación de riesgo corregida y la trazabilidad al día). Contexto anterior: la ronda 6 cerró sus dos huecos literales (la autoridad de lectura ya compara identidad de partida vía `esLaMismaPartida`, y el gate de clase ya inspecciona el fichero entero), pero esa misma ronda 7 encontró una OCTAVA cara del mismo defecto dentro de la copy escrita para cerrar la séptima. El lote de cierre 09-32..09-36 (olas 25-29) ya está EJECUTADO: `failure-stale` y `endGameBody` reescritos sin las tres afirmaciones sin respaldo, la discrepancia comprobada al cerrar viaja hasta `ResumePrompt` como marca en memoria, y el gate de clase pasa de subcadenas cerradas a raíces léxicas con Gate S ejerciendo la decisión y demostrando por mutación EJECUTADA que se pone rojo — esta fase NO se marca verificada aquí: solo una ronda de verificación independiente puede confirmarlo, y siete notas anteriores de este mismo hito dieron por cerrado lo que no lo estaba)
 - [ ] **Phase 10: Respaldo en Firestore** - Subida silenciosa, nunca bloqueante, aislada del resto
 
 ### Phase Details
@@ -180,7 +180,7 @@ Plans:
   4. Hay una pantalla de estadísticas accesible desde el inicio que muestra el % de victorias por héroe y por villano, con un estado vacío claro (no un error ni porcentajes engañosos) cuando el histórico está vacío.
   5. La pantalla de estadísticas lee exclusivamente localStorage — verificable en esta fase de forma trivial, porque Firestore ni siquiera existe todavía en el código en este punto del hito.
 
-**Plans**: 36/36 plans executed (29 olas) — lote de cierre de la ronda 7 (09-32..09-36) completo
+**Plans**: 40 planes (33 olas) — 36/40 ejecutados; lote de cierre de la ronda 8 (09-37..09-40, olas 30-33) PLANIFICADO, sin ejecutar
 **Wave 1**
 
 - [x] 09-01-PLAN.md — Motor: tipos aditivos del histórico, `buildHistoryEntry` y formateadores puros (ola 1)
@@ -303,6 +303,22 @@ Plans:
 **Wave 29** *(blocked on Wave 28 completion)*
 
 - [x] 09-36-PLAN.md — Cierre de huecos ronda 7: octava variante registrada en REQUIREMENTS.md sin cerrar HIST-06, contrato de copy al día, deuda de la marca en memoria evaluada por riesgo (ola 29)
+
+**Wave 30** *(blocked on Wave 29 completion)*
+
+- [ ] 09-37-PLAN.md — Cierre de huecos ronda 8 (RED): gate nuevo de invariantes de ciclo de vida de estado de módulo, descubierto por glob, rojo hoy contra CR-01 y WR-01; vocabulario de raíces extraído a un módulo compartido (ola 30)
+
+**Wave 31** *(blocked on Wave 30 completion)*
+
+- [ ] 09-38-PLAN.md — Cierre de huecos ronda 8 (GREEN): la marca de discrepancia valida su referente por huella al leer, `onResumeContinue`/`onContentChangedAcknowledge` la invalidan, y `ContentChangedNotice` pinta el aviso (ola 31)
+
+**Wave 32** *(blocked on Wave 31 completion)*
+
+- [ ] 09-39-PLAN.md — Cierre de huecos ronda 8: las dos evasiones del propio mecanismo de excepciones auditadas — respaldo con relevancia de contenido (WR-02) y motivo comprobable incondicional (WR-03) (ola 32)
+
+**Wave 33** *(blocked on Wave 32 completion)*
+
+- [ ] 09-40-PLAN.md — Cierre de huecos ronda 8: la evaluación de riesgo de `deferred-items.md` distingue pérdida de persistencia incorrecta, y la trazabilidad registra la novena cara sin cerrar HIST-06 (ola 33)
 
 **Cross-cutting constraints:**
 
