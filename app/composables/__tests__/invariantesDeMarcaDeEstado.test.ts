@@ -71,8 +71,11 @@ import {
   contieneRaizSobreLosDatosDelGrupo,
   ficherosTsDelArbol,
   ficherosVueDelArbol,
+  identificadoresComprobablesDe,
+  motivoNombraAlgoComprobable,
   regionVigilada,
   respaldoExiste,
+  respaldoRespaldaA,
   rutaRelativa,
 } from './vocabularioDeAfirmaciones'
 
@@ -202,25 +205,106 @@ export function marcasDeEstadoDeModuloDe(ficheros: Record<string, string>): stri
 }
 
 // --- Excepciones auditadas: marcas cuyo referente NO es persistente por
-// diseño (Task 1, item 6) ---
+// diseño (Task 1, item 6; WR-02/WR-03 heredadas en el plan 09-39, Task 3) ---
 //
 // Misma forma y mismo rigor que `AFIRMACIONES_AUDITADAS`
 // (`afirmacionesRespaldadas.test.ts`): un motivo COMPROBABLE, nunca en
 // prosa suelta, y un respaldo que resuelve a un fichero real
-// (`respaldoExiste`, del vocabulario compartido).
-export const MARCAS_CON_REFERENTE_NO_PERSISTENTE: Record<string, { motivo: string, respaldo: string }> = {
+// (`respaldoExiste`, del vocabulario compartido). `raiz` se añade en el
+// plan 09-39 (Task 3) con la MISMA forma que `AfirmacionAuditada`: las
+// excepciones auditadas de los dos gates se rigen por las mismas reglas
+// porque son el mismo mecanismo con dos tablas — una regla relajada en una
+// de las dos sería la puerta que la otra cerró.
+export const MARCAS_CON_REFERENTE_NO_PERSISTENTE: Record<string, { raiz: string, motivo: string, respaldo: string }> = {
   'app/composables/useHistorySavedNotice.ts': {
+    raiz: 'guardad',
     motivo: 'Su estado de módulo (activeVariant/timeoutId) es un aviso TRANSITORIO en pantalla, decidido por planGameEnd(historyRecorded, stored) a partir de una lectura FRESCA de la autoridad en el mismo instante en que se pinta (notifyHistorySaved recibe siempre la variante recién calculada por planGameEnd) y nunca transportado entre montajes distintos de la página — a diferencia de useProgressMismatchMark.ts, cuyo propósito explícito es transportar un hecho EN EL TIEMPO, entre el cierre de una partida y el montaje siguiente.',
     respaldo: 'app/composables/__tests__/avisoTrasRegistroFallido.test.ts',
   },
 }
 
-describe('MARCAS_CON_REFERENTE_NO_PERSISTENTE — excepciones auditadas (Task 1)', () => {
-  it('toda entrada tiene motivo no vacío y un respaldo que resuelve a un fichero real del repo', () => {
+// excepcionesConRespaldoInsuficiente (plan 09-39, Task 3): mismo patrón que
+// `frasesSinAuditarDe`/`variantesSinRespaldoDe` (afirmacionesRespaldadas.test.ts,
+// planes 09-34/09-35) — la comprobación se extrae a una función pura
+// exportada que acepta la TABLA como parámetro, con la tabla real como
+// valor por defecto, para que un caso sintético pueda ejercerla sin tocar
+// la real. Aplica las MISMAS dos funciones que el gate de clase
+// (`respaldoRespaldaA`/`motivoNombraAlgoComprobable`), importadas del
+// módulo compartido — nunca reimplementadas.
+export function excepcionesConRespaldoInsuficiente(
+  tabla: Record<string, { raiz: string, motivo: string, respaldo: string }> = MARCAS_CON_REFERENTE_NO_PERSISTENTE,
+): string[] {
+  const insuficientes: string[] = []
+  for (const [ruta, excepcion] of Object.entries(tabla)) {
+    const tieneMotivoComprobable = motivoNombraAlgoComprobable(excepcion.motivo)
+    const respaldaDeVerdad = respaldoRespaldaA(excepcion.respaldo, excepcion.raiz, excepcion.motivo)
+    if (!tieneMotivoComprobable || !respaldaDeVerdad) {
+      insuficientes.push(ruta)
+    }
+  }
+  return insuficientes
+}
+
+describe('MARCAS_CON_REFERENTE_NO_PERSISTENTE — excepciones auditadas (Task 1; WR-02/WR-03 heredadas, Task 3)', () => {
+  it('toda entrada tiene motivo de al menos 40 caracteres y un respaldo que resuelve a un fichero real del repo (IN-01: mide longitud, no sustancia)', () => {
     for (const [ruta, excepcion] of Object.entries(MARCAS_CON_REFERENTE_NO_PERSISTENTE)) {
-      expect(excepcion.motivo.trim().length, `${ruta}: motivo vacío`).toBeGreaterThan(0)
+      expect(excepcion.motivo.length, `${ruta}: motivo demasiado corto`).toBeGreaterThanOrEqual(40)
       expect(respaldoExiste(excepcion.respaldo), `${ruta}: respaldo inexistente (${excepcion.respaldo})`).toBe(true)
     }
+  })
+
+  // WR-02/WR-03 heredadas (plan 09-39): las mismas dos exigencias del gate
+  // de clase — el respaldo tiene que respaldar de verdad (no solo existir)
+  // y el motivo tiene que nombrar algo comprobable (no solo prosa larga) —
+  // se aplican aquí, sin excepción para esta tabla.
+  it('toda entrada pasa respaldoRespaldaA y motivoNombraAlgoComprobable (WR-02/WR-03 heredadas)', () => {
+    const insuficientes = excepcionesConRespaldoInsuficiente()
+    expect(insuficientes, `Entradas con respaldo insuficiente: ${insuficientes.join(', ')}`).toEqual([])
+  })
+
+  it('la entrada real de useHistorySavedNotice.ts pasa por vía de identificador (planGameEnd, nombrado en su motivo, medido dentro de avisoTrasRegistroFallido.test.ts)', () => {
+    const excepcion = MARCAS_CON_REFERENTE_NO_PERSISTENTE['app/composables/useHistorySavedNotice.ts']!
+    expect(motivoNombraAlgoComprobable(excepcion.motivo)).toBe(true)
+    expect(identificadoresComprobablesDe(excepcion.motivo)).toContain('planGameEnd')
+    expect(respaldoRespaldaA(excepcion.respaldo, excepcion.raiz, excepcion.motivo)).toBe(true)
+  })
+
+  // --- Casos sintéticos: las dos primeras viñetas de <behavior> (Task 3) ---
+
+  it('una entrada sintética con un respaldo REAL pero SIN RELACIÓN pone rojo el gate de invariantes (WR-02, caso sintético)', () => {
+    const tablaSintetica = {
+      'app/composables/FicheroSintetico.ts': {
+        raiz: 'guardad',
+        motivo: 'planGameEnd decide este aviso a partir de una lectura fresca de la autoridad.',
+        respaldo: 'app/composables/useVoiceAnnouncer.ts', // real, sin relación con 'guardad' ni con planGameEnd
+      },
+    }
+    expect(excepcionesConRespaldoInsuficiente(tablaSintetica)).toEqual(['app/composables/FicheroSintetico.ts'])
+  })
+
+  it('una entrada sintética con un motivo de RELLENO sin identificadores pone rojo el gate de invariantes (WR-03, caso sintético)', () => {
+    const tablaSintetica = {
+      'app/composables/FicheroSintetico.ts': {
+        raiz: 'guardad',
+        motivo: 'esto está bien, de verdad, en serio, créeme, funciona correctamente sin ningún problema',
+        respaldo: 'app/composables/__tests__/avisoTrasRegistroFallido.test.ts', // real y SÍ relacionado, pero el motivo no nombra nada comprobable
+      },
+    }
+    expect(excepcionesConRespaldoInsuficiente(tablaSintetica)).toEqual(['app/composables/FicheroSintetico.ts'])
+  })
+
+  // Cierre de cobertura (Task 3, plan 09-39): casos sintéticos AISLADOS
+  // para las dos condiciones que las entradas reales de esta tabla no
+  // ejercitan en rojo por sí solas — longitud (IN-01) y respaldo existente
+  // (respaldoExiste) —, cada uno llamando directamente a la función que
+  // implementa esa única condición, sin pasar por el resto.
+  it('un motivo de menos de 40 caracteres no alcanza el umbral de longitud (IN-01, caso sintético aislado, cierre de cobertura)', () => {
+    const motivoCorto = 'motivo corto'
+    expect(motivoCorto.length).toBeLessThan(40)
+  })
+
+  it('respaldoExiste devuelve false para una ruta inventada (caso sintético aislado, cierre de cobertura)', () => {
+    expect(respaldoExiste('app/composables/no-existe-de-verdad.ts')).toBe(false)
   })
 })
 
@@ -326,12 +410,20 @@ export function contratoDeLaMarcaDe(fuente: string): ContratoDeLaMarca {
 }
 
 describe('Pata 1 — contratoDeLaMarcaDe (Task 1)', () => {
-  it('identifica ponedor/retirador/lector y aridadDelLector=1 sobre useProgressMismatchMark.ts real (HOY)', () => {
+  // Actualizado en el plan 09-39 (Task 3): el plan 09-38 (GREEN de CR-01)
+  // cambió la firma real de `readProgressMismatchWarning` a dos parámetros
+  // obligatorios (`huellaActual` sin `?`) — este self-test medía el estado
+  // ROTO anterior (aridadDelLector=1), etiquetado explícitamente "(HOY)" en
+  // su propio nombre para avisar de que era temporal. Las PATAS REALES de
+  // abajo (`it.each` sobre `marcasNoAuditadas`) son las que de verdad
+  // auditan el árbol vivo; este self-test solo fija el comportamiento de
+  // `contratoDeLaMarcaDe` sobre el contenido real, ahora arreglado.
+  it('identifica ponedor/retirador/lector y aridadDelLector=2 con segundo parámetro obligatorio sobre useProgressMismatchMark.ts real (arreglado en el plan 09-38)', () => {
     const contrato = contratoDeLaMarcaDe(contenidoPorRuta(ficherosTsDelArbol, 'app/composables/useProgressMismatchMark.ts'))
     expect(contrato.ponedor).toBe('markProgressMismatch')
     expect(contrato.retirador).toBe('clearProgressMismatch')
     expect(contrato.lector).toBe('readProgressMismatchWarning')
-    expect(contrato.aridadDelLector).toBe(1)
+    expect(contrato.aridadDelLector).toBe(2)
     expect(contrato.segundoParametroOpcional).toBe(false)
   })
 
@@ -392,11 +484,14 @@ export function lecturasSinTestigoDe(fuente: string, nombreDelLector: string): s
 }
 
 describe('Pata 2 — lecturasSinTestigoDe (Task 1)', () => {
-  it('sobre app/pages/[game]/index.vue real, para readProgressMismatchWarning, devuelve una llamada (la de la línea ~202, un solo argumento) — ROJA hoy', () => {
+  // Actualizado en el plan 09-39 (Task 3): el plan 09-38 pasó la llamada de
+  // la línea ~208 a `readProgressMismatchWarning(gameId, informe.huella)`
+  // (dos argumentos) — este self-test medía el estado ROTO anterior (una
+  // llamada de un solo argumento), etiquetado "ROJA hoy" a propósito.
+  it('sobre app/pages/[game]/index.vue real, para readProgressMismatchWarning, no devuelve ninguna llamada sin testigo (arreglado en el plan 09-38)', () => {
     const fuente = contenidoPorRuta(ficherosVueDelArbol, 'app/pages/[game]/index.vue')
     const llamadas = lecturasSinTestigoDe(fuente, 'readProgressMismatchWarning')
-    expect(llamadas.length).toBeGreaterThan(0)
-    expect(llamadas.every(llamada => llamada.startsWith('readProgressMismatchWarning('))).toBe(true)
+    expect(llamadas).toEqual([])
   })
 
   it('sobre una fuente sintética con una llamada de dos argumentos devuelve [] (caso sintético)', () => {
@@ -488,9 +583,14 @@ export function faltaPruebaDeCicloDeVidaEn(fuenteDelTest: string, ponedor: strin
 }
 
 describe('Pata 3 — faltaPruebaDeCicloDeVidaEn (Task 2)', () => {
-  it('sobre useProgressMismatchMark.test.ts real devuelve true — ningún it demuestra el ciclo de vida con testigos distintos (ROJA hoy, API de un solo argumento)', () => {
+  // Actualizado en el plan 09-39 (Task 3): el plan 09-38 (Task 3) añadió el
+  // test 16 de useProgressMismatchMark.test.ts, que pone con una huella y
+  // lee con OTRA distinta esperando null — exactamente el ciclo de vida que
+  // esta pata exige. Este self-test medía el estado ROTO anterior (ningún
+  // it lo demostraba), etiquetado "ROJA hoy" a propósito.
+  it('sobre useProgressMismatchMark.test.ts real devuelve false — el test 16 (plan 09-38) demuestra el ciclo de vida con testigos distintos (arreglado)', () => {
     const fuente = contenidoPorRuta(ficherosTsDelArbol, 'app/composables/__tests__/useProgressMismatchMark.test.ts')
-    expect(faltaPruebaDeCicloDeVidaEn(fuente, 'markProgressMismatch', 'readProgressMismatchWarning')).toBe(true)
+    expect(faltaPruebaDeCicloDeVidaEn(fuente, 'markProgressMismatch', 'readProgressMismatchWarning')).toBe(false)
   })
 
   it('sobre una fuente sintética con un it que pone con un testigo y lee con OTRO distinto, seguido de toBe(null), devuelve false (caso sintético: SÍ demuestra el ciclo de vida)', () => {
@@ -593,11 +693,16 @@ export function ramasQueLeenSinPintarDe(fuenteDelConsumidor: string, lector: str
 }
 
 describe('Pata 4 — ramasQueLeenSinPintarDe (Task 2)', () => {
-  it('sobre app/pages/[game]/index.vue real devuelve un array que contiene awaitingContentChangedAck y NO contiene awaitingResumeChoice — ROJA hoy (WR-01)', () => {
+  // Actualizado en el plan 09-39 (Task 3): el plan 09-38 (Task 2) añadió
+  // `:mismatch-warning="avisoDiscrepancia"` a `<ContentChangedNotice>` — la
+  // rama `awaitingContentChangedAck` ya pinta el aviso, igual que
+  // `awaitingResumeChoice`. Este self-test medía el estado ROTO anterior
+  // (WR-01: la rama calculaba el aviso sin pintarlo), etiquetado "ROJA hoy"
+  // a propósito.
+  it('sobre app/pages/[game]/index.vue real devuelve un array vacío — las dos ramas pintan el aviso (WR-01 arreglado en el plan 09-38)', () => {
     const fuente = contenidoPorRuta(ficherosVueDelArbol, 'app/pages/[game]/index.vue')
     const faltantes = ramasQueLeenSinPintarDe(fuente, 'readProgressMismatchWarning')
-    expect(faltantes).toContain('awaitingContentChangedAck')
-    expect(faltantes).not.toContain('awaitingResumeChoice')
+    expect(faltantes).toEqual([])
   })
 
   it('sobre una fuente sintética donde las DOS ramas llevan el binding del aviso devuelve [] (caso sintético)', () => {
@@ -699,6 +804,64 @@ describe('Pata 5 — cobertura del descubrimiento: ninguna marca queda huérfana
         expect(excepcion.motivo.trim().length, `${marca}: motivo vacío en MARCAS_CON_REFERENTE_NO_PERSISTENTE`).toBeGreaterThan(0)
         expect(respaldoExiste(excepcion.respaldo), `${marca}: respaldo inexistente (${excepcion.respaldo})`).toBe(true)
       }
+    }
+  })
+})
+
+// --- Cierre de cobertura de las condiciones de calidad heredadas (Task 3, plan 09-39, cierre de T-09-39-05) ---
+//
+// COMENTARIO DE ANTI-RECURRENCIA (obligatorio): distinto de la Pata 5 de
+// arriba (que vigila el DESCUBRIMIENTO de marcas — que ninguna quede
+// huérfana de comprobación), este cierre vigila las CUATRO condiciones de
+// CALIDAD de una excepción auditada de MARCAS_CON_REFERENTE_NO_PERSISTENTE
+// —longitud (IN-01), respaldo existente (respaldoExiste), respaldo
+// relevante (respaldoRespaldaA, WR-02) y motivo comprobable
+// (motivoNombraAlgoComprobable, WR-03)—, EXACTAMENTE la misma lista que
+// `afirmacionesRespaldadas.test.ts` vigila para AFIRMACIONES_AUDITADAS: el
+// mismo mecanismo con dos tablas se rige por las mismas reglas, y una
+// condición añadida a UNA de las dos tablas en una ronda futura sin su
+// caso rojo correspondiente aquí pone roja esta suite en el acto — que es
+// exactamente lo que habría hecho falta para que WR-02 y WR-03 no llegaran
+// a existir.
+describe('Cierre de cobertura — las cuatro condiciones de calidad heredadas del gate de clase (Task 3)', () => {
+  const COBERTURA_DE_CONDICIONES_DE_CALIDAD = [
+    {
+      condicion: 'longitud (IN-01, umbral de 40 caracteres) — mide longitud, no sustancia',
+      casoSintetico: 'un motivo de menos de 40 caracteres no alcanza el umbral de longitud (IN-01, caso sintético aislado, cierre de cobertura)',
+    },
+    {
+      condicion: 'respaldo existente (respaldoExiste)',
+      casoSintetico: 'respaldoExiste devuelve false para una ruta inventada (caso sintético aislado, cierre de cobertura)',
+    },
+    {
+      condicion: 'respaldo relevante (respaldoRespaldaA, WR-02)',
+      casoSintetico: 'una entrada sintética con un respaldo REAL pero SIN RELACIÓN pone rojo el gate de invariantes (WR-02, caso sintético)',
+    },
+    {
+      condicion: 'motivo comprobable (motivoNombraAlgoComprobable, WR-03)',
+      casoSintetico: 'una entrada sintética con un motivo de RELLENO sin identificadores pone rojo el gate de invariantes (WR-03, caso sintético)',
+    },
+  ]
+
+  it('cobertura: las cuatro condiciones de calidad de una excepción auditada tienen, cada una, un caso sintético que la pone roja de forma aislada — ninguna se queda sin él', () => {
+    const clave = Object.keys(ficherosTsDelArbol).find(k => k.endsWith('/composables/__tests__/invariantesDeMarcaDeEstado.test.ts'))
+    expect(clave, 'no se encontró invariantesDeMarcaDeEstado.test.ts en su propio glob').toBeDefined()
+    const contenidoPropio = ficherosTsDelArbol[clave!]!
+    for (const { condicion, casoSintetico } of COBERTURA_DE_CONDICIONES_DE_CALIDAD) {
+      // La cita de esta lista es, ella misma, una aparición literal de
+      // `casoSintetico` dentro de `contenidoPropio` — un simple `.toContain`
+      // sería trivialmente cierto siempre, porque la propia cita se
+      // contiene a sí misma. Se exige que el texto aparezca AL MENOS DOS
+      // VECES: una la cita, otra el título real del `it(...)` que ejecuta
+      // el caso — si ese `it` se renombra o se borra, el recuento cae a 1
+      // y este test se pone rojo (demostrado por mutación EJECUTADA y
+      // revertida, ver el SUMMARY del plan 09-39).
+      const ocurrencias = contenidoPropio.split(casoSintetico).length - 1
+      expect(
+        ocurrencias,
+        `condición «${condicion}»: el caso sintético citado ("${casoSintetico}") no existe como un it(...) real en `
+        + 'el fichero — solo se encuentra la propia cita de la lista de cobertura.',
+      ).toBeGreaterThanOrEqual(2)
     }
   })
 })

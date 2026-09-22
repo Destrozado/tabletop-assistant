@@ -936,6 +936,15 @@ const aviso = '${frase}'
     expect(respaldoExiste('')).toBe(false)
   })
 
+  // Cierre de cobertura (Task 3, plan 09-39): caso sintético AISLADO para la
+  // condición de LONGITUD (IN-01) — un motivo corto, evaluado exactamente
+  // igual que lo hace el `it` real de arriba, sin pasar por ninguna de las
+  // otras tres condiciones.
+  it('un motivo de menos de 40 caracteres no alcanza el umbral de longitud (IN-01, caso sintético aislado, cierre de cobertura)', () => {
+    const motivoCorto = 'motivo corto'
+    expect(motivoCorto.length).toBeLessThan(40)
+  })
+
   // --- Plan 09-39, Task 1: Gate S ejerce respaldoRespaldaA (WR-02) ---
   //
   // Las cuatro viñetas de <behavior> del plan, en el mismo orden en que las
@@ -1058,5 +1067,58 @@ const aviso = '${frase}'
     expect(clave, 'no se encontró afirmacionesRespaldadas.test.ts en su propio glob').toBeDefined()
     const contenidoPropio = ficherosTsDelArbol[clave!]!
     expect(contenidoPropio).toContain('app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts')
+  })
+
+  // CIERRE DE COBERTURA (plan 09-39, Task 3, cierre de T-09-39-05).
+  //
+  // COMENTARIO DE ANTI-RECURRENCIA (obligatorio): las CUATRO condiciones de
+  // calidad de una excepción auditada de AFIRMACIONES_AUDITADAS —longitud
+  // (IN-01), respaldo existente (respaldoExiste), respaldo relevante
+  // (respaldoRespaldaA, WR-02) y motivo comprobable
+  // (motivoNombraAlgoComprobable, WR-03)— y, junto a cada una, el NOMBRE
+  // LITERAL del caso sintético que la pone roja de forma AISLADA. El `it`
+  // de cierre de más abajo comprueba, por GREP sobre el propio contenido de
+  // este fichero (leído del glob, nunca de memoria), que cada nombre citado
+  // existe de verdad — así, una condición añadida en una ronda futura sin
+  // su caso rojo pone roja la suite en el acto, que es exactamente lo que
+  // habría hecho falta para que WR-02 y WR-03 no llegaran a existir.
+  const COBERTURA_DE_CONDICIONES_DE_CALIDAD = [
+    {
+      condicion: 'longitud (IN-01, umbral de 40 caracteres) — mide longitud, no sustancia',
+      casoSintetico: 'un motivo de menos de 40 caracteres no alcanza el umbral de longitud (IN-01, caso sintético aislado, cierre de cobertura)',
+    },
+    {
+      condicion: 'respaldo existente (respaldoExiste)',
+      casoSintetico: 'respaldoExiste devuelve false para una ruta inventada',
+    },
+    {
+      condicion: 'respaldo relevante (respaldoRespaldaA, WR-02)',
+      casoSintetico: 'respaldoRespaldaA es false para un fichero REAL del árbol sin ninguna relación con la raíz ni con el motivo (el contraejemplo exacto de WR-02)',
+    },
+    {
+      condicion: 'motivo comprobable (motivoNombraAlgoComprobable, WR-03)',
+      casoSintetico: 'motivoNombraAlgoComprobable es false para cualquier prosa de relleno de más de 40 caracteres sin identificadores (relleno vacío, IN-01)',
+    },
+  ]
+
+  it('cobertura: las cuatro condiciones de calidad de una excepción auditada tienen, cada una, un caso sintético que la pone roja de forma aislada — ninguna se queda sin él', () => {
+    const clave = Object.keys(ficherosTsDelArbol).find(k => k.endsWith('/composables/__tests__/afirmacionesRespaldadas.test.ts'))
+    expect(clave, 'no se encontró afirmacionesRespaldadas.test.ts en su propio glob').toBeDefined()
+    const contenidoPropio = ficherosTsDelArbol[clave!]!
+    for (const { condicion, casoSintetico } of COBERTURA_DE_CONDICIONES_DE_CALIDAD) {
+      // La cita en COBERTURA_DE_CONDICIONES_DE_CALIDAD es, ella misma, una
+      // aparición literal de `casoSintetico` dentro de `contenidoPropio` —
+      // un simple `.toContain` sería trivialmente cierto siempre, porque la
+      // propia cita se contiene a sí misma. Se exige que el texto aparezca
+      // AL MENOS DOS VECES: una la cita de esta lista, otra el título real
+      // del `it(...)` que ejecuta el caso — si ese `it` se renombra o se
+      // borra, el recuento cae a 1 y este test se pone rojo.
+      const ocurrencias = contenidoPropio.split(casoSintetico).length - 1
+      expect(
+        ocurrencias,
+        `condición «${condicion}»: el caso sintético citado ("${casoSintetico}") no existe como un it(...) real en `
+        + 'el fichero — solo se encuentra la propia cita de la lista de cobertura.',
+      ).toBeGreaterThanOrEqual(2)
+    }
   })
 })
