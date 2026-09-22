@@ -30,6 +30,7 @@
 // una función menciona 'firebase' en una declaración `import`.
 import { buildSyncPayload } from '~~/engine/sync'
 import type { GameHistoryEntry } from '~~/engine/types'
+import type { HistoryRead } from './usePersistedSession'
 import { usePersistedSession } from './usePersistedSession'
 
 // Forma mínima de `runtimeConfig.public` que este fichero necesita (D-13) —
@@ -99,17 +100,20 @@ async function ensureAnonymousUser(authModule: FirebaseAuthModule, auth: Firebas
 
 // syncPending: única función de todo el módulo (y de toda la app) que carga
 // el SDK de Firebase. `entries` son las pendientes ya calculadas por
-// `flush()`; `loadHistory` se vuelve a invocar al FINAL del recorrido (no se
+// `flush()`; `readHistory` se vuelve a invocar al FINAL del recorrido (no se
 // reutiliza la lectura que hizo `flush()` al principio) para que la poda de
 // D-04 vea el estado más reciente de `tga:history` — incluida una entrada
-// que el grupo borró MIENTRAS este flush estaba en vuelo;
+// que el grupo borró MIENTRAS este flush estaba en vuelo. WR-01: se inyecta
+// `readHistory` (el lector que SÍ distingue `'unreadable'`), no `loadHistory`
+// — la poda necesita saber cuándo NO confiar en la lectura, cosa que
+// `loadHistory` (colapsado a `[]` para las pantallas) no puede contarle.
 // `loadSyncedIds`/`saveSyncedIds` son el lector/escritor de
 // `tga:history:synced` (D-01), inyectados para no repetir aquí el import de
 // `usePersistedSession`.
 async function syncPending(
   entries: GameHistoryEntry[],
   config: FirebaseSyncConfig,
-  loadHistory: () => GameHistoryEntry[],
+  readHistory: () => HistoryRead,
   loadSyncedIds: () => string[],
   saveSyncedIds: (ids: string[]) => void,
 ): Promise<void> {
@@ -165,7 +169,7 @@ async function syncPending(
   // D-04 (plan 10-03): poda perezosa de la lista de marcas, DENTRO del
   // propio flush, con una sola escritura — tanto si hubo subidas nuevas
   // como si TODAS las subidas de este recorrido fallaron. Se descarta
-  // cualquier id que no esté en el conjunto de ids de `loadHistory()` leído
+  // cualquier id que no esté en el conjunto de ids de `readHistory()` leído
   // en ESTE instante (no el capturado al principio de `flush()`), así que
   // una entrada que el grupo borró en `/historico` mientras el flush seguía
   // en vuelo también queda podada sin esperar a la próxima vez.
@@ -176,10 +180,30 @@ async function syncPending(
   // deliberado — un respaldo que se borra solo cuando borras el original no
   // es un respaldo; la poda solo limpia la LISTA DE MARCAS local, nunca el
   // documento remoto.
-  const currentHistoryIds = new Set(loadHistory().map(historyEntry => historyEntry.id))
+  //
+  // WR-01 (revisión de código, Fase 10): el merge (unión de las marcas ya
+  // guardadas con las recién subidas) SIEMPRE se calcula y SIEMPRE se
+  // escribe — eso es lo que evita perder `uploadedIds` ante cualquier
+  // desenlace. Lo único condicional es el FILTRADO por poda: si
+  // `readHistory()` devuelve `'unreadable'` (un `getItem` que lanza justo en
+  // este instante, JSON corrupto, `formatVersion` desconocido), no hay
+  // ningún `currentHistoryIds` del que fiarse, así que esta vuelta NO poda
+  // nada — se limita a persistir el merge tal cual. Podar sobre un conjunto
+  // vacío por culpa de un fallo transitorio de lectura borraría TODAS las
+  // marcas ya subidas con éxito, no solo la entrada en curso, y el efecto no
+  // se autocorrige (D-03: el reintento se rechaza con `permission-denied`
+  // para siempre). Mismo principio que `appendHistoryEntry` ya aplica en
+  // sentido contrario (CR-03, Fase 9): nunca se actúa sobre una lectura que
+  // no se ha sabido interpretar.
+  const currentHistoryRead = readHistory()
   const merged = new Set([...loadSyncedIds(), ...uploadedIds])
-  const pruned = [...merged].filter(id => currentHistoryIds.has(id))
-  saveSyncedIds(pruned)
+  if (currentHistoryRead.kind === 'ok') {
+    const currentHistoryIds = new Set(currentHistoryRead.entries.map(historyEntry => historyEntry.id))
+    saveSyncedIds([...merged].filter(id => currentHistoryIds.has(id)))
+  }
+  else {
+    saveSyncedIds([...merged])
+  }
 }
 
 export function useHistorySync(): { flush: () => void } {
@@ -187,7 +211,7 @@ export function useHistorySync(): { flush: () => void } {
     cachedConfig = readSyncConfig()
     configRead = true
   }
-  const { loadHistory, loadSyncedIds, saveSyncedIds } = usePersistedSession()
+  const { loadHistory, readHistory, loadSyncedIds, saveSyncedIds } = usePersistedSession()
 
   // D-05/D-06/D-07: síncrona, devuelve void, NUNCA lanza. Guardas en este
   // orden exacto — el orden es lo que hace cierto SYNC-05 (el import()
@@ -227,7 +251,7 @@ export function useHistorySync(): { flush: () => void } {
       // `prefetchAll(...).catch(() => {})` en app/pages/[game]/index.vue:
       // cualquier fallo se resuelve en silencio, nunca se propaga hacia
       // record()/onOutcomeRecorded (D-07).
-      void syncPending(pending, config, loadHistory, loadSyncedIds, saveSyncedIds)
+      void syncPending(pending, config, readHistory, loadSyncedIds, saveSyncedIds)
         .catch((err: unknown) => {
           // Cubre TODO lo que no tiene su propio catch interno: el
           // import() dinámico, initializeApp, getAuth, la auth anónima

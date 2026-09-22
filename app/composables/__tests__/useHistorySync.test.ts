@@ -656,3 +656,77 @@ describe('useHistorySync — Task 3 (plan 10-03): todos los caminos de fallo ter
     }).not.toThrow()
   })
 })
+
+describe('useHistorySync — WR-01 (revisión de código, Fase 10): la poda de D-04 no vacía tga:history:synced ante un fallo transitorio de lectura', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    vi.resetModules()
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    delete (globalThis as { useRuntimeConfig?: unknown }).useRuntimeConfig
+    vi.doUnmock('firebase/app')
+    vi.doUnmock('firebase/auth')
+    vi.doUnmock('firebase/firestore')
+    vi.restoreAllMocks()
+  })
+
+  it('si el getItem de tga:history lanza justo en el recálculo final de la poda, las marcas previas y la recién subida sobreviven en vez de vaciarse', async () => {
+    // 'existing' ya estaba marcado y sigue en el histórico; 'ghost' está
+    // marcado pero su partida ya no está en tga:history (se borró en
+    // /historico en una sesión anterior) — con una lectura normal, D-04
+    // podaría 'ghost' de la lista. 'new' está en el histórico, sin marcar:
+    // es la entrada que este flush sube.
+    seedHistory(fakeStorage, [baseEntry({ id: 'existing' }), baseEntry({ id: 'new' })])
+    fakeStorage.setItem(SYNCED_KEY, JSON.stringify(['existing', 'ghost']))
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    mockWorkingAuthAndApp()
+
+    // getItem(tga:history) se deja leer con normalidad la PRIMERA vez (la
+    // guarda de pendientes de flush(), guarda (2)) pero lanza la SEGUNDA vez
+    // — el recálculo de D-04 al final de syncPending, el instante exacto que
+    // describe WR-01. Cualquier otra clave (tga:history:synced) sigue
+    // leyéndose con normalidad.
+    const originalGetItem = fakeStorage.getItem.getMockImplementation()!
+    let historyReads = 0
+    fakeStorage.getItem.mockImplementation((key: string) => {
+      if (key === HISTORY_KEY) {
+        historyReads += 1
+        if (historyReads === 2) throw new Error('SecurityError')
+      }
+      return originalGetItem(key)
+    })
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    flush()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1))
+    await vi.waitFor(() => {
+      expect(fakeStorage.getItem(SYNCED_KEY)).not.toBeNull()
+    })
+
+    // WR-01: ni 'existing' ni 'ghost' se pierden (no hay poda esta vuelta,
+    // por no fiarse de una lectura que no se ha sabido interpretar), y
+    // 'new' — recién subido en este mismo flush — tampoco: el merge de
+    // marcas siempre se escribe, solo el filtrado por poda es condicional.
+    const finalRaw = fakeStorage.getItem(SYNCED_KEY)
+    expect(JSON.parse(finalRaw as string).sort()).toEqual(['existing', 'ghost', 'new'])
+  })
+})

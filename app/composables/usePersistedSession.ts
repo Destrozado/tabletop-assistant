@@ -317,6 +317,19 @@ export type ProgressRead =
   | { read: 'ok', position: PersistedPosition | null }
   | { read: 'failed' }
 
+// WR-01 (Fase 10, revisión de código): mismo criterio discriminado que
+// `ProgressRead` de arriba, aplicado ahora a `tga:history`. `{ kind: 'ok',
+// entries }` cubre tanto el envoltorio genuinamente vacío como el que trae
+// entradas — de cara a este discriminante ambos son «he podido leer, y esto
+// es lo que hay». Solo `'unreadable'` significa «no sé qué hay» (JSON
+// corrupto, `formatVersion` desconocido, o un `getItem` que lanza). Existe
+// para que un llamador que NO pueda permitirse colapsar ambos casos (la poda
+// perezosa de D-04 en `useHistorySync.ts`) tenga de dónde tirar sin duplicar
+// la lectura de `readEnvelope()` ni cambiar lo que devuelve `loadHistory`.
+export type HistoryRead =
+  | { kind: 'ok', entries: GameHistoryEntry[] }
+  | { kind: 'unreadable' }
+
 export function usePersistedSession() {
   // CR-01 (ronda 5): única ruta de parseo del progreso — `load` (más abajo)
   // es un envoltorio suyo, así que las dos no pueden divergir nunca.
@@ -432,10 +445,25 @@ export function usePersistedSession() {
   // Tres entradas con una rota devuelven las dos buenas: nunca se tira el
   // array entero por un solo elemento ilegible. Contrato público sin
   // cambios respecto al código previo a CR-03.
-  function loadHistory(): GameHistoryEntry[] {
+  // WR-01/D-04 (Fase 10): variante de `loadHistory` que SÍ distingue
+  // `'unreadable'` de `'ok'` — mismo precedente que `readProgress`/`ProgressRead`
+  // ya fija para el progreso, ahora aplicado al histórico. `loadHistory` (más
+  // abajo) sigue colapsando los dos casos de cara a la pantalla (contrato sin
+  // cambios); este lector es para quien SÍ necesite decidir algo distinto
+  // ante un fallo transitorio de lectura — la poda perezosa de D-04 en
+  // `useHistorySync.ts`, que antes de este cierre podaba `tga:history:synced`
+  // hasta vaciarla del todo cuando `readEnvelope()` devolvía `'unreadable'`
+  // justo en ese instante (WR-01).
+  function readHistory(): HistoryRead {
     const read = readEnvelope()
-    if (read.kind !== 'ok') return []
-    return read.entries.filter(isGameHistoryEntry)
+    if (read.kind === 'unreadable') return { kind: 'unreadable' }
+    const entries = read.kind === 'ok' ? read.entries.filter(isGameHistoryEntry) : []
+    return { kind: 'ok', entries }
+  }
+
+  function loadHistory(): GameHistoryEntry[] {
+    const read = readHistory()
+    return read.kind === 'ok' ? read.entries : []
   }
 
   // D-03: la ÚNICA función de este fichero que no devuelve `void` — es
@@ -510,5 +538,5 @@ export function usePersistedSession() {
     writeRaw(HISTORY_KEY, JSON.stringify(envelope))
   }
 
-  return { load, readProgress, save, clear, loadVoicePreference, saveVoicePreference, loadHistory, appendHistoryEntry, removeHistoryEntry, loadSyncedIds, saveSyncedIds }
+  return { load, readProgress, save, clear, loadVoicePreference, saveVoicePreference, loadHistory, readHistory, appendHistoryEntry, removeHistoryEntry, loadSyncedIds, saveSyncedIds }
 }
