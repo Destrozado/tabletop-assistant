@@ -5,17 +5,17 @@ milestone_name: Elección de personajes, contadores en mesa e histórico de part
 current_phase: 09
 current_phase_name: Histórico y estadísticas
 status: executing
-stopped_at: Completed 09-36-PLAN.md
-last_updated: "2026-09-22T13:15:17.967Z"
-last_activity: 2026-09-19
+stopped_at: Completed 09-37-PLAN.md
+last_updated: "2026-09-22T13:40:39.986Z"
+last_activity: 2026-09-22
 last_activity_desc: Phase 09 execution started
-state_head: b100e1accef31d9c6a3c12aad54243d863e002ca
+state_head: 29c7d180c13a67044ef5b93fefa0b4c91621e56f
 progress:
   total_phases: 6
   completed_phases: 9
   total_plans: 68
-  completed_plans: 64
-  percent: 94
+  completed_plans: 65
+  percent: 96
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 
 ## Current Position
 
-Phase: 09 (Histórico y estadísticas) — READY TO EXECUTE
-Plan: 6 of 36
+Phase: 09 (Histórico y estadísticas) — EXECUTING
+Plan: 2 of 40
 Status: Ready to execute
-Last activity: 2026-09-19 — Phase 09 execution started
+Last activity: 2026-09-22 — Phase 09 execution started
 
 ## Performance Metrics
 
@@ -86,6 +86,7 @@ Last activity: 2026-09-19 — Phase 09 execution started
 | Phase 09 P34 | 23min | 3 tasks | 2 files |
 | Phase 09-hist-rico-y-estad-sticas P35 | 22min | 3 tasks | 1 files |
 | Phase 09 P36 | 10min | 3 tasks | 4 files |
+| Phase 09 P37 | 25min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -153,6 +154,8 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-35: variantesSinRespaldoDe (decision de Gate B) extraida con RED->GREEN real (stub -> implementacion), verificado con gsd_run check tdd-red-evidence (RED_EVIDENCE_OK); Tasks 1/3 documentadas como excepcion justificada de la Fail-Fast Rule #1 de tdd.md porque ejercitan funciones ya correctas desde el plan 09-34
 - [Phase 09]: 09-36: REQUIREMENTS.md registra la octava cara de la ronda 7 sin cerrar HIST-06 (queda [ ] a la espera de una ronda de verificación independiente); ROADMAP.md a 36/36 planes sin declarar la Fase 9 verificada
 - [Phase 09]: 09-36: la deuda de la marca en memoria de progreso (useProgressMismatchMark.ts) queda documentada en deferred-items.md como riesgo evaluado, con accion sugerida concreta (clave tga:progress-mismatch:<gameId> en el siguiente arranque con exito), nunca como fuera de alcance de plan
+- [Phase 09]: 09-37: vocabulario de raíces léxicas movido a vocabularioDeAfirmaciones.ts, compartido por los dos gates sin copias (T-09-37-02) — Evita que las dos implementaciones diverjan en silencio, exactamente la clase de defecto que este cierre de hueco existe para prevenir
+- [Phase 09]: 09-37: HIST-04/HIST-06 NO se marcan completados en REQUIREMENTS.md — el scope_boundary del plan lo prohíbe explícitamente — El gate nuevo queda ROJO a propósito (CR-01/WR-01); el arreglo es el plan 09-38 y la confirmación es una ronda de verificación independiente, no este plan
 
 ### Pending Todos
 
@@ -199,6 +202,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-18T23:55:31.870Z
-Stopped at: Completed 09-36-PLAN.md
+Last session: 2026-09-22T13:40:39.895Z
+Stopped at: Completed 09-37-PLAN.md
 Resume file: None
