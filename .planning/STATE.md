@@ -5,17 +5,17 @@ milestone_name: Elección de personajes, contadores en mesa e histórico de part
 current_phase: 09
 current_phase_name: Histórico y estadísticas
 status: executing
-stopped_at: Completed 09-37-PLAN.md
-last_updated: "2026-09-22T13:40:39.986Z"
+stopped_at: Completed 09-38-PLAN.md
+last_updated: "2026-09-22T14:07:08.668Z"
 last_activity: 2026-09-22
 last_activity_desc: Phase 09 execution started
-state_head: 29c7d180c13a67044ef5b93fefa0b4c91621e56f
+state_head: 616cef6d21ec49fb127578191969f745f1704085
 progress:
   total_phases: 6
   completed_phases: 9
   total_plans: 68
-  completed_plans: 65
-  percent: 96
+  completed_plans: 66
+  percent: 97
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 09 (Histórico y estadísticas) — EXECUTING
-Plan: 2 of 40
+Plan: 3 of 40
 Status: Ready to execute
 Last activity: 2026-09-22 — Phase 09 execution started
 
@@ -87,6 +87,7 @@ Last activity: 2026-09-22 — Phase 09 execution started
 | Phase 09-hist-rico-y-estad-sticas P35 | 22min | 3 tasks | 1 files |
 | Phase 09 P36 | 10min | 3 tasks | 4 files |
 | Phase 09 P37 | 25min | 3 tasks | 3 files |
+| Phase 09 P38 | 27min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -156,6 +157,7 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-36: la deuda de la marca en memoria de progreso (useProgressMismatchMark.ts) queda documentada en deferred-items.md como riesgo evaluado, con accion sugerida concreta (clave tga:progress-mismatch:<gameId> en el siguiente arranque con exito), nunca como fuera de alcance de plan
 - [Phase 09]: 09-37: vocabulario de raíces léxicas movido a vocabularioDeAfirmaciones.ts, compartido por los dos gates sin copias (T-09-37-02) — Evita que las dos implementaciones diverjan en silencio, exactamente la clase de defecto que este cierre de hueco existe para prevenir
 - [Phase 09]: 09-37: HIST-04/HIST-06 NO se marcan completados en REQUIREMENTS.md — el scope_boundary del plan lo prohíbe explícitamente — El gate nuevo queda ROJO a propósito (CR-01/WR-01); el arreglo es el plan 09-38 y la confirmación es una ronda de verificación independiente, no este plan
+- [Phase 09]: 09-38: huella incluye los siete campos de PersistedPosition (updatedAt incluido); Map<gameId,huella> con testigo obligatorio en el lector; ninguno de los dos gates de 09-37 se edita en este plan (reservados a 09-39 por scope_boundary) aunque el arreglo introduce 5 tests rojos confinados a esos dos ficheros (self-tests de fixture obsoletos + Gate A false-positive), documentados en deferred-items.md y .planning/WINDOWS.md
 
 ### Pending Todos
 
@@ -202,6 +204,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-22T13:40:39.895Z
-Stopped at: Completed 09-37-PLAN.md
+Last session: 2026-09-22T14:07:08.578Z
+Stopped at: Completed 09-38-PLAN.md
 Resume file: None

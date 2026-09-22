@@ -474,3 +474,77 @@ pendiente y nada de lo abierto se dé por cerrado por descuido:
 
 Ningún hallazgo nuevo, distinto de los dos registrados arriba (la marca en memoria y la sonda
 sin clasificar), aparece en los SUMMARY de los planes 09-32/09-33/09-34/09-35.
+
+---
+
+## Ronda 8 / plan 09-38 — Gate A trata `huellaDelProgreso` como afirmación sin auditar, y self-tests de fixture del gate de invariantes quedan obsoletos por el propio arreglo
+
+**Encontrado durante:** ejecución del plan 09-38 (GREEN del RED→GREEN de CR-01/WR-01).
+
+**Descripción (hallazgo 1 — Gate A, `afirmacionesRespaldadas.test.ts`):** el nombre exigido por
+el propio plan 09-38 para la función nueva de la autoridad —
+`huellaDelProgreso` (`app/composables/useStoredProgress.ts`)— contiene, en código real (no
+comentario), la subcadena «progreso», una de las raíces léxicas de
+`RAICES_SOBRE_LOS_DATOS_DEL_GRUPO`. `useStoredProgress.ts` nunca había necesitado una entrada
+en `AFIRMACIONES_AUDITADAS` (Gate A) porque sus identificadores previos usaban el inglés
+(«Progress»), no «progreso». La coincidencia es un falso positivo de una heurística basada en
+subcadenas — la afirmación real ocurre DENTRO de la autoridad, el único sitio con permiso para
+producirla — pero el gate no distingue eso de una copy sin respaldo. `npm test` sale con 1 test
+más en rojo: `Gate A > /app/composables/useStoredProgress.ts no afirma nada ... sin auditoría`.
+
+**Descripción (hallazgo 2 — self-tests de fixture, `invariantesDeMarcaDeEstado.test.ts`):**
+cuatro tests de ESE mismo fichero, cada uno etiquetado explícitamente `(HOY)`/`(ROJA hoy)` en
+su propio nombre, comprueban el resultado de las funciones puras del gate (`contratoDeLaMarcaDe`,
+`lecturasSinTestigoDe`, `faltaPruebaDeCicloDeVidaEn`, `ramasQueLeenSinPintarDe`) contra el
+contenido REAL de los ficheros de producción/test, con un valor esperado hardcodeado que
+describía el estado ROTO (pre-09-38). Tras el arreglo, esos cuatro self-tests-de-fixture se
+vuelven falsos por construcción — exactamente el resultado que su propio nombre («HOY») avisaba
+que era temporal. Importante: las CINCO PATAS reales (los bloques `it.each` que ejercen el
+invariante sobre `marcasNoAuditadas`, la comprobación de verdad de este gate) están TODAS EN
+VERDE — CR-01/WR-01 están genuinamente cerrados en producción. Solo los cuatro self-tests de
+fixture, que documentaban el estado de "HOY" de 09-37, se quedan desincronizados con la realidad
+nueva.
+
+**Por qué no se corrige aquí:** el `<scope_boundary>` del propio plan 09-38 dice, textualmente,
+que tanto `afirmacionesRespaldadas.test.ts` como `invariantesDeMarcaDeEstado.test.ts` "los
+escribió el plan 09-37 y los retoca el 09-39. Este plan los EJECUTA, no los edita." — prohibición
+explícita, sin excepción para añadir una entrada de auditoría nueva o para actualizar un valor
+esperado obsoleto. `09-38-SUMMARY.md` documenta con precisión, con mensajes de test literales,
+exactamente qué 5 tests quedan en rojo y por qué ninguno de los dos hallazgos indica una
+regresión de producción.
+
+**Acción sugerida (para el plan 09-39, que ya retoca ambos gates por scope_boundary):**
+1. Añadir una entrada a `AFIRMACIONES_AUDITADAS['app/composables/useStoredProgress.ts']` para la
+   raíz `'progreso'`, con motivo («`huellaDelProgreso` es la propia autoridad calculando su
+   huella, no una afirmación externa sin respaldo») y respaldo
+   `app/composables/__tests__/useStoredProgress.test.ts`.
+2. Actualizar los cuatro valores hardcodeados de los self-tests `(HOY)`/`(ROJA hoy)` de
+   `invariantesDeMarcaDeEstado.test.ts` (líneas ~329, ~395, ~491, ~596 al cerrar el plan 09-38)
+   para que reflejen el estado ARREGLADO (aridadDelLector=2, sin llamadas sin testigo, con prueba
+   de ciclo de vida, sin ramas sin pintar) — o retirarlos si ya no aportan nada una vez que las
+   patas reales `it.each` cubren lo mismo sobre el árbol vivo.
+
+**Encontrado durante (hallazgo 3 — gap de cobertura de la segunda defensa):** la Task 3 del plan
+09-38 ejecutó la mutación exigida por su propio `<acceptance_criteria>`: quitar la llamada a
+`clearProgressMismatch(gameId)` de `onResumeContinue`
+(`app/pages/[game]/index.vue`) y comprobar qué test se pone rojo. Resultado real: NINGÚN test se
+puso rojo — ni en `invariantesDeMarcaDeEstado.test.ts` (la validación de huella cubre el
+escenario canónico, así que el gate de invariantes sigue en verde, tal como el plan anticipaba)
+NI en ningún test de `useProgressMismatchMark.test.ts`/`useStoredProgress.test.ts` (que solo
+pueden ejercer la API pública del composable, nunca la función privada `onResumeContinue` de la
+página). El plan 09-38 mismo anticipó este desenlace por escrito («Si ningún test se pusiera
+rojo, escribirlo así en el SUMMARY y añadir el test que falte») pero el `<files>` de la Task 3
+solo declara los dos test files de composable — ninguno puede importar ni ejercer una función
+`<script setup>` privada de un SFC de página.
+
+**Por qué no se corrige aquí:** el `<scope_boundary>` de 09-38 limita este plan a los seis
+ficheros de `files_modified`; ninguno es un test de página, y crear uno nuevo violaría
+literalmente esa restricción ("DENTRO: los seis ficheros de `files_modified`").
+
+**Acción sugerida:** un test de integración (Vue Test Utils / `@nuxt/test-utils`, montando
+`app/pages/[game]/index.vue` con una sesión marcada y simulando el clic de «Continuar») que
+falle si `onResumeContinue` deja de llamar a `clearProgressMismatch`. Alternativamente, una pata
+NUEVA en `invariantesDeMarcaDeEstado.test.ts` (fuera del alcance de 09-38 y 09-39 tal como están
+escritos hoy) que exija, para cada rama de invalidación explícita documentada en el propio
+comentario del `retirador`, una llamada real en el fichero que la documenta — hoy la Pata 2 solo
+vigila LECTURAS sin testigo, nunca la AUSENCIA de una llamada de retirada esperada.
