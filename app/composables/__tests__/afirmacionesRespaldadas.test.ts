@@ -58,6 +58,24 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { NOTICE_BODY, NOTICE_HEADING, resolveNoticeVariant } from '../useHistorySavedNotice'
 import type { StoredProgress } from '../useStoredProgress'
+// Vocabulario compartido (plan 09-37, cierre de T-09-37-02): las raíces
+// léxicas, la región vigilada, el descubrimiento de ficheros del árbol y
+// `respaldoExiste` se MUEVEN a `vocabularioDeAfirmaciones.ts` para que el
+// gate nuevo de este plan (`invariantesDeMarcaDeEstado.test.ts`) los
+// comparta sin copiarlos — dos copias que pudieran divergir en silencio
+// serían una cara nueva del mismo defecto que este fichero lleva nueve
+// rondas cerrando.
+import {
+  RAICES_SOBRE_LOS_DATOS_DEL_GRUPO,
+  contieneRaizSobreLosDatosDelGrupo,
+  ficherosTsDelArbol,
+  ficherosVueDelArbol,
+  normalizarEspacios,
+  quitarComentarios,
+  regionVigilada,
+  respaldoExiste,
+  rutaRelativa,
+} from './vocabularioDeAfirmaciones'
 
 // Los cuatro valores de `StoredProgress`, escritos como constante del test —
 // nunca se inventa un quinto ni se deduce de otro sitio. `'stale'` (plan
@@ -65,34 +83,6 @@ import type { StoredProgress } from '../useStoredProgress'
 // plan Gate B solo conocía los tres valores originales y `'failure-stale'`
 // pasaba desapercibido en el barrido de NOTICE_BODY.
 const TODOS_LOS_ESTADOS_DEL_DISPOSITIVO: StoredProgress[] = ['resumable', 'stale', 'absent', 'unknown']
-
-// RAICES_SOBRE_LOS_DATOS_DEL_GRUPO (plan 09-34, cierre de la vía (a) de
-// `09-VERIFICATION.md` ronda 8): sustituye por completo al vocabulario
-// cerrado de subcadenas literales que este fichero usaba hasta este plan
-// como criterio de Gate A/B (retirado; ver `VOCABULARIO_CERRADO_HASTA_LA_RONDA_7`
-// más abajo, que conserva sus 11 entradas solo como constante de
-// comprobación). Aquella lista cerrada de 11 subcadenas demostró
-// incapaz de alcanzar a la copy nueva a tiempo — ni «conservará» ni
-// «reintentarlo» estaban en ella, así que la frase exacta que hacía daño en
-// `endGameBody` (09-VERIFICATION.md ronda 8, vía (a)) ni siquiera entraba en
-// el barrido, pese a vivir en el fichero más vigilado del repo. Una RAÍZ
-// cubre todas las flexiones de su familia por construcción: `conserv`
-// alcanza «conservar», «conservará», «conservado»; `guardad` alcanza
-// «guardada», «guardado», «sigue guardado», «está guardada» («no se ha
-// borrado» NO — para eso está `se borrar`). Ampliar la copy futura deja de
-// exigir ampliar esta lista.
-const RAICES_SOBRE_LOS_DATOS_DEL_GRUPO = [
-  'conserv',
-  'guardad',
-  'guardar',
-  'dispositivo',
-  'progreso',
-  'reintent',
-  'no se ha perdido',
-  'ya no está',
-  'no encontraréis',
-  'se borrar',
-]
 
 // VOCABULARIO_CERRADO_HASTA_LA_RONDA_7 (plan 09-34): las 11 subcadenas
 // exactas que fueron el criterio ÚNICO hasta este plan, conservadas ahora
@@ -128,26 +118,6 @@ const VOCABULARIO_CERRADO_HASTA_LA_RONDA_7 = [
 // dependa de que el defecto siga existiendo en el repo.
 const FRASE_NO_DETECTADA_EN_LA_RONDA_7 = 'Si el registro en el histórico falla, la app conservará el progreso para que podáis reintentarlo.'
 
-// normalizarEspacios (plan 09-34, vía (d) de `09-VERIFICATION.md` ronda 8):
-// una copy partida en dos líneas por un formateador evade un `includes`
-// literal sin mala fe — eso convierte al gate en algo que depende del
-// formateo, no del contenido. Se aplica a los dos lados de la comparación
-// antes de compararlos: cualquier RUN de espacios en blanco (incluidos
-// saltos de línea y la indentación que los sigue) colapsa a un único
-// espacio, así que una raíz partida en dos líneas por un formateador queda
-// contigua otra vez antes del `includes`.
-export function normalizarEspacios(texto: string): string {
-  return texto.replace(/\s+/g, ' ')
-}
-
-// contieneRaizSobreLosDatosDelGrupo (renombre de
-// `contieneFraseSobreLosDatosDelGrupo`, plan 09-34): mismo criterio de
-// comparación insensible a mayúsculas de antes, ahora también con los
-// espacios normalizados en los dos lados (ver `normalizarEspacios` arriba).
-function contieneRaizSobreLosDatosDelGrupo(region: string, raiz: string): boolean {
-  return normalizarEspacios(region.toLowerCase()).includes(normalizarEspacios(raiz.toLowerCase()))
-}
-
 // AfirmacionAuditada (plan 09-34, Task 2, cierre del agravante que hace falso
 // el sello: una excepción auditada cuyo motivo escrito afirma lo contrario
 // de lo verificado). La ronda 8 (09-VERIFICATION.md) encontró una excepción
@@ -162,17 +132,6 @@ interface AfirmacionAuditada {
   raiz: string
   motivo: string
   respaldo: string
-}
-
-// respaldoExiste (plan 09-34, Task 2): declarada como `export function` aquí
-// (hoisted) pero su Set de rutas posibles se construye más abajo, DESPUÉS de
-// `ficherosVueGateA`/`ficherosTsGateA`/`rutaRelativa` (ver justo debajo de
-// `copyDeLaAppGateA`) — esas son `const` de módulo, no hoisted, y este
-// fichero las declara en orden textual descendente. Ningún test puede llamar
-// a `respaldoExiste` antes de que el módulo entero termine de cargar, así
-// que el orden textual no afecta al comportamiento en tiempo de test.
-export function respaldoExiste(ruta: string): boolean {
-  return rutasConRespaldoPosible.has(ruta)
 }
 
 // Excepciones auditadas a mano, por FICHERO y por RAÍZ (plan 09-30, cierre
@@ -442,58 +401,17 @@ const FICHEROS_QUE_PUEDEN_NOMBRAR_EL_ESTADO_DEL_DISPOSITIVO = [
   'app/composables/useProgressMountPlan.ts',
 ]
 
-// quitarComentarios/regionVigilada (plan 09-30, fix de CR-03/WR-04 de
-// `09-REVIEW.md` ronda 6): sustituyen a `extraerTemplate`/
-// `quitarComentariosHtml`. La región vigilada deja de intentar acotar
-// «el `<template>`» — acotar el bloque es lo que falló, con un cuantificador
-// perezoso que cortaba en el PRIMER `</template>` anidado — y pasa a ser el
-// FICHERO ENTERO menos lo que de verdad no es copy: comentarios y `<style>`.
-// Es más barato barrer de más y auditar las excepciones una a una (con su
-// motivo escrito) que confiar en un delimitador que un slot con nombre, un
-// `<template v-if>` o un `<script setup>` pueden romper en silencio.
-export function quitarComentarios(sfc: string): string {
-  return sfc
-    .replace(/<!--[\s\S]*?-->/g, '') // comentarios HTML
-    .replace(/\/\*[\s\S]*?\*\//g, '') // comentarios de bloque JS
-    .replace(/^\s*\/\/.*$/gm, '') // comentarios de línea JS
-}
-
-export function regionVigilada(sfc: string): string {
-  return quitarComentarios(sfc).replace(/<style[^>]*>[\s\S]*?<\/style>/g, '')
-}
-
-// Ruta relativa desde la raíz del repo (p. ej. `app/components/ResumePrompt.vue`),
-// para que `AFIRMACIONES_AUDITADAS`/`FICHEROS_QUE_PUEDEN_NOMBRAR_EL_ESTADO_DEL_DISPOSITIVO`
-// se escriban con la misma forma que el resto del repo usa al citar un fichero.
-function rutaRelativa(clave: string): string {
-  return clave.replace(/^\/+/, '')
-}
-
 // Recorrido RECURSIVO — nunca una lista tecleada a mano: añadir una pantalla
-// o un composable nuevo no puede dejarlo fuera del barrido. Módulo-scope (no
-// dentro del `describe` de Gate A) para que Gate S (auto-verificación) pueda
-// usar el mismo glob de `.vue` al comprobar la cobertura sobre el árbol
-// real, en vez de leer una ruta tecleada a mano.
-//
-// WR-04 (09-REVIEW.md ronda 6): el barrido pasa a ser «copy de la app», no
-// solo «templates» — un segundo `import.meta.glob` añade `app/**/*.ts`,
-// excluyendo `/__tests__/` con el mismo criterio que Gate C ya usa (los
-// propios tests SÍ necesitan nombrar las frases vigiladas para construir su
-// tabla de verdad).
-const ficherosVueGateA = import.meta.glob('/app/**/*.vue', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
-const ficherosTsGateA = import.meta.glob('/app/**/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
+// o un composable nuevo no puede dejarlo fuera del barrido. `ficherosVueDelArbol`/
+// `ficherosTsDelArbol` vienen ahora del vocabulario compartido (plan 09-37);
+// aquí solo se filtra `/__tests__/` para construir la copy de la app que
+// Gate A audita. WR-04 (09-REVIEW.md ronda 6): el barrido es «copy de la
+// app», no solo «templates» — incluye también `app/**/*.ts`, excluyendo
+// `/__tests__/` con el mismo criterio que Gate C ya usa (los propios tests
+// SÍ necesitan nombrar las frases vigiladas para construir su tabla de
+// verdad).
 const copyDeLaAppGateA: Record<string, string> = Object.fromEntries(
-  Object.entries({ ...ficherosVueGateA, ...ficherosTsGateA }).filter(([clave]) => !rutaRelativa(clave).includes('/__tests__/')),
-)
-
-// Set de rutas para `respaldoExiste` (plan 09-34, Task 2): a diferencia de
-// `copyDeLaAppGateA` de arriba, éste NO filtra `/__tests__/` — el respaldo
-// típico de una excepción auditada es justamente un test puro — y añade
-// `engine/**/*.ts`: un respaldo puede apoyarse en el motor puro, no solo en
-// `app/`.
-const ficherosEngineParaRespaldo = import.meta.glob('/engine/**/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
-const rutasConRespaldoPosible = new Set(
-  [...Object.keys(ficherosVueGateA), ...Object.keys(ficherosTsGateA), ...Object.keys(ficherosEngineParaRespaldo)].map(rutaRelativa),
+  Object.entries({ ...ficherosVueDelArbol, ...ficherosTsDelArbol }).filter(([clave]) => !rutaRelativa(clave).includes('/__tests__/')),
 )
 
 describe('Criterio por raíces léxicas (plan 09-34, cierre de la vía (a) de 09-VERIFICATION.md ronda 8)', () => {
@@ -568,9 +486,9 @@ describe('Respaldo comprobable de cada excepción auditada (plan 09-34, Task 2, 
   })
 
   it('frasesSinAuditarDe sobre el contenido REAL de app/pages/[game]/index.vue devuelve [] — ya no contiene ninguna raíz, no porque esté auditado', () => {
-    const clave = Object.keys(ficherosVueGateA).find(k => k.endsWith('/pages/[game]/index.vue'))
+    const clave = Object.keys(ficherosVueDelArbol).find(k => k.endsWith('/pages/[game]/index.vue'))
     expect(clave, 'no se encontró app/pages/[game]/index.vue en el glob de Gate A').toBeDefined()
-    const contenido = ficherosVueGateA[clave!]!
+    const contenido = ficherosVueDelArbol[clave!]!
     expect(frasesSinAuditarDe('app/pages/[game]/index.vue', contenido)).toEqual([])
   })
 })
@@ -856,16 +774,16 @@ const aviso = '${frase}'
   })
 
   it('cobertura real: la región vigilada de index.vue contiene GameOutcomeDialog (solo existe DESPUÉS del primer </template>)', () => {
-    const clave = Object.keys(ficherosVueGateA).find(k => k.endsWith('/pages/[game]/index.vue'))
+    const clave = Object.keys(ficherosVueDelArbol).find(k => k.endsWith('/pages/[game]/index.vue'))
     expect(clave, 'no se encontró app/pages/[game]/index.vue en el glob de Gate A').toBeDefined()
-    const contenido = ficherosVueGateA[clave!]!
+    const contenido = ficherosVueDelArbol[clave!]!
     expect(regionVigilada(contenido)).toContain('GameOutcomeDialog')
   })
 
   it('cobertura real: la región vigilada de index.vue contiene endGameBody (solo existe en <script setup>)', () => {
-    const clave = Object.keys(ficherosVueGateA).find(k => k.endsWith('/pages/[game]/index.vue'))
+    const clave = Object.keys(ficherosVueDelArbol).find(k => k.endsWith('/pages/[game]/index.vue'))
     expect(clave, 'no se encontró app/pages/[game]/index.vue en el glob de Gate A').toBeDefined()
-    const contenido = ficherosVueGateA[clave!]!
+    const contenido = ficherosVueDelArbol[clave!]!
     expect(regionVigilada(contenido)).toContain('endGameBody')
   })
 
