@@ -5,11 +5,11 @@ milestone_name: Elección de personajes, contadores en mesa e histórico de part
 current_phase: 10
 current_phase_name: Respaldo en Firestore
 status: executing
-stopped_at: Phase 10 context gathered
-last_updated: "2026-09-22T21:06:28.561Z"
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-09-22T21:43:09.894Z"
 last_activity: 2026-09-22
-last_activity_desc: Phase 09 complete, transitioned to Phase 10
-state_head: 836d7dcc4dd031a54420c5a7702fa0ce0ede3db7
+last_activity_desc: Phase 10 execution started
+state_head: 29e846892ed6bca40555935d9753ac0fc82281ef
 progress:
   total_phases: 6
   completed_phases: 10
@@ -25,14 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-28)
 
 **Core value:** Que un grupo pueda jugar una partida completa de Marvel Champions de principio a fin sin abrir el reglamento y sin olvidarse de ningún paso.
-**Current focus:** Phase 09 — Histórico y estadísticas
+**Current focus:** Phase 10 — Respaldo en Firestore
 
 ## Current Position
 
-Phase: 10 (Respaldo en Firestore) — READY TO EXECUTE
-Plan: Not started
+Phase: 10 (Respaldo en Firestore) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-09-22 — Phase 09 complete, transitioned to Phase 10
+Last activity: 2026-09-22 — Phase 10 execution started
 
 ## Performance Metrics
 
@@ -91,6 +91,7 @@ Last activity: 2026-09-22 — Phase 09 complete, transitioned to Phase 10
 | Phase 09 P38 | 27min | 3 tasks | 6 files |
 | Phase 09 P39 | ~50min | 3 tasks | 3 files |
 | Phase 09-hist-rico-y-estad-sticas P40 | 20min | 3 tasks | 2 files |
+| Phase 10 P01 | 45 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -164,6 +165,9 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-39: respaldoRespaldaA/motivoNombraAlgoComprobable cierran WR-02/WR-03 del mecanismo de excepcion auditada; MARCAS_CON_REFERENTE_NO_PERSISTENTE gana raiz para reusar respaldoRespaldaA; el it de cierre de cobertura exige >=2 ocurrencias (cita + it real), nunca .toContain simple; npm test vuelve a 0 fallos (arreglados Gate A/useStoredProgress.ts y 4 self-tests de fixture heredados del plan 09-38); HIST-06 sigue [ ] por scope_boundary explicito
 - [Phase 09]: 09-40: deferred-items.md corrige la evaluacion de riesgo de la marca en memoria (useProgressMismatchMark.ts) distinguiendo Caso A (se pierde, aceptado) de Caso B (persiste incorrecta, cerrado por 09-38); registra el camino de perdida nuevo por updatedAt en la huella como coste conocido
 - [Phase 09]: 09-40: REQUIREMENTS.md gana el parrafo Ronda 8 y sincroniza HIST-04/HIST-06 con los planes 09-37..09-40; HIST-06 sigue [ ] y DEV-02 sigue abierta con el punto nuevo de ContentChangedNotice.vue - la confirmacion queda para una ronda de verificacion independiente; fase 09 (40/40 planes) queda cerrada por completo, pendiente de una ronda de verificacion independiente
+- [Phase 10]: [Phase 10]: 10-01: firebase@^12.19.0 aprobado por el usuario tras checkpoint de legitimidad (veredicto SUS/too-new, falso positivo esperado de un SDK oficial de alta cadencia); instalado en dependencies, nunca devDependencies
+- [Phase 10]: [Phase 10]: 10-01: D-03 (id local como id de documento) y D-10 (coleccion plana history/{id} con uid como campo) confirmados por el usuario en el checkpoint de puerta de un solo sentido antes de escribir la Task 3
+- [Phase 10]: [Phase 10]: 10-01: syncPending fusiona (union) los ids recien subidos con loadSyncedIds() existentes antes de saveSyncedIds — nunca sobrescribe con solo el lote de esta pasada; la poda perezosa de D-04 (descartar ids que ya no esten en tga:history) queda fuera de alcance de este plan, no se implemento
 
 ### Pending Todos
 
@@ -210,6 +214,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-22T20:20:47.407Z
-Stopped at: Phase 10 context gathered
-Resume file: .planning/phases/10-respaldo-en-firestore/10-CONTEXT.md
+Last session: 2026-09-22T21:43:09.795Z
+Stopped at: Completed 10-01-PLAN.md
+Resume file: None

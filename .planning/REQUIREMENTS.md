@@ -266,8 +266,8 @@
 
 ### SYNC — Respaldo en Firestore
 
-- [ ] **SYNC-01**: Cada partida registrada se sube a Firebase Firestore como respaldo duradero
-- [ ] **SYNC-02**: La subida es «dispara y olvida»: no se hace `await` de la escritura en el flujo de fin de partida, porque la promesa de Firestore solo se resuelve cuando el servidor confirma y colgaría sin red
+- [x] **SYNC-01**: Cada partida registrada se sube a Firebase Firestore como respaldo duradero
+- [x] **SYNC-02**: La subida es «dispara y olvida»: no se hace `await` de la escritura en el flujo de fin de partida, porque la promesa de Firestore solo se resuelve cuando el servidor confirma y colgaría sin red
 - [ ] **SYNC-03**: Cada registro lleva una marca de sincronizado; los pendientes se reintentan cuando vuelve la red
 - [ ] **SYNC-04**: Sin conexión, registrar el resultado, listar el histórico y ver las estadísticas funcionan exactamente igual
 - [ ] **SYNC-05**: El SDK de Firebase se carga de forma diferida y solo en cliente; no participa del arranque, del prerender ni del primer pintado

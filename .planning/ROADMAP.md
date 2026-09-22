@@ -340,11 +340,11 @@ Plans:
   4. La escritura usa autenticación anónima (sin cuentas de usuario) y las reglas de seguridad desplegadas en Firestore permiten crear registros con forma validada pero nunca leer ni borrar los de otros.
   5. Un fallo de Firestore nunca impide jugar, registrar localmente ni ver las estadísticas; y una PWA ya instalada recibe cualquier actualización de esta fase por el camino existente (`registerType: 'prompt'`, banda descartable), sin recargarse sola a mitad de ronda.
 
-**Plans**: 4 plans (3 olas)
+**Plans**: 1/4 plans executed (3 olas)
 Plans:
 **Wave 1**
 
-- [ ] 10-01-PLAN.md — Rodaja trazadora: de `record()` a `setDoc`, inerte sin configuración (dependencia, `runtimeConfig`, `engine/sync.ts`, `useHistorySync.ts`, clave `tga:history:synced`, enganche en `record()`) (ola 1)
+- [x] 10-01-PLAN.md — Rodaja trazadora: de `record()` a `setDoc`, inerte sin configuración (dependencia, `runtimeConfig`, `engine/sync.ts`, `useHistorySync.ts`, clave `tga:history:synced`, enganche en `record()`) (ola 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -384,7 +384,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
 | 9. Histórico y estadísticas | v1.8 | 40/40 | Complete    | 2026-09-22 |
-| 10. Respaldo en Firestore | v1.8 | 0/4 | Planned | - |
+| 10. Respaldo en Firestore | v1.8 | 1/4 | In Progress|  |
 
 ---
 
