@@ -58,13 +58,13 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
   función, nunca importación estática de nivel superior. Si nadie ha terminado nunca una
   partida, no se toca ni una línea de Firebase (`research/ARCHITECTURE.md:201`).
 - **Write-only** (`research/PITFALLS.md` §8): frontera de una sola dirección.
-- **D-14 de la Fase 9:** la marca de sincronizado se añade de forma **aditiva**, y una
+- **La promesa aditiva heredada (D-14 de la Fase 9):** la marca de sincronizado se añade de forma **aditiva**, y una
   entrada sin marca cuenta como pendiente — así las partidas ya registradas antes de esta
   fase se suben solas cuando llegue.
 
 ### La marca de sincronizado y el reintento
 
-- **D-01: la marca vive en una clave aparte, `tga:history:synced`, con los ids ya
+- **D-01:** **La marca vive en una clave aparte, `tga:history:synced`, con los ids ya
   subidos** — no como campo dentro de la entrada.
   — **Reversibility:** costly — cambiar de sitio la marca después obliga a migrar el dato
   de una clave a otra en los dispositivos que ya la tengan escrita, y a decidir qué
@@ -85,7 +85,7 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
   recomienda `research/ARCHITECTURE.md:217` — esa recomendación es anterior a los cierres
   CR-01/CR-03 de la Fase 9 y no los tuvo en cuenta.
 
-- **D-02: el flush se dispara en dos momentos — al registrar una partida y al evento
+- **D-02:** **El flush se dispara en dos momentos — al registrar una partida y al evento
   `online`.** Cada `record()` con éxito sube la nueva entrada **y arrastra las
   pendientes**; además un listener de `online` cubre el caso real de esta app: la wifi se
   cayó a mitad de partida y volvió antes de recoger la mesa.
@@ -98,7 +98,7 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
   **Descartado** un empujón al abrir `/historico`: metería carga de red en una pantalla
   que esta fase se compromete a mantener 100 % local.
 
-- **D-03: `setDoc(doc(col, entry.id), …)` — el id local ES el id del documento.**
+- **D-03:** **`setDoc(doc(col, entry.id), …)` — el id local ES el id del documento.**
   — **Reversibility:** one-way — los documentos ya escritos con el id local quedan en la
   colección real; cambiar a ids autogenerados después convive con ellos para siempre o
   exige limpiar el respaldo a mano.
@@ -117,7 +117,7 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
   perdido deja la misma partida dos veces arriba, y como nada lee de la nube, nadie lo
   vería hasta el día de una hipotética restauración.
 
-- **D-04: poda perezosa de la lista de marcas, dentro del propio flush.** Al vaciar la
+- **D-04:** **Poda perezosa de la lista de marcas, dentro del propio flush.** Al vaciar la
   cola se descarta cualquier id que ya no esté en `tga:history`. **`removeHistoryEntry` no
   se toca**: el camino de borrado que la Fase 9 cerró con CR-03/WR-08 sigue exactamente
   igual, sin una segunda escritura acoplada.
@@ -128,7 +128,7 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
 
 ### Dónde se engancha la subida
 
-- **D-05: la llamada dispara-y-olvida sale de `record()`** (`app/composables/useGameHistory.ts:286`),
+- **D-05:** **La llamada dispara-y-olvida sale de `record()`** (`app/composables/useGameHistory.ts:286`),
   justo después de que `appendHistoryEntry` devuelva `true`.
 
   `record()` **sigue siendo síncrona de cara a su llamador** y sigue devolviendo su
@@ -147,14 +147,14 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
   encajar un sexto paso en una secuencia cuyo orden es el resultado de tres cierres
   distintos de la Fase 9.
 
-- **D-06: si el guardado local falla (`record()` devuelve `false`), no se sube nada.**
+- **D-06:** **Si el guardado local falla (`record()` devuelve `false`), no se sube nada.**
   Mantiene el invariante del hito —`localStorage` es la fuente de verdad y Firestore es su
   sombra, nunca la única copia— y es además lo único coherente técnicamente: si
   `localStorage` no admite la entrada, tampoco admitirá la marca de sincronizado, con lo
   que esa partida se reintentaría eternamente. El grupo ya tiene su camino de
   recuperación: el aviso recuperable de la Fase 9 (`09-20`, `progresoAsegurado`).
 
-- **D-07: invisible del todo.** Ninguna pantalla menciona la nube: ni un punto, ni un
+- **D-07:** **Invisible del todo.** Ninguna pantalla menciona la nube: ni un punto, ni un
   icono, ni un contador de pendientes. Es lo que pide el ROADMAP con la palabra
   «silenciosa», y evita que el grupo se pregunte a mitad de partida si algo va mal por una
   marca que de todos modos no pueden arreglar. La marca vive solo en `localStorage`,
@@ -164,7 +164,7 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
   de `/estadisticas`: los dos meten estado de red en pantallas que esta fase se
   compromete a mantener puramente locales.
 
-- **D-08: el atraso inicial se sube de golpe, sin tope por ráfaga.** El día del
+- **D-08:** **El atraso inicial se sube de golpe, sin tope por ráfaga.** El día del
   despliegue, **todas** las partidas registradas en la Fase 9 cuentan como pendientes
   (consecuencia directa de D-01 + D-14), así que la primera partida que termine tras
   actualizar arrastra el histórico entero. Un grupo de amigos tendrá decenas de partidas,
@@ -174,7 +174,7 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
 
 ### El documento y las reglas
 
-- **D-09: sube una proyección con lista blanca explícita**, con los campos nombrados uno a
+- **D-09:** **Sube una proyección con lista blanca explícita**, con los campos nombrados uno a
   uno en el código — el mismo patrón que `scripts/catalogue/fetch-marvelcdb.mjs` aplica a
   la respuesta de MarvelCDB (criterio de éxito 4 de la Fase 5).
 
@@ -188,7 +188,7 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
   **Descartado** subir la entrada entera (`setDoc(ref, entry)`): cualquier campo futuro
   empezaría a subirse sin que nadie lo decida.
 
-- **D-10: colección plana `history/{id}`, con `uid` como campo del documento.**
+- **D-10:** **Colección plana `history/{id}`, con `uid` como campo del documento.**
   — **Reversibility:** one-way — reorganizar la colección después deja los documentos ya
   escritos en la ruta antigua, y moverlos exige leerlos y reescribirlos a mano con
   permisos de propietario.
@@ -201,7 +201,7 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
   de otros» directamente en la ruta pero repartiría tu propio respaldo entre tantos
   subárboles como veces haya rotado el uid.
 
-- **D-11: las reglas permiten `create` y nada más. Ni `read`, ni `update`, ni `delete`.**
+- **D-11:** **Las reglas permiten `create` y nada más. Ni `read`, ni `update`, ni `delete`.**
   — **Reversibility:** reversible — es un fichero que se redespliega en un minuto.
 
   **Esto resuelve un conflicto real entre documentos del proyecto.**
@@ -221,7 +221,7 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
   `research/PITFALLS.md` §5. Escribirlas y revisarlas **antes** de la primera escritura
   real, no después de que «ya funcione».
 
-- **D-12: el cliente añade `uid` y `createdAt` de servidor** (`serverTimestamp()`),
+- **D-12:** **El cliente añade `uid` y `createdAt` de servidor** (`serverTimestamp()`),
   validado en la regla con `request.resource.data.createdAt == request.time` para que
   nadie pueda antedatar basura. `uid` es lo que hace expresable la propiedad en la regla;
   `createdAt` distingue «cuándo se jugó» (`recordedAt`, del reloj de la tablet) de «cuándo
@@ -232,7 +232,7 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
 
 ### Configuración, forks y entornos
 
-- **D-13: la config de Firebase vive en `runtimeConfig.public`, alimentada por variables
+- **D-13:** **La config de Firebase vive en `runtimeConfig.public`, alimentada por variables
   de entorno en Vercel** — `nuxt.config.ts` no tiene hoy `runtimeConfig` en absoluto, así
   que es una sección nueva. Es lo que recomienda `research/ARCHITECTURE.md:204`.
 
@@ -247,7 +247,7 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
   código cortocircuita a no-op **antes** de que se ejecute el `import()` dinámico. Un
   build mal configurado degrada a «la sincronización nunca ocurre», nunca a una excepción.
 
-- **D-14: un solo proyecto de Firebase, y en local no se configura.** Sin variables en
+- **D-14:** **Un solo proyecto de Firebase, y en local no se configura.** Sin variables en
   `.env`, la guarda de D-13 convierte la sincronización en un no-op: `npm run dev` y los
   tests e2e nunca ensucian el respaldo real, sin montar un segundo proyecto. Para probar
   la subida de verdad se rellena `.env` un rato.
@@ -257,7 +257,7 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
   administrar» evita) y el emulador de Firestore (una herramienta y un flujo más en un
   proyecto que hasta ahora se prueba entero con Vitest y Playwright).
 
-- **D-15: `firestore.rules` vive committeado en el repo y se despliega a mano** con
+- **D-15:** **`firestore.rules` vive committeado en el repo y se despliega a mano** con
   `firebase deploy --only firestore:rules`, usando `firebase-tools` como herramienta
   puntual y **nunca como dependencia del proyecto** (`research/SUMMARY.md:24`).
 
@@ -269,7 +269,7 @@ y de la Fase 9. Se listan aquí para que ningún agente aguas abajo las reabra d
   automático desde CI (exigiría una cuenta de servicio con permisos en un repo público
   para un fichero que cambiará una o dos veces en la vida del proyecto).
 
-- **D-16: gate automatizado en CI para el criterio de éxito 3.** Un test que, sobre la
+- **D-16:** **Gate automatizado en CI para el criterio de éxito 3.** Un test que, sobre la
   salida de `nuxt generate`, falle si la cadena `firebase` aparece en los chunks iniciales
   de `/` y `/marvel-champions`, o si su tamaño crece por encima de un techo. Es el «fail
   loudly at build» que el proyecto ya aplica al catálogo y al presupuesto de precacheo de
