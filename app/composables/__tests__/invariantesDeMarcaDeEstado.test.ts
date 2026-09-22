@@ -430,3 +430,217 @@ describe('Pata 2 — invariante: ninguna llamada real al lector omite el testigo
     })
   }
 })
+
+// --- Pata 3: faltaPruebaDeCicloDeVidaEn (Task 2) ---
+//
+// Forma ejecutable del cuarto `missing:` del gap de SC3
+// (`09-VERIFICATION.md` ronda 8): «un test de extremo a extremo sobre
+// useProgressMismatchMark que reproduzca el camino completo … para que la
+// novena cara no dependa de que otra ronda de verificación la vuelva a
+// encontrar a mano». Trocea la fuente del test en bloques por cada `it(`
+// (de una aparición a la siguiente, o al final) y exige que ALGÚN bloque
+// demuestre el ciclo de vida completo: pone con un testigo, lee DESPUÉS con
+// un testigo DISTINTO, y espera `null` — leer con el MISMO testigo con el
+// que se puso no demuestra nada sobre la sustitución del referente (si no,
+// la pata sería satisfacible con un test que no prueba nada).
+function trocearPorIt(fuente: string): string[] {
+  const region = regionVigilada(fuente)
+  const patron = /\bit\(/g
+  const posiciones: number[] = []
+  let coincidencia: RegExpExecArray | null
+  while ((coincidencia = patron.exec(region)) !== null) {
+    posiciones.push(coincidencia.index)
+  }
+  return posiciones.map((inicio, indice) => region.slice(inicio, posiciones[indice + 1] ?? region.length))
+}
+
+function bloqueDemuestraCicloDeVida(bloque: string, ponedor: string, lector: string): boolean {
+  const llamadasPonedor = llamadasA(bloque, ponedor)
+  const llamadasLector = llamadasA(bloque, lector)
+
+  for (const llamadaPonedor of llamadasPonedor) {
+    for (const llamadaLector of llamadasLector) {
+      if (llamadaLector.inicio <= llamadaPonedor.inicio) continue // el lector tiene que venir DESPUÉS
+      const segundoArgPonedor = llamadaPonedor.argumentos[1]
+      const segundoArgLector = llamadaLector.argumentos[1]
+      if (segundoArgPonedor === undefined || segundoArgLector === undefined) continue
+      if (segundoArgPonedor === segundoArgLector) continue // mismo testigo: no demuestra sustitución
+      const restoDesdeLector = bloque.slice(llamadaLector.fin)
+      if (/\btoBe\(\s*null\s*\)/.test(restoDesdeLector)) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+export function faltaPruebaDeCicloDeVidaEn(fuenteDelTest: string, ponedor: string, lector: string): boolean {
+  const bloques = trocearPorIt(fuenteDelTest)
+  return !bloques.some(bloque => bloqueDemuestraCicloDeVida(bloque, ponedor, lector))
+}
+
+describe('Pata 3 — faltaPruebaDeCicloDeVidaEn (Task 2)', () => {
+  it('sobre useProgressMismatchMark.test.ts real devuelve true — ningún it demuestra el ciclo de vida con testigos distintos (ROJA hoy, API de un solo argumento)', () => {
+    const fuente = contenidoPorRuta(ficherosTsDelArbol, 'app/composables/__tests__/useProgressMismatchMark.test.ts')
+    expect(faltaPruebaDeCicloDeVidaEn(fuente, 'markProgressMismatch', 'readProgressMismatchWarning')).toBe(true)
+  })
+
+  it('sobre una fuente sintética con un it que pone con un testigo y lee con OTRO distinto, seguido de toBe(null), devuelve false (caso sintético: SÍ demuestra el ciclo de vida)', () => {
+    const sintetico = `
+it('demuestra sustitución del referente', () => {
+  markProgressMismatch(gameId, 'testigo-1')
+  expect(readProgressMismatchWarning(gameId, 'testigo-2')).toBe(null)
+})
+`
+    expect(faltaPruebaDeCicloDeVidaEn(sintetico, 'markProgressMismatch', 'readProgressMismatchWarning')).toBe(false)
+  })
+
+  it('sobre una fuente sintética donde se lee con el MISMO testigo con el que se puso, devuelve true — leer con el mismo testigo no demuestra nada sobre la sustitución del referente (caso sintético negativo)', () => {
+    const sintetico = `
+it('pone y lee con el mismo testigo', () => {
+  markProgressMismatch(gameId, 'testigo-1')
+  expect(readProgressMismatchWarning(gameId, 'testigo-1')).toBe(null)
+})
+`
+    expect(faltaPruebaDeCicloDeVidaEn(sintetico, 'markProgressMismatch', 'readProgressMismatchWarning')).toBe(true)
+  })
+})
+
+describe('Pata 3 — invariante: existe test hermano que demuestra el ciclo de vida completo, para toda marca no auditada (Task 2)', () => {
+  const marcasDescubiertas = marcasDeEstadoDeModuloDe(soloComposables(ficherosTsDelArbol))
+  const marcasNoAuditadas = marcasDescubiertas.filter(marca => !(marca in MARCAS_CON_REFERENTE_NO_PERSISTENTE))
+
+  it.each(marcasNoAuditadas)('%s: existe su fichero hermano de test y demuestra el ciclo de vida completo (ponedor -> lector con testigo distinto -> null)', (marca) => {
+    const contrato = contratoDeLaMarcaDe(contenidoPorRuta(ficherosTsDelArbol, marca))
+    expect(contrato.ponedor, `${marca}: no se identificó ningún ponedor`).not.toBeNull()
+    expect(contrato.lector, `${marca}: no se identificó ningún lector`).not.toBeNull()
+
+    const nombreDelModulo = marca.replace(/^app\/composables\//, '').replace(/\.ts$/, '')
+    const rutaDelHermano = `app/composables/__tests__/${nombreDelModulo}.test.ts`
+    const entradaHermano = Object.entries(ficherosTsDelArbol).find(([clave]) => rutaRelativa(clave) === rutaDelHermano)
+    expect(entradaHermano, `${marca}: no existe su fichero hermano de test (${rutaDelHermano})`).toBeDefined()
+
+    const falta = faltaPruebaDeCicloDeVidaEn(entradaHermano![1], contrato.ponedor!, contrato.lector!)
+    expect(
+      falta,
+      `${rutaDelHermano} no contiene ningún \`it\` que ponga la marca de ${marca} y la lea con un testigo `
+      + 'distinto esperando null — falta la prueba de ciclo de vida completo',
+    ).toBe(false)
+  })
+})
+
+// --- Pata 4: ramasQueLeenSinPintarDe (Task 2) ---
+//
+// Mecánica, medida sobre el árbol real antes de escribirla: en todo `app/`
+// hay exactamente dos asignaciones de la forma `<ref>.value = <expresión
+// con ===>`, las dos en `app/pages/[game]/index.vue`
+// (`awaitingResumeChoice`/`awaitingContentChangedAck`).
+export function ramasQueLeenSinPintarDe(fuenteDelConsumidor: string, lector: string): string[] {
+  const region = regionVigilada(fuenteDelConsumidor)
+
+  // a. Identificar el ref del aviso: la asignación `<X>.value = <lector>(`.
+  const patronRefDelAviso = new RegExp(`([A-Za-z_$][\\w$]*)\\.value\\s*=\\s*${escaparRegExp(lector)}\\(`)
+  const coincidenciaRefDelAviso = patronRefDelAviso.exec(region)
+  if (!coincidenciaRefDelAviso) return []
+  const refDelAviso = coincidenciaRefDelAviso[1]!
+
+  // b. Identificar las ramas de decisión de montaje: todo `<R>.value =
+  // <expresión que contiene ===>`. Un ref asignado desde un LITERAL no es
+  // una rama — por eso `resumeResolved.value = true` queda fuera: no
+  // decide nada a partir de una comparación, solo marca "ya se resolvió el
+  // montaje".
+  const ramas = new Set<string>()
+  const patronAsignacion = /([A-Za-z_$][\w$]*)\.value\s*=\s*([^\n;]+)/g
+  let coincidenciaAsignacion: RegExpExecArray | null
+  while ((coincidenciaAsignacion = patronAsignacion.exec(region)) !== null) {
+    const ref = coincidenciaAsignacion[1]!
+    const expresion = coincidenciaAsignacion[2]!
+    if (ref === refDelAviso) continue
+    if (expresion.includes('===')) {
+      ramas.add(ref)
+    }
+  }
+
+  // c/d. Para cada rama, localizar su segmento de plantilla (desde su
+  // v-if/v-else-if hasta el siguiente v-if/v-else-if/v-else, o el final) y
+  // comprobar que ese segmento enlaza el ref del aviso como prop.
+  const faltantes: string[] = []
+  for (const rama of ramas) {
+    const patronRama = new RegExp(`v-(?:else-)?if="${rama}"`)
+    const coincidenciaRama = patronRama.exec(region)
+    if (!coincidenciaRama) continue // sin aparición en la plantilla: fuera de alcance de esta pata
+
+    const inicioSegmento = coincidenciaRama.index + coincidenciaRama[0].length
+    const patronSiguiente = /v-else-if=|v-if=|v-else\b/g
+    patronSiguiente.lastIndex = inicioSegmento
+    const coincidenciaSiguiente = patronSiguiente.exec(region)
+    const finSegmento = coincidenciaSiguiente ? coincidenciaSiguiente.index : region.length
+    const segmento = region.slice(inicioSegmento, finSegmento)
+
+    if (!segmento.includes(`="${refDelAviso}"`)) {
+      faltantes.push(rama)
+    }
+  }
+  return faltantes.sort()
+}
+
+describe('Pata 4 — ramasQueLeenSinPintarDe (Task 2)', () => {
+  it('sobre app/pages/[game]/index.vue real devuelve un array que contiene awaitingContentChangedAck y NO contiene awaitingResumeChoice — ROJA hoy (WR-01)', () => {
+    const fuente = contenidoPorRuta(ficherosVueDelArbol, 'app/pages/[game]/index.vue')
+    const faltantes = ramasQueLeenSinPintarDe(fuente, 'readProgressMismatchWarning')
+    expect(faltantes).toContain('awaitingContentChangedAck')
+    expect(faltantes).not.toContain('awaitingResumeChoice')
+  })
+
+  it('sobre una fuente sintética donde las DOS ramas llevan el binding del aviso devuelve [] (caso sintético)', () => {
+    const sintetico = `
+avisoDiscrepancia.value = readProgressMismatchWarning(gameId)
+ramaUno.value = plan.action === 'uno'
+ramaDos.value = plan.action === 'dos'
+
+<template>
+  <ComponenteUno v-if="ramaUno" :mismatch-warning="avisoDiscrepancia" />
+  <ComponenteDos v-else-if="ramaDos" :mismatch-warning="avisoDiscrepancia" />
+</template>
+`
+    expect(ramasQueLeenSinPintarDe(sintetico, 'readProgressMismatchWarning')).toEqual([])
+  })
+
+  it('el descubrimiento de ramas no incluye ningún ref asignado desde un literal (resumeResolved.value = true no es una rama de decisión de montaje, caso sintético)', () => {
+    const sintetico = `
+avisoDiscrepancia.value = readProgressMismatchWarning(gameId)
+resumeResolved.value = true
+ramaUno.value = plan.action === 'uno'
+
+<template>
+  <ComponenteUno v-if="ramaUno" />
+</template>
+`
+    const faltantes = ramasQueLeenSinPintarDe(sintetico, 'readProgressMismatchWarning')
+    expect(faltantes).not.toContain('resumeResolved')
+  })
+})
+
+describe('Pata 4 — invariante: toda rama que lee la marca la pinta, para toda marca no auditada (Task 2)', () => {
+  const marcasDescubiertas = marcasDeEstadoDeModuloDe(soloComposables(ficherosTsDelArbol))
+  const marcasNoAuditadas = marcasDescubiertas.filter(marca => !(marca in MARCAS_CON_REFERENTE_NO_PERSISTENTE))
+
+  const ficherosVueVigilados = Object.entries(ficherosVueDelArbol).filter(([clave]) => !rutaRelativa(clave).includes('/__tests__/'))
+
+  for (const marca of marcasNoAuditadas) {
+    const lector = contratoDeLaMarcaDe(contenidoPorRuta(ficherosTsDelArbol, marca)).lector
+    if (!lector) continue
+
+    it.each(ficherosVueVigilados)(`${marca}: ninguna rama de %s que lee ${lector} deja de pintarlo`, (clave, contenido) => {
+      const faltantes = ramasQueLeenSinPintarDe(contenido, lector)
+      if (faltantes.length > 0) {
+        throw new Error(
+          `${rutaRelativa(clave)}: la(s) rama(s) ${faltantes.join(', ')} calculan el aviso de ${marca} (vía `
+          + `${lector}) pero no lo pintan en la plantilla — la rama tiene destino de cálculo y no destino de `
+          + 'render (WR-01).',
+        )
+      }
+      expect(faltantes.length).toBe(0)
+    })
+  }
+})
