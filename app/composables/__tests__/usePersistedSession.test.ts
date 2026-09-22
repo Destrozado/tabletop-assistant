@@ -652,3 +652,63 @@ describe('readProgress (CR-01 ronda 5): «no he podido leer» deja de confundirs
   })
 })
 
+describe('tga:history:synced (D-01/D-04, plan 10-03): la marca de sincronizado con Firestore', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+  const SYNCED_KEY = 'tga:history:synced'
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('sin clave guardada, loadSyncedIds() devuelve []', () => {
+    const { loadSyncedIds } = usePersistedSession()
+    expect(loadSyncedIds()).toEqual([])
+  })
+
+  it('con JSON corrupto en tga:history:synced, loadSyncedIds() devuelve [] y no lanza — colapso deliberado (D-01), la clave es reconstruible', () => {
+    fakeStorage.setItem(SYNCED_KEY, 'esto no es JSON válido {{{')
+    const { loadSyncedIds } = usePersistedSession()
+    expect(() => loadSyncedIds()).not.toThrow()
+    expect(loadSyncedIds()).toEqual([])
+  })
+
+  it('con un getItem que lanza, loadSyncedIds() devuelve [] y no lanza — mismo colapso que loadVoicePreference, nunca el de tga:history', () => {
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+    const { loadSyncedIds } = usePersistedSession()
+    expect(() => loadSyncedIds()).not.toThrow()
+    expect(loadSyncedIds()).toEqual([])
+  })
+
+  it('saveSyncedIds() escribe un array JSON de ids', () => {
+    const { saveSyncedIds } = usePersistedSession()
+    saveSyncedIds(['a', 'b'])
+    expect(JSON.parse(fakeStorage.getItem(SYNCED_KEY)!)).toEqual(['a', 'b'])
+  })
+
+  it('saveSyncedIds() no lanza cuando setItem lanza (cuota llena) — mismo criterio que saveVoicePreference, un fallo aquí solo produce un reintento de más', () => {
+    fakeStorage.setItem.mockImplementation(() => {
+      throw new Error('QuotaExceededError')
+    })
+    const { saveSyncedIds } = usePersistedSession()
+    expect(() => saveSyncedIds(['a'])).not.toThrow()
+  })
+
+  it('un ida y vuelta saveSyncedIds() → loadSyncedIds() conserva los ids', () => {
+    const { saveSyncedIds, loadSyncedIds } = usePersistedSession()
+    saveSyncedIds(['x', 'y', 'z'])
+    expect(loadSyncedIds()).toEqual(['x', 'y', 'z'])
+  })
+})
+

@@ -59,6 +59,19 @@ function stubRuntimeConfig(projectId: string): void {
   })
 }
 
+// Doble de auth/app «camino feliz» reutilizado por los tests nuevos de este
+// plan (10-03) que no necesitan variar el uid ni la resolución de
+// onAuthStateChanged — mismo patrón asíncrono (queueMicrotask) que el
+// primer test de abajo documenta en detalle.
+function mockWorkingAuthAndApp(uid = 'anon-uid'): void {
+  const onAuthStateChanged = vi.fn((_auth: unknown, callback: (user: unknown) => void) => {
+    queueMicrotask(() => callback({ uid }))
+    return vi.fn()
+  })
+  vi.doMock('firebase/auth', () => ({ getAuth: vi.fn(() => ({})), onAuthStateChanged, signInAnonymously: vi.fn() }))
+  vi.doMock('firebase/app', () => ({ initializeApp: vi.fn(() => ({})), getApps: vi.fn(() => []) }))
+}
+
 describe('useHistorySync — extremo a extremo con el SDK doblado', () => {
   let fakeStorage: ReturnType<typeof createFakeLocalStorage>
 
@@ -186,5 +199,132 @@ describe('useHistorySync — extremo a extremo con el SDK doblado', () => {
     expect(signInAnonymously).toHaveBeenCalledTimes(1)
     const documentBody = setDoc.mock.calls[0]![1] as Record<string, unknown>
     expect(documentBody.uid).toBe('anon-uid-2')
+  })
+})
+
+describe('useHistorySync — Task 1 (plan 10-03): arrastre del atraso completo y poda de la lista de marcas (D-04/D-08)', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    vi.resetModules()
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    delete (globalThis as { useRuntimeConfig?: unknown }).useRuntimeConfig
+    vi.doUnmock('firebase/app')
+    vi.doUnmock('firebase/auth')
+    vi.doUnmock('firebase/firestore')
+    vi.restoreAllMocks()
+  })
+
+  it('con tres entradas pendientes y ninguna marcada, un solo flush llama a setDoc tres veces y deja los tres ids marcados — sin tope por ráfaga (D-08)', async () => {
+    const entries = [baseEntry({ id: 'a' }), baseEntry({ id: 'b' }), baseEntry({ id: 'c' })]
+    seedHistory(fakeStorage, entries)
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    mockWorkingAuthAndApp()
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    flush()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(3))
+
+    await vi.waitFor(() => {
+      const raw = fakeStorage.getItem(SYNCED_KEY)
+      expect(raw).not.toBeNull()
+      expect(JSON.parse(raw as string).sort()).toEqual(['a', 'b', 'c'])
+    })
+  })
+
+  it('con dos de tres entradas ya marcadas, solo se sube la tercera', async () => {
+    const entries = [baseEntry({ id: 'a' }), baseEntry({ id: 'b' }), baseEntry({ id: 'c' })]
+    seedHistory(fakeStorage, entries)
+    fakeStorage.setItem(SYNCED_KEY, JSON.stringify(['a', 'b']))
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    mockWorkingAuthAndApp()
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    flush()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1))
+    expect(setDoc.mock.calls[0]![0]).toEqual(expect.objectContaining({ id: 'c' }))
+  })
+
+  it('un id marcado cuya entrada ya no está en tga:history desaparece de la lista tras el flush (D-04, poda perezosa)', async () => {
+    // 'keep' ya está marcado y sigue en el histórico; 'stale' está marcado
+    // pero su partida ya no existe en tga:history (se borró en /historico);
+    // 'new' está en el histórico pero no marcado — es lo que hace que este
+    // flush tenga trabajo real que hacer (la poda es OPORTUNISTA, dentro
+    // del propio flush, nunca un paso aparte sin nada pendiente).
+    seedHistory(fakeStorage, [baseEntry({ id: 'keep' }), baseEntry({ id: 'new' })])
+    fakeStorage.setItem(SYNCED_KEY, JSON.stringify(['keep', 'stale']))
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    mockWorkingAuthAndApp()
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    flush()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1))
+    await vi.waitFor(() => {
+      const raw = fakeStorage.getItem(SYNCED_KEY)
+      expect(JSON.parse(raw as string).sort()).toEqual(['keep', 'new'])
+    })
+  })
+
+  it('tga:history:synced se escribe exactamente una vez por flush, contando llamadas a setItem con esa clave', async () => {
+    seedHistory(fakeStorage, [baseEntry({ id: 'a' }), baseEntry({ id: 'b' })])
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    mockWorkingAuthAndApp()
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    flush()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => expect(fakeStorage.getItem(SYNCED_KEY)).not.toBeNull())
+
+    const syncedKeyWrites = fakeStorage.setItem.mock.calls.filter(call => call[0] === SYNCED_KEY)
+    expect(syncedKeyWrites).toHaveLength(1)
   })
 })

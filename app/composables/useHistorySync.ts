@@ -93,12 +93,17 @@ async function ensureAnonymousUser(authModule: FirebaseAuthModule, auth: Firebas
 
 // syncPending: única función de todo el módulo (y de toda la app) que carga
 // el SDK de Firebase. `entries` son las pendientes ya calculadas por
-// `flush()`; `loadSyncedIds`/`saveSyncedIds` son el lector/escritor de
+// `flush()`; `loadHistory` se vuelve a invocar al FINAL del recorrido (no se
+// reutiliza la lectura que hizo `flush()` al principio) para que la poda de
+// D-04 vea el estado más reciente de `tga:history` — incluida una entrada
+// que el grupo borró MIENTRAS este flush estaba en vuelo;
+// `loadSyncedIds`/`saveSyncedIds` son el lector/escritor de
 // `tga:history:synced` (D-01), inyectados para no repetir aquí el import de
 // `usePersistedSession`.
 async function syncPending(
   entries: GameHistoryEntry[],
   config: FirebaseSyncConfig,
+  loadHistory: () => GameHistoryEntry[],
   loadSyncedIds: () => string[],
   saveSyncedIds: (ids: string[]) => void,
 ): Promise<void> {
@@ -145,10 +150,24 @@ async function syncPending(
     }
   }
 
-  if (uploadedIds.length > 0) {
-    const merged = new Set([...loadSyncedIds(), ...uploadedIds])
-    saveSyncedIds([...merged])
-  }
+  // D-04 (plan 10-03): poda perezosa de la lista de marcas, DENTRO del
+  // propio flush, con una sola escritura — tanto si hubo subidas nuevas
+  // como si TODAS las subidas de este recorrido fallaron. Se descarta
+  // cualquier id que no esté en el conjunto de ids de `loadHistory()` leído
+  // en ESTE instante (no el capturado al principio de `flush()`), así que
+  // una entrada que el grupo borró en `/historico` mientras el flush seguía
+  // en vuelo también queda podada sin esperar a la próxima vez.
+  // `removeHistoryEntry` (usePersistedSession.ts) no se toca: esta poda
+  // vive aquí, nunca acoplada al camino de borrado que CR-01/CR-03/WR-08
+  // (Fase 9) blindaron. Nota importante, fácil de leer al revés: borrar una
+  // partida en el dispositivo NO borra su respaldo en Firestore, y eso es
+  // deliberado — un respaldo que se borra solo cuando borras el original no
+  // es un respaldo; la poda solo limpia la LISTA DE MARCAS local, nunca el
+  // documento remoto.
+  const currentHistoryIds = new Set(loadHistory().map(historyEntry => historyEntry.id))
+  const merged = new Set([...loadSyncedIds(), ...uploadedIds])
+  const pruned = [...merged].filter(id => currentHistoryIds.has(id))
+  saveSyncedIds(pruned)
 }
 
 export function useHistorySync(): { flush: () => void } {
@@ -166,8 +185,15 @@ export function useHistorySync(): { flush: () => void } {
       // (1) SSR/prerender: mismo idioma que toda la capa de persistencia.
       if (typeof window === 'undefined') return
 
-      // (2) Pendientes = entradas cuyo id no esté ya subido. Sin ninguna, no
-      // hay nada que hacer.
+      // (2) Pendientes = TODAS las entradas de tga:history cuyo id no esté
+      // ya subido — D-08: sin ningún `slice`/`take`/tope por ráfaga. El día
+      // del despliegue, todas las partidas ya registradas en la Fase 9
+      // cuentan como pendientes y se suben de golpe: un grupo de amigos
+      // tiene decenas de partidas al año, muy lejos del límite gratuito de
+      // 20.000 escrituras/día, así que un tope sería código y estado nuevos
+      // para un problema que este proyecto no tiene (mismo razonamiento con
+      // el que ya se descartaron IndexedDB y Pinia). Sin ninguna pendiente,
+      // no hay nada que hacer.
       const synced = new Set(loadSyncedIds())
       const pending = loadHistory().filter(entry => !synced.has(entry.id))
       if (pending.length === 0) return
@@ -186,7 +212,7 @@ export function useHistorySync(): { flush: () => void } {
       // `prefetchAll(...).catch(() => {})` en app/pages/[game]/index.vue:
       // cualquier fallo se resuelve en silencio, nunca se propaga hacia
       // record()/onOutcomeRecorded (D-07).
-      void syncPending(pending, config, loadSyncedIds, saveSyncedIds)
+      void syncPending(pending, config, loadHistory, loadSyncedIds, saveSyncedIds)
         .catch(() => {
           // Silencio deliberado (D-07) — ver comentario de arriba.
         })
