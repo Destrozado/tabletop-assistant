@@ -66,6 +66,15 @@ export interface StoredProgressReport {
   stored: StoredProgress
   outcome: ResumeOutcome
   session: EngineSession
+  // `huella` (plan 09-38, GREEN del RED→GREEN que empezó el plan 09-37):
+  // testigo del referente exacto que había en el dispositivo en el instante
+  // de esta lectura. `null` cuando la lectura falló o cuando no había
+  // ninguna posición que huellar — en los dos casos no hay nada que
+  // comparar más tarde. No nulo en cualquier otro caso, incluido `'stale'`:
+  // el escenario canónico de `useProgressMismatchMark.ts` (marcar una
+  // discrepancia al cerrar partida) SIEMPRE tiene un referente que huellar,
+  // porque solo se llega ahí cuando `lectura.position !== null`.
+  huella: string | null
 }
 
 // El mismo context de relleno que hoy vive escrito a mano en `onMounted`
@@ -118,6 +127,37 @@ export function esLaMismaPartida(enDisco: PersistedPosition, objetivo: Persisted
   )
 }
 
+// `huellaDelProgreso` (plan 09-38, GREEN del RED→GREEN que empezó el plan
+// 09-37, cierre de CR-01/WR-01 por su vía estructural): testigo exacto de
+// TODO lo que hay guardado en el dispositivo para una posición, para que
+// una marca que transporta un hecho en el tiempo
+// (`useProgressMismatchMark.ts`) pueda comprobar, al leer, si ese referente
+// sigue siendo el mismo que cuando se puso.
+//
+// (a) Cubre los SIETE campos de `PersistedPosition` — `updatedAt` incluido
+// — y no omite ninguno a propósito: omitir un campo sería afirmar que ese
+// campo no puede importar, la clase de afirmación sin respaldo que esta
+// fase lleva nueve rondas cerrando. Reutiliza `normalizar` (arriba), ya
+// razonada por escrito contra la vía `__proto__`/`constructor` que cerró
+// CR-02 de la ronda 3: ordena claves de objeto y conserva el orden de los
+// arrays, así que dos posiciones con las mismas claves en distinto orden de
+// serialización producen la MISMA huella.
+//
+// (b) Por eso NO es lo mismo que `esLaMismaPartida`, de arriba: esa función
+// EXCLUYE `updatedAt` deliberadamente porque contesta otra pregunta («¿es
+// la misma partida?», no «¿es exactamente lo mismo que había?»). Las dos
+// funciones conviven: `esLaMismaPartida` decide si hay partida que ofrecer
+// (`'stale'` vs `'resumable'`); `huellaDelProgreso` decide si una marca
+// puesta en el pasado sigue describiendo lo que hay AHORA, y para esa
+// segunda pregunta `updatedAt` sí importa — un autoguardado posterior de la
+// misma partida en el mismo punto cambia `updatedAt` y tiene que invalidar
+// la marca (ese es justo el camino de CR-01: el autoguardado que sigue a
+// «Continuar» reescribe el mismo `runtimeId`/`round`/`context` con un
+// `updatedAt` nuevo).
+export function huellaDelProgreso(position: PersistedPosition): string {
+  return JSON.stringify(normalizar(position))
+}
+
 // NO añadir caché, memoización ni estado de módulo: cada llamada vuelve a
 // leer el dispositivo. Una respuesta cacheada es, por definición, una
 // afirmación sin comprobar — justo lo que este fichero existe para prohibir.
@@ -133,13 +173,21 @@ export function readStoredProgress(game: GameDefinition, esperada?: EngineSessio
   const structural = expand(game, { ...PLACEHOLDER_CONTEXT })
   const lectura = readProgress(game.gameId)
 
+  // `huella` (plan 09-38): se calcula UNA sola vez, aquí dentro de la
+  // autoridad y en ningún otro sitio — es la única función con permiso
+  // para decir qué hay en el dispositivo, y la huella es exactamente eso.
+  // `null` en la rama de lectura fallida y siempre que no haya posición
+  // leída (`lectura.position === null`, el caso 'absent'); en cualquier
+  // otro caso, la huella de esa posición exacta.
+  const huella = lectura.read === 'failed' || lectura.position === null ? null : huellaDelProgreso(lectura.position)
+
   if (lectura.read === 'failed') {
     // `outcome: 'fresh'` es lo que la app puede HACER (mostrar el
     // mini-setup, exactamente igual que hoy: `load()` también devolvía
     // `null` en este caso). `stored: 'unknown'` es lo que la app puede
     // AFIRMAR (nada). Separar las dos cosas es el punto entero de esta
     // función.
-    return { stored: 'unknown', outcome: 'fresh', session: structural }
+    return { stored: 'unknown', outcome: 'fresh', session: structural, huella }
   }
 
   const result = resume(lectura.position, structural)
@@ -153,7 +201,7 @@ export function readStoredProgress(game: GameDefinition, esperada?: EngineSessio
   if (result.outcome !== 'fresh' && esperada !== undefined && lectura.position !== null) {
     const mismaPartida = esLaMismaPartida(lectura.position, toPersistedPosition(esperada))
     if (!mismaPartida) {
-      return { stored: 'stale', outcome: result.outcome, session: result.session }
+      return { stored: 'stale', outcome: result.outcome, session: result.session, huella }
     }
   }
 
@@ -173,5 +221,6 @@ export function readStoredProgress(game: GameDefinition, esperada?: EngineSessio
     stored: result.outcome === 'fresh' ? 'absent' : 'resumable',
     outcome: result.outcome,
     session: result.session,
+    huella,
   }
 }

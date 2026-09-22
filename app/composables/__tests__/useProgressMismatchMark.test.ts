@@ -25,6 +25,18 @@ import {
 const JUEGO_A = 'marvel-champions'
 const JUEGO_B = 'tiny-game'
 
+// Huellas usadas en TODOS los tests de este fichero desde el plan 09-38
+// (firma de dos argumentos, testigo del referente obligatorio): dos huellas
+// DISTINTAS para poder demostrar, donde haga falta, que el lector detecta
+// la SUSTITUCIÓN del referente y no solo su ausencia — leer con la misma
+// huella con la que se puso no demuestra nada sobre esa sustitución (ver
+// `faltaPruebaDeCicloDeVidaEn`, invariantesDeMarcaDeEstado.test.ts). Los
+// quince `it` originales (Task 1/Task 2 del plan 09-33) usan HUELLA_A sin
+// necesitar distinguir nada más; los que sí necesitan demostrar sustitución
+// (Task 1 del plan 09-38 en adelante) usan las dos.
+const HUELLA_A = 'huella-a'
+const HUELLA_B = 'huella-b'
+
 // El estado es de módulo (ver justificación en useProgressMismatchMark.ts)
 // y se comparte entre tests de este fichero: cada test que lo modifique
 // debe dejarlo limpio para no filtrar estado al siguiente. `clearProgressMismatch`
@@ -37,22 +49,22 @@ afterEach(() => {
 })
 
 describe('useProgressMismatchMark — camino completo (Task 1, plan 09-33)', () => {
-  it('1. camino de discrepancia: planGameEnd(false, \'stale\').progressMismatch → markProgressMismatch(gameId) → readProgressMismatchWarning(gameId) devuelve el aviso', () => {
+  it('1. camino de discrepancia: planGameEnd(false, \'stale\').progressMismatch → markProgressMismatch(gameId, huella) → readProgressMismatchWarning(gameId, huella) devuelve el aviso', () => {
     const plan = planGameEnd(false, 'stale')
     expect(plan.progressMismatch).toBe(true)
 
-    markProgressMismatch(JUEGO_A)
+    markProgressMismatch(JUEGO_A, HUELLA_A)
 
-    expect(readProgressMismatchWarning(JUEGO_A)).toBe(PROGRESS_MISMATCH_WARNING)
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(PROGRESS_MISMATCH_WARNING)
   })
 
-  it('2. camino de retirada: tras clearProgressMismatch(gameId), readProgressMismatchWarning(gameId) vuelve a devolver null', () => {
-    markProgressMismatch(JUEGO_A)
-    expect(readProgressMismatchWarning(JUEGO_A)).toBe(PROGRESS_MISMATCH_WARNING)
+  it('2. camino de retirada: tras clearProgressMismatch(gameId), readProgressMismatchWarning(gameId, huella) vuelve a devolver null', () => {
+    markProgressMismatch(JUEGO_A, HUELLA_A)
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(PROGRESS_MISMATCH_WARNING)
 
     clearProgressMismatch(JUEGO_A)
 
-    expect(readProgressMismatchWarning(JUEGO_A)).toBe(null)
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(null)
   })
 })
 
@@ -63,50 +75,69 @@ describe('useProgressMismatchMark — tabla de verdad completa del ciclo de vida
   // tiene que ser exactamente "sin ninguna marca" — nunca null como
   // ausencia de dato, sino null como garantía de que la app no afirma nada.
   it('3. el módulo arranca sin ninguna marca: readProgressMismatchWarning devuelve null antes de poner ninguna', () => {
-    expect(readProgressMismatchWarning(JUEGO_A)).toBe(null)
-    expect(readProgressMismatchWarning(JUEGO_B)).toBe(null)
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(null)
+    expect(readProgressMismatchWarning(JUEGO_B, HUELLA_A)).toBe(null)
   })
 
-  it('4. poner y leer: tras markProgressMismatch(gameId), readProgressMismatchWarning(gameId) devuelve el aviso exacto', () => {
-    markProgressMismatch(JUEGO_A)
-    expect(readProgressMismatchWarning(JUEGO_A)).toBe(PROGRESS_MISMATCH_WARNING)
+  it('4. poner y leer: tras markProgressMismatch(gameId, huella), readProgressMismatchWarning(gameId, huella) devuelve el aviso exacto', () => {
+    markProgressMismatch(JUEGO_A, HUELLA_A)
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(PROGRESS_MISMATCH_WARNING)
   })
 
-  it('5. retirar tras poner: clearProgressMismatch(gameId) deja readProgressMismatchWarning(gameId) en null', () => {
-    markProgressMismatch(JUEGO_A)
+  it('5. retirar tras poner: clearProgressMismatch(gameId) deja readProgressMismatchWarning(gameId, huella) en null', () => {
+    markProgressMismatch(JUEGO_A, HUELLA_A)
     clearProgressMismatch(JUEGO_A)
-    expect(readProgressMismatchWarning(JUEGO_A)).toBe(null)
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(null)
   })
 
-  it('6. poner dos veces seguidas es idempotente: un único clearProgressMismatch la deja retirada (es un conjunto, no un contador)', () => {
-    markProgressMismatch(JUEGO_A)
-    markProgressMismatch(JUEGO_A)
+  it('6. poner dos veces seguidas es idempotente: un único clearProgressMismatch la deja retirada (es un mapa, no un contador)', () => {
+    markProgressMismatch(JUEGO_A, HUELLA_A)
+    markProgressMismatch(JUEGO_A, HUELLA_A)
 
     clearProgressMismatch(JUEGO_A)
 
-    expect(readProgressMismatchWarning(JUEGO_A)).toBe(null)
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(null)
   })
 
   it('7. retirar una marca que no existe no lanza', () => {
     expect(() => clearProgressMismatch(JUEGO_A)).not.toThrow()
-    expect(readProgressMismatchWarning(JUEGO_A)).toBe(null)
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(null)
   })
 
   it('8. dos gameId distintos no se interfieren: marcar uno no afecta al otro', () => {
-    markProgressMismatch(JUEGO_A)
+    markProgressMismatch(JUEGO_A, HUELLA_A)
 
-    expect(readProgressMismatchWarning(JUEGO_A)).toBe(PROGRESS_MISMATCH_WARNING)
-    expect(readProgressMismatchWarning(JUEGO_B)).toBe(null)
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(PROGRESS_MISMATCH_WARNING)
+    expect(readProgressMismatchWarning(JUEGO_B, HUELLA_A)).toBe(null)
   })
 
   it('9. dos gameId distintos no se interfieren: retirar uno no afecta al otro que sigue marcado', () => {
-    markProgressMismatch(JUEGO_A)
-    markProgressMismatch(JUEGO_B)
+    markProgressMismatch(JUEGO_A, HUELLA_A)
+    markProgressMismatch(JUEGO_B, HUELLA_B)
 
     clearProgressMismatch(JUEGO_A)
 
-    expect(readProgressMismatchWarning(JUEGO_A)).toBe(null)
-    expect(readProgressMismatchWarning(JUEGO_B)).toBe(PROGRESS_MISMATCH_WARNING)
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(null)
+    expect(readProgressMismatchWarning(JUEGO_B, HUELLA_B)).toBe(PROGRESS_MISMATCH_WARNING)
+  })
+})
+
+// RED registrado (Task 1, plan 09-38): este describe se escribió ANTES de
+// tocar useProgressMismatchMark.ts y se ejecutó contra el código sin
+// cambiar. El test 16 falló porque el lector de un solo argumento ignora la
+// huella y sigue devolviendo el aviso — el mensaje literal de ese fallo
+// vive en 09-38-SUMMARY.md. Tras el arreglo (Task 1, puntos 1-5) el mismo
+// test pasa a verde por la validación de huella, sin haber cambiado el
+// test.
+describe('useProgressMismatchMark — ciclo de vida completo con testigo del referente (Task 1, plan 09-38)', () => {
+  it('16. pone con una huella y lee con OTRA distinta: el lector devuelve null porque el referente ya no es el mismo', () => {
+    markProgressMismatch(JUEGO_A, HUELLA_A)
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_B)).toBe(null)
+  })
+
+  it('17. pone con una huella y lee con la MISMA: el lector devuelve el aviso', () => {
+    markProgressMismatch(JUEGO_A, HUELLA_A)
+    expect(readProgressMismatchWarning(JUEGO_A, HUELLA_A)).toBe(PROGRESS_MISMATCH_WARNING)
   })
 })
 

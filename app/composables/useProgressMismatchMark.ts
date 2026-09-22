@@ -42,9 +42,23 @@
 // SUMMARY de este plan para cómo se comprobó) — sin escribir nada en el
 // dispositivo. Lo que NO sobrevive es una recarga completa del navegador:
 // esa es la limitación que este fichero acepta por escrito, registrada
-// como deuda explícita en el plan 09-36. Cuando la marca no está, esta app
-// no afirma nada — nunca afirma algo falso.
-const juegosConProgresoQueNoCoincide = new Set<string>()
+// como deuda explícita en el plan 09-36.
+//
+// CAMBIO DE FONDO (plan 09-38, GREEN del RED→GREEN que empezó el plan
+// 09-37): la marca ya NO le pide a sus llamantes que la invaliden en cada
+// punto donde su referente podría desaparecer — la ronda 8 de verificación
+// (09-VERIFICATION.md) confirmó, por NOVENA vez en esta fase, que enumerar
+// los puntos de invalidación es el mecanismo que falla (`onResumeContinue`
+// no invalidaba, CR-01). El arreglo de fondo es que la marca transporta,
+// junto al `gameId`, la HUELLA (`useStoredProgress.ts`,
+// `huellaDelProgreso`) del progreso que había en el dispositivo cuando se
+// puso. Leer exige pasar la huella de lo que hay AHORA: sin coincidencia
+// estricta, no hay aviso — sin que nadie haya tenido que enumerar el
+// camino que sustituyó el referente. El autoguardado, un borrado, una
+// edición en DevTools, o un camino que todavía no existe: los tres dan el
+// mismo resultado correcto, por construcción del propio mecanismo, no por
+// una lista de llamadas a invalidar cada vez más larga.
+const juegosConProgresoQueNoCoincide = new Map<string, string>()
 
 // Comprobación de respaldo, oración a oración (Task 3, plan 09-33): el
 // motivo escrito de una afirmación es lo que 09-VERIFICATION.md (ronda 7)
@@ -55,6 +69,13 @@ const juegosConProgresoQueNoCoincide = new Set<string>()
 //   marca: se pone en el cierre de partida (onOutcomeRecorded) y se retira
 //   en cuanto un cierre posterior no encuentra discrepancia o el progreso
 //   que describe se borra — nunca se afirma sobre nada más antiguo que eso.
+//   RESPALDO REFORZADO (plan 09-38): desde este plan, ya no basta con que
+//   alguien haya recordado retirarla — el lector exige además la huella del
+//   progreso que hay AHORA (`huellaDelProgreso`, useStoredProgress.ts) y
+//   compara con la huella de cuando se puso. Si el progreso ha cambiado por
+//   CUALQUIER vía (autoguardado, borrado, edición manual), la huella deja de
+//   coincidir y el aviso deja de mostrarse — la afirmación queda respaldada
+//   estructuralmente, no solo por la disciplina de invalidación explícita.
 // - «la app no pudo registrarla» ← la marca solo se pone cuando el
 //   histórico no llegó a escribirse (GameEndPlan.progressMismatch exige
 //   historyRecorded === false).
@@ -76,29 +97,53 @@ const juegosConProgresoQueNoCoincide = new Set<string>()
 //   negativa en el test.
 export const PROGRESS_MISMATCH_WARNING = 'Aviso: al terminar la última partida de este juego, la app no pudo registrarla y comprobó que lo que había guardado no era el punto en el que habíais terminado. Puede que esta partida no sea la que terminasteis: si la continuáis y la registráis, el histórico podría quedar con datos que no son los de aquella partida.'
 
-// Poner la marca es idempotente: `Set.add` sobre una clave ya presente no
-// duplica nada. Se llama desde `onOutcomeRecorded`
-// (app/pages/[game]/index.vue) en el mismo instante en que `planGameEnd`
-// decide que hubo discrepancia.
-export function markProgressMismatch(gameId: string): void {
-  juegosConProgresoQueNoCoincide.add(gameId)
+// Poner la marca es idempotente: `Map.set` sobre una clave ya presente
+// SOBRESCRIBE la huella anterior con la nueva (nunca las combina) — es el
+// comportamiento correcto: si esta partida se cierra dos veces con
+// discrepancia (no debería, pero si ocurriera), la huella que importa es la
+// del cierre más reciente, no la del primero. Se llama desde
+// `onOutcomeRecorded` (app/pages/[game]/index.vue) en el mismo instante en
+// que `planGameEnd` decide que hubo discrepancia.
+//
+// `huella` es OBLIGATORIO (plan 09-38, no opcional): sin ella, la marca no
+// se podría validar más tarde y sería otra afirmación sin respaldo — por
+// eso `app/pages/[game]/index.vue` solo llama a esta función cuando
+// `huellaDelProgreso` pudo calcularse (ver el comentario de
+// `onOutcomeRecorded` para el caso, inalcanzable en el escenario canónico,
+// en el que no se pudo).
+export function markProgressMismatch(gameId: string, huella: string): void {
+  juegosConProgresoQueNoCoincide.set(gameId, huella)
 }
 
-// Retirar una marca que no existe no lanza (`Set.delete` devuelve `false`
-// en silencio). Se llama desde tres puntos de app/pages/[game]/index.vue:
-// un cierre posterior de la misma partida que NO encuentra discrepancia, y
-// los dos sitios que borran el progreso guardado (`finishGame`,
-// `onDiscardConfirm`) — en los tres casos la marca deja de tener referente,
-// y afirmar algo con ella seguiría siendo hacer una afirmación, esta vez ya
-// falsa.
+// Retirar una marca que no existe no lanza (`Map.delete` devuelve `false`
+// en silencio, igual que hacía `Set.delete`). La firma NO cambia en este
+// plan (plan 09-38, Task 2 amplía las llamadas, no esta función): se llama
+// desde `onOutcomeRecorded` (un cierre posterior de la misma partida que NO
+// encuentra discrepancia), desde `onDiscardConfirm`/`finishGame` (los dos
+// sitios que borran el progreso guardado) y, desde este plan, TAMBIÉN desde
+// `onResumeContinue` y `onContentChangedAcknowledge` (CR-01/WR-01: la
+// SEGUNDA defensa, independiente de la validación de huella de más abajo)
+// — en los cinco casos la marca deja de tener referente, y afirmar algo con
+// ella seguiría siendo hacer una afirmación, esta vez ya falsa.
 export function clearProgressMismatch(gameId: string): void {
   juegosConProgresoQueNoCoincide.delete(gameId)
 }
 
-// Devuelve el texto exacto si hay una marca puesta para este juego, o
-// `null` en cualquier otro caso — incluida una recarga completa de la
-// página, que vacía este módulo entero: es la forma ejecutable de la
-// limitación documentada arriba.
-export function readProgressMismatchWarning(gameId: string): string | null {
-  return juegosConProgresoQueNoCoincide.has(gameId) ? PROGRESS_MISMATCH_WARNING : null
+// Devuelve el texto exacto SOLO si se cumplen las TRES condiciones: (1) hay
+// una entrada para este `gameId`, (2) `huellaActual` no es `null` — sin
+// poder huellar lo que hay ahora, no se puede afirmar que siga siendo lo
+// mismo que cuando se puso la marca — y (3) esa huella coincide, por
+// comparación ESTRICTA (`===`), con la huella guardada. `null` en cualquier
+// otro caso, incluida una recarga completa de la página, que vacía este
+// módulo entero: es la forma ejecutable de la limitación documentada
+// arriba.
+//
+// `huellaActual` es OBLIGATORIO (plan 09-38, no opcional): un lector que
+// pudiera omitirlo volvería a ser el lector de un solo argumento que CR-01
+// explotaba — el gate de invariantes (`invariantesDeMarcaDeEstado.test.ts`,
+// Pata 1) lo exige por construcción.
+export function readProgressMismatchWarning(gameId: string, huellaActual: string | null): string | null {
+  if (huellaActual === null) return null
+  const huellaGuardada = juegosConProgresoQueNoCoincide.get(gameId)
+  return huellaGuardada !== undefined && huellaGuardada === huellaActual ? PROGRESS_MISMATCH_WARNING : null
 }

@@ -199,7 +199,13 @@ onMounted(() => {
   // 'content-changed-notice' (la rama de 'mini-setup' ya ha retornado
   // arriba), así que este es exactamente el punto en el que la marca puesta
   // por un cierre de partida anterior (si la hay) vuelve a importar.
-  avisoDiscrepancia.value = readProgressMismatchWarning(gameId)
+  //
+  // Plan 09-38: el aviso que se pinta ahora afirma, además de lo que ya
+  // afirmaba, que lo que hay en el dispositivo EN ESTE INSTANTE es
+  // exactamente lo mismo que había cuando la discrepancia se comprobó —
+  // `informe.huella` es el testigo de ese referente, calculado por la misma
+  // llamada a `readStoredProgress` de la que ya sale `informe.session`.
+  avisoDiscrepancia.value = readProgressMismatchWarning(gameId, informe.huella)
   awaitingResumeChoice.value = plan.action === 'resume-prompt'
   awaitingContentChangedAck.value = plan.action === 'content-changed-notice'
   resumeResolved.value = true
@@ -700,13 +706,20 @@ function onOutcomeRecorded(outcome: GameOutcome) {
     }
     if (!registrado) save(session.value)
     let stored: StoredProgress = 'unknown'
+    // Plan 09-38: se captura el INFORME completo, no solo `stored` — la
+    // huella (`informe.huella`) es lo que permite que la marca de más abajo
+    // pueda validarse a sí misma más tarde, en vez de depender solo de que
+    // alguien la invalide en el punto correcto.
+    let huella: string | null = null
     try {
-      stored = readStoredProgress(game, session.value).stored
+      const informe = readStoredProgress(game, session.value)
+      stored = informe.stored
+      huella = informe.huella
     }
     catch {
-      // Mismo razonamiento que el bloque de arriba: `'unknown'` es el valor
-      // honesto ante una excepción de lectura — «no he podido comprobarlo»
-      // es literalmente lo que ha pasado.
+      // Mismo razonamiento que el bloque de arriba: `'unknown'`/`null` son
+      // los valores honestos ante una excepción de lectura — «no he podido
+      // comprobarlo» es literalmente lo que ha pasado.
     }
     const plan = planGameEnd(registrado, stored)
     // Plan 09-33: se pone/retira la marca en el MISMO instante en que
@@ -714,7 +727,16 @@ function onOutcomeRecorded(outcome: GameOutcome) {
     // cosmético: un cierre posterior de esta misma partida que NO encuentra
     // discrepancia deja el progreso que sí corresponde, así que una marca
     // anterior dejaría de ser cierta y hay que retirarla aquí mismo.
-    if (plan.progressMismatch) markProgressMismatch(gameId)
+    //
+    // Plan 09-38: además, solo se pone cuando `huella` no es `null` — si no
+    // se pudo huellar el referente, no se pone marca, porque más tarde sería
+    // imposible demostrar que ese referente sigue ahí, y una marca que no se
+    // puede validar es otra afirmación sin respaldo. Este caso es además
+    // inalcanzable en el escenario canónico (`plan.progressMismatch` exige
+    // `stored === 'stale'`, y el invariante de `useStoredProgress.ts` fija
+    // que `stored === 'stale'` implica `huella` no nulo — ver su test propio
+    // en useStoredProgress.test.ts, Task 3).
+    if (plan.progressMismatch && huella !== null) markProgressMismatch(gameId, huella)
     else clearProgressMismatch(gameId)
     notifyHistorySaved(plan.variant)
     finishGame(plan.preserveProgress)
