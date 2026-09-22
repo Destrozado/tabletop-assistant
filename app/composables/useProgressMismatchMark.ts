@@ -58,6 +58,28 @@
 // edición en DevTools, o un camino que todavía no existe: los tres dan el
 // mismo resultado correcto, por construcción del propio mecanismo, no por
 // una lista de llamadas a invalidar cada vez más larga.
+//
+// QUÉ PASA CUANDO LA MARCA NO ESTÁ (párrafo reescrito, plan 09-38: el
+// anterior afirmaba en términos absolutos algo que el mecanismo de
+// entonces no sostenía). Hay DOS casos distintos, y solo uno de los dos es
+// el que la ronda 8 encontró sin contemplar:
+// (a) LA MARCA SE PIERDE — una recarga completa del navegador, una pestaña
+//     cerrada, o una reescritura del progreso que cambia su huella (el
+//     propio autoguardado tras «Continuar», por ejemplo). En este caso el
+//     grupo deja de recibir una advertencia que le habría sido útil: es
+//     una PÉRDIDA de aviso, evaluada y aceptada por escrito (deuda del
+//     plan 09-36, ampliada por la Task 3 del plan 09-40 con el nuevo
+//     camino de pérdida que la validación de huella introduce).
+// (b) LA MARCA SOBREVIVE a la sustitución de su propio referente y se
+//     muestra cuando ya NO corresponde — ese es el caso que CR-01/WR-01
+//     confirmaron en la ronda 8, el que el texto anterior no cubría, y el
+//     que la validación de huella de este plan hace IMPOSIBLE por
+//     construcción: el lector compara la huella guardada con la huella de
+//     lo que hay ahora, y sin coincidencia estricta no hay aviso.
+// Lo único que este mecanismo demuestra es la comparación de huellas —y
+// las dos defensas explícitas de onResumeContinue/onContentChangedAcknowledge—,
+// nunca una garantía absoluta sobre todo lo que la app puede o no puede
+// llegar a afirmar.
 const juegosConProgresoQueNoCoincide = new Map<string, string>()
 
 // Comprobación de respaldo, oración a oración (Task 3, plan 09-33): el

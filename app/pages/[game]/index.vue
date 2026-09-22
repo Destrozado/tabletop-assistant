@@ -532,6 +532,18 @@ const outcomeContextLine = computed(() => {
 // tablet es justo cuando oír dónde ibais tiene valor.
 function onResumeContinue() {
   awaitingResumeChoice.value = false
+  // CR-01 (09-REVIEW.md, confirmado por lectura independiente en
+  // 09-VERIFICATION.md ronda 8, la NOVENA cara del defecto de esta fase):
+  // hasta este plan, «Continuar» no retiraba la marca de discrepancia. La
+  // marca describía el autoguardado sobrante que está a punto de
+  // reanudarse y de reescribirse bajo el juego del propio grupo; desde este
+  // instante deja de referirse a «un snapshot que sobró de otra partida» y
+  // pasa a referirse a «la partida en curso», así que retirarla aquí impide
+  // que un montaje posterior la lea como si siguiera siendo cierta. Esta
+  // llamada es la SEGUNDA defensa (plan 09-38): la primera es la validación
+  // de huella de useProgressMismatchMark.ts (Task 1) — las dos son
+  // independientes a propósito, no una sustituye a la otra.
+  clearProgressMismatch(gameId)
   announce()
   // UI-06/08 (D-51): «Continuar» también es un toque que abre partida en
   // curso. Degradación silenciosa igual que en onConfirm — sin aviso de
@@ -767,6 +779,13 @@ function onOutcomeDismiss() {
 // del aviso de contenido cambiado locuta el paso recuperado.
 function onContentChangedAcknowledge() {
   awaitingContentChangedAck.value = false
+  // WR-01 (mismo informe de la ronda 8): mismo razonamiento que
+  // onResumeContinue — SEGUNDA defensa, independiente de la validación de
+  // huella. Diferencia propia de esta rama: aquí el desenlace ya está
+  // decidido (vuelta al inicio de la sección con jugadores y dificultad
+  // conservados), pero la sesión que queda es igual de jugable y su
+  // autoguardado sustituye el mismo referente que la marca describía.
+  clearProgressMismatch(gameId)
   announce()
   // UI-06/08 (D-51): D-43 clasifica este CTA como gesto de reanudación igual
   // que «Continuar» — resume() deja una sesión real y jugable, así que abre
@@ -867,6 +886,7 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
       v-else-if="awaitingContentChangedAck"
       :session-context="sessionContextLabel"
       :section-label="sectionLabel"
+      :mismatch-warning="avisoDiscrepancia"
       @acknowledge="onContentChangedAcknowledge"
     />
 
