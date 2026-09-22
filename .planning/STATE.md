@@ -5,17 +5,17 @@ milestone_name: Elección de personajes, contadores en mesa e histórico de part
 current_phase: 09
 current_phase_name: Histórico y estadísticas
 status: executing
-stopped_at: Completed 09-38-PLAN.md
-last_updated: "2026-09-22T14:07:08.668Z"
+stopped_at: Completed 09-39-PLAN.md
+last_updated: "2026-09-22T14:38:02.732Z"
 last_activity: 2026-09-22
 last_activity_desc: Phase 09 execution started
-state_head: 616cef6d21ec49fb127578191969f745f1704085
+state_head: c27f22fb266f142d5e2c1e3fb60743faffc5ddfe
 progress:
   total_phases: 6
   completed_phases: 9
   total_plans: 68
-  completed_plans: 66
-  percent: 97
+  completed_plans: 67
+  percent: 99
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 09 (Histórico y estadísticas) — EXECUTING
-Plan: 3 of 40
+Plan: 4 of 40
 Status: Ready to execute
 Last activity: 2026-09-22 — Phase 09 execution started
 
@@ -88,6 +88,7 @@ Last activity: 2026-09-22 — Phase 09 execution started
 | Phase 09 P36 | 10min | 3 tasks | 4 files |
 | Phase 09 P37 | 25min | 3 tasks | 3 files |
 | Phase 09 P38 | 27min | 3 tasks | 6 files |
+| Phase 09 P39 | ~50min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -158,6 +159,7 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-37: vocabulario de raíces léxicas movido a vocabularioDeAfirmaciones.ts, compartido por los dos gates sin copias (T-09-37-02) — Evita que las dos implementaciones diverjan en silencio, exactamente la clase de defecto que este cierre de hueco existe para prevenir
 - [Phase 09]: 09-37: HIST-04/HIST-06 NO se marcan completados en REQUIREMENTS.md — el scope_boundary del plan lo prohíbe explícitamente — El gate nuevo queda ROJO a propósito (CR-01/WR-01); el arreglo es el plan 09-38 y la confirmación es una ronda de verificación independiente, no este plan
 - [Phase 09]: 09-38: huella incluye los siete campos de PersistedPosition (updatedAt incluido); Map<gameId,huella> con testigo obligatorio en el lector; ninguno de los dos gates de 09-37 se edita en este plan (reservados a 09-39 por scope_boundary) aunque el arreglo introduce 5 tests rojos confinados a esos dos ficheros (self-tests de fixture obsoletos + Gate A false-positive), documentados en deferred-items.md y .planning/WINDOWS.md
+- [Phase 09]: 09-39: respaldoRespaldaA/motivoNombraAlgoComprobable cierran WR-02/WR-03 del mecanismo de excepcion auditada; MARCAS_CON_REFERENTE_NO_PERSISTENTE gana raiz para reusar respaldoRespaldaA; el it de cierre de cobertura exige >=2 ocurrencias (cita + it real), nunca .toContain simple; npm test vuelve a 0 fallos (arreglados Gate A/useStoredProgress.ts y 4 self-tests de fixture heredados del plan 09-38); HIST-06 sigue [ ] por scope_boundary explicito
 
 ### Pending Todos
 
@@ -204,6 +206,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-22T14:07:08.578Z
-Stopped at: Completed 09-38-PLAN.md
+Last session: 2026-09-22T14:37:32.552Z
+Stopped at: Completed 09-39-PLAN.md
 Resume file: None
