@@ -152,4 +152,96 @@ test.describe('Flujo completo sin conexión (OFF-02, OFF-03)', () => {
     await page.goto('/estadisticas')
     await expect(page.getByRole('heading', { name: 'ESTADÍSTICAS', exact: true })).toBeVisible()
   })
+
+  // 10-04-PLAN.md Task 2 — verificación (a) del ROADMAP (Fase 10, SYNC-04/SYNC-08).
+  //
+  // Qué demuestra: con la red cortada, terminar una partida por el camino
+  // real de la interfaz (índice → «Partida terminada» → un resultado)
+  // registra localmente, vuelve al inicio en un plazo CORTO y explícito (no
+  // se queda colgado), y que /historico y /estadisticas siguen leyendo solo
+  // el dispositivo tras ese registro.
+  //
+  // Qué NO demuestra: nada sobre una escritura real en Firestore. En este
+  // entorno de CI no hay proyecto Firebase configurado (`NUXT_PUBLIC_FIREBASE_*`
+  // vacías), así que la guarda D-13 deja `useHistorySync().flush()` en no-op
+  // desde el primer guardia — el mismo tono honesto que ya usa la cabecera
+  // de e2e/update-banner.spec.ts sobre lo que su suite puede y no puede
+  // demostrar.
+  test('terminar una partida sin red registra el resultado, vuelve al inicio en un plazo corto, y el histórico/estadísticas siguen funcionando (SYNC-04/SYNC-08)', async ({ page, context }) => {
+    // 1. Primera visita CON red, hasta que el SW controla la página — cortar
+    // la red antes mediría un navegador cualquiera sin PWA, no esta app.
+    await waitForServiceWorkerControl(page)
+
+    // 2. Cortar la red y no volver a activarla en este test.
+    await context.setOffline(true)
+
+    // 3. Selector -> mini-setup -> preparación, mismo patrón que el primer
+    // test de este fichero (arranque sin red tras el reload).
+    await page.reload()
+    const gameButton = page.getByRole('button', { name: 'Marvel Champions', exact: true })
+    await expect(gameButton).toBeVisible()
+    await gameButton.click()
+    await expect(page.getByText('Nº de jugadores')).toBeVisible()
+    await page.getByRole('button', { name: '2', exact: true }).click()
+    await page.getByRole('button', { name: 'Normal', exact: true }).click()
+    await page.getByRole('button', { name: 'EMPEZAR PREPARACIÓN ›' }).click()
+
+    // Villano y héroe elegidos para que /estadisticas del paso 7 renderice
+    // filas de verdad — sin selección, ninguna partida produce heroRows ni
+    // villainRows (buildStatisticsView) y la pantalla caería en su propio
+    // estado vacío, que no es lo que este test quiere demostrar.
+    const nextButton = page.getByRole('button', { name: 'SIGUIENTE ›' })
+    const startButton = page.getByRole('button', { name: 'EMPEZAR A JUGAR ›' })
+    const villainRow = page.getByRole('button', { name: 'Elegir villano' })
+    const MAX_ITERATIONS = 40
+    for (let i = 0; i < MAX_ITERATIONS; i++) {
+      if (await villainRow.isVisible().catch(() => false)) break
+      if (await startButton.isVisible().catch(() => false)) {
+        await startButton.click()
+        continue
+      }
+      if (await nextButton.isVisible().catch(() => false)) {
+        await nextButton.click()
+        continue
+      }
+      break
+    }
+    await expect(villainRow, 'paso de selección de personajes no alcanzado tras 40 pasos como máximo').toBeVisible()
+    await villainRow.click()
+    await page.getByRole('button', { name: 'Rhino', exact: true }).click()
+    const playerRow = page.getByRole('button', { name: 'Elegir héroe y nombre de Jugador 1' })
+    await expect(playerRow).toBeVisible()
+    await playerRow.click()
+    await page.getByRole('button', { name: 'Thor', exact: true }).click()
+
+    // 4. Terminar la partida por el camino real de la interfaz, sin red.
+    await page.getByRole('button', { name: 'Abrir índice' }).click()
+    await page.getByRole('button', { name: 'Partida terminada' }).click()
+    await page.getByRole('button', { name: 'GANADA', exact: true }).click()
+
+    // 5. El corazón del test: un `timeout` CORTO y deliberado, nunca el
+    // timeout por defecto de Playwright. Un fin de partida que esperara al
+    // ACK de Firestore sin red no tardaría "un poco más" — se colgaría
+    // indefinidamente, y solo un plazo corto convierte eso en un fallo
+    // rápido y legible en vez de una espera de minuto y medio hasta el
+    // timeout global. `record()` engancha `useHistorySync().flush()`
+    // dispara-y-olvida (D-05/D-06 de 10-CONTEXT.md): si esa promesa se
+    // esperase aquí, este `toBeVisible` sería la aserción que lo cazaría.
+    await expect(gameButton, 'la app no volvió al selector tras terminar la partida sin red — posible cuelgue esperando la subida a Firestore').toBeVisible({ timeout: 5000 })
+
+    // 6. /historico sin red muestra la partida recién terminada.
+    await page.goto('/historico')
+    await expect(page.getByRole('heading', { name: 'HISTÓRICO', exact: true })).toBeVisible()
+    await expect(page.getByText('GANADA')).toBeVisible()
+
+    // 7. /estadisticas sin red sigue mostrando datos de verdad (nunca su
+    // propio estado vacío) — demuestra que las estadísticas siguen leyendo
+    // solo del dispositivo (STAT-04), incluso justo después de un registro
+    // hecho sin red.
+    await page.goto('/estadisticas')
+    await expect(page.getByRole('heading', { name: 'ESTADÍSTICAS', exact: true })).toBeVisible()
+    await expect(page.getByText('Todavía no hay estadísticas')).toHaveCount(0)
+    await expect(page.getByText('% DE VICTORIAS POR HÉROE')).toBeVisible()
+    await expect(page.getByText('% DE VICTORIAS POR VILLANO')).toBeVisible()
+  })
 })
