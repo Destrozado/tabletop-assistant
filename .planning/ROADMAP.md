@@ -340,7 +340,21 @@ Plans:
   4. La escritura usa autenticación anónima (sin cuentas de usuario) y las reglas de seguridad desplegadas en Firestore permiten crear registros con forma validada pero nunca leer ni borrar los de otros.
   5. Un fallo de Firestore nunca impide jugar, registrar localmente ni ver las estadísticas; y una PWA ya instalada recibe cualquier actualización de esta fase por el camino existente (`registerType: 'prompt'`, banda descartable), sin recargarse sola a mitad de ronda.
 
-**Plans**: TBD
+**Plans**: 4 plans (3 olas)
+Plans:
+**Wave 1**
+
+- [ ] 10-01-PLAN.md — Rodaja trazadora: de `record()` a `setDoc`, inerte sin configuración (dependencia, `runtimeConfig`, `engine/sync.ts`, `useHistorySync.ts`, clave `tga:history:synced`, enganche en `record()`) (ola 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 10-02-PLAN.md — Reglas `create`-only committeadas, `.env.example`, gate de contrato reglas↔proyección y revisión humana del despliegue real antes de la primera escritura (ola 2)
+- [ ] 10-03-PLAN.md — Cola de pendientes: arrastre del atraso completo, listener `online`, poda perezosa y caminos de fallo cerrados con test (ola 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 10-04-PLAN.md — Gates permanentes: presupuesto de bundle (D-16/SYNC-05), e2e de fin de partida sin red (verificación (a)) y guarda de regresión de COMP-03 (ola 3)
+
 **Verificación humana**: Sí, dos verificaciones distintas: (a) un test e2e offline (extensión de `e2e/offline-flow.spec.ts` con `context.setOffline(true)`) confirmando que el fin de partida no se cuelga sin red — automatizable, no requiere dispositivo; (b) una revisión manual del fichero de reglas de Firestore realmente desplegado, antes del primer escritura real, no después de "ya funciona". Ninguna de las dos requiere la tablet de mesa.
 
 ### Decisión registrada de este hito: Firestore sin persistencia offline propia
@@ -370,7 +384,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
 | 9. Histórico y estadísticas | v1.8 | 40/40 | Complete    | 2026-09-22 |
-| 10. Respaldo en Firestore | v1.8 | 0/TBD | Not started | - |
+| 10. Respaldo en Firestore | v1.8 | 0/4 | Planned | - |
 
 ---
 
