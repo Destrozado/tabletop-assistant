@@ -5,17 +5,17 @@ milestone_name: Elección de personajes, contadores en mesa e histórico de part
 current_phase: 10
 current_phase_name: Respaldo en Firestore
 status: executing
-stopped_at: Completed 10-03-PLAN.md
-last_updated: "2026-09-22T22:11:37.270Z"
+stopped_at: Completed 10-04-PLAN.md
+last_updated: "2026-09-22T22:57:24.305Z"
 last_activity: 2026-09-22
 last_activity_desc: Phase 10 execution started
-state_head: d372bd66e53b481e8bda92cca6e398c5e1cb9d9a
+state_head: 1602d95d5ce364d8b9bf19404b8776a82f8410c7
 progress:
   total_phases: 6
   completed_phases: 10
   total_plans: 72
-  completed_plans: 69
-  percent: 96
+  completed_plans: 71
+  percent: 99
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 ## Current Position
 
 Phase: 10 (Respaldo en Firestore) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-09-22 — Phase 10 execution started
 
@@ -93,6 +93,7 @@ Last activity: 2026-09-22 — Phase 10 execution started
 | Phase 09-hist-rico-y-estad-sticas P40 | 20min | 3 tasks | 2 files |
 | Phase 10 P01 | 45 min | 3 tasks | 9 files |
 | Phase 10 P03 | 25 min | 3 tasks | 2 files |
+| Phase 10 P04 | 35 min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -171,6 +172,8 @@ Recent decisions affecting current work:
 - [Phase 10]: [Phase 10]: 10-01: syncPending fusiona (union) los ids recien subidos con loadSyncedIds() existentes antes de saveSyncedIds — nunca sobrescribe con solo el lote de esta pasada; la poda perezosa de D-04 (descartar ids que ya no esten en tga:history) queda fuera de alcance de este plan, no se implemento
 - [Phase 10]: 10-03: D-04 poda perezosa vive en useHistorySync.ts (syncPending), nunca en usePersistedSession.ts — se filtra por loadHistory() releida al final del recorrido, no por la lectura inicial de flush(), para que un borrado en /historico mientras el flush está en vuelo también se refleje
 - [Phase 10]: 10-03: rastro diagnosticable de fallos de sync solo bajo import.meta.dev y solo con error.code (nunca el objeto de error completo), un unico console.warn en todo el fichero
+- [Phase 10]: 10-04: presupuesto de bundle (340 KiB) fijado tras medir npm run generate real de la Fase 10 completa (308668 bytes), nunca estimado a priori
+- [Phase 10]: 10-04: test de fin de partida sin red elige villano y héroe (Rhino/Thor) para que /estadisticas renderice datos reales, no su propio estado vacío
 
 ### Pending Todos
 
@@ -191,6 +194,7 @@ None yet.
 - 03.1-01: el checkpoint de estilo D-02 se escucho en el PORTATIL, no en la tablet. La asuncion A1 de RESEARCH.md (`<audio>.play()` dentro del gesto tactil) sigue SIN verificar en el dispositivo real, y el modelo/SO de la tablet sigue sin conocerse. Todo el riesgo recae ahora en la prueba humana del plan 03.1-06.
 - 260831-fkb: el Rules Reference v1.7 p. 39 dice explicitamente que un personaje puede intentar una accion bloqueada por un Estado (atacar, retirar amenaza) aunque no tenga objetivo valido, solo para descartar ese Estado — el detalle tactico mas util de la regla de Estados, no incluido en `optionsWarningDetail` por el limite de 320 caracteres. Sitio natural para retomarlo: un aviso propio (mismo patron `optionsWarning`/`optionsWarningDetail`) en el paso de atacar o de retirar amenaza.
 - 260831-g2s: `IndexOverlay` no escucha Escape, a diferencia de `WarningDetailModal`. Se dejo fuera de alcance del quick de atajos de teclado (D-Q4: "desactivado con overlay abierto" no implicaba anadir cierre por Escape a todos los overlays). Candidato a quick futura si se decide homogeneizar el cierre por teclado de los overlays.
+- 10-04: .firebaserc apareció modificado en el árbol de trabajo (placeholder sustituido por un project id real) sin que ninguna tarea de 10-04 tocara ese fichero — no commiteado, no revertido; revisar origen antes de retomar el plan 10-02 (pausado en checkpoint humano)
 
 ## Quick Tasks Completed
 
@@ -217,6 +221,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-22T22:11:37.172Z
-Stopped at: Completed 10-03-PLAN.md
+Last session: 2026-09-22T22:57:18.505Z
+Stopped at: Completed 10-04-PLAN.md
 Resume file: None
