@@ -57,6 +57,14 @@
 // Este plan se escribe CONTRA EL ÁRBOL SIN ARREGLAR, a propósito: las
 // patas de comprobación real tienen que ponerse ROJAS hoy porque CR-01 y
 // WR-01 existen de verdad en el repo. El arreglo es el plan 09-38.
+//
+// DECLARACIÓN SIMÉTRICA DE ALCANCE (Task 3): este gate NO mira el
+// contenido de ninguna frase — no audita si una copy tiene o no respaldo en
+// el momento en que se escribe. Eso sigue siendo trabajo de
+// `app/composables/__tests__/afirmacionesRespaldadas.test.ts` (Gate A/B/C).
+// Los dos gates se citan mutuamente por ruta a propósito, para que borrar
+// la cita de cualquiera de los dos rompa un test en vez de pasar
+// desapercibido.
 import { describe, expect, it } from 'vitest'
 import {
   RAICES_SOBRE_LOS_DATOS_DEL_GRUPO,
@@ -643,4 +651,54 @@ describe('Pata 4 — invariante: toda rama que lee la marca la pinta, para toda 
       expect(faltantes.length).toBe(0)
     })
   }
+})
+
+// --- Pata 5: cobertura del descubrimiento (Task 3) ---
+//
+// COMENTARIO DE ANTI-RECURRENCIA (obligatorio, Task 3): para que la DÉCIMA
+// cara de este defecto la encuentre ESTA suite y no otra ronda de
+// revisión, basta con que un composable nuevo de `app/composables/` tenga
+// estado de módulo mutable (`const X = new Set(...)`/`new Map(...)`/
+// `ref(...)`, o `let X`) a columna 0 Y una raíz vigilada de
+// `RAICES_SOBRE_LOS_DATOS_DEL_GRUPO`: `marcasDeEstadoDeModuloDe` lo
+// encuentra SOLO, sin que nadie edite ninguna lista — es un glob más dos
+// predicados. A partir de ahí, la marca nueva entra automáticamente en
+// `marcasNoAuditadas` (o queda excluida si alguien la añade, con motivo y
+// respaldo comprobables, a `MARCAS_CON_REFERENTE_NO_PERSISTENTE`), y las
+// patas 1, 2 y 4 — que son `it.each` construidos sobre `marcasNoAuditadas`
+// — la ejercitan sin que nadie edite ningún array de esta suite. Este test
+// es el que impide que una marca nueva quede fuera de las dos vías (patas o
+// tabla de excepciones) sin que la suite lo diga.
+describe('Pata 5 — cobertura del descubrimiento: ninguna marca queda huérfana (Task 3)', () => {
+  const marcasDescubiertas = marcasDeEstadoDeModuloDe(soloComposables(ficherosTsDelArbol))
+
+  it('el descubrimiento sobre el árbol real NO está vacío (un gate que no descubre nada está verde por accidente, no por ausencia de defecto)', () => {
+    expect(marcasDescubiertas.length).toBeGreaterThan(0)
+  })
+
+  it('toda marca descubierta está o bien en MARCAS_CON_REFERENTE_NO_PERSISTENTE (con motivo y respaldo comprobables) o bien sometida a las patas 1/2/4 vía marcasNoAuditadas — nunca ignorada en silencio', () => {
+    const auditadas = new Set(Object.keys(MARCAS_CON_REFERENTE_NO_PERSISTENTE))
+    const noAuditadas = new Set(marcasDescubiertas.filter(marca => !auditadas.has(marca)))
+
+    for (const marca of marcasDescubiertas) {
+      const estaAuditada = auditadas.has(marca)
+      const estaSometidaAPatas = noAuditadas.has(marca)
+      // Exhaustividad: exactamente una de las dos vías. Ninguna de las dos
+      // dejaría la marca huérfana (invisible a toda comprobación); las dos
+      // a la vez la eximiría de las patas por un error de tabla.
+      expect(
+        estaAuditada !== estaSometidaAPatas,
+        `${marca} no está sometida a ninguna vía de comprobación (ni MARCAS_CON_REFERENTE_NO_PERSISTENTE `
+        + 'ni las patas 1/2/4) — una marca huérfana no puede pasar en silencio. Se espera: o bien una entrada '
+        + 'auditada con motivo y respaldo comprobables, o bien quedar fuera de la tabla para que las patas la '
+        + 'vigilen.',
+      ).toBe(true)
+
+      if (estaAuditada) {
+        const excepcion = MARCAS_CON_REFERENTE_NO_PERSISTENTE[marca]!
+        expect(excepcion.motivo.trim().length, `${marca}: motivo vacío en MARCAS_CON_REFERENTE_NO_PERSISTENTE`).toBeGreaterThan(0)
+        expect(respaldoExiste(excepcion.respaldo), `${marca}: respaldo inexistente (${excepcion.respaldo})`).toBe(true)
+      }
+    }
+  })
 })

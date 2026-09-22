@@ -46,6 +46,18 @@
 // - Gate S: auto-verificación del propio gate (09-30) — el detector se pone
 //   rojo con SFC sintéticos si alguien vuelve a acotar la región vigilada.
 //
+// ALCANCE DECLARADO POR ESCRITO (plan 09-37, Task 3, cierre del tercer
+// `missing:` del segundo gap de `09-VERIFICATION.md` ronda 8): estos cuatro
+// gates auditan TEXTO (NOTICE_BODY/NOTICE_HEADING/literales de variante)
+// contra su RESPALDO, EN EL MOMENTO EN QUE EL TEXTO SE ESCRIBE. NO cubren
+// invariantes de ciclo de vida de estado de módulo: una frase que TENÍA
+// respaldo y lo pierde por un camino de código que nunca la invalida (la
+// novena cara del defecto, CR-01/WR-01 de `09-REVIEW.md`) es
+// estructuralmente invisible aquí — ningún gate de este fichero mira los
+// puntos de invalidación de una marca. Quien cubre esa clase de defecto es
+// `app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts`, con sus
+// cinco patas sobre el ciclo de vida de las marcas de estado de módulo.
+//
 // Recorrido de ficheros vía `import.meta.glob` (macro de Vite/Vitest), NO
 // `node:fs`/`node:url`: este fichero vive bajo `app/composables/__tests__/`,
 // que SÍ pasa por `npm run typecheck` (09-24), y ese árbol no tiene
@@ -894,5 +906,19 @@ const aviso = '${frase}'
         }
       }
     }
+  })
+
+  // Plan 09-37, Task 3, cierre del tercer `missing:` del segundo gap de
+  // `09-VERIFICATION.md` ronda 8: la cabecera de este fichero declara por
+  // escrito su alcance (texto-contra-respaldo) y cita a
+  // `invariantesDeMarcaDeEstado.test.ts` por ruta. Este test comprueba esa
+  // cita por GREP INTERNO sobre el propio contenido del fichero, leído del
+  // glob — nunca de memoria — para que borrar la declaración rompa el test
+  // en vez de pasar desapercibido.
+  it('la cabecera declara por escrito su alcance y cita a invariantesDeMarcaDeEstado.test.ts, que cubre lo que este gate NO cubre (plan 09-37, Task 3)', () => {
+    const clave = Object.keys(ficherosTsDelArbol).find(k => k.endsWith('/composables/__tests__/afirmacionesRespaldadas.test.ts'))
+    expect(clave, 'no se encontró afirmacionesRespaldadas.test.ts en su propio glob').toBeDefined()
+    const contenidoPropio = ficherosTsDelArbol[clave!]!
+    expect(contenidoPropio).toContain('app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts')
   })
 })
