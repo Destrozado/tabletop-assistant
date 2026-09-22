@@ -35,6 +35,7 @@ import type {
 } from '~~/engine/types'
 import { useCharacterCatalogue } from './useCharacterCatalogue'
 import { resolveHeroSpanishName, resolvePlayerLabel } from './useHeroSearch'
+import { useHistorySync } from './useHistorySync'
 import { usePersistedSession } from './usePersistedSession'
 
 // resolveFrozenNames: responde a la Open Question 2 de 09-RESEARCH.md — el
@@ -274,20 +275,29 @@ export function buildStatisticsView(summary: StatisticsSummary): StatisticsView 
 export function useGameHistory() {
   const { getCatalogue } = useCharacterCatalogue()
   const { loadHistory, appendHistoryEntry, removeHistoryEntry } = usePersistedSession()
+  const { flush } = useHistorySync()
 
   const entries = ref<GameHistoryEntry[]>([])
 
   // record: resuelve el catálogo, congela los nombres en esta capa (D-11) y
   // construye la entrada con el motor puro. El reloj real se lee AQUÍ y
   // solo aquí — el resto del fichero, y todo `engine/`, lo reciben
-  // inyectado. Ninguna escritura de este fichero espera nada de red: la
-  // firma es totalmente síncrona por diseño (una fase futura es quien
-  // podría cambiar esto, no esta).
+  // inyectado. La firma SIGUE siendo totalmente síncrona de cara a su
+  // llamador y sigue devolviendo boolean: el orden D-U4 de
+  // `onOutcomeRecorded` (silence() → record() → save() →
+  // notifyHistorySaved() → finishGame()) no cambia ni una línea. Pero desde
+  // la Fase 10 (D-05) ha dejado de ser una función libre de efectos: un
+  // registro local con éxito dispara, dispara-y-olvida, la subida a
+  // Firestore (`useHistorySync().flush()`) — nunca espera nada de red.
   function record(session: EngineSession, outcome: GameOutcome): boolean {
     const catalogue = getCatalogue(session.gameId)
     const names = resolveFrozenNames(session.context, catalogue)
     const entry = buildHistoryEntry(session, outcome, Date.now(), names)
-    return appendHistoryEntry(entry)
+    const recorded = appendHistoryEntry(entry)
+    // D-06: si el guardado local falla, no se sube nada — mantiene el
+    // invariante localStorage-fuente-de-verdad/Firestore-sombra.
+    if (recorded) flush()
+    return recorded
   }
 
   // reload: HIST-07 se garantiza aquí, no se confía en el orden almacenado.

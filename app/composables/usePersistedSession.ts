@@ -53,6 +53,25 @@ const VOICE_KEY = 'tga:voice-enabled'
 const HISTORY_KEY = 'tga:history'
 const HISTORY_FORMAT_VERSION = 1
 
+// D-01 (Fase 10): la marca de sincronizado con Firestore vive en su PROPIA
+// clave, aparte de `HISTORY_KEY` — nunca como campo dentro de la entrada.
+// El motivo es el camino de escritura que CR-01/CR-03 (Fase 9) blindaron:
+// `appendHistoryEntry`/`removeHistoryEntry` reescriben el envoltorio ENTERO
+// de `tga:history` en cada operación y abortan sin tocar nada si el blob
+// resulta ilegible. Un ACK de Firestore llega en un momento arbitrario —
+// perfectamente, mientras el grupo borra una entrada en `/historico` — y con
+// la marca DENTRO de la entrada, cada ACK obligaría a releer y reescribir
+// ese envoltorio, justo el escenario contra el que esos cierres existen. Con
+// la clave aparte, el camino de red NUNCA escribe en `tga:history`.
+//
+// A diferencia de `HISTORY_KEY`, esta clave es RECONSTRUIBLE (D-01): a lo
+// sumo se resube algo que el servidor ya tenía, y D-03 (reglas solo-`create`
+// en el plan 10-02) hace ese reintento inocuo — se rechaza con
+// `permission-denied` y la entrada queda pendiente para siempre, sin que
+// eso rompa nada. Por eso el lector de abajo colapsa `unreadable` y `absent`
+// como hace `loadVoicePreference`, al contrario que `readEnvelope`.
+const SYNCED_KEY = 'tga:history:synced'
+
 // Envoltorio versionado del histórico completo (D-13): `formatVersion` es el
 // punto de migración futuro si la forma de `GameHistoryEntry` cambiara algún
 // día — hoy solo existe la versión 1, y cualquier otra se trata como
@@ -377,6 +396,34 @@ export function usePersistedSession() {
     writeRaw(VOICE_KEY, String(enabled))
   }
 
+  // D-01/D-04 (Fase 10): lista de ids de entradas del histórico ya subidas a
+  // Firestore. Mismo idioma COLAPSABLE que `loadVoicePreference` — la clave
+  // es reconstruible (ver comentario de `SYNCED_KEY` arriba), así que
+  // «no sé leer» y «no hay marca guardada» caen los dos al mismo valor por
+  // defecto ([]): todo se trata como pendiente, y D-03 hace ese reintento
+  // inocuo. Un `JSON.parse` que falle, o que no dé un array de cadenas,
+  // también devuelve [] — nunca lanza.
+  function loadSyncedIds(): string[] {
+    const read = readRaw(SYNCED_KEY)
+    if (read.kind !== 'value') return []
+    try {
+      const parsed: unknown = JSON.parse(read.raw)
+      if (!Array.isArray(parsed)) return []
+      return parsed.filter((id): id is string => typeof id === 'string')
+    }
+    catch {
+      return []
+    }
+  }
+
+  // Firma `void`, igual que `saveVoicePreference`: un fallo aquí solo
+  // produce un reintento de más en el próximo flush (D-03 lo hace inocuo),
+  // así que no hay nada útil que el llamador pudiera hacer con el booleano
+  // de `writeRaw`.
+  function saveSyncedIds(ids: string[]): void {
+    writeRaw(SYNCED_KEY, JSON.stringify(ids))
+  }
+
   // D-13/CR-03: lectura defensiva entrada a entrada, apoyada en
   // `readEnvelope()`. 'empty' y 'unreadable' devuelven `[]` por igual DE
   // CARA A LA PANTALLA — la distinción entre ambos solo le importa a las
@@ -463,5 +510,5 @@ export function usePersistedSession() {
     writeRaw(HISTORY_KEY, JSON.stringify(envelope))
   }
 
-  return { load, readProgress, save, clear, loadVoicePreference, saveVoicePreference, loadHistory, appendHistoryEntry, removeHistoryEntry }
+  return { load, readProgress, save, clear, loadVoicePreference, saveVoicePreference, loadHistory, appendHistoryEntry, removeHistoryEntry, loadSyncedIds, saveSyncedIds }
 }

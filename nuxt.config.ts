@@ -11,6 +11,27 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  // D-13 (Fase 10): sección nueva — este fichero no tenía `runtimeConfig` en
+  // absoluto antes de esta fase. Las cuatro claves alimentan la config web
+  // de Firebase; NO son un secreto (la seguridad real la dan las reglas de
+  // Firestore, plan 10-02), pero con `nuxt generate` (SSG puro, sin servidor
+  // en producción) estos valores se HORNEAN en el payload en tiempo de
+  // BUILD — cambiar una variable de entorno en Vercel sin disparar un nuevo
+  // build/deploy no tiene ningún efecto sobre el sitio ya servido.
+  // Deliberadamente NO se declaran `storageBucket` ni `messagingSenderId`:
+  // Cloud Storage y Cloud Messaging son OPT-OUT (`COVERAGE.md`), así que no
+  // hay nada que configurar para ellos.
+  runtimeConfig: {
+    public: {
+      // Convención de Nuxt: `NUXT_PUBLIC_<CLAVE_EN_MAYÚSCULAS_CON_GUION_BAJO>`
+      // sobreescribe cada valor por defecto de abajo.
+      firebaseApiKey: '', // NUXT_PUBLIC_FIREBASE_API_KEY
+      firebaseAuthDomain: '', // NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+      firebaseProjectId: '', // NUXT_PUBLIC_FIREBASE_PROJECT_ID — vacío = guarda de configuración (D-13) corta antes del import() dinámico
+      firebaseAppId: '', // NUXT_PUBLIC_FIREBASE_APP_ID
+    },
+  },
+
   vite: {
     plugins: [tailwindcss()],
   },

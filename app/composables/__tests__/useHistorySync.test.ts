@@ -1,0 +1,190 @@
+// app/composables/__tests__/useHistorySync.test.ts
+//
+// Prueba de extremo a extremo del camino de escritura del módulo de sync con
+// el SDK doblado (`vi.doMock`) y sin contexto de Nuxt real: `useRuntimeConfig`
+// se simula como global, mismo patrón que `useGameHistory.test.ts` usa para
+// `window`/`localStorage`. Cada test usa `vi.resetModules()` y un
+// `await import('../useHistorySync')` propio para que el estado de módulo
+// (config cacheada, bandera «en vuelo») no se filtre entre casos.
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { SYNC_PAYLOAD_FIELDS } from '~~/engine/sync'
+import type { GameHistoryEntry } from '~~/engine/types'
+
+function createFakeLocalStorage() {
+  const store = new Map<string, string>()
+  return {
+    getItem: vi.fn((key: string) => (store.has(key) ? store.get(key)! : null)),
+    setItem: vi.fn((key: string, value: string) => {
+      store.set(key, value)
+    }),
+    removeItem: vi.fn((key: string) => {
+      store.delete(key)
+    }),
+  }
+}
+
+function baseEntry(overrides: Partial<GameHistoryEntry> = {}): GameHistoryEntry {
+  return {
+    id: 'entry-1',
+    gameId: 'marvel-champions',
+    result: 'won',
+    lossCause: null,
+    villainId: 'rhino',
+    villainName: 'Rhino',
+    players: [{ heroId: 'spider-man', heroName: 'Spider-Man', playerName: 'Ana' }],
+    difficulty: 'normal',
+    playerCount: 1,
+    round: 3,
+    durationMs: 900_000,
+    recordedAt: '2026-09-22T12:00:00.000Z',
+    ...overrides,
+  }
+}
+
+const HISTORY_KEY = 'tga:history'
+const SYNCED_KEY = 'tga:history:synced'
+
+function seedHistory(fakeStorage: ReturnType<typeof createFakeLocalStorage>, entries: GameHistoryEntry[]): void {
+  fakeStorage.setItem(HISTORY_KEY, JSON.stringify({ formatVersion: 1, entries }))
+}
+
+function stubRuntimeConfig(projectId: string): void {
+  (globalThis as unknown as { useRuntimeConfig: () => unknown }).useRuntimeConfig = () => ({
+    public: {
+      firebaseApiKey: projectId ? 'test-key' : '',
+      firebaseAuthDomain: projectId ? 'test.firebaseapp.com' : '',
+      firebaseProjectId: projectId,
+      firebaseAppId: projectId ? 'test-app-id' : '',
+    },
+  })
+}
+
+describe('useHistorySync — extremo a extremo con el SDK doblado', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    vi.resetModules()
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    delete (globalThis as { useRuntimeConfig?: unknown }).useRuntimeConfig
+    vi.doUnmock('firebase/app')
+    vi.doUnmock('firebase/auth')
+    vi.doUnmock('firebase/firestore')
+    vi.restoreAllMocks()
+  })
+
+  it('con projectId configurado y una entrada pendiente, setDoc se llama una vez con la referencia history/<id> y un documento con las doce claves de SYNC_PAYLOAD_FIELDS más uid/createdAt, y el id acaba en tga:history:synced', async () => {
+    const entry = baseEntry()
+    seedHistory(fakeStorage, [entry])
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn().mockResolvedValue(undefined)
+    const doc = vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id }))
+    const serverTimestamp = vi.fn(() => '__server_timestamp__')
+    vi.doMock('firebase/firestore', () => ({ getFirestore: vi.fn(() => ({})), doc, setDoc, serverTimestamp }))
+
+    // onAuthStateChanged real de Firebase SIEMPRE invoca su callback de
+    // forma ASÍNCRONA (incluso con una sesión ya restaurada) — `queueMicrotask`
+    // reproduce eso aquí. Invocarlo de forma síncrona (antes de que
+    // `unsubscribe` termine de asignarse en ensureAnonymousUser) dispararía
+    // un `ReferenceError` de zona muerta temporal en el propio patrón que
+    // RESEARCH.md documenta como correcto — el doble de prueba debe imitar
+    // el comportamiento real del SDK, no el patrón ingenuo.
+    const onAuthStateChanged = vi.fn((_auth: unknown, callback: (user: unknown) => void) => {
+      queueMicrotask(() => callback({ uid: 'anon-uid-1' }))
+      return vi.fn()
+    })
+    const signInAnonymously = vi.fn()
+    vi.doMock('firebase/auth', () => ({ getAuth: vi.fn(() => ({})), onAuthStateChanged, signInAnonymously }))
+    vi.doMock('firebase/app', () => ({ initializeApp: vi.fn(() => ({})), getApps: vi.fn(() => []) }))
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+
+    flush()
+
+    // El setDoc real ocurre tras el import() dinámico + Promise.all: esperar
+    // a que ese trabajo asíncrono corra.
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1))
+
+    expect(doc).toHaveBeenCalledWith(expect.anything(), 'history', entry.id)
+    const documentBody = setDoc.mock.calls[0]![1] as Record<string, unknown>
+    expect(Object.keys(documentBody).sort()).toEqual([...SYNC_PAYLOAD_FIELDS, 'uid', 'createdAt'].sort())
+    expect(documentBody.uid).toBe('anon-uid-1')
+    expect(documentBody.createdAt).toBe('__server_timestamp__')
+    expect(signInAnonymously).not.toHaveBeenCalled()
+
+    await vi.waitFor(() => {
+      const raw = fakeStorage.getItem(SYNCED_KEY)
+      expect(raw).not.toBeNull()
+      expect(JSON.parse(raw as string)).toEqual([entry.id])
+    })
+  })
+
+  it('sin projectId, ninguno de los tres import() del SDK llega a ejecutarse y tga:history:synced no se escribe', async () => {
+    const entry = baseEntry()
+    seedHistory(fakeStorage, [entry])
+    stubRuntimeConfig('')
+
+    const getApps = vi.fn()
+    vi.doMock('firebase/app', () => ({ getApps, initializeApp: vi.fn() }))
+    const getAuth = vi.fn()
+    vi.doMock('firebase/auth', () => ({ getAuth, onAuthStateChanged: vi.fn(), signInAnonymously: vi.fn() }))
+    const getFirestore = vi.fn()
+    vi.doMock('firebase/firestore', () => ({ getFirestore, doc: vi.fn(), setDoc: vi.fn(), serverTimestamp: vi.fn() }))
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+
+    flush()
+
+    // Sin ningún `await`: la guarda de configuración corta de forma
+    // SÍNCRONA, antes de cualquier import() dinámico.
+    expect(getApps).not.toHaveBeenCalled()
+    expect(getAuth).not.toHaveBeenCalled()
+    expect(getFirestore).not.toHaveBeenCalled()
+    expect(fakeStorage.getItem(SYNCED_KEY)).toBeNull()
+  })
+
+  it('ensureAnonymousUser SÍ llama a signInAnonymously cuando onAuthStateChanged no entrega usuario, y NO cuando sí lo entrega', async () => {
+    const entry = baseEntry({ id: 'entry-2' })
+    seedHistory(fakeStorage, [entry])
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+
+    // Ver comentario del primer test sobre por qué el mock invoca de forma
+    // asíncrona, no síncrona.
+    const onAuthStateChanged = vi.fn((_auth: unknown, callback: (user: unknown) => void) => {
+      queueMicrotask(() => callback(null))
+      return vi.fn()
+    })
+    const signInAnonymously = vi.fn().mockResolvedValue({ user: { uid: 'anon-uid-2' } })
+    vi.doMock('firebase/auth', () => ({ getAuth: vi.fn(() => ({})), onAuthStateChanged, signInAnonymously }))
+    vi.doMock('firebase/app', () => ({ initializeApp: vi.fn(() => ({})), getApps: vi.fn(() => []) }))
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+
+    flush()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1))
+    expect(signInAnonymously).toHaveBeenCalledTimes(1)
+    const documentBody = setDoc.mock.calls[0]![1] as Record<string, unknown>
+    expect(documentBody.uid).toBe('anon-uid-2')
+  })
+})
