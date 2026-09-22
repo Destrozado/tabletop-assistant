@@ -1,109 +1,78 @@
 ---
 phase: 09-hist-rico-y-estad-sticas
-verified: 2026-09-22T17:10:00Z
-status: human_needed
+verified: 2026-09-22T21:44:00Z
+status: passed
 score: 5/5 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
-covered_files: [".planning/REQUIREMENTS.md", ".planning/ROADMAP.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-37-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-37-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-38-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-38-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-39-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-39-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-40-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-40-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-REVIEW.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-VERIFICATION.md", ".planning/phases/09-hist-rico-y-estad-sticas/deferred-items.md", "app/components/ContentChangedNotice.vue", "app/components/ResumePrompt.vue", "app/composables/__tests__/afirmacionesRespaldadas.test.ts", "app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts", "app/composables/__tests__/useProgressMismatchMark.test.ts", "app/composables/__tests__/useStoredProgress.test.ts", "app/composables/__tests__/vocabularioDeAfirmaciones.ts", "app/composables/useProgressMismatchMark.ts", "app/composables/useStoredProgress.ts", "app/pages/[game]/index.vue"]
-covered_digest: "v1:sha256:dbe65c37f342bdd5d727beb50f9acd57b2092dffa8fef70a8f02200792e12ae0"
+covered_files: [".planning/REQUIREMENTS.md", ".planning/ROADMAP.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-01-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-01-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-02-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-02-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-03-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-03-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-04-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-04-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-05-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-05-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-06-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-06-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-07-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-07-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-08-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-08-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-09-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-09-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-10-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-10-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-11-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-11-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-12-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-12-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-13-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-13-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-14-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-14-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-15-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-15-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-16-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-16-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-17-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-17-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-18-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-18-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-19-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-19-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-20-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-20-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-21-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-21-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-22-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-22-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-23-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-23-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-24-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-24-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-25-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-25-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-26-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-26-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-27-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-27-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-28-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-28-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-29-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-29-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-30-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-30-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-31-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-31-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-32-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-32-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-33-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-33-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-34-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-34-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-35-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-35-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-36-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-36-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-37-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-37-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-38-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-38-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-39-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-39-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-40-PLAN.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-40-SUMMARY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-REVIEW.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-SECURITY.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-UAT.md", ".planning/phases/09-hist-rico-y-estad-sticas/09-UI-REVIEW.md", ".planning/phases/09-hist-rico-y-estad-sticas/deferred-items.md", "app/components/ContentChangedNotice.vue", "app/components/ResumePrompt.vue", "app/composables/__tests__/afirmacionesRespaldadas.test.ts", "app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts", "app/composables/__tests__/useProgressMismatchMark.test.ts", "app/composables/__tests__/useStoredProgress.test.ts", "app/composables/__tests__/vocabularioDeAfirmaciones.ts", "app/composables/useProgressMismatchMark.ts", "app/composables/useStoredProgress.ts", "app/pages/[game]/index.vue"]
+covered_digest: "v1:sha256:f412a94813365d3b710db4805857c464cef68a9b7a06745308e41da3bd829cdc"
 re_verification:
-  previous_status: gaps_found
-  previous_score: 4/5
+  previous_status: human_needed
+  previous_score: 5/5
   gaps_closed:
-    - "CR-01 (09-REVIEW.md ronda 8, confirmado en 09-VERIFICATION.md ronda 8): `onResumeContinue` no llamaba a `clearProgressMismatch`. Cerrado por el plan 09-38 por DOS vías independientes, ambas confirmadas por lectura directa y por ejecución: (a) `onResumeContinue` (`app/pages/[game]/index.vue:546`) ahora llama a `clearProgressMismatch(gameId)`; (b) la marca (`useProgressMismatchMark.ts`) ahora exige una huella del referente (`huellaDelProgreso`, `useStoredProgress.ts`) en el momento de LEER, no solo de escribir — así que aunque (a) no existiera, el autoguardado que sigue a «Continuar» cambia `updatedAt` y por tanto la huella, invalidando la marca por construcción. Confirmado con un test ad-hoc ejecutado y retirado en esta misma verificación (ver Behavioral Spot-Checks) que reproduce el ciclo completo SIN llamar nunca a `clearProgressMismatch`, y el lector devuelve `null` igualmente."
-    - "WR-01 (mismo informe): la rama `content-changed-notice` calculaba el aviso sin pintarlo ni retirarlo. Cerrado por el plan 09-38: `ContentChangedNotice.vue` ahora acepta y pinta `mismatchWarning` (confirmado por lectura del `.vue`, prop declarada y `v-if` en la plantilla), y `onContentChangedAcknowledge` (`index.vue:788`) llama a `clearProgressMismatch`."
-    - "El hallazgo sobre la propia documentación (`deferred-items.md` afirmaba «no dice algo falso» sin cubrir el caso en que la marca persiste siendo falsa) — cerrado por el plan 09-40: la sección «La marca de progreso que no coincide vive en memoria» distingue ahora por escrito el Caso A (pérdida, aceptado) del Caso B (persistencia falsa, cerrado por 09-38 por construcción), y registra el nuevo camino de pérdida que introduce la huella (cualquier reescritura, incluido el propio autoguardado, invalida la marca) como coste conocido, no como sorpresa."
-    - "WR-02/WR-03 de 09-REVIEW.md ronda 8 (evasiones del mecanismo de excepción auditada: `respaldoExiste` solo comprobaba existencia de ruta, no relevancia; el detector de motivo circular dependía de una única subcadena literal) — cerrado por el plan 09-39: `respaldoRespaldaA` exige ahora relevancia de contenido (raíz o identificador comprobable presente en el fichero citado) y `motivoNombraAlgoComprobable` es incondicional para toda entrada. Confirmado leyendo el código y los tests dedicados con el contraejemplo literal de la ronda 8 (`useVoiceAnnouncer.ts` sin relación, ahora `respaldoRespaldaA(...) === false`)."
+    - "El único ítem de human_verification que mantenía el informe anterior en human_needed — la comprobación visual en tablet horizontal real (DEV-02), incluyendo por primera vez la superficie de `PROGRESS_MISMATCH_WARNING` dentro de `ContentChangedNotice.vue` — se ha REALIZADO y registrado en `09-UAT.md` (status: complete, 1/1 passed, 0 issues, commit 8077baf)."
+    - "Se han completado y comprometido dos gates adicionales que no existían en la ronda anterior: `09-SECURITY.md` (171/171 amenazas cerradas, 0 abiertas, incluidas las 20 filas de severidad alta con verificación ASVS L1/L2 spot-check; commit 8118794) y `09-UI-REVIEW.md` (23/24, 0 hallazgos bloqueantes, 2 warnings no bloqueantes; commit d3b24be)."
   gaps_remaining: []
   regressions: []
 gaps: []
 deferred: []
 advisory:
-  - finding: "El gate de invariantes de ciclo de vida (`invariantesDeMarcaDeEstado.test.ts`, nuevo en este lote) tiene dos huecos estructurales propios, confirmados por lectura directa contra el código (no por aceptar `09-REVIEW.md` sin contrastar): (1) `indiceDeCierre`/`argumentosDeNivelSuperior` no cuentan `<`/`>` como profundidad, así que un parámetro o argumento con una coma dentro de un tipo genérico (`Record<string, string>`) inflaría el recuento de argumentos y podría hacer que Pata 1/Pata 2 den un veredicto equivocado sobre una firma futura. (2) `PATRON_ESTADO_DE_MODULO_MUTABLE` (línea 192) acepta `const X = ...` sin anotación de tipo pero RECHAZA `const X: Tipo = ...` — una marca de estado de módulo futura escrita con anotación de tipo explícita (estilo idiomático de TypeScript) evadiría el descubrimiento por completo, en contra de lo que el propio comentario del fichero (línea 191) afirma por escrito («una marca DÉCIMA... entra sola, sin editar ninguna lista»)."
+  - finding: "El gate de invariantes de ciclo de vida (`invariantesDeMarcaDeEstado.test.ts`) tiene dos huecos estructurales propios, confirmados por lectura directa de línea contra el código: (1) `indiceDeCierre`/`argumentosDeNivelSuperior` (líneas 94-128) no cuentan `<`/`>` como profundidad de anidamiento, así que un parámetro o argumento con una coma dentro de un tipo genérico (`Record<string, string>`) podría inflar el recuento de aridad y falsear el veredicto de Pata 1/2 sobre una firma futura que sí cumple. (2) `PATRON_ESTADO_DE_MODULO_MUTABLE` (línea 192) acepta `const X = ...` sin anotación de tipo pero RECHAZA `const X: Tipo = ...` — una marca de estado de módulo futura escrita con anotación de tipo explícita (estilo idiomático de TypeScript) evadiría el descubrimiento por completo, en contra de lo que el propio comentario del fichero (línea 191) afirma por escrito."
     category: architectural
-    reason: "Ninguna de las dos vías afecta a ningún fichero real de hoy (confirmado: ninguna marca ni llamada existente usa genéricos con coma ni `const` con anotación de tipo), así que no hay ningún BLOCKER de producción vivo — coincide con la propia clasificación de `09-REVIEW.md` (WARNING, no critical, 0 hallazgos críticos). Pero es la misma clase de sobre-promesa escrita que esta fase lleva nueve rondas cerrando, reproducida un nivel más abajo en la máquina construida para prevenirla. Se resolvería con los dos parches ya redactados por `09-REVIEW.md` (WR-01/WR-02): añadir `<`/`>` al tracking de profundidad, y permitir una anotación de tipo opcional en la rama `const` del regex de descubrimiento."
-    evidence_status: "confirmado por lectura directa de línea (WR-01: líneas 94-128; WR-02: línea 192), sin evidencia de que exista hoy ningún fichero real afectado — no se ha intentado una mutación ejecutada de este hallazgo en esta ronda, a diferencia de CR-01/WR-01 de la ronda 8"
-  - finding: "La 'segunda defensa' explícita (`clearProgressMismatch` en `onResumeContinue`/`onContentChangedAcknowledge`) no tiene ningún test que la ejerza directamente: borrar cualquiera de las dos llamadas no pone en rojo ningún test de la suite actual (WR-03 de `09-REVIEW.md`, confirmado por el propio razonamiento de esa revisión y no contradicho por nada encontrado en esta verificación)."
+    reason: "Ninguna de las dos vías afecta a ningún fichero real hoy (confirmado: ninguna marca ni llamada existente usa genéricos con coma ni `const` con anotación de tipo), y `09-REVIEW.md` clasifica ambos hallazgos como WARNING, no critical — 0 hallazgos críticos en la revisión de código de esta sesión. Se llevan hacia delante desde la ronda anterior sin cambios porque nada en esta ronda los cierra ni los invalida."
+    evidence_status: "confirmado por lectura directa de línea (WR-01: líneas 94-128; WR-02: línea 192) en esta y en la ronda anterior; sin instancia real afectada en el árbol hoy"
+  - finding: "La 'segunda defensa' explícita (`clearProgressMismatch` en `onResumeContinue`/`onContentChangedAcknowledge`, `app/pages/[game]/index.vue:546,788`) no tiene ningún test que la ejerza directamente: borrar cualquiera de las dos llamadas no pone en rojo ningún test de la suite actual."
     category: other
-    reason: "No es un BLOCKER porque la garantía de SC3 no depende hoy de esa segunda defensa: la validación de huella (defensa primaria) ya hace el caso imposible por construcción, confirmado en esta misma ronda con un test ad-hoc que reproduce el ciclo completo de CR-01 sin invocar `clearProgressMismatch` en ningún momento y obtiene `null` igualmente (ver Behavioral Spot-Checks). La defensa sin test sigue siendo deuda de cobertura genuina — un futuro refactor podría romperla sin aviso — pero no una afirmación falsa hoy."
-    evidence_status: "confirmado por test ad-hoc ejecutado y retirado en esta verificación (ver Behavioral Spot-Checks); ningún test permanente en el árbol ejerce las dos llamadas de la página directamente"
-human_verification:
-  - test: "Comprobación visual en tablet horizontal real (viewport ~1180×820, npm run dev): repetir el guion acumulado de rondas anteriores (DEV-02) — variante de aviso de fallo larga (20s), posible solapamiento con `UpdateBanner`, texto de `failure-stale`, aviso de discrepancia dentro de `ResumePrompt` — y comprobar AHORA TAMBIÉN, por primera vez desde que existe, que el mismo aviso de discrepancia (`PROGRESS_MISMATCH_WARNING`) se lee completo y sin desbordar dentro de `ContentChangedNotice.vue` (superficie de pantalla nueva del plan 09-38, nunca vista renderizada en un dispositivo físico)."
-    expected: "Ningún control de cabecera queda tapado de forma invisible por las bandas fijas; el texto de `failure-stale`, y el aviso de `PROGRESS_MISMATCH_WARNING` dentro de `ResumePrompt` Y dentro de `ContentChangedNotice`, se leen completos, sin desbordar el modal ni el aviso, a un brazo de distancia."
-    why_human: "El solapamiento y el desbordamiento son juicios visuales sobre un viewport físico que el grep de CSS no puede sustituir. Sigue PENDIENTE explícitamente bajo DEV-02 de REQUIREMENTS.md desde 09-22-SUMMARY.md; el punto de `ContentChangedNotice.vue` es superficie de pantalla estrictamente nueva desde el plan 09-38 (ronda 8) que ningún humano ha visto renderizada todavía."
+    reason: "No es BLOCKER porque la garantía de SC3 no depende de esa segunda defensa: la validación de huella (defensa primaria, `useProgressMismatchMark.ts`) ya hace el caso imposible por construcción, confirmado en la ronda anterior con un test ad-hoc ejecutado (ciclo completo de CR-01 sin invocar `clearProgressMismatch`, resultado `null`) y no contradicho por nada encontrado en esta ronda. Sigue siendo deuda de cobertura genuina — un futuro refactor podría romper la segunda defensa sin aviso — pero no una afirmación falsa hoy."
+    evidence_status: "confirmado por lectura de código en esta ronda (grep de `clearProgressMismatch` en `index.vue`, líneas 546/788) y por el test de comportamiento ad-hoc de la ronda anterior; ningún test permanente en el árbol ejerce las dos llamadas de la página directamente"
+human_verification: []
 ---
 
-# Fase 9: Histórico y estadísticas — Informe de verificación (9ª ronda)
+# Fase 9: Histórico y estadísticas — Informe de verificación (10ª ronda)
 
 **Objetivo de la fase:** Al terminar una partida el grupo puede registrar si ganó o perdió (y por qué), consultar después el histórico completo, y ver un resumen de porcentaje de victorias por héroe y por villano — todo ello construido y verificado enteramente sin conexión, antes de que Firestore exista en el código.
 
-**Verificado:** 2026-09-22
-**Estado:** human_needed (todos los must-haves de código están VERIFIED; queda una comprobación visual humana pendiente, DEV-02, ampliada esta ronda con una superficie de pantalla nueva)
-**Re-verificación:** Sí — tras el lote de cierre 09-37..09-40 (gap_closure de la ronda 8) y el code review de esta sesión (`09-REVIEW.md`)
+**Verificado:** 2026-09-22T21:44:00Z
+**Estado:** passed
+**Re-verificación:** Sí — regenera `09-VERIFICATION.md` (ronda 9) tras cerrarse el único ítem que la mantenía en `human_needed`, y tras completarse `09-SECURITY.md`/`09-UI-REVIEW.md`. Se regenera también porque el fingerprint de la ronda 9 era inválido (calculado a mano, y con solo 23 de los 80 artefactos de plan/summary de la fase) — ver nota de la tarea.
 
 ## Resumen ejecutivo
 
-Esta ronda parte de `09-VERIFICATION.md` (ronda 8, `gaps_found`, 4/5), que dejó dos hallazgos
-abiertos: (1) SC3 fallaba por NOVENA vez, esta vez dentro del propio mecanismo construido para
-cerrar la octava (`onResumeContinue` no invalidaba la marca de discrepancia, la rama
-`content-changed-notice` no la pintaba ni la retiraba, y `deferred-items.md` documentaba una
-garantía que no cubría ese caso); (2) el gate de clase, aun cerrando las cinco vías literales de
-la ronda 7, seguía sin poder atrapar esta clase de defecto porque solo audita texto, no
-invariantes de ciclo de vida de estado.
+Esta ronda parte de `09-VERIFICATION.md` (ronda 9, `human_needed`, 5/5 truths de código VERIFIED,
+un único ítem de `human_verification` pendiente: la comprobación visual en tablet real de
+`DEV-02`, ampliada esa ronda con la superficie nueva de `ContentChangedNotice.vue`). He leído esa
+ronda completa antes de sobrescribirla y no encuentro motivo para descartar su sustancia — su
+verificación independiente de la novena cara de SC3 (test de comportamiento ad-hoc ejecutado y
+retirado, sin invocar nunca `clearProgressMismatch`, resultado `null`) sigue siendo válida hoy:
+confirmé de nuevo por lectura que las mismas líneas (`index.vue:546,788`,
+`ContentChangedNotice.vue:15,43-44`) están presentes y sin cambios, y reejecuté la suite acotada
+de 4 ficheros (242/242 en verde, sin regresión).
 
-**He confirmado, por trazado de código independiente y por un test de comportamiento ejecutado
-en esta misma verificación (no por aceptar los SUMMARY de los planes 09-37..09-40 sin
-contrastar), que los dos hallazgos están cerrados en la forma que importa:**
+**Lo que cambia en esta ronda, verificado independientemente, no aceptado de los documentos sin
+contrastar:**
 
-1. **CR-01/WR-01 (producción):** `onResumeContinue` (`app/pages/[game]/index.vue:546`) y
-   `onContentChangedAcknowledge` (`:788`) llaman ahora a `clearProgressMismatch`, confirmado por
-   lectura directa. Pero además — y esto es lo que hace la garantía estructural, no solo
-   disciplinar — `useProgressMismatchMark.ts` exige desde el plan 09-38 una huella del referente
-   (`huellaDelProgreso`, `useStoredProgress.ts`, los siete campos de `PersistedPosition`,
-   `updatedAt` incluido) en el momento de LEER. Escribí y ejecuté un test ad-hoc (ver
-   *Behavioral Spot-Checks*) que reproduce el ciclo completo de CR-01 **sin llamar nunca a
-   `clearProgressMismatch`** — marca con una huella, simula el autoguardado que cambia
-   `updatedAt`, lee con la huella nueva — y el lector devuelve `null` igualmente. Esto confirma
-   independientemente la afirmación central de `09-REVIEW.md`: el mecanismo primario ya hace el
-   caso imposible por construcción; la llamada explícita en la página es una segunda defensa
-   genuinamente redundante hoy, no la única barrera.
-   `ContentChangedNotice.vue` acepta y pinta la prop `mismatchWarning` (confirmado leyendo el
-   `.vue` completo: `defineProps` la declara, la plantilla la pinta con `v-if`).
-2. **La evaluación de riesgo (`deferred-items.md`):** la sección de la marca en memoria distingue
-   ahora por escrito el Caso A (la marca se pierde — aceptado) del Caso B (la marca persiste
-   siendo falsa — el que CR-01 confirmó, cerrado por 09-38), y documenta el nuevo camino de
-   pérdida que la huella introduce (cualquier reescritura invalida la marca) como coste conocido,
-   no como afirmación absoluta sin matiz. Ya no dice «no dice algo falso» sin cualificar el caso.
-3. **El gate de clase (`afirmacionesRespaldadas.test.ts`):** las dos evasiones de su propio
-   mecanismo de auditoría (WR-02/WR-03 de la ronda 8) están cerradas — `respaldoRespaldaA` exige
-   relevancia de contenido, `motivoNombraAlgoComprobable` es incondicional — confirmado con el
-   contraejemplo literal de la ronda 8 (`useVoiceAnnouncer.ts`, sin relación, ahora rechazado).
-4. **El gate de invariantes de ciclo de vida (`invariantesDeMarcaDeEstado.test.ts`, nuevo):**
-   existe, descubre marcas por glob (no por lista tecleada), y sus cinco patas pasan contra el
-   árbol real (`npx vitest run` sobre los cuatro ficheros relevantes → 242/242, confirmado en
-   esta verificación).
+1. **`09-UAT.md` registra el único ítem pendiente como realizado.** `status: complete`, 1
+   test, 1 passed, 0 issues, con el mismo texto de `test`/`expected`/`why_human` que el informe de
+   la ronda 9 exigía, y `result: pass`. Comprometido en `8077baf`. Esto cierra el ítem que impedía
+   un `passed` limpio en la ronda anterior.
+2. **`09-SECURITY.md` existe y está cerrado.** `threats_open: 0`, 171/171 amenazas con
+   disposición y evidencia por fila, incluidas las 20 filas de severidad `high` (el nivel de
+   bloqueo `block_on: high` del proyecto) todas `mitigate`/`closed` con cita de línea concreta.
+   Comprometido en `8118794`.
+3. **`09-UI-REVIEW.md` existe y está cerrado.** 23/24, 0 hallazgos bloqueantes (los dos WARNING
+   son advisory de UX/proceso, no violaciones del contrato de diseño), copywriting/visuals/color/
+   typography/spacing en 4/4 cada uno. Comprometido en `d3b24be`.
 
-**Pero una revisión de código fresca de esta misma sesión (`09-REVIEW.md`, 0 críticos / 3
-warnings / 3 info) encontró dos huecos estructurales propios en esa máquina nueva** —
-confirmados aquí por lectura directa de línea, no por aceptar el informe: el partidor de
-argumentos del gate de invariantes no cuenta `<`/`>` como profundidad (una firma con un genérico
-con coma podría inflar el recuento), y el regex de descubrimiento acepta `const X = ...` pero
-rechaza `const X: Tipo = ...` (una marca futura con anotación de tipo evadiría el descubrimiento
-por completo). Ninguna de las dos afecta a ningún fichero real de hoy, y ninguna produce una
-afirmación falsa que el grupo pueda ver — se reportan como hallazgos ADVISORY (no BLOCKER), en
-la misma línea de severidad que la propia revisión les asignó (WARNING, no crítico). Se listan en
-el frontmatter para que no se pierdan, y quedan como candidatos naturales para un futuro
-gap-closure si el proyecto decide cerrarlos antes de que una marca real los alcance.
+**Ninguno de los tres artefactos introduce un hallazgo nuevo que reabra alguna de las cinco
+Success Criteria.** Los dos hallazgos ADVISORY que la ronda 9 dejó en el frontmatter (huecos de
+parsing del gate de invariantes; ausencia de test directo sobre la segunda defensa de la página)
+se llevan hacia delante sin cambios porque nada en esta ronda los cierra ni los invalida — siguen
+sin afectar a ningún fichero real del árbol.
 
-**Conclusión: las cinco Success Criteria del ROADMAP están VERIFICADAS.** El defecto que esta
-fase persiguió durante nueve rondas —una afirmación de la interfaz sobre los datos guardados del
-grupo que no está respaldada, o que lo estuvo y dejó de estarlo sin invalidarse— está cerrado en
-producción por una garantía estructural (comparación de huella), no solo por disciplina de
-invalidación manual, y lo he confirmado con un test de comportamiento propio, no solo con lectura
-de código. Lo único que impide un `passed` es la comprobación visual humana en tablet (DEV-02),
-que sigue pendiente y gana esta ronda un punto de guion nuevo (`ContentChangedNotice.vue`) sin que
-nadie lo haya marcado como realizado.
+**Conclusión: las cinco Success Criteria del ROADMAP están VERIFICADAS, y el único ítem de
+verificación humana pendiente está realizado y registrado.** Con la sección de human_verification
+vacía y sin gaps, el estado de esta ronda es `passed`.
 
 ## Goal Achievement
 
@@ -111,11 +80,11 @@ nadie lo haya marcado como realizado.
 
 | # | Truth (Success Criteria del ROADMAP) | Status | Evidence |
 |---|---|---|---|
-| 1 | SC1: al pulsar «Partida terminada» se puede registrar Ganada/Perdida (con causa) o cerrar sin registrar | ✓ VERIFIED | Regresión rápida: `onOutcomeDismiss` (`index.vue:770`) sigue terminando sin registrar, sin condiciones. Sin cambios de este lote. |
-| 2 | SC2: el registro incluye resultado/causa/villano/héroe/nombres/fecha/dificultad/nº jugadores/duración/rondas, calculados por el motor | ✓ VERIFIED (flujo normal) | `buildHistoryEntry` (`engine/history.ts`) sin cambios en este lote. |
-| 3 | SC3: histórico listable/borrable con confirmación; «Partida terminada» borra solo la sesión, nunca el histórico — sin confirmaciones falsas ante un fallo | ✓ VERIFIED | Novena cara cerrada: doble defensa (huella estructural + invalidación explícita) confirmada por lectura de `onResumeContinue`/`onContentChangedAcknowledge`/`ContentChangedNotice.vue` y por test de comportamiento ad-hoc ejecutado en esta ronda (ver Behavioral Spot-Checks) que demuestra que la defensa primaria por sí sola ya cierra el caso. |
-| 4 | SC4: pantalla de estadísticas accesible desde inicio, % victorias por héroe/villano, estado vacío claro | ✓ VERIFIED | Regresión rápida: `app/pages/estadisticas.vue` presente (91 líneas), sin cambios en este lote. |
-| 5 | SC5: estadísticas lee exclusivamente localStorage, nunca Firestore | ✓ VERIFIED | `grep -rniE "firestore|firebase" app/ engine/` sin resultados, ejecutado de nuevo en esta ronda. |
+| 1 | SC1: al pulsar «Partida terminada» se puede registrar Ganada/Perdida (con causa) o cerrar sin registrar | ✓ VERIFIED | Regresión: `onOutcomeDismiss` (`index.vue:770`) sigue terminando sin registrar, sin condiciones. Sin cambios desde la ronda 9. |
+| 2 | SC2: el registro incluye resultado/causa/villano/héroe/nombres/fecha/dificultad/nº jugadores/duración/rondas, calculados por el motor | ✓ VERIFIED (flujo normal) | `buildHistoryEntry` (`engine/history.ts`) sin cambios. |
+| 3 | SC3: histórico listable/borrable con confirmación; «Partida terminada» borra solo la sesión, nunca el histórico — sin confirmaciones falsas ante un fallo | ✓ VERIFIED | Novena cara (verificada de forma independiente en la ronda 9 con test de comportamiento ad-hoc) sigue cerrada: reconfirmado por lectura de `onResumeContinue`/`onContentChangedAcknowledge`/`ContentChangedNotice.vue`, sin cambios de código desde la ronda 9, y regresión de la suite acotada (242/242). |
+| 4 | SC4: pantalla de estadísticas accesible desde inicio, % victorias por héroe/villano, estado vacío claro | ✓ VERIFIED | `app/pages/estadisticas.vue` presente; confirmado además por `09-UI-REVIEW.md` (Pillar 6, estados vacíos correctos, STAT-05). |
+| 5 | SC5: estadísticas lee exclusivamente localStorage, nunca Firestore | ✓ VERIFIED | `grep -rniE "firestore\|firebase" app/ engine/ package.json` sin resultados, reconfirmado esta ronda; premisa mecánica también verificada en `09-SECURITY.md`. |
 
 **Score:** 5/5 truths verified
 
@@ -123,119 +92,100 @@ nadie lo haya marcado como realizado.
 
 | Artifact | Expected | Status | Details |
 |---|---|---|---|
-| `app/composables/useStoredProgress.ts` `huellaDelProgreso`/`StoredProgressReport.huella` | Testigo exacto (7 campos, `updatedAt` incluido) del referente en el momento de leer | ✓ VERIFIED | Confirmado por lectura y por test ad-hoc: dos posiciones idénticas salvo `updatedAt` producen huellas distintas. |
-| `app/composables/useProgressMismatchMark.ts` | Marca (`Map<gameId, huella>`) que solo afirma cuando la huella coincide en lectura ESTRICTA | ✓ VERIFIED | `readProgressMismatchWarning` exige `huellaActual !== null` y comparación `===`; confirmado por lectura y por `useProgressMismatchMark.test.ts` (tests 16-22, 22/22 en verde). |
-| `app/pages/[game]/index.vue` `onResumeContinue`/`onContentChangedAcknowledge` | Invalidan la marca al continuar/reconocer sobre un snapshot marcado | ✓ VERIFIED | `clearProgressMismatch(gameId)` presente en el cuerpo de ambas (líneas 546 y 788); confirmado por lectura completa del fichero. |
-| `app/components/ContentChangedNotice.vue` | Pinta el aviso de discrepancia en su propia rama de montaje | ✓ VERIFIED | `mismatchWarning?: string \| null` en `defineProps`, `<p v-if="mismatchWarning">` en la plantilla; confirmado por lectura del `.vue` completo. |
-| `.planning/phases/09-hist-rico-y-estad-sticas/deferred-items.md` | Evaluación de riesgo honesta que distingue pérdida de persistencia-falsa | ✓ VERIFIED | Sección «La marca de progreso que no coincide vive en memoria» reescrita con Caso A/Caso B; ya no contiene la garantía sin cualificar de la ronda 7/8. |
-| `app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts` (gate de invariantes) | Descubre marcas por glob y exige lector-con-testigo, ciclo de vida probado, y pintado en toda rama de montaje | ⚠ VERIFIED CON RESERVA (ver advisory) | Las cinco patas pasan contra el árbol real (242/242 en la suite de 4 ficheros). Dos huecos propios de parsing (`<`/`>` sin profundidad; `const` con anotación de tipo rechazado) no afectan a ningún fichero real hoy — ver `advisory`. |
-| `app/composables/__tests__/afirmacionesRespaldadas.test.ts` (gate de clase) | Impide que cualquier afirmación nueva sobre los datos del grupo pase sin respaldo RELEVANTE | ✓ VERIFIED | `respaldoRespaldaA`/`motivoNombraAlgoComprobable` cierran WR-02/WR-03 de la ronda 8; confirmado con el contraejemplo literal (`useVoiceAnnouncer.ts`) devolviendo `false`. |
-| `app/pages/estadisticas.vue`, `app/pages/historico.vue` | Pantallas completas, wireadas a `useGameHistory` | ✓ VERIFIED | Sin cambios desde rondas anteriores (91 y 101 líneas, presentes). |
+| `app/composables/useStoredProgress.ts` (`huellaDelProgreso`) | Testigo exacto del referente en el momento de leer | ✓ VERIFIED | Sin cambios desde la ronda 9. |
+| `app/composables/useProgressMismatchMark.ts` | Marca que solo afirma cuando la huella coincide en lectura estricta | ✓ VERIFIED | `useProgressMismatchMark.test.ts` 22/22 en verde (parte de la suite de 242 reejecutada). |
+| `app/pages/[game]/index.vue` (`onResumeContinue`/`onContentChangedAcknowledge`) | Invalidan la marca al continuar/reconocer | ✓ VERIFIED | `clearProgressMismatch(gameId)` presente en líneas 546 y 788, reconfirmado por `grep` en esta ronda. |
+| `app/components/ContentChangedNotice.vue` | Pinta el aviso de discrepancia | ✓ VERIFIED | `mismatchWarning` en `defineProps` (línea 15) y `v-if` en plantilla (líneas 43-44), reconfirmado por `grep` en esta ronda. |
+| `.planning/phases/09-hist-rico-y-estad-sticas/deferred-items.md` | Evaluación de riesgo honesta, Caso A/Caso B | ✓ VERIFIED | Sin cambios desde la ronda 9; sección de la marca en memoria distingue ambos casos. |
+| `app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts` | Gate de invariantes de ciclo de vida | ⚠ VERIFIED CON RESERVA (ver advisory) | 242/242 reejecutado en esta ronda; dos huecos propios de parsing sin instancia real hoy. |
+| `app/composables/__tests__/afirmacionesRespaldadas.test.ts` | Gate de clase, sin evasiones conocidas | ✓ VERIFIED | Parte de la suite de 242 reejecutada; sin cambios desde la ronda 9. |
+| `.planning/phases/09-hist-rico-y-estad-sticas/09-UAT.md` | Registro del ítem de verificación humana pendiente | ✓ VERIFIED | `status: complete`, 1/1 passed, texto coincide con el ítem de la ronda 9, comprometido (`8077baf`). |
+| `.planning/phases/09-hist-rico-y-estad-sticas/09-SECURITY.md` | Registro de amenazas cerrado | ✓ VERIFIED | `threats_open: 0`, 171/171 cerradas, comprometido (`8118794`). |
+| `.planning/phases/09-hist-rico-y-estad-sticas/09-UI-REVIEW.md` | Auditoría visual de 6 pilares | ✓ VERIFIED | 23/24, 0 bloqueantes, comprometido (`d3b24be`). |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |---|---|---|---|---|
-| `onResumeContinue` | `clearProgressMismatch` | invalidación al continuar sobre el snapshot marcado | ✓ WIRED | `index.vue:546`, confirmado por lectura. |
-| `onContentChangedAcknowledge` | `clearProgressMismatch` | invalidación al reconocer el cambio de contenido | ✓ WIRED | `index.vue:788`, confirmado por lectura. |
-| `onMounted` (ambas ramas) | `readProgressMismatchWarning(gameId, informe.huella)` | huella calculada por la misma llamada a `readStoredProgress` | ✓ WIRED | `index.vue:188-208`, confirmado por lectura. |
-| `onMounted` (rama `content-changed-notice`) | `<ContentChangedNotice :mismatch-warning="avisoDiscrepancia">` | prop de aviso | ✓ WIRED | `index.vue:889`, confirmado por lectura. |
-| `onOutcomeRecorded` | `markProgressMismatch`/`clearProgressMismatch` | `plan.progressMismatch && huella !== null` decide, if/else obligatorio | ✓ WIRED | `index.vue:751-752`, sin cambios de fondo desde la ronda 8. |
-| Fingerprint (defensa primaria) | invariante de CR-01 sin depender de la defensa explícita | huella distinta tras autoguardado ⇒ lector devuelve `null` | ✓ WIRED (confirmado por comportamiento) | Test ad-hoc ejecutado en esta verificación: ciclo completo sin invocar `clearProgressMismatch`, resultado `null`. Ver Behavioral Spot-Checks. |
-| `invariantesDeMarcaDeEstado.test.ts`/`afirmacionesRespaldadas.test.ts` | `vocabularioDeAfirmaciones.ts` | import compartido, sin copias | ✓ WIRED | Confirmado leyendo los imports de ambos ficheros. |
-| `app/pages/index.vue` | `/historico`, `/estadisticas` | `navigateTo` | ✓ WIRED | Sin cambios desde rondas anteriores. |
+| `onResumeContinue` | `clearProgressMismatch` | invalidación al continuar | ✓ WIRED | `index.vue:546`, reconfirmado por `grep` en esta ronda. |
+| `onContentChangedAcknowledge` | `clearProgressMismatch` | invalidación al reconocer cambio de contenido | ✓ WIRED | `index.vue:788`, reconfirmado por `grep` en esta ronda. |
+| `ContentChangedNotice` | `mismatchWarning` prop | pintado con `v-if` | ✓ WIRED | `index.vue:889` (prop pasada), `ContentChangedNotice.vue:15,43-44` (prop declarada y pintada), reconfirmado por lectura en esta ronda. |
+| `09-UAT.md` | ítem de `human_verification` de la ronda 9 | mismo texto de test/expected/why_human, `result: pass` | ✓ WIRED | Confirmado leyendo ambos ficheros lado a lado — coincidencia textual completa. |
+| `09-SECURITY.md`/`09-UI-REVIEW.md` | fase 09 | commits `8118794`/`d3b24be` en el historial de la rama actual | ✓ WIRED | `git log --oneline` confirma ambos commits presentes y sin cambios pendientes sobre esos ficheros. |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |---|---|---|---|
-| Suite completa del área tocada por el lote (4 ficheros: gate de invariantes, gate de clase, `useProgressMismatchMark`, `useStoredProgress`) | `npx vitest run app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts app/composables/__tests__/afirmacionesRespaldadas.test.ts app/composables/__tests__/useProgressMismatchMark.test.ts app/composables/__tests__/useStoredProgress.test.ts` | 4 archivos, 242 tests, 0 fallos | ✓ PASS |
-| `npx tsc --noEmit` | tipos del proyecto completo | exit 0 | ✓ PASS |
-| Ausencia de `firestore`/`firebase` en `app/`/`engine/` (SC5) | `grep -rniE "firestore\|firebase" app/ engine/` | sin resultados | ✓ PASS |
-| **CR-01 sin la segunda defensa (test ad-hoc, escrito y retirado en esta verificación, sin tocar ningún fichero de producción):** ¿el mecanismo primario (huella) por sí solo, sin ninguna llamada a `clearProgressMismatch`, invalida la marca cuando el referente cambia? | `npx vitest run` sobre un fichero de test temporal (`app/composables/__tests__/adhoc-verification-09-scratch.test.ts`, creado y eliminado en esta sesión de verificación) que marca con `huellaDelProgreso(posVieja)`, simula el autoguardado (`updatedAt` distinto) y lee con `huellaDelProgreso(posNueva)` sin llamar nunca a `clearProgressMismatch` | 1 test, 0 fallos: `readProgressMismatchWarning` devuelve `null` tras el cambio de huella, pese a no invalidar explícitamente | ✓ PASS — confirma independientemente la afirmación central de `09-REVIEW.md` sobre la defensa primaria |
+| Regresión de la suite acotada al lote de cierre (4 ficheros, sin cambios desde la ronda 9) | `npx vitest run app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts app/composables/__tests__/afirmacionesRespaldadas.test.ts app/composables/__tests__/useProgressMismatchMark.test.ts app/composables/__tests__/useStoredProgress.test.ts` | 4 archivos, 242 tests, 0 fallos | ✓ PASS |
+| Ausencia de `firestore`/`firebase` en el árbol (SC5/STAT-04) | `grep -rniE "firestore\|firebase" app/ engine/ package.json` | sin resultados | ✓ PASS |
+| Suite completa del proyecto (establecida independientemente esta sesión, no re-ejecutada aquí por regla de "una vez por verificación") | `npm test` | 34 archivos / 1096 tests / 0 fallos, exit 0 (evidencia de la sesión, no re-ejecutada en este informe) | ✓ PASS (evidencia externa) |
+| Chequeo de tipos del proyecto completo (establecido independientemente esta sesión) | `npx tsc --noEmit` | exit 0 (evidencia de la sesión, no re-ejecutada en este informe) | ✓ PASS (evidencia externa) |
+| Ausencia de marcadores de deuda sin referencia en los ficheros clave de esta ronda | `grep -n "TBD\|FIXME\|XXX" useProgressMismatchMark.ts useStoredProgress.ts index.vue ContentChangedNotice.vue ResumePrompt.vue` | sin resultados | ✓ PASS |
 
 ### Requirements Coverage
 
 | Requirement | Source Plan(s) | Descripción | Status | Evidencia |
 |---|---|---|---|---|
-| HIST-01 | 09-02, 09-07 (+ otros) | Ofrecer registrar el resultado | ✓ SATISFIED | Sin cambios. |
+| HIST-01 | 09-02, 09-07 (+ otros) | Ofrecer registrar el resultado | ✓ SATISFIED | Sin cambios desde la ronda 9. |
 | HIST-02 | 09-01, 09-02, 09-07, 09-16 | Ganada/Perdida, siempre se puede cerrar sin registrar | ✓ SATISFIED | Sin cambios. |
 | HIST-03 | 09-01, 09-02, 09-07 | Causa si Perdida | ✓ SATISFIED | Sin cambios. |
-| HIST-04 | 09-01, 09-05, 09-12, 09-14, 09-15, 09-17, 09-28, 09-33, 09-37, 09-38, 09-40 | Registro completo | ✓ SATISFIED | La señal de discrepancia en la rama de reintento ya no depende de invalidación manual: la huella la hace correcta por construcción, confirmado por test de comportamiento en esta ronda. |
+| HIST-04 | 09-01, 09-05, 09-12, 09-14, 09-15, 09-17, 09-28, 09-33, 09-37, 09-38, 09-40 | Registro completo | ✓ SATISFIED | La discrepancia en la rama de reintento sigue cerrada por construcción (huella); confirmado de nuevo por lectura y regresión de test. |
 | HIST-05 | 09-01, 09-07 | Motor expone inicio/ronda | ✓ SATISFIED | Sin cambios. |
-| HIST-06 | 09-04..09-40 (26 planes) | Histórico en localStorage, fuente de verdad, sin afirmaciones no respaldadas sobre los datos del grupo | ✓ SATISFIED | Confirmado por esta ronda de verificación independiente: la novena cara (CR-01/WR-01 de la ronda 8) está cerrada en producción por una garantía estructural, verificada con test de comportamiento propio, no solo por lectura de código o por aceptar el SUMMARY del lote. |
+| HIST-06 | 09-04..09-40 (26 planes) | Histórico en localStorage, fuente de verdad | ✓ SATISFIED | La ronda 9 confirmó la novena cara cerrada de forma independiente (test ad-hoc); esta ronda reconfirma sin regresión y sin cambios de código. `09-SECURITY.md` verifica además la premisa mecánica ("Firestore no existe todavía"). |
 | HIST-07 | 09-05, 09-06, 09-08, 09-10, 09-11, 09-17 | Pantalla lista más reciente→antigua | ✓ SATISFIED | Sin cambios. |
-| HIST-08 | 09-05, 09-06, 09-09, 09-11 | Borrado con confirmación | ✓ SATISFIED | Sin cambios. |
+| HIST-08 | 09-05, 09-06, 09-09, 09-11 | Borrado con confirmación | ✓ SATISFIED | Sin cambios; `09-UI-REVIEW.md` confirma el flujo de doble confirmación. |
 | HIST-09 | 09-04..09-36 (23 planes) | «Partida terminada» borra sesión, nunca histórico | ✓ SATISFIED | `clear(gameId)` solo toca `tga:progress:<gameId>`. |
 | STAT-01 | 09-08 | Pantalla accesible desde inicio | ✓ SATISFIED | Sin cambios. |
 | STAT-02 | 09-03, 09-06, 09-08, 09-11 | % victorias por héroe | ✓ SATISFIED | Sin cambios. |
 | STAT-03 | 09-03, 09-06, 09-08, 09-11 | % victorias por villano | ✓ SATISFIED | Sin cambios. |
-| STAT-04 | 09-04, 09-08, 09-11 | Solo localStorage, nunca Firestore | ✓ SATISFIED | Ver truth #5. |
-| STAT-05 | 09-02, 09-06, 09-08, 09-10, 09-11 | Estado vacío claro | ✓ SATISFIED | Sin cambios. |
+| STAT-04 | 09-04, 09-08, 09-11 | Solo localStorage, nunca Firestore | ✓ SATISFIED | Ver truth #5; confirmado también en `09-SECURITY.md`. |
+| STAT-05 | 09-02, 09-06, 09-08, 09-10, 09-11 | Estado vacío claro | ✓ SATISFIED | Sin cambios; confirmado además en `09-UI-REVIEW.md` Pillar 6. |
 
-Ningún requisito huérfano: los 14 IDs de la fase aparecen en al menos un frontmatter de plan
-(medido de nuevo en esta ronda sobre 09-37..09-40: HIST-04 en 09-37/09-38/09-40, HIST-06 en las
-cuatro, ningún otro ID nuevo) y en `.planning/REQUIREMENTS.md` con fila propia en la tabla de
-trazabilidad. **Esta verificación determina que HIST-04 y HIST-06 quedan SATISFIED por primera
-vez en esta fase** — el checkbox `[ ]` de `REQUIREMENTS.md`/`ROADMAP.md` sigue sin marcar porque
-esta verificación no edita esos ficheros; la sincronización de esas casillas es un paso posterior
-(fuera del alcance de este informe), pero la determinación de fondo que las condiciona —una
-ronda de verificación independiente que confirme la novena cara cerrada— es la que este
-documento entrega.
+Ningún requisito huérfano: los 14 IDs declarados en `requirements:` a través de los 40 planes de
+la fase (verificado de nuevo en esta ronda con `grep -A5 "^requirements:" *-PLAN.md`) coinciden
+exactamente con los 14 IDs de la fase en `.planning/REQUIREMENTS.md` (líneas 76-84, 250-254). La
+tabla de trazabilidad de `REQUIREMENTS.md` (líneas 350-363) marca los 14 como "Satisfecho", con
+HIST-04/HIST-06 anotados con el matiz histórico de las nueve rondas — coincide con la
+determinación de esta verificación. Los checkboxes `[ ]` de la lista de requisitos siguen sin
+marcar; sincronizarlos es un paso posterior fuera del alcance de este informe.
 
 ### Anti-Patrones Encontrados
 
 | File | Line | Pattern | Severity | Impact |
 |---|---|---|---|---|
-| `app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts` | 94-128 (`indiceDeCierre`/`argumentosDeNivelSuperior`) | No cuentan `<`/`>` como profundidad de anidamiento | ⚠ WARNING | Un parámetro/argumento futuro con una coma dentro de un genérico podría inflar el recuento de aridad y falsear el veredicto de Pata 1/2 sobre una firma que sí cumple. No afecta a ningún fichero real hoy (confirmado). |
-| `app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts` | 192 (`PATRON_ESTADO_DE_MODULO_MUTABLE`) | Acepta `const X = ...` sin tipo pero rechaza `const X: Tipo = ...` | ⚠ WARNING | Una marca de estado de módulo futura escrita con anotación de tipo explícita evadiría el descubrimiento por completo — contradice literalmente el comentario del propio fichero (línea 191). No afecta a ningún fichero real hoy. |
-| `app/pages/[game]/index.vue` + `useProgressMismatchMark.ts` | `onResumeContinue`/`onContentChangedAcknowledge` | La segunda defensa (`clearProgressMismatch` explícito) no tiene ningún test que la ejerza directamente | ⚠ WARNING | Confirmado (no contradicho por esta ronda): borrar cualquiera de las dos llamadas no pone en rojo ningún test permanente del árbol. No es un BLOCKER porque la defensa primaria (huella) ya cierra el caso por sí sola, confirmado con test ad-hoc en esta ronda. |
-| `app/components/UpdateBanner.vue` + `app/components/HistorySavedNotice.vue` | ambas `fixed top-0 inset-x-0 z-40` | Dos bandas idénticas en posición/z-index, montadas como hermanas, sin coordinación | ⚠ WARNING | Sin cambios; sigue abierto desde la ronda 4, fuera del alcance de este lote. |
-| `app/composables/__tests__/afirmacionesRespaldadas.test.ts` | 959-965 (umbral de longitud) | `motivo.length >= 40` mide forma, no sustancia | ℹ️ INFO | Documentado explícitamente como tal; ya no es la única defensa (WR-02/WR-03 la complementan). Sin cambios de severidad desde la ronda 8. |
+| `app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts` | 94-128 | No cuentan `<`/`>` como profundidad de anidamiento | ⚠ WARNING (advisory) | Sin instancia real hoy; llevado hacia delante desde la ronda 9 sin cambios. |
+| `app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts` | 192 | `PATRON_ESTADO_DE_MODULO_MUTABLE` rechaza `const X: Tipo = ...` | ⚠ WARNING (advisory) | Sin instancia real hoy; llevado hacia delante desde la ronda 9 sin cambios. |
+| `app/pages/[game]/index.vue` + `useProgressMismatchMark.ts` | `onResumeContinue`/`onContentChangedAcknowledge` | Segunda defensa sin test directo | ⚠ WARNING (advisory) | No BLOCKER: la defensa primaria (huella) cierra el caso por construcción, confirmado con test ad-hoc en la ronda 9. Deuda de cobertura genuina. |
+| `app/components/UpdateBanner.vue` + `app/components/HistorySavedNotice.vue` | ambas `fixed top-0 inset-x-0 z-40` | Dos bandas fijas sin coordinación | ⚠ WARNING | Sin cambios desde la ronda 4; parte del guion de `DEV-02`, ya cubierto por el UAT completado en esta ronda. |
 
 No se han encontrado marcadores de deuda (`TODO`/`FIXME`/`TBD`/`XXX`/`HACK`) sin referencia en
-ninguno de los ficheros tocados por el lote 09-37..09-40, ni en `deferred-items.md`/
-`REQUIREMENTS.md` (comprobado con `grep` en esta ronda).
+ninguno de los ficheros cubiertos por este informe.
 
 ### Human Verification Required
 
-### 1. Comprobación visual en tablet horizontal real
-
-**Test:** Con `npm run dev` en un viewport de tablet horizontal (~1180×820), repetir el guion
-acumulado de DEV-02 (variante de aviso de fallo de 20s, posible solapamiento con `UpdateBanner`,
-texto de `failure-stale`, aviso de discrepancia en `ResumePrompt`) y comprobar, por primera vez,
-que `PROGRESS_MISMATCH_WARNING` también se lee completo y sin desbordar dentro de
-`ContentChangedNotice.vue`.
-**Expected:** Ningún control de cabecera queda tapado de forma invisible; los tres avisos de
-texto largo (`failure-stale`, `ResumePrompt`, `ContentChangedNotice`) se leen completos, sin
-desbordar, a un brazo de distancia.
-**Why human:** Solapamiento y desbordamiento en un viewport físico requieren juicio visual real.
-Sigue marcado como PENDIENTE bajo `DEV-02` de `REQUIREMENTS.md` desde `09-22-SUMMARY.md`; el
-punto de `ContentChangedNotice.vue` es superficie de pantalla estrictamente nueva desde el plan
-09-38 (ronda 8) que nadie ha visto renderizada en un dispositivo físico todavía.
+Ninguna. El único ítem pendiente (comprobación visual en tablet real, `DEV-02`) se registró como
+realizado y superado en `09-UAT.md` (1/1 passed, 0 issues) antes de esta ronda.
 
 ### Gaps Summary
 
-Sin gaps. Las cinco Success Criteria del ROADMAP para la Fase 9 están VERIFICADAS, incluida SC3
-en su forma completa («sin confirmaciones falsas ante un fallo»), que había fallado en las ocho
-rondas anteriores de verificación de esta misma fase. El cierre de esta novena y última cara
-confirmada se apoya en una garantía ESTRUCTURAL (comparación de huella del referente en el
-momento de leer, no solo disciplina de invalidación manual en cada punto de código), y esta
-verificación la confirma con un test de comportamiento propio ejecutado y retirado en esta misma
-sesión — no solo con lectura de código ni con el veredicto de `09-REVIEW.md` sin contrastar.
+Sin gaps. Las cinco Success Criteria del ROADMAP para la Fase 9 están VERIFICADAS. El único ítem
+que mantenía el informe anterior en `human_needed` — la comprobación visual en tablet real,
+incluida la superficie nueva de `ContentChangedNotice.vue` — está realizado y registrado en
+`09-UAT.md` (commit `8077baf`). Los gates de seguridad (`09-SECURITY.md`, 0 amenazas abiertas) y
+de UI (`09-UI-REVIEW.md`, 23/24, 0 bloqueantes) están completos y comprometidos. Dos hallazgos
+ADVISORY (huecos de parsing del gate de invariantes; ausencia de test directo sobre la segunda
+defensa) se llevan hacia delante sin cambios porque ninguno afecta a un fichero real hoy ni
+reabre ninguna Success Criteria — quedan como candidatos para un futuro gap-closure si el
+proyecto decide cerrarlos antes de que una marca real los alcance.
 
-Dos huecos estructurales quedan documentados como ADVISORY en el frontmatter (huecos de parsing
-en el gate de invariantes recién construido, y ausencia de test directo sobre la segunda defensa
-de la página) — ninguno de los dos tiene hoy una instancia real en el árbol ni produce una
-afirmación falsa visible para el grupo; ambos tienen parche ya redactado por `09-REVIEW.md` si el
-proyecto decide cerrarlos antes de que una marca futura los alcance.
-
-Lo único que impide un `passed` limpio es la comprobación visual humana en tablet (`DEV-02`),
-que sigue pendiente desde `09-22-SUMMARY.md` y gana en esta ronda un punto de guion nuevo
-(`ContentChangedNotice.vue`) — añadir el punto al guion no es realizar la comprobación, y no se
-escribe aquí que se haya realizado.
+Este informe reemplaza al de la ronda 9 porque su metadata de fingerprint era inválida (digest
+calculado a mano, `covered_files` con solo 23 de los 80 artefactos de plan/summary requeridos).
+La sustancia de la ronda 9 se ha reconfirmado, no descartado: se releyó el informe completo antes
+de sobrescribirlo, se reconfirmaron por lectura las líneas de código que citaba, y se re-ejecutó
+la suite acotada (242/242, sin regresión).
 
 ---
 
-_Verificado: 2026-09-22T17:10:00Z_
+_Verificado: 2026-09-22T21:44:00Z_
 _Verificador: Claude (gsd-verifier)_
