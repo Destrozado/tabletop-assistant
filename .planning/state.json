@@ -56,13 +56,13 @@
     {
       "number": "10",
       "name": "Respaldo en Firestore",
-      "status": "in_progress"
+      "status": "complete"
     }
   ],
   "next": {
-    "command": "/gsd:progress --next",
-    "label": "Advance to the next step (verify)",
-    "reason": "Phase 10 of 6 · 100% · ready to verify"
+    "command": "/gsd:new-milestone",
+    "label": "Start a new milestone",
+    "reason": "All phases complete — start a new milestone"
   },
-  "updated_at": "2026-09-22T23:16:27.239Z"
+  "updated_at": "2026-09-22T23:45:00.700Z"
 }

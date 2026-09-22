@@ -34,7 +34,7 @@ Este hito no reescribe nada: añade tres capacidades nuevas sobre una app que ya
 - [x] **Phase 7: Banda de contadores y compatibilidad de sesión** - Vida de villano y héroes en pantalla con ▲▼, sin romper partidas guardadas de v1.7 (verificación: gaps_found — CR-01 solape de zonas táctiles) (completed 2026-09-08)
 - [x] **Phase 8: Valores conocidos dentro del paso** - El número entre paréntesis, sin tocar texto ni los 37 clips de voz (completed 2026-09-09)
 - [x] **Phase 9: Histórico y estadísticas** - Registro de resultado, listado, y % de victorias — 100% offline (40/40 planes ejecutados; verificación vigente: ronda 10 de `09-VERIFICATION.md`, **passed 5/5**. El lote de cierre de la ronda 8 (09-37..09-40, olas 30-33) está EJECUTADO: 09-37 dejó rojo a propósito un gate nuevo de invariantes de ciclo de vida de estado; 09-38 hizo que la marca de discrepancia valide su referente por huella (`huellaDelProgreso`) al LEER, en vez de depender de que alguien la invalide a mano, más las dos invalidaciones explícitas que faltaban y el pintado en `ContentChangedNotice`; 09-39 cerró las dos evasiones del propio mecanismo de excepciones auditadas (`respaldoRespaldaA`, `motivoNombraAlgoComprobable`); 09-40 corrigió la evaluación de riesgo y la trazabilidad. La ronda 10 —la verificación independiente que las notas anteriores exigían— comprobó esas afirmaciones contra el árbol y las dio por buenas: 1096 tests en verde, `tsc --noEmit` limpio, código revisado (0 críticos), amenazas verificadas (`threats_open: 0`) y auditoría de UI 23/24. Queda registrado como deuda no bloqueante: dos huecos de parsing del propio gate nuevo y la falta de test directo sobre las dos llamadas explícitas a `clearProgressMismatch`)
-- [ ] **Phase 10: Respaldo en Firestore** - Subida silenciosa, nunca bloqueante, aislada del resto
+- [x] **Phase 10: Respaldo en Firestore** - Subida silenciosa, nunca bloqueante, aislada del resto (completed 2026-09-23)
 
 ### Phase Details
 
@@ -384,7 +384,7 @@ Cada fase de este hito comparte infraestructura con una tentación de alcance ad
 | 7. Banda de contadores y compatibilidad de sesión | v1.8 | 11/11 | Complete   | 2026-09-08 |
 | 8. Valores conocidos dentro del paso | v1.8 | 4/4 | Complete   | 2026-09-09 |
 | 9. Histórico y estadísticas | v1.8 | 40/40 | Complete    | 2026-09-22 |
-| 10. Respaldo en Firestore | v1.8 | 4/4 | In Progress|  |
+| 10. Respaldo en Firestore | v1.8 | 4/4 | Complete    | 2026-09-23 |
 
 ---
 

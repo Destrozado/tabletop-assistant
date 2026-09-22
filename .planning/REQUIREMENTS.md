@@ -372,16 +372,16 @@
 | STAT-03 | Fase 9 | Satisfecho |
 | STAT-04 | Fase 9 | Satisfecho |
 | STAT-05 | Fase 9 | Satisfecho |
-| SYNC-01 | Fase 10 | Pendiente |
-| SYNC-02 | Fase 10 | Pendiente |
-| SYNC-03 | Fase 10 | Pendiente |
-| SYNC-04 | Fase 10 | Pendiente |
-| SYNC-05 | Fase 10 | Pendiente |
-| SYNC-06 | Fase 10 | Pendiente |
-| SYNC-07 | Fase 10 | Pendiente |
-| SYNC-08 | Fase 10 | Pendiente |
-| SYNC-09 | Fase 10 | Pendiente |
-| COMP-03 | Fase 10 | Pendiente |
+| SYNC-01 | Fase 10 | Satisfecho |
+| SYNC-02 | Fase 10 | Satisfecho |
+| SYNC-03 | Fase 10 | Satisfecho |
+| SYNC-04 | Fase 10 | Satisfecho |
+| SYNC-05 | Fase 10 | Satisfecho |
+| SYNC-06 | Fase 10 | Satisfecho |
+| SYNC-07 | Fase 10 | Satisfecho |
+| SYNC-08 | Fase 10 | Satisfecho |
+| SYNC-09 | Fase 10 | Satisfecho |
+| COMP-03 | Fase 10 | Satisfecho |
 
 **Cobertura:**
 
