@@ -414,3 +414,245 @@ describe('useHistorySync — Task 2 (plan 10-03): el listener `online`, segundo 
     expect(getFirestore).not.toHaveBeenCalled()
   })
 })
+
+describe('useHistorySync — Task 3 (plan 10-03): todos los caminos de fallo terminan en silencio y «sigue pendiente»', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    vi.resetModules()
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    delete (globalThis as { useRuntimeConfig?: unknown }).useRuntimeConfig
+    vi.doUnmock('firebase/app')
+    vi.doUnmock('firebase/auth')
+    vi.doUnmock('firebase/firestore')
+    vi.restoreAllMocks()
+  })
+
+  it('un setDoc que rechaza con código permission-denied deja el id fuera de tga:history:synced y no lanza', async () => {
+    const entry = baseEntry({ id: 'rejected-permission' })
+    seedHistory(fakeStorage, [entry])
+    stubRuntimeConfig('test-project')
+
+    const error = Object.assign(new Error('permiso denegado'), { code: 'permission-denied' })
+    const setDoc = vi.fn().mockRejectedValue(error)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    mockWorkingAuthAndApp()
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    expect(() => flush()).not.toThrow()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1))
+    // Da tiempo a que el flush termine su recorrido (incluida la escritura
+    // de la lista de marcas, vacía en este caso) antes de comprobar.
+    await vi.waitFor(() => {
+      expect(fakeStorage.getItem(SYNCED_KEY)).not.toBeNull()
+    })
+    expect(JSON.parse(fakeStorage.getItem(SYNCED_KEY)!)).toEqual([])
+  })
+
+  it('un setDoc que rechaza con código unavailable se comporta idénticamente a permission-denied (D-03: mismo tratamiento)', async () => {
+    const entry = baseEntry({ id: 'rejected-unavailable' })
+    seedHistory(fakeStorage, [entry])
+    stubRuntimeConfig('test-project')
+
+    const error = Object.assign(new Error('sin red'), { code: 'unavailable' })
+    const setDoc = vi.fn().mockRejectedValue(error)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    mockWorkingAuthAndApp()
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    expect(() => flush()).not.toThrow()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1))
+    await vi.waitFor(() => {
+      expect(fakeStorage.getItem(SYNCED_KEY)).not.toBeNull()
+    })
+    expect(JSON.parse(fakeStorage.getItem(SYNCED_KEY)!)).toEqual([])
+  })
+
+  it('con tres pendientes y la segunda rechazando, la primera y la tercera sí quedan marcadas', async () => {
+    const entries = [baseEntry({ id: 'first' }), baseEntry({ id: 'second' }), baseEntry({ id: 'third' })]
+    seedHistory(fakeStorage, entries)
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn((ref: { id: string }, _body: unknown) => {
+      if (ref.id === 'second') return Promise.reject(Object.assign(new Error('rechazado'), { code: 'permission-denied' }))
+      return Promise.resolve(undefined)
+    })
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    mockWorkingAuthAndApp()
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    flush()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(3))
+    await vi.waitFor(() => {
+      const raw = fakeStorage.getItem(SYNCED_KEY)
+      expect(raw).not.toBeNull()
+      expect(JSON.parse(raw as string).sort()).toEqual(['first', 'third'])
+    })
+  })
+
+  it('signInAnonymously que rechaza no produce ninguna llamada a setDoc y no lanza', async () => {
+    const entry = baseEntry({ id: 'auth-fails' })
+    seedHistory(fakeStorage, [entry])
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    const onAuthStateChanged = vi.fn((_auth: unknown, callback: (user: unknown) => void) => {
+      queueMicrotask(() => callback(null))
+      return vi.fn()
+    })
+    const signInAnonymously = vi.fn().mockRejectedValue(new Error('auth anónima deshabilitada'))
+    vi.doMock('firebase/auth', () => ({ getAuth: vi.fn(() => ({})), onAuthStateChanged, signInAnonymously }))
+    vi.doMock('firebase/app', () => ({ initializeApp: vi.fn(() => ({})), getApps: vi.fn(() => []) }))
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    expect(() => flush()).not.toThrow()
+
+    await vi.waitFor(() => expect(signInAnonymously).toHaveBeenCalledTimes(1))
+    // Da margen a que el rechazo se propague por toda la cadena de
+    // promesas hasta el catch externo de flush() sin que nada lance.
+    await new Promise(resolve => setTimeout(resolve, 10))
+    expect(setDoc).not.toHaveBeenCalled()
+  })
+
+  it('un import() que rechaza no lanza', async () => {
+    const entry = baseEntry({ id: 'import-fails' })
+    seedHistory(fakeStorage, [entry])
+    stubRuntimeConfig('test-project')
+
+    vi.doMock('firebase/app', () => {
+      throw new Error('fallo simulado de import()')
+    })
+    vi.doMock('firebase/auth', () => ({ getAuth: vi.fn(), onAuthStateChanged: vi.fn(), signInAnonymously: vi.fn() }))
+    const setDoc = vi.fn()
+    vi.doMock('firebase/firestore', () => ({ getFirestore: vi.fn(), doc: vi.fn(), setDoc, serverTimestamp: vi.fn() }))
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    expect(() => flush()).not.toThrow()
+
+    await new Promise(resolve => setTimeout(resolve, 10))
+    expect(setDoc).not.toHaveBeenCalled()
+  })
+
+  it('record() devolviendo false (guardado local fallido) no produce ninguna llamada a setDoc', async () => {
+    // localStorage.setItem lanza SIEMPRE: appendHistoryEntry() no llega a
+    // escribir la entrada, record() devuelve false y — por D-06 — nunca
+    // llama a flush().
+    fakeStorage.setItem.mockImplementation(() => {
+      throw new Error('QuotaExceededError')
+    })
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('firebase/firestore', () => ({ getFirestore: vi.fn(() => ({})), doc: vi.fn(), setDoc, serverTimestamp: vi.fn() }))
+    mockWorkingAuthAndApp()
+
+    const { useGameHistory } = await import('../useGameHistory')
+    const { record } = useGameHistory()
+    const session = {
+      gameId: 'marvel-champions',
+      contentVersion: 1,
+      sequence: [],
+      cursor: 0,
+      round: 3,
+      context: { playerCount: 1, difficulty: 'normal' as const },
+    }
+
+    expect(record(session, 'won')).toBe(false)
+    expect(setDoc).not.toHaveBeenCalled()
+  })
+
+  it('una segunda llamada a flush() con la primera aún sin resolver no duplica las llamadas a setDoc (reentrada)', async () => {
+    const entry = baseEntry({ id: 'reentrant' })
+    seedHistory(fakeStorage, [entry])
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    mockWorkingAuthAndApp()
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    flush()
+    flush()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1))
+  })
+
+  it('SYNC-08 (test de humo): con los tres módulos del SDK doblados para que TODO lo que exponen rechace, record() sigue devolviendo true y no lanza', async () => {
+    stubRuntimeConfig('test-project')
+
+    vi.doMock('firebase/app', () => ({
+      initializeApp: vi.fn(() => { throw new Error('initializeApp rechazado') }),
+      getApps: vi.fn(() => []),
+    }))
+    vi.doMock('firebase/auth', () => ({
+      getAuth: vi.fn(() => { throw new Error('getAuth rechazado') }),
+      onAuthStateChanged: vi.fn(),
+      signInAnonymously: vi.fn().mockRejectedValue(new Error('signInAnonymously rechazado')),
+    }))
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => { throw new Error('getFirestore rechazado') }),
+      doc: vi.fn(),
+      setDoc: vi.fn().mockRejectedValue(new Error('setDoc rechazado')),
+      serverTimestamp: vi.fn(),
+    }))
+
+    const { useGameHistory } = await import('../useGameHistory')
+    const { record } = useGameHistory()
+    const session = {
+      gameId: 'marvel-champions',
+      contentVersion: 1,
+      sequence: [],
+      cursor: 0,
+      round: 2,
+      context: { playerCount: 1, difficulty: 'normal' as const },
+    }
+
+    expect(() => {
+      expect(record(session, 'won')).toBe(true)
+    }).not.toThrow()
+  })
+})

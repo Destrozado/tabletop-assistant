@@ -1,6 +1,6 @@
 // app/composables/useHistorySync.ts
 //
-// Fase 10 (D-02/D-03/D-05/D-06/D-12/D-13): módulo de red — la ÚNICA pieza de
+// Fase 10 (D-02/D-03/D-04/D-05/D-06/D-07/D-08/D-12/D-13): módulo de red — la ÚNICA pieza de
 // esta app que habla con un servicio externo desde el cliente. `record()`
 // (useGameHistory.ts) lo invoca dispara-y-olvida tras escribir en local, y
 // desde este plan (10-03) el propio evento `online` del navegador dispara
@@ -148,11 +148,17 @@ async function syncPending(
       uploadedIds.push(payload.id)
     }
     catch {
-      // D-03: un `permission-denied` (reintento de algo que el servidor ya
-      // tenía) y un `unavailable` (sin red) se tratan IGUAL aquí — la
-      // entrada sigue pendiente y se reintenta en el próximo flush. NUNCA
-      // se marca como sincronizada dentro de este catch: eso enmascararía
-      // unas reglas mal desplegadas.
+      // D-03: un rechazo por reglas (`permission-denied`, un reintento de
+      // algo que el servidor ya tenía) y un fallo de red/servidor caído
+      // (`unavailable`) se tratan EXACTAMENTE IGUAL aquí — ninguno de los
+      // dos añade el id a la lista de subidos, y ninguno interrumpe el
+      // recorrido del resto de pendientes. Tratar un `permission-denied`
+      // como éxito enmascararía unas reglas mal desplegadas, que es justo
+      // el fallo que la verificación humana del plan 10-02 busca detectar.
+      // Consecuencia aceptada: un reintento contra un documento que el
+      // servidor ya tenía se rechaza y esa entrada queda pendiente para
+      // siempre, reintentándose una vez por partida futura — ruido
+      // acotado, invisible y sin coste.
     }
   }
 
@@ -222,8 +228,21 @@ export function useHistorySync(): { flush: () => void } {
       // cualquier fallo se resuelve en silencio, nunca se propaga hacia
       // record()/onOutcomeRecorded (D-07).
       void syncPending(pending, config, loadHistory, loadSyncedIds, saveSyncedIds)
-        .catch(() => {
-          // Silencio deliberado (D-07) — ver comentario de arriba.
+        .catch((err: unknown) => {
+          // Cubre TODO lo que no tiene su propio catch interno: el
+          // import() dinámico, initializeApp, getAuth, la auth anónima
+          // (incluido el proveedor Anónimo deshabilitado en la consola de
+          // Firebase) — cualquiera de estos falla en silencio absoluto en
+          // producción, exactamente igual que un setDoc rechazado (D-07).
+          // Único rastro permitido: SOLO en desarrollo (import.meta.dev),
+          // y SOLO el campo `code` del error — nunca el objeto completo,
+          // que podría llevar detalles internos del SDK a la consola.
+          if (import.meta.dev) {
+            const code = err && typeof err === 'object' && 'code' in err
+              ? (err as { code: unknown }).code
+              : undefined
+            console.warn('[useHistorySync] flush() falló en silencio, código:', code)
+          }
         })
         .finally(() => {
           flushInFlight = false
