@@ -328,41 +328,79 @@ de condicionar el autoguardado.
 
 ---
 
-## La marca de progreso que no coincide vive en memoria (ronda 7)
+## La marca de progreso que no coincide vive en memoria (evaluada en la ronda 7, corregida en la ronda 8)
 
 **Encontrado durante:** plan 09-33 (cierre del tercer hallazgo de SC3 en `09-VERIFICATION.md`
-ronda 7); evaluado explícitamente por riesgo en el plan 09-36.
+ronda 7); evaluado explícitamente por riesgo en el plan 09-36; **la propia evaluación de riesgo,
+corregida en la ronda 8 (plan 09-40)** porque solo cubría la mitad del problema — ver más abajo.
 
 **Descripción:** `useProgressMismatchMark.ts` transporta desde el cierre de una partida hasta
 el modal de reanudación el hecho, ya comprobado, de que el progreso guardado en el dispositivo
 no corresponde al punto en el que el grupo acaba de terminar (`stored === 'stale'`). La marca
-es un `Set<string>` de estado de MÓDULO, nunca `localStorage`.
+es un `Map<string, string>` de estado de MÓDULO (gameId → huella, desde el plan 09-38), nunca
+`localStorage`.
 
-**Por qué no se corrige aquí (evaluación de riesgo, no de alcance de plan):**
-- `'stale'` solo es alcanzable cuando el registro en el histórico **y** el guardado de cierre
-  han fallado los dos; escribir la marca en `localStorage` en ese instante exacto sería la
-  operación menos fiable de todo el sistema, y una marca que no se puede escribir en su propio
-  escenario no es una mitigación — es otra afirmación sin respaldo.
+**La evaluación de riesgo tiene que distinguir DOS casos, y la versión anterior de esta entrada
+solo distinguía uno:**
+
+- **Caso A, la marca se pierde.** Recarga completa del navegador, pestaña cerrada, o —nuevo
+  desde el plan 09-38— cualquier reescritura del progreso que cambie su huella. Desenlace: el
+  grupo no recibe una advertencia que le habría sido útil. Es una PÉRDIDA de aviso, evaluada y
+  aceptada por escrito: el peor desenlace sigue siendo el mismo que antes de todo este trabajo
+  (un registro que podría llevar datos de otra partida), nunca uno peor.
+- **Caso B, la marca persiste cuando ya no es cierta.** Es el que la ronda 8 confirmó por
+  trazado de código: continuar sobre el snapshot marcado, dejar que el autoguardado lo
+  sustituya, salir sin terminar y volver a entrar. Desenlace: la app enseña una frase que en ese
+  momento es falsa. **Inaceptable**, y por eso no se difiere: lo cierra el plan 09-38.
+
+**Lo que esta entrada afirmaba hasta la ronda 7, y que era incorrecto:** la versión anterior
+solo contemplaba el Caso A y concluía que, cuando la marca no está, «la app no afirma nada» y
+que lo único que se pierde en ese caso es la advertencia — una garantía que se leía como si
+cubriera también el Caso B, cuando solo hablaba del Caso A. Es exactamente el patrón que esta
+fase persigue desde la ronda 1: un texto de cierre que no cubre el caso que de verdad importa,
+esta vez dentro de la propia documentación que sellaba el hallazgo anterior.
+
+**El mecanismo que hace el Caso B imposible por construcción, no por intención (ronda 8, plan
+09-38):** el lector de la marca (`readProgressMismatchWarning`,
+`app/composables/useProgressMismatchMark.ts`) compara la huella del progreso que había cuando se
+puso (`huellaDelProgreso`, `app/composables/useStoredProgress.ts`) con la huella del progreso
+que hay al leer, y no devuelve nada si no coinciden. La tabla de verdad completa de ese lector
+—incluida la prueba de ciclo de vida que pone con una huella y lee con otra distinta esperando
+`null`— está fijada por test en
+`app/composables/__tests__/useProgressMismatchMark.test.ts`. Sin esas rutas, esta afirmación no
+se podría ir a comprobar y sería otra vez el mismo defecto que esta entrada corrige.
+
+**El camino de pérdida NUEVO que introduce la validación por huella (Caso A, coste conocido,
+registrado aquí para que no lo descubra la ronda siguiente):** la huella cubre los siete campos
+de la posición persistida, `updatedAt` incluido, así que el propio autoguardado que dispara el
+montaje al restaurar la sesión ya cambia la huella. Consecuencia concreta: si el grupo entra, ve
+el aviso y sale sin elegir ni continuar, al volver a entrar ya no lo verá — el aviso solo
+sobrevive hasta el primer autoguardado tras el montaje, no hasta que el grupo actúe sobre él. Es
+Caso A, se acepta. **Alternativa considerada:** excluir `updatedAt` de la huella evitaría este
+camino de pérdida concreto, al precio de que la garantía del Caso B volviera a depender de que
+todos los caminos de invalidación estén enumerados a mano — exactamente el mecanismo que CR-01
+demostró que falla. Hoy se prefiere la garantía estructural (Caso B imposible por construcción)
+sobre esta cobertura adicional del Caso A.
+
+**Lo que sigue siendo cierto, conservado de la ronda 7:**
+- No se escribe en el almacenamiento persistente del navegador: `'stale'` solo es alcanzable
+  cuando el registro en el histórico **y** el guardado de cierre han fallado los dos; una
+  tercera escritura justo en ese instante sería la operación menos fiable de todo el sistema, y
+  una marca que no se puede escribir en su propio escenario no es una mitigación — es otra
+  afirmación sin respaldo.
 - Lo que la marca en memoria SÍ cubre: el recorrido real del grupo, `/{juego}` → `/` →
   `/{juego}`, que es navegación de cliente de `vue-router` tras la hidratación del prerender de
   Nuxt, nunca una recarga de documento — comprobado en `09-33-SUMMARY.md` por razonamiento
   directo desde `nuxt.config.ts` (`ssr: true` + `nitro.prerender`) y un `grep -rn "external:
   true" app/` sin resultados, no observado en un navegador real (entorno de ejecución sin
   navegador disponible).
-- Lo que NO cubre: una recarga completa del navegador, cerrar la pestaña, o reabrir la app al
-  día siguiente. En esos casos el estado de módulo se vacía y el modal de reanudación vuelve a
-  ofrecer el snapshot sin ningún aviso.
-- **Por qué el riesgo residual es aceptable hoy, dicho como riesgo y no como excusa:** cuando la
-  marca no está, la app no afirma nada — no dice algo falso —, y la copy del aviso de fin de
-  partida (`endGameBody`, plan 09-32) ya no ordena el reintento en esa variante. Lo que se
-  pierde en ese caso es la advertencia, no la corrección: el peor desenlace posible sigue siendo
-  el mismo que antes de este lote (un registro que podría llevar datos de otra partida), nunca
-  uno peor.
+- Lo que NO cubre: una recarga completa del navegador, cerrar la pestaña, reabrir la app al día
+  siguiente, o —ahora también, ver el camino de pérdida nuevo arriba— cualquier reescritura del
+  progreso que cambie su huella.
 
-**Acción sugerida:** si algún día deja de ser aceptable, una clave hermana
-(`tga:progress-mismatch:<gameId>`) escrita **en el siguiente arranque con éxito** — cuando el
-almacenamiento vuelve a funcionar —, en vez de en el instante del fallo, que es precisamente el
-instante menos fiable.
+**Acción sugerida:** si algún día el camino de pérdida nuevo deja de ser aceptable, la
+alternativa concreta es excluir `updatedAt` de `huellaDelProgreso`
+(`app/composables/useStoredProgress.ts`), con el coste de cobertura ya señalado arriba.
 
 ---
 
