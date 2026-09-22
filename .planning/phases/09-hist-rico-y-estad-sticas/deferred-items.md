@@ -586,3 +586,77 @@ NUEVA en `invariantesDeMarcaDeEstado.test.ts` (fuera del alcance de 09-38 y 09-3
 escritos hoy) que exija, para cada rama de invalidación explícita documentada en el propio
 comentario del `retirador`, una llamada real en el fichero que la documenta — hoy la Pata 2 solo
 vigila LECTURAS sin testigo, nunca la AUSENCIA de una llamada de retirada esperada.
+
+---
+
+## Nota de cierre (ronda 8, planes 09-37..09-40) — qué cierra este lote, qué sigue abierto y qué atraparía la décima cara
+
+Repaso explícito, nombrado uno a uno con su plan, para que nada de lo cerrado reaparezca como
+pendiente y nada de lo abierto se dé por cerrado por descuido:
+
+- **CR-01** (la marca de discrepancia de `useProgressMismatchMark.ts` no se invalidaba al
+  continuar sobre el snapshot marcado) — **CERRADO por el plan 09-38**: validación de huella del
+  referente (`huellaDelProgreso`, `app/composables/useStoredProgress.ts`) más invalidación
+  explícita en `onResumeContinue`/`onContentChangedAcknowledge`.
+- **WR-01** (la rama `awaitingContentChangedAck` de `app/pages/[game]/index.vue` calculaba el
+  aviso de discrepancia sin pintarlo ni retirarlo) — **CERRADO por el plan 09-38**:
+  `ContentChangedNotice.vue` gana la prop `mismatchWarning` y la pinta, misma forma que
+  `ResumePrompt.vue`.
+- **El hallazgo sobre esta misma documentación** (la evaluación de riesgo de la marca en memoria
+  solo cubría el Caso A —la marca se pierde— y se leía como si cubriera también el Caso B —la
+  marca persiste cuando ya no es cierta—) — **CERRADO por este plan (09-40)**: la sección de
+  arriba («La marca de progreso que no coincide vive en memoria») distingue los dos casos por
+  escrito, nombra el mecanismo y las rutas que sostienen la garantía, y registra el coste nuevo
+  (el camino de pérdida por `updatedAt`) antes de que nadie lo descubra.
+- **WR-02** (el mecanismo de excepción auditada de los dos gates aceptaba un respaldo que
+  existía pero no respaldaba nada — el contraejemplo de `useGameEndCopy.ts`/`guardad` apuntando a
+  un fichero real sin relación) — **CERRADO por el plan 09-39**: `respaldoRespaldaA` exige que el
+  respaldo citado contenga la raíz o un identificador comprobable del motivo, demostrado por
+  mutación ejecutada y revertida.
+- **WR-03** (un motivo circular pasaba el gate por evitar una única frase concreta, sin exigir
+  que nombrara algo comprobable) — **CERRADO por el plan 09-39**: `motivoNombraAlgoComprobable`
+  es incondicional para toda entrada, sin puerta de entrada por subcadena literal; las tres
+  redacciones circulares de `09-REVIEW.md` quedan fijadas como fixture permanente, las tres en
+  rojo.
+- **IN-01** (el umbral de longitud de 40 caracteres mide forma, no sustancia) — **DOCUMENTADO,
+  no retirado, por el plan 09-39**: el umbral se conserva con un comentario explícito de que mide
+  longitud, no sustancia; la sustancia la comprueban ahora `respaldoRespaldaA` y
+  `motivoNombraAlgoComprobable`.
+
+Lo que sigue **ABIERTO**, nombrado uno a uno para que nada se dé por cerrado por descuido:
+
+- **El solape `UpdateBanner`/`HistorySavedNotice`** (WR-04, ronda 4, más arriba en este fichero)
+  — sigue abierto; este lote no lo toca.
+- **Los toques invisibles sobre la cabecera de `/historico`** (WR-05, ronda 4, más arriba en
+  este fichero) — sigue abierto; este lote no lo toca.
+- **La vía de recuperación de un blob permanentemente ilegible** (el primer `WR-02` de este
+  fichero, más arriba) — sigue abierto; este lote no lo toca.
+- **La sonda de cobertura de bordes** — las 14 filas HIST-01..09/STAT-01..05 siguen sin
+  clasificar (ronda 7, más arriba en este fichero); ninguna garantía de este lote se apoya en
+  ella.
+- **La comprobación visual humana en tablet (`DEV-02`)** — sigue **ABIERTA**. Su guion gana en
+  esta ronda el punto del aviso de discrepancia dentro de `ContentChangedNotice.vue`
+  (`REQUIREMENTS.md`); añadir el punto al guion no es realizar la comprobación, y no se escribe
+  aquí que se haya realizado.
+
+**Párrafo de anti-recurrencia, escrito como propiedad comprobable — qué haría falta para que la
+DÉCIMA cara de este defecto la encuentre una ejecución de la suite y no otra ronda de revisión
+humana:**
+
+(a) el descubrimiento de marcas de `app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts`
+es un glob sobre `app/composables/**`, así que cualquier composable nuevo con estado de módulo
+mutable y una raíz vigilada entra solo en la auditoría, sin que nadie edite ninguna lista;
+(b) una vez dentro, tiene que demostrar que su lector valida el referente, que su fichero
+hermano de tests (`app/composables/__tests__/*.test.ts`) recorre el ciclo completo de vida, y
+que todas las ramas de montaje que lo leen lo pintan;
+(c) toda excepción auditada de los dos gates
+(`app/composables/__tests__/afirmacionesRespaldadas.test.ts`,
+`app/composables/__tests__/invariantesDeMarcaDeEstado.test.ts`) tiene que citar un respaldo cuyo
+contenido tenga que ver con lo que afirma (`respaldoRespaldaA`,
+`app/composables/__tests__/vocabularioDeAfirmaciones.ts`) y nombrar algo comprobable
+(`motivoNombraAlgoComprobable`, mismo fichero);
+(d) toda condición de calidad de esas excepciones tiene un caso sintético que la pone roja,
+vigilado por su propio test de cierre de cobertura en ambos gates.
+
+Esto cubre la clase de defecto que las nueve rondas de esta fase han encontrado — y **no es una promesa** de que no haya una décima de otra clase: decir lo contrario sería, una vez más, una
+afirmación sin respaldo.
