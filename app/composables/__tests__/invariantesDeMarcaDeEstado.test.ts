@@ -35,7 +35,7 @@
 // Este fichero NO audita frases: audita MARCAS DE ESTADO DE MÓDULO que
 // transportan una afirmación sobre los datos guardados del grupo, y les
 // exige la propiedad que CR-01 viola — que la marca no pueda sobrevivir a
-// la destrucción de su propio referente. Cinco patas:
+// la destrucción de su propio referente. Seis patas:
 // - Pata 1 (contratoDeLaMarcaDe): el lector de la marca tiene que exigir un
 //   testigo del referente (aridad >= 2, segundo parámetro obligatorio).
 // - Pata 2 (lecturasSinTestigoDe): ninguna llamada real al lector puede
@@ -47,6 +47,11 @@
 //   lea la marca tiene que pintarla.
 // - Pata 5 (Task 3): el descubrimiento no puede quedarse vacío ni dejar una
 //   marca huérfana sin comprobación.
+// - Pata 6 (funcionesSinRetiradaDe, quick 260923-3rn, WR-03/hallazgo 3): toda
+//   función que el comentario del retirador documenta como punto de
+//   retirada explícita tiene que llamarlo de verdad en su propio cuerpo, con
+//   la misma clave que el lector — la SEGUNDA defensa de CR-01/WR-01, hasta
+//   este quick sin ningún test que la ponga roja si desaparece.
 //
 // El descubrimiento (`marcasDeEstadoDeModuloDe`) es un glob más dos
 // predicados sobre el vocabulario compartido de `vocabularioDeAfirmaciones.ts`
@@ -770,10 +775,10 @@ describe('Pata 4 — invariante: toda rama que lee la marca la pinta, para toda 
 // predicados. A partir de ahí, la marca nueva entra automáticamente en
 // `marcasNoAuditadas` (o queda excluida si alguien la añade, con motivo y
 // respaldo comprobables, a `MARCAS_CON_REFERENTE_NO_PERSISTENTE`), y las
-// patas 1, 2 y 4 — que son `it.each` construidos sobre `marcasNoAuditadas`
-// — la ejercitan sin que nadie edite ningún array de esta suite. Este test
-// es el que impide que una marca nueva quede fuera de las dos vías (patas o
-// tabla de excepciones) sin que la suite lo diga.
+// patas 1, 2, 4 y 6 (quick 260923-3rn) — que son `it.each` construidos sobre
+// `marcasNoAuditadas` — la ejercitan sin que nadie edite ningún array de
+// esta suite. Este test es el que impide que una marca nueva quede fuera de
+// las dos vías (patas o tabla de excepciones) sin que la suite lo diga.
 describe('Pata 5 — cobertura del descubrimiento: ninguna marca queda huérfana (Task 3)', () => {
   const marcasDescubiertas = marcasDeEstadoDeModuloDe(soloComposables(ficherosTsDelArbol))
 
@@ -805,6 +810,335 @@ describe('Pata 5 — cobertura del descubrimiento: ninguna marca queda huérfana
         expect(respaldoExiste(excepcion.respaldo), `${marca}: respaldo inexistente (${excepcion.respaldo})`).toBe(true)
       }
     }
+  })
+})
+
+// --- Pata 6: funcionesSinRetiradaDe (Task 1, quick 260923-3rn) ---
+//
+// WR-03 (09-REVIEW.md; deferred-items.md, «Ronda 8 / plan 09-38», hallazgo
+// 3): la validación de huella de las Patas 1/2 es la defensa PRIMARIA de
+// esta marca, pero `useProgressMismatchMark.ts` documenta, en el comentario
+// de `clearProgressMismatch`, una lista de llamantes que también la retiran
+// como SEGUNDA defensa, independiente de la huella — y hasta este quick
+// ningún test comprobaba que esos llamantes documentados llamaran de
+// verdad. Si `onResumeContinue` o `onContentChangedAcknowledge`
+// (`app/pages/[game]/index.vue`) dejaran de llamar a
+// `clearProgressMismatch(gameId)`, ningún test se ponía rojo.
+//
+// LÍMITE DECLARADO: esta pata demuestra que la llamada está PRESENTE en el
+// cuerpo de la función, no que sea ALCANZABLE — una llamada bajo `if
+// (false)` pasaría igual. Esa garantía no depende de esta pata, porque la
+// defensa primaria de esta marca sigue siendo la validación de huella; esta
+// pata solo asegura que la SEGUNDA defensa, documentada por escrito, no
+// desaparezca sin que nada lo note.
+
+// llamantesDocumentadosDelRetirador trabaja sobre la fuente CRUDA, nunca
+// sobre `regionVigilada`: el contrato que audita vive precisamente en el
+// comentario que `regionVigilada` quitaría.
+export function llamantesDocumentadosDelRetirador(fuenteDeLaMarca: string, retirador: string): string[] {
+  const lineas = fuenteDeLaMarca.split('\n')
+  const indiceDeclaracion = lineas.findIndex(linea => linea.trim().startsWith(`export function ${retirador}(`))
+  if (indiceDeclaracion === -1) return []
+
+  const lineasDeComentario: string[] = []
+  let i = indiceDeclaracion - 1
+  while (i >= 0 && lineas[i]!.trim().startsWith('//')) {
+    lineasDeComentario.unshift(lineas[i]!)
+    i--
+  }
+  if (lineasDeComentario.length === 0) return []
+
+  const patronIdentificadorDesnudo = /^[A-Za-z_$][\w$]*$/
+  const nombres: string[] = []
+  for (const linea of lineasDeComentario) {
+    const coincidencias = linea.match(/`([^`]+)`/g) ?? []
+    for (const coincidencia of coincidencias) {
+      const dentro = coincidencia.slice(1, -1)
+      if (!patronIdentificadorDesnudo.test(dentro)) continue
+      if (dentro === 'true' || dentro === 'false' || dentro === 'null' || dentro === 'undefined') continue
+      if (dentro === retirador) continue
+      if (!nombres.includes(dentro)) nombres.push(dentro)
+    }
+  }
+  return nombres
+}
+
+// consumidoresDeLaMarca: descubierto por IMPORT, nunca tecleado — si una
+// función deja de existir o se muda a un fichero que no importa la marca,
+// el resultado cae del lado rojo (funcionesSinRetiradaDe la marcaría
+// sin-declarar).
+export function consumidoresDeLaMarca(marca: string, ficheros: Record<string, string>): Record<string, string> {
+  const nombreDelModulo = marca.replace(/\.ts$/, '').split('/').pop()!
+  const patronImport = new RegExp(`from\\s+['"][^'"]*/${escaparRegExp(nombreDelModulo)}['"]`)
+  const consumidores: Record<string, string> = {}
+  for (const [clave, contenido] of Object.entries(ficheros)) {
+    const ruta = rutaRelativa(clave)
+    if (ruta.includes('/__tests__/')) continue
+    if (ruta === marca) continue
+    if (patronImport.test(contenido)) {
+      consumidores[ruta] = contenido
+    }
+  }
+  return consumidores
+}
+
+// cuerpoDeFuncionDeclarada: localiza `function <nombre>(` (exportada o no),
+// salta parámetros y tipo de retorno igual que `extraerFuncionesExportadas`,
+// y delimita el cuerpo con `indiceDeCierre` — que cuenta `( [ {` con la
+// MISMA profundidad, así que ni un `.catch(() => {})` interno ni un `=>`
+// truncan el cuerpo antes de tiempo. Si `nombre` está declarado como `const
+// nombre = () => {…}` en vez de `function nombre(`, no hay coincidencia:
+// devuelve null y la pata cae del lado rojo (sin-declarar), a propósito.
+export function cuerpoDeFuncionDeclarada(region: string, nombre: string): { inicio: number, fin: number, cuerpo: string } | null {
+  const patronDeclaracion = new RegExp(`\\bfunction ${escaparRegExp(nombre)}\\(`)
+  const coincidencia = patronDeclaracion.exec(region)
+  if (!coincidencia) return null
+
+  const aperturaParametros = coincidencia.index + coincidencia[0].length - 1
+  const cierreParametros = indiceDeCierre(region, aperturaParametros)
+
+  let cursor = cierreParametros + 1
+  while (cursor < region.length && region[cursor] === ' ') cursor++
+  if (region[cursor] === ':') {
+    cursor++
+    while (cursor < region.length && region[cursor] !== '{') cursor++
+  }
+  const aperturaCuerpo = cursor
+  const cierreCuerpo = indiceDeCierre(region, aperturaCuerpo)
+  const inicio = aperturaCuerpo + 1
+  const fin = cierreCuerpo
+  return { inicio, fin, cuerpo: region.slice(inicio, fin) }
+}
+
+// funcionesSinRetiradaDe: para cada nombre documentado, busca TODA
+// declaración en los consumidores descubiertos. `regionVigilada` se aplica
+// aquí, al contenido de cada consumidor, para que una llamada solo
+// comentada no cuente. La clave de un consumidor es el primer argumento de
+// la primera llamada a `lector` en ESE MISMO fichero (vía `llamadasA`); si
+// el consumidor no llama al lector, basta cualquier llamada al retirador con
+// al menos un argumento.
+export function funcionesSinRetiradaDe(
+  consumidores: Record<string, string>,
+  llamantes: string[],
+  retirador: string,
+  lector: string | null,
+): Array<{ nombre: string, motivo: 'sin-declarar' | 'sin-llamada' | 'clave-distinta' }> {
+  const resultado: Array<{ nombre: string, motivo: 'sin-declarar' | 'sin-llamada' | 'clave-distinta' }> = []
+
+  for (const nombre of llamantes) {
+    const declaraciones: Array<{ region: string, funcion: { inicio: number, fin: number, cuerpo: string } }> = []
+    for (const contenido of Object.values(consumidores)) {
+      const region = regionVigilada(contenido)
+      const funcion = cuerpoDeFuncionDeclarada(region, nombre)
+      if (funcion) declaraciones.push({ region, funcion })
+    }
+
+    if (declaraciones.length === 0) {
+      resultado.push({ nombre, motivo: 'sin-declarar' })
+      continue
+    }
+
+    let motivoEncontrado: 'sin-llamada' | 'clave-distinta' | null = null
+    let satisfecha = false
+
+    for (const { region, funcion } of declaraciones) {
+      const llamadasRetirador = llamadasA(funcion.cuerpo, retirador)
+      if (llamadasRetirador.length === 0) {
+        motivoEncontrado = motivoEncontrado ?? 'sin-llamada'
+        continue
+      }
+
+      const llamadaLector = lector ? llamadasA(region, lector)[0] : undefined
+      if (!llamadaLector) {
+        const tieneArgumento = llamadasRetirador.some(llamada => llamada.argumentos.length >= 1 && llamada.argumentos[0] !== '')
+        if (tieneArgumento) {
+          satisfecha = true
+          break
+        }
+        motivoEncontrado = motivoEncontrado ?? 'sin-llamada'
+        continue
+      }
+
+      const clave = llamadaLector.argumentos[0]
+      if (llamadasRetirador.some(llamada => llamada.argumentos[0] === clave)) {
+        satisfecha = true
+        break
+      }
+      motivoEncontrado = 'clave-distinta'
+    }
+
+    if (!satisfecha) {
+      resultado.push({ nombre, motivo: motivoEncontrado ?? 'sin-llamada' })
+    }
+  }
+
+  return resultado.sort((a, b) => a.nombre.localeCompare(b.nombre))
+}
+
+describe('Pata 6 — llamantesDocumentadosDelRetirador (Task 1, quick 260923-3rn)', () => {
+  it('sobre useProgressMismatchMark.ts real, para clearProgressMismatch, contiene onResumeContinue y onContentChangedAcknowledge (WR-03)', () => {
+    const fuente = contenidoPorRuta(ficherosTsDelArbol, 'app/composables/useProgressMismatchMark.ts')
+    const llamantes = llamantesDocumentadosDelRetirador(fuente, 'clearProgressMismatch')
+    expect(llamantes).toContain('onResumeContinue')
+    expect(llamantes).toContain('onContentChangedAcknowledge')
+  })
+
+  it('un bloque de comentario que cita identificadores desnudos junto a un dotted y literales da solo los identificadores desnudos, sin el propio retirador (caso sintético)', () => {
+    const sintetico = `
+// Retira el registro (\`Map.delete\` devuelve \`false\` en silencio, nunca
+// \`retirar\` a sí mismo) — llamantes documentados: \`onA\` y \`onB\`.
+export function retirar(id: string): void {
+  marcas.delete(id)
+}
+`
+    expect(llamantesDocumentadosDelRetirador(sintetico, 'retirar')).toEqual(['onA', 'onB'])
+  })
+
+  it('una declaración del retirador sin ningún comentario encima da [] (caso sintético)', () => {
+    const sintetico = `
+export function retirar(id: string): void {
+  marcas.delete(id)
+}
+`
+    expect(llamantesDocumentadosDelRetirador(sintetico, 'retirar')).toEqual([])
+  })
+})
+
+describe('Pata 6 — consumidoresDeLaMarca (Task 1, quick 260923-3rn)', () => {
+  it('sobre useProgressMismatchMark.ts real y el árbol de app/ tiene exactamente la clave app/pages/[game]/index.vue', () => {
+    const todosLosFicheros: Record<string, string> = { ...ficherosVueDelArbol, ...ficherosTsDelArbol }
+    const consumidores = consumidoresDeLaMarca('app/composables/useProgressMismatchMark.ts', todosLosFicheros)
+    expect(Object.keys(consumidores)).toEqual(['app/pages/[game]/index.vue'])
+  })
+})
+
+describe('Pata 6 — funcionesSinRetiradaDe (Task 1, quick 260923-3rn)', () => {
+  it('sobre los consumidores/llamantes reales de useProgressMismatchMark.ts (clearProgressMismatch / readProgressMismatchWarning) da [] — la segunda defensa está intacta hoy', () => {
+    const fuenteDeLaMarca = contenidoPorRuta(ficherosTsDelArbol, 'app/composables/useProgressMismatchMark.ts')
+    const llamantes = llamantesDocumentadosDelRetirador(fuenteDeLaMarca, 'clearProgressMismatch')
+    const todosLosFicheros: Record<string, string> = { ...ficherosVueDelArbol, ...ficherosTsDelArbol }
+    const consumidores = consumidoresDeLaMarca('app/composables/useProgressMismatchMark.ts', todosLosFicheros)
+    expect(funcionesSinRetiradaDe(consumidores, llamantes, 'clearProgressMismatch', 'readProgressMismatchWarning')).toEqual([])
+  })
+
+  it('una llamada al retirador en OTRA función del mismo fichero, pero no en onA, marca solo a onA como sin-llamada — se mira el cuerpo, no el fichero entero (caso sintético)', () => {
+    const sintetico = `
+export function onA() {
+  hacerAlgo()
+}
+export function onB() {
+  retirar(gameId)
+}
+`
+    const consumidores = { 'Sintetico.ts': sintetico }
+    expect(funcionesSinRetiradaDe(consumidores, ['onA', 'onB'], 'retirar', null)).toEqual([{ nombre: 'onA', motivo: 'sin-llamada' }])
+  })
+
+  it('una llamada que solo aparece en un comentario `//` dentro del cuerpo no cuenta — sin-llamada (caso sintético)', () => {
+    const sintetico = `
+export function onA() {
+  // retirar(gameId)
+}
+`
+    const consumidores = { 'Sintetico.ts': sintetico }
+    expect(funcionesSinRetiradaDe(consumidores, ['onA'], 'retirar', null)).toEqual([{ nombre: 'onA', motivo: 'sin-llamada' }])
+  })
+
+  it('una llamada al retirador que va DESPUÉS de pedir().catch(() => {}) dentro del cuerpo se encuentra igual — ni las llaves internas ni => truncan el cuerpo (caso sintético)', () => {
+    const sintetico = `
+export function onA() {
+  pedir().catch(() => {})
+  retirar(gameId)
+}
+`
+    const consumidores = { 'Sintetico.ts': sintetico }
+    expect(funcionesSinRetiradaDe(consumidores, ['onA'], 'retirar', null)).toEqual([])
+  })
+
+  it('el cuerpo llama a retirar(otroId) mientras el lector del mismo fichero se llama con gameId — clave-distinta (caso sintético)', () => {
+    const sintetico = `
+export function leer(id: string, testigo: string): string | null { return null }
+function usaLector() {
+  leer(gameId, testigoActual)
+}
+export function onA() {
+  retirar(otroId)
+}
+`
+    const consumidores = { 'Sintetico.ts': sintetico }
+    expect(funcionesSinRetiradaDe(consumidores, ['onA'], 'retirar', 'leer')).toEqual([{ nombre: 'onA', motivo: 'clave-distinta' }])
+  })
+
+  it('un nombre documentado que no está declarado en ningún consumidor da sin-declarar (caso sintético)', () => {
+    const sintetico = 'export function onA() {}'
+    const consumidores = { 'Sintetico.ts': sintetico }
+    expect(funcionesSinRetiradaDe(consumidores, ['onZ'], 'retirar', null)).toEqual([{ nombre: 'onZ', motivo: 'sin-declarar' }])
+  })
+})
+
+describe('Pata 6 — mutación PERMANENTE en memoria: quitar la llamada real a clearProgressMismatch del cuerpo de onResumeContinue/onContentChangedAcknowledge pone roja la pata (WR-03 / hallazgo 3)', () => {
+  // Se copia `regionVigilada` del `index.vue` REAL y se quita, de esa copia,
+  // la llamada a `retirador` que cae DENTRO del cuerpo de `nombreDeLaFuncion`
+  // (offsets de `cuerpoDeFuncionDeclarada` + `llamadasA`) — nunca se toca el
+  // fichero en disco. Esta es una mutación PERMANENTE de la suite (queda en
+  // el fichero de test para siempre), distinta de las mutaciones EN DISCO
+  // (M1/M2) que el SUMMARY de este quick documenta por separado.
+  function eliminarLlamadaDentroDelCuerpo(region: string, nombreDeLaFuncion: string, retirador: string): string {
+    const funcion = cuerpoDeFuncionDeclarada(region, nombreDeLaFuncion)
+    if (!funcion) throw new Error(`no se encontró el cuerpo de ${nombreDeLaFuncion}`)
+    const llamada = llamadasA(funcion.cuerpo, retirador)[0]
+    if (!llamada) throw new Error(`no se encontró ninguna llamada a ${retirador} dentro de ${nombreDeLaFuncion}`)
+    const inicioAbsoluto = funcion.inicio + llamada.inicio
+    const finAbsoluto = funcion.inicio + llamada.fin
+    return region.slice(0, inicioAbsoluto) + region.slice(finAbsoluto)
+  }
+
+  const fuenteReal = contenidoPorRuta(ficherosVueDelArbol, 'app/pages/[game]/index.vue')
+  const regionReal = regionVigilada(fuenteReal)
+  const fuenteDeLaMarca = contenidoPorRuta(ficherosTsDelArbol, 'app/composables/useProgressMismatchMark.ts')
+  const llamantes = llamantesDocumentadosDelRetirador(fuenteDeLaMarca, 'clearProgressMismatch')
+
+  it.each(['onResumeContinue', 'onContentChangedAcknowledge'])('quitar la llamada a clearProgressMismatch del cuerpo de %s pone roja la pata', (nombreDeLaFuncion) => {
+    const regionMutada = eliminarLlamadaDentroDelCuerpo(regionReal, nombreDeLaFuncion, 'clearProgressMismatch')
+    expect(regionMutada, 'la mutación no cambió el contenido — no se puede demostrar que ocurrió de verdad').not.toBe(regionReal)
+
+    const consumidoresMutados = { 'app/pages/[game]/index.vue': regionMutada }
+    const resultado = funcionesSinRetiradaDe(consumidoresMutados, llamantes, 'clearProgressMismatch', 'readProgressMismatchWarning')
+    expect(resultado).toEqual([{ nombre: nombreDeLaFuncion, motivo: 'sin-llamada' }])
+  })
+})
+
+describe('Pata 6 — invariante: toda función documentada como punto de retirada explícita llama de verdad al retirador, para toda marca no auditada (Task 1, quick 260923-3rn)', () => {
+  const marcasDescubiertas = marcasDeEstadoDeModuloDe(soloComposables(ficherosTsDelArbol))
+  const marcasNoAuditadas = marcasDescubiertas.filter(marca => !(marca in MARCAS_CON_REFERENTE_NO_PERSISTENTE))
+
+  it.each(marcasNoAuditadas)('%s: retirador no nulo, llamantes documentados no vacíos, consumidores no vacíos, y funcionesSinRetiradaDe da []', (marca) => {
+    const contrato = contratoDeLaMarcaDe(contenidoPorRuta(ficherosTsDelArbol, marca))
+    expect(contrato.retirador, `${marca}: no se identificó ningún retirador`).not.toBeNull()
+
+    const fuenteDeLaMarca = contenidoPorRuta(ficherosTsDelArbol, marca)
+    const llamantes = llamantesDocumentadosDelRetirador(fuenteDeLaMarca, contrato.retirador!)
+    expect(llamantes.length, `${marca}: el comentario de ${contrato.retirador} no documenta ningún llamante`).toBeGreaterThan(0)
+
+    const todosLosFicheros: Record<string, string> = { ...ficherosVueDelArbol, ...ficherosTsDelArbol }
+    const consumidores = consumidoresDeLaMarca(marca, todosLosFicheros)
+    expect(Object.keys(consumidores).length, `${marca}: no se encontró ningún consumidor que importe la marca`).toBeGreaterThan(0)
+
+    const faltantes = funcionesSinRetiradaDe(consumidores, llamantes, contrato.retirador!, contrato.lector)
+    if (faltantes.length > 0) {
+      const detalle = faltantes.map(({ nombre, motivo }) => {
+        const explicacion = motivo === 'sin-declarar'
+          ? 'no está declarada en ningún consumidor'
+          : motivo === 'sin-llamada'
+            ? `su cuerpo no llama a ${contrato.retirador}`
+            : `llama a ${contrato.retirador} con una clave distinta a la que usa el lector`
+        return `${nombre}: documentada en el comentario de ${contrato.retirador} como punto de retirada explícita `
+          + `(segunda defensa de CR-01/WR-01, 09-REVIEW.md WR-03) pero ${explicacion} — esa defensa queda sin `
+          + 'efecto sin que nada lo note.'
+      }).join('\n')
+      throw new Error(detalle)
+    }
+    expect(faltantes.length).toBe(0)
   })
 })
 
