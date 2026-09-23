@@ -20,7 +20,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-dvh flex flex-col">
+  <div class="h-full flex flex-col">
     <header class="h-16 shrink-0 bg-surface flex items-center justify-between px-lg gap-md">
       <button
         type="button"

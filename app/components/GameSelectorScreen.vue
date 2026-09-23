@@ -23,7 +23,7 @@ const pressedId = ref<string | null>(null)
 </script>
 
 <template>
-  <div class="h-dvh bg-background flex flex-col items-center justify-center gap-2xl px-2xl">
+  <div class="h-full bg-background flex flex-col items-center justify-center gap-2xl px-2xl">
     <div class="flex flex-col items-center gap-md text-center max-w-[720px]">
       <h1 class="text-heading font-bold text-primary-text">
         ¿A qué juego vas a jugar?

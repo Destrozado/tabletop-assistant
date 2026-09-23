@@ -132,6 +132,21 @@ estructural y de test), no la verificación humana en dispositivo real, que sigu
 mismo ítem `DEV-02` de `REQUIREMENTS.md` (guion de pruebas pendiente en la tablet real) — no se
 abre una entrada nueva por esto, ya existe.
 
+**Re-comprobado (quick 260923-3rm):** el cierre de 09-22 sigue siendo cierto,
+ahora con OTRO mecanismo — la banda ya no se saca del flujo con `fixed` para
+luego restarle altura por número de capa; en vez de eso vive EN FLUJO dentro
+de un contenedor `shrink-0` de `app/app.vue`, así que la página (`flex-1
+min-h-0`) resta exactamente su altura real, sea cual sea, en vez de flotar
+por encima. La propiedad («ninguna pantalla `h-dvh`/`h-full` queda empujada
+fuera del viewport mientras hay banda visible») queda fijada ahora por
+`app/composables/__tests__/pilaDeAvisos.test.ts` (parte (c): ningún `.vue` de
+`app/components/`/`app/pages/` usa `h-dvh` como clase — todas toman `h-full`
+del envoltorio de `app/app.vue`) y por `e2e/notice-stack.spec.ts`
+(navegador real: `document.documentElement.scrollHeight <=
+window.innerHeight` con el aviso visible). La comprobación visual humana en
+tablet real sigue **PENDIENTE** — no se declara hecha aquí ni en
+`REQUIREMENTS.md` (mismo matiz honesto que dejó `09-22-SUMMARY.md`).
+
 ---
 
 ## WR-07: `sampleCaption` declara la muestra de héroes e ignora la de villanos
@@ -244,6 +259,22 @@ siguiente apertura de la app — nada se pierde de forma irreversible.
 **Acción sugerida:** apilarlas en un contenedor común en `app/app.vue` en vez de
 superponerlas.
 
+**Actualización (quick 260923-3rm) — CERRADO:** `app/app.vue` sustituye el
+mecanismo `fixed` de 09-22 por una franja EN FLUJO: un contenedor `shrink-0
+flex flex-col` contiene, en este orden, `UpdateBanner` (versión nueva,
+prioridad más alta) y `HistorySavedNotice` (aviso de registro), ambos ya sin
+`fixed`/`inset-x-0`/`z-40`/`pointer-events-none`/`pointer-events-auto`. Si las
+dos bandas están visibles a la vez se apilan una debajo de la otra en vez de
+ocupar el mismo rectángulo — ninguna tapa a la otra. Evidencia:
+`app/composables/__tests__/pilaDeAvisos.test.ts` (gate estructural — parte
+(a): ninguna de las dos bandas lleva los tokens prohibidos; parte (b): la
+franja tiene la forma exacta) y `e2e/notice-stack.spec.ts` (navegador real:
+un toque en el encabezado del aviso cae dentro de `[role="status"]`).
+Comandos y resultado reales: `npx vitest run app/composables/__tests__/pilaDeAvisos.test.ts`
+(12 passed), `npx vitest run` (1195 tests, 0 fallos), `npm run typecheck`
+(exit 0), `npx playwright test e2e/notice-stack.spec.ts e2e/counter-band-height.spec.ts
+e2e/portrait-usable.spec.ts` (9 passed).
+
 ---
 
 ## WR-05 (ronda 4) — `pointer-events-none` deja toques invisibles sobre la cabecera de `/historico`
@@ -270,6 +301,19 @@ controles de la cabecera.
 `DEV-02` (`REQUIREMENTS.md`, pendiente desde `09-22-SUMMARY.md`). No se abre una entrada
 nueva por ella — ya existe — pero no puede desaparecer del radar: en ningún sitio de este
 documento ni de `REQUIREMENTS.md` puede aparecer como hecha.
+
+**Actualización (quick 260923-3rm) — CERRADO:** las bandas dejan de estar
+posicionadas (`fixed`) y de tener `pointer-events` propios: al vivir EN
+FLUJO dentro de la franja de `app/app.vue`, la cabecera `h-16` de
+`/historico` (`‹ Atrás` / `Estadísticas ›`) queda SIEMPRE por debajo del
+borde inferior de la franja, nunca superpuesta — no hace falta ningún
+`pointer-events-auto`/`padding-top` porque ya no hay solape que resolver.
+Evidencia: `app/composables/__tests__/pilaDeAvisos.test.ts` (parte (a): sin
+`pointer-events-none`/`pointer-events-auto`) y `e2e/notice-stack.spec.ts`
+(navegador real: el `boundingBox` de «Estadísticas ›» empieza en o por
+debajo del borde inferior del aviso, y un toque en su centro cae en ese
+botón, nunca en el aviso). Comandos y resultado: ver la entrada de WR-04
+(ronda 4) de arriba (mismos comandos, misma ejecución).
 
 ---
 

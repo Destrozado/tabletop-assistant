@@ -13,36 +13,34 @@ const { showUpdateBanner, dismissUpdate, applyUpdate } = useUpdatePrompt()
 
 <template>
   <!--
-    WR-05(b) (09-VERIFICATION.md ronda 4): esta banda se monta como hermana
-    de `<NuxtPage/>` dentro de `#app-root` (app/app.vue), y todas las
-    pantallas usan `h-dvh`. Sin sacarla del flujo, su altura se sumaba a los
-    100dvh de la pantalla de destino y empujaba la fila inferior (p. ej. los
-    botones «Histórico»/«Estadísticas» de GameSelectorScreen) fuera del borde
-    de la tablet. `fixed top-0 inset-x-0` la saca del flujo; sin más, una
-    banda `fixed` interceptaría los toques de la franja superior de la
-    pantalla de debajo, así que el contenedor deja pasar los toques hacia lo
-    que hay detrás (Tailwind: eventos de puntero desactivados a nivel de
-    contenedor), y solo el CTA de recarga y el botón `✕` los recuperan para
-    seguir siendo pulsables (Tailwind: eventos de puntero reactivados en cada
-    control) — 09-UI-SPEC.md §8, «never blocks input».
+    Quick 260923-3rm (WR-04/WR-05 ronda 4, sustituye el mecanismo `fixed` de
+    09-22): esta banda ya NO está posicionada — es un bloque EN FLUJO,
+    hermano de `HistorySavedNotice.vue` dentro de la franja de avisos de
+    `app/app.vue` (`<div class="shrink-0 flex flex-col">`). Al vivir en
+    flujo normal, la franja entera resta su altura real a la página de
+    debajo en vez de sumarla (WR-05(b) sigue cerrado, ahora por este
+    mecanismo — ver la re-comprobación en deferred-items.md), y ningún toque
+    sobre ella puede atravesar hacia un control oculto de la pantalla de
+    debajo, porque ya no hay nada debajo con lo que solaparse: la franja
+    ocupa su propio espacio, no el de la pantalla (WR-05 ronda 4). Frente a
+    `HistorySavedNotice.vue`, el orden en el DOM decide el orden visual
+    dentro de la franja — esta banda va PRIMERO (versión nueva, más
+    urgente), así que si las dos están visibles a la vez se apilan una
+    encima de la otra en vez de superponerse en el mismo rectángulo (WR-04
+    ronda 4): las dos quedan visibles y pulsables a la vez, sin que ninguna
+    tape el CTA «Actualizar»/`✕` de la otra.
 
-    El nivel de apilamiento elegido la deja por debajo de los diálogos de
-    decisión (GameOutcomeDialog, WarningDetailModal, ConfirmDialog,
-    VillainPickerModal, PlayerModal, IndexOverlay, todos en la capa 50) —
-    correcto, un diálogo que exige una decisión no puede quedar tapado por un
-    aviso informativo. Pero `ResumePrompt.vue` y `ContentChangedNotice.vue`
-    usan ESE MISMO nivel intermedio (capa 40): frente a esos dos, el número
-    de capa NO basta por sí solo — la banda queda debajo de ellos únicamente
-    porque `app/app.vue` la monta ANTES de `<NuxtPage/>` (a igual nivel de
-    apilamiento, pinta encima el que va después en el DOM). Quien reordene
-    ese montaje romperá esta banda sin tocar ningún número.
-
-    Esta banda y `HistorySavedNotice.vue` reciben el mismo tratamiento a
-    propósito: el hallazgo WR-05(b) nombra a las dos.
+    Los diálogos de pantalla completa (GameOutcomeDialog, WarningDetailModal,
+    ConfirmDialog, VillainPickerModal, PlayerModal, IndexOverlay, capa 50;
+    ResumePrompt/ContentChangedNotice, capa 40) siguen pintando por encima de
+    esta banda sin depender de su posición en el DOM: viven dentro de
+    `<NuxtPage/>`, posicionados con `fixed inset-0`, así que su propia capa
+    de apilamiento los saca del flujo de la franja — esta banda ya no
+    necesita ningún número de capa para quedar debajo de ellos.
   -->
   <div
     v-if="showUpdateBanner"
-    class="bg-surface border-b border-background px-2xl py-lg flex items-start justify-between gap-md fixed top-0 inset-x-0 z-40 pointer-events-none"
+    class="bg-surface border-b border-background px-2xl py-lg flex items-start justify-between gap-md"
   >
     <div class="flex flex-col gap-sm">
       <h2 class="text-heading font-bold text-primary-text">
@@ -53,7 +51,7 @@ const { showUpdateBanner, dismissUpdate, applyUpdate } = useUpdatePrompt()
       </p>
       <button
         type="button"
-        class="bg-accent text-on-accent min-h-12 px-lg text-body font-bold self-start active:brightness-95 pointer-events-auto"
+        class="bg-accent text-on-accent min-h-12 px-lg text-body font-bold self-start active:brightness-95"
         @click="applyUpdate"
       >
         Actualizar
@@ -61,7 +59,7 @@ const { showUpdateBanner, dismissUpdate, applyUpdate } = useUpdatePrompt()
     </div>
     <button
       type="button"
-      class="w-12 h-12 flex items-center justify-center text-primary-text text-heading leading-none active:brightness-95 pointer-events-auto"
+      class="w-12 h-12 flex items-center justify-center text-primary-text text-heading leading-none active:brightness-95"
       aria-label="Cerrar aviso"
       @click="dismissUpdate"
     >

@@ -47,7 +47,7 @@ function onConfirmClick() {
 </script>
 
 <template>
-  <div class="h-dvh bg-background flex flex-col">
+  <div class="h-full bg-background flex flex-col">
     <header class="h-16 shrink-0 bg-surface flex items-center px-lg">
       <button
         type="button"

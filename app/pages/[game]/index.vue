@@ -838,7 +838,7 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
 
 <template>
   <!-- id desconocido: mensaje neutro, sin filtrar el id ni sugerir juegos (T-01-06) -->
-  <div v-if="!game" class="h-dvh bg-background flex items-center justify-center px-2xl">
+  <div v-if="!game" class="h-full bg-background flex items-center justify-center px-2xl">
     <p class="text-body font-normal text-secondary-text text-center max-w-[600px]">
       No encontramos ese juego. Volved al selector e intentadlo de nuevo.
     </p>
@@ -851,18 +851,18 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
   -->
   <ClientOnly v-else>
     <template #fallback>
-      <div class="h-dvh bg-background flex items-center justify-center">
+      <div class="h-full bg-background flex items-center justify-center">
         <p class="text-body font-normal text-secondary-text">Cargando…</p>
       </div>
     </template>
 
     <!-- Estado de carga neutro mientras onMounted no ha resuelto la reanudación todavía (Pitfall 7). -->
-    <div v-if="!resumeResolved" class="h-dvh bg-background flex items-center justify-center">
+    <div v-if="!resumeResolved" class="h-full bg-background flex items-center justify-center">
       <p class="text-body font-normal text-secondary-text">Cargando…</p>
     </div>
 
     <!-- SETUP-04: nunca se reanuda en silencio. ConfirmDialog se apila encima al pedir "Empezar nueva" (SETUP-05). -->
-    <div v-else-if="awaitingResumeChoice" class="h-dvh">
+    <div v-else-if="awaitingResumeChoice" class="h-full">
       <ResumePrompt
         :saved-summary="savedSummary"
         :mismatch-warning="avisoDiscrepancia"
@@ -923,7 +923,7 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
       @start="next"
     />
 
-    <div v-else class="h-dvh flex flex-col">
+    <div v-else class="h-full flex flex-col">
       <AppHeader
         :section-label="sectionLabel"
         :position="position"

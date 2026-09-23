@@ -51,7 +51,7 @@ function onConfirmarBorrado() {
 </script>
 
 <template>
-  <div class="h-dvh flex flex-col">
+  <div class="h-full flex flex-col">
     <header class="h-16 shrink-0 bg-surface flex items-center justify-between px-lg gap-md">
       <button
         type="button"
@@ -77,7 +77,7 @@ function onConfirmarBorrado() {
       HistorySavedNotice.vue: un lector de pantalla solo anuncia los cambios
       de una región `aria-live` que YA estaba en el DOM cuando el contenido
       cambió. El v-if va en el contenido de dentro. shrink-0 + EN EL FLUJO
-      (nunca fixed): dentro del flex-col h-dvh de esta página, el `main`
+      (nunca fixed): dentro del flex-col h-full de esta página, el `main`
       flex-1 overflow-y-auto encoge en vez de que la banda empuje la
       pantalla fuera del viewport (evita la clase de WR-05(b)), y no tapa los
       botones de la cabecera (evita la clase de WR-05 ronda 4). Sin
