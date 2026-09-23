@@ -4,7 +4,7 @@
 // que engine/__tests__/history.test.ts. Ayudante local que construye
 // `GameHistoryEntry` a mano, sin fixtures de fichero.
 import { describe, expect, it } from 'vitest'
-import { aggregateStatistics } from '../statistics'
+import { aggregateStatistics, winPercentage } from '../statistics'
 import type { GameHistoryEntry, HistoryPlayerEntry } from '../types'
 
 function makePlayer(overrides: Partial<HistoryPlayerEntry> = {}): HistoryPlayerEntry {
@@ -33,6 +33,81 @@ function makeEntry(overrides: Partial<GameHistoryEntry> = {}): GameHistoryEntry 
     ...overrides,
   }
 }
+
+// IN-13 (09-REVIEW.md, cerrado en la quick 260923-3rl): Math.round podía
+// anunciar «100 %» sin pleno exacto (199 de 200 redondeaba a 100 %) — la
+// etiqueta completa («199 de 200 · 100 %») desmentía al porcentaje en la
+// misma línea. Decisión propia (documentada en el SUMMARY): se acota
+// también el extremo bajo (1 de 201 ya no pinta «0 %»), el mismo defecto en
+// la misma línea que el propio IN-05/engine/history.ts señala como
+// antipatrón de esta fase — endurecer un lado del contrato y dejar el
+// vecino sin revisar.
+describe('IN-13: winPercentage nunca anuncia un extremo que el recuento no respalda', () => {
+  it('199 de 200 (pleno casi exacto) da 99, nunca 100', () => {
+    expect(winPercentage(199, 200)).toBe(99)
+  })
+
+  it('200 de 200 (pleno exacto) da 100', () => {
+    expect(winPercentage(200, 200)).toBe(100)
+  })
+
+  it('1 de 1 (pleno exacto) da 100', () => {
+    expect(winPercentage(1, 1)).toBe(100)
+  })
+
+  it('1 de 201 (casi ninguna victoria) da 1, nunca 0', () => {
+    expect(winPercentage(1, 201)).toBe(1)
+  })
+
+  it('0 de 5 (ninguna victoria) da 0', () => {
+    expect(winPercentage(0, 5)).toBe(0)
+  })
+
+  it('1 de 2 da 50 (redondeo normal, sin acotar)', () => {
+    expect(winPercentage(1, 2)).toBe(50)
+  })
+
+  it('2 de 3 da 67', () => {
+    expect(winPercentage(2, 3)).toBe(67)
+  })
+
+  it('3 de 4 da 75', () => {
+    expect(winPercentage(3, 4)).toBe(75)
+  })
+
+  it('0 de 0 (nunca jugado) da 0', () => {
+    expect(winPercentage(0, 0)).toBe(0)
+  })
+})
+
+describe('IN-13: aggregateStatistics usa winPercentage y respeta la cascada D-24 con el pct acotado', () => {
+  it('un héroe a 199 de 200 sale con pct 99 y queda por debajo de otro a 1 de 1 (pct 100)', () => {
+    const entries: GameHistoryEntry[] = []
+    for (let i = 0; i < 199; i++) {
+      entries.push(makeEntry({
+        result: 'won',
+        players: [makePlayer({ heroId: 'casi-pleno', heroName: 'Casi Pleno' })],
+      }))
+    }
+    entries.push(makeEntry({
+      result: 'lost',
+      lossCause: 'heroesEliminated',
+      players: [makePlayer({ heroId: 'casi-pleno', heroName: 'Casi Pleno' })],
+    }))
+    entries.push(makeEntry({
+      result: 'won',
+      players: [makePlayer({ heroId: 'pleno', heroName: 'Pleno' })],
+    }))
+
+    const summary = aggregateStatistics(entries)
+    const byId = Object.fromEntries(summary.heroRows.map(r => [r.id, r]))
+    expect(byId['casi-pleno']).toMatchObject({ wins: 199, played: 200, pct: 99 })
+    expect(byId.pleno).toMatchObject({ wins: 1, played: 1, pct: 100 })
+
+    const order = summary.heroRows.map(r => r.id)
+    expect(order.indexOf('pleno')).toBeLessThan(order.indexOf('casi-pleno'))
+  })
+})
 
 describe('D-26 (atribución cooperativa)', () => {
   it('una victoria a 3 jugadores suma 1 victoria a los tres héroes distintos', () => {

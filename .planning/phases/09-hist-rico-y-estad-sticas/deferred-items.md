@@ -166,29 +166,59 @@ públicos ya fijados por test, fuera del alcance mínimo de un cierre de huecos.
   histórico crece sin tope ni poda. El día que tope la cuota de `localStorage`, el síntoma es
   el aviso de fallo de WR-02 arriba, sin explicación adicional. Propuesta: un tope (p. ej. 500
   entradas) o una poda explícita de las más antiguas al escribir.
+  **CERRADO (quick 260923-3rl):** `HISTORY_MAX_ENTRIES = 500` en `appendHistoryEntry`
+  (`app/composables/usePersistedSession.ts`) — cada registro corta el envoltorio a las 500
+  entradas más recientes. Fijado por test en `app/composables/__tests__/usePersistedSession.test.ts`
+  (500 entradas sembradas + 1 registro deja exactamente 500, la más antigua desaparece).
 - **IN-05** — `engine/history.ts` (`buildHistoryEntry`, generación de `id`):
   `Math.random().toString(36).slice(2, 12)` da entre 0 y 10 caracteres
   (`Math.random() === 0` ⇒ sufijo vacío ⇒ `id` = `"1789…-"`), lo que incumpliría el regex que
   el test ya fija (`/^\d+-[a-z0-9]+$/`). Propuesta: `crypto.randomUUID()` (disponible en todos
   los navegadores objetivo, contexto seguro) — cambio de formato de `id` que exige actualizar
   el test existente, fuera del alcance mínimo de este plan.
+  **CERRADO (quick 260923-3rl):** el id pasa a `crypto.randomUUID()`, con un respaldo que
+  nunca lanza y nunca deja el sufijo vacío fuera de contexto seguro. Fijado por test en
+  `engine/__tests__/history.test.ts` (formato UUID v4 con `crypto.randomUUID` disponible;
+  `globalThis.crypto` sustituido por `undefined` y `Math.random` forzado a 0 para el respaldo).
 - **IN-07** — `e2e/offline-flow.spec.ts:26-28`: un `throw` a nivel de módulo si
   `public/audio/` no tiene `.m4a` aborta la suite completa de Playwright, incluidos los tests
   de `/historico` y `/estadisticas` que no dependen del audio. Propuesta: mover la comprobación
   a `test.skip(condition, …)` dentro del test que la necesita. Vive en `e2e/`, fuera del
   perímetro de composables/motor que audita 09-17.
+  **CERRADO (quick 260923-3rl):** la resolución del clip pasa a una función perezosa
+  (`firstAudioClipId`) invocada solo dentro del test del paso 7, con `test.skip(...)` cuando no
+  hay ningún `.m4a`; el resto de tests del fichero ya no depende de que exista audio. Fijado por
+  la comprobación de listado de Playwright (0 tests antes del cambio, 5 después, desde dos
+  directorios temporales sin `public/audio/`) y por la ejecución completa de
+  `e2e/offline-flow.spec.ts` (5 passed, 0 skipped en este checkout).
 - **IN-11** — `app/composables/usePersistedSession.ts:377-395`
   (`removeHistoryEntry`): devuelve `void` e ignora el booleano de `writeRaw`; un fallo de
   escritura deja la tarjeta visible sin explicación tras `reload()`, y el grupo cree que el
   botón de borrar no funciona. Propuesta: un aviso reutilizando `HistorySavedNotice`.
+  **CERRADO (quick 260923-3rl):** `removeHistoryEntry`/`useGameHistory().remove(id)` devuelven
+  `boolean`; `/historico` pinta un aviso en línea propio (no `HistorySavedNotice`, cuyas
+  variantes son solo de fin de partida y Gate C prohíbe un `NoticeVariant` fuera de
+  `useHistorySavedNotice.ts`) cuando el borrado falla. Fijado por test en
+  `app/composables/__tests__/usePersistedSession.test.ts` y
+  `app/composables/__tests__/useGameHistory.test.ts`.
 - **IN-12** — `app/composables/usePersistedSession.ts:319-323` (`loadHistory`): una entrada
   rechazada por `isGameHistoryEntry` es invisible (se filtra antes de pintar) y no se puede
   borrar (no hay tarjeta con su `id` para invocar `removeHistoryEntry`). Ocupa cuota para
   siempre. Va junto con IN-04: hace falta una vía de mantenimiento.
+  **CERRADO (quick 260923-3rl):** `appendHistoryEntry` filtra las entradas previas por
+  `isGameHistoryEntry` antes de reescribir el envoltorio, así que lo que la pantalla ya rechazaba
+  también se descarta del disco en el siguiente registro con éxito; `removeHistoryEntry` sigue
+  siendo conservador con lo que no reconoce (CR-03/WR-08 intactos), y la regla de subir
+  `HISTORY_FORMAT_VERSION` ante un cambio de forma queda escrita junto a la constante. Fijado por
+  test en `app/composables/__tests__/usePersistedSession.test.ts`.
 - **IN-13** — `engine/statistics.ts:72` (`buildRows`, cálculo de `pct`): `Math.round` puede
   anunciar «100 %» sin pleno exacto (199 de 200 redondea a 100 %), y la etiqueta completa
   (`199 de 200 · 100 %`) desmiente al porcentaje en la misma línea. Propuesta: `Math.floor`
   para el tramo alto, o no redondear al alza por encima de 99.
+  **CERRADO (quick 260923-3rl):** `winPercentage` (nueva, exportada) acota `100` a un pleno
+  exacto y `0` a cero victorias; decisión propia: también se acota el extremo bajo (1 de 201 ya
+  no pinta «0 %»), el mismo defecto en la misma línea. Fijado por test en
+  `engine/__tests__/statistics.test.ts`.
 
 ---
 

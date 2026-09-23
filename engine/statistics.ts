@@ -32,6 +32,25 @@ interface RowAccumulator {
   played: number
 }
 
+// IN-13 (09-REVIEW.md, cerrado en la quick 260923-3rl): `Math.round` podía
+// anunciar «100 %» sin pleno exacto (199 de 200 redondeaba a 100) y la
+// etiqueta completa («199 de 200 · 100 %») desmentía al propio porcentaje en
+// la misma línea. `winPercentage` es la única vía de cálculo — `100` solo si
+// `wins >= played` (pleno exacto), `0` solo si `wins <= 0` (ninguna
+// victoria) o si `played` no es positivo (nunca jugado); en cualquier otro
+// caso el redondeo de siempre, acotado al intervalo 1..99. Decisión propia
+// (documentada en el SUMMARY): se acota TAMBIÉN el extremo bajo (1 de 201 ya
+// no pinta «0 %» con al menos una victoria) — es el mismo defecto en la
+// misma línea, y la cabecera de `engine/history.ts` ya registra como
+// antipatrón de esta fase endurecer un lado del contrato y dejar el vecino
+// sin revisar.
+export function winPercentage(wins: number, played: number): number {
+  if (played <= 0) return 0
+  if (wins >= played) return 100
+  if (wins <= 0) return 0
+  return Math.min(99, Math.max(1, Math.round((wins / played) * 100)))
+}
+
 // D-26: agrupa por id DISTINTO, no por hueco — la app permite el mismo
 // héroe en dos huecos (SEL-07), así que una entrada con el mismo `heroId`
 // repetido solo puede sumar `played`/`wins` UNA vez para ese id. `entries`
@@ -69,7 +88,7 @@ function buildRows(
     name: row.name,
     wins: row.wins,
     played: row.played,
-    pct: row.played > 0 ? Math.round((row.wins / row.played) * 100) : 0,
+    pct: winPercentage(row.wins, row.played),
   }))
 
   // D-24: cascada EXACTA — % descendente, después partidas jugadas

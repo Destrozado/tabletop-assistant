@@ -14,20 +14,34 @@ import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
 
-// El id de audio del paso 7 se deriva del contenido REAL de public/audio/
-// (excluyendo public/audio/_probe/, artefactos de la 03.1), para que la
-// prueba no dependa de qué clips se hayan generado ya (hoy los 35 del
-// catálogo, ver 04-CONTEXT.md).
-const AUDIO_DIR = join(process.cwd(), 'public/audio')
-const firstAudioFile = readdirSync(AUDIO_DIR, { withFileTypes: true })
-  .find(entry => entry.isFile() && entry.name.endsWith('.m4a'))
-  ?.name
-
-if (!firstAudioFile) {
-  throw new Error('No se encontró ningún clip .m4a en public/audio/ — el paso 7 necesita al menos uno.')
+// IN-07 (09-REVIEW.md, cerrado en la quick 260923-3rl): antes de este
+// cierre, la resolución del id de audio vivía a NIVEL DE MÓDULO — tanto el
+// `readdirSync` (que lanzaba `ENOENT` si `public/audio/` no existía) como el
+// `throw` explícito si el directorio estaba vacío abortaban la suite
+// ENTERA de Playwright, incluidos los tests de /historico y /estadisticas
+// que no dependen del audio en absoluto (comprobado al planificar y de
+// nuevo al ejecutar esta quick: `--list` mostraba «Total: 0 tests in 1
+// file» sin `public/audio/`, ver el SUMMARY para el mensaje literal).
+// Ahora es una función PEREZOSA que solo invoca el ÚNICO test que la
+// necesita (el paso 7 de la primera prueba de este fichero), envuelta en
+// try/catch para que un directorio ausente también dé `null` en vez de
+// lanzar — el mismo criterio defensivo que el resto del repo aplica a un
+// dato que puede faltar. Sin recursión (`readdirSync` simple, sin bajar a
+// subdirectorios): `public/audio/_probe/` sigue excluido del barrido, igual
+// que antes. El id no depende de qué clips se hayan generado ya (hoy los 35
+// del catálogo, ver 04-CONTEXT.md) — solo del PRIMERO que exista.
+function firstAudioClipId(): string | null {
+  try {
+    const audioDir = join(process.cwd(), 'public/audio')
+    const firstAudioFile = readdirSync(audioDir, { withFileTypes: true })
+      .find(entry => entry.isFile() && entry.name.endsWith('.m4a'))
+      ?.name
+    return firstAudioFile ? firstAudioFile.replace(/\.m4a$/, '') : null
+  }
+  catch {
+    return null
+  }
 }
-
-const AUDIO_ID = firstAudioFile.replace(/\.m4a$/, '')
 
 // Ayuda compartida: primera visita CON red + recarga, hasta que el service
 // worker controla la página. Cortar la red antes de este punto mediría el
@@ -41,6 +55,16 @@ async function waitForServiceWorkerControl(page: import('@playwright/test').Page
 
 test.describe('Flujo completo sin conexión (OFF-02, OFF-03)', () => {
   test('selector -> mini-setup -> preparación con la red cortada, navegación, avance/retroceso, audio y recarga', async ({ page, context }) => {
+    // IN-07: el único test de este fichero que necesita un clip real.
+    // `test.skip` con un `id` nulo reporta el test como SKIPPED (nunca como
+    // passed) — este checkout tiene clips, así que en la práctica esto no
+    // se dispara aquí; en CI los clips están versionados, así que allí el
+    // test se ejecuta entero. Esto NO relaja ninguna aserción del paso 7 —
+    // solo evita que la resolución del clip aborte la suite entera cuando
+    // no hay ninguno.
+    const audioId = firstAudioClipId()
+    test.skip(audioId === null, 'No se encontró ningún clip .m4a en public/audio/ en este checkout — el paso 7 (audio offline) no se puede comprobar.')
+
     // 1. Primera visita con red, hasta que el SW controla la página.
     await waitForServiceWorkerControl(page)
 
@@ -105,8 +129,8 @@ test.describe('Flujo completo sin conexión (OFF-02, OFF-03)', () => {
       catch (error) {
         return { ok: false, status: 0, contentLength: 0, error: String(error) }
       }
-    }, AUDIO_ID)
-    expect(audioResult.ok, `fetch('/audio/${AUDIO_ID}.m4a') offline: ${JSON.stringify(audioResult)}`).toBe(true)
+    }, audioId as string)
+    expect(audioResult.ok, `fetch('/audio/${audioId}.m4a') offline: ${JSON.stringify(audioResult)}`).toBe(true)
     expect(audioResult.status).toBe(200)
     expect(audioResult.contentLength).toBeGreaterThan(0)
 
