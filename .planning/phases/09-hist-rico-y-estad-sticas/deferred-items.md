@@ -753,6 +753,100 @@ escritos hoy) que exija, para cada rama de invalidación explícita documentada 
 comentario del `retirador`, una llamada real en el fichero que la documenta — hoy la Pata 2 solo
 vigila LECTURAS sin testigo, nunca la AUSENCIA de una llamada de retirada esperada.
 
+**Actualización (quick 260923-3rn) — CERRADO:** se eligió la pata nueva sugerida arriba, no el
+montaje de página con Vue Test Utils/`@nuxt/test-utils` — esas dependencias no están instaladas
+en `node_modules` y montar la página exigiría además pasar al entorno `nuxt` de Vitest, que
+`vitest.config.ts` evita por escrito, un coste que no se justifica para demostrar una sola
+llamada. La **Pata 6** (`funcionesSinRetiradaDe` + `llamantesDocumentadosDelRetirador` +
+`consumidoresDeLaMarca` + `cuerpoDeFuncionDeclarada`, todas en
+`invariantesDeMarcaDeEstado.test.ts`) exige, para cada nombre que el comentario de
+`clearProgressMismatch` documenta como llamante (`onOutcomeRecorded`, `onDiscardConfirm`,
+`finishGame`, `onResumeContinue`, `onContentChangedAcknowledge`), que su cuerpo REAL en el
+consumidor descubierto por import (`app/pages/[game]/index.vue`) llame de verdad al retirador, con
+la MISMA clave (`gameId`) que la primera llamada al lector (`readProgressMismatchWarning`) en ese
+mismo fichero. Las mutaciones M1/M2, ejecutadas EN DISCO contra `app/pages/[game]/index.vue`
+(quitar la llamada real a `clearProgressMismatch(gameId)` de `onResumeContinue` y de
+`onContentChangedAcknowledge`, una detrás de otra) y revertidas con `git checkout --`, pusieron
+rojos estos cuatro `it`:
+- `Pata 6 — funcionesSinRetiradaDe (Task 1, quick 260923-3rn) > sobre los consumidores/llamantes reales de useProgressMismatchMark.ts (clearProgressMismatch / readProgressMismatchWarning) da [] — la segunda defensa está intacta hoy`
+- `Pata 6 — mutación PERMANENTE en memoria: ... > quitar la llamada a clearProgressMismatch del cuerpo de onResumeContinue pone roja la pata` (M1) / `...onContentChangedAcknowledge pone roja la pata` (M2)
+- `Pata 6 — invariante: toda función documentada como punto de retirada explícita llama de verdad al retirador, para toda marca no auditada (Task 1, quick 260923-3rn) > app/composables/useProgressMismatchMark.ts: retirador no nulo, llamantes documentados no vacíos, consumidores no vacíos, y funcionesSinRetiradaDe da []`
+
+**Límite declarado (no cerrado por esta pata, a propósito):** la Pata 6 demuestra que la llamada
+está PRESENTE en el cuerpo de la función, no que sea ALCANZABLE — una llamada bajo `if (false)`
+pasaría igual. Esa garantía no depende de esta pata, porque la defensa PRIMARIA de esta marca
+sigue siendo la validación de huella de `useProgressMismatchMark.ts` (Patas 1/2). Ver el SUMMARY
+del quick 260923-3rn para la salida literal completa de M1/M2.
+
+---
+
+## Huecos de parsing del gate de invariantes (`09-REVIEW.md` WR-01/WR-02; advisory de `09-VERIFICATION.md` ronda 10) — CERRADO (quick 260923-3rn)
+
+**Los dos huecos:**
+- WR-01: `argumentosDeNivelSuperior` (`invariantesDeMarcaDeEstado.test.ts`) separaba por comas de
+  nivel superior contando solo `( [ {`, así que un tipo genérico con coma (`Record<string,
+  string>`, `Map<K, V>`) inflaba la aridad de un lector de un solo parámetro genérico (Pata 1) y el
+  recuento de argumentos de una llamada de un solo argumento genérico (Pata 2) — falso verde en
+  ambas direcciones.
+- WR-02: `PATRON_ESTADO_DE_MODULO_MUTABLE` rechazaba `const X: Tipo = new Map()`/`ref(...)` —
+  cualquier marca de estado de módulo con anotación de tipo explícita se saltaba el descubrimiento
+  por completo (evasión total, no solo un recuento erróneo).
+
+**El arreglo de cada uno:**
+- WR-01: `argumentosDeNivelSuperior` gana una profundidad angular independiente de la de `( [ {`.
+  Un `<` la abre solo si el carácter anterior es de identificador (letra/dígito/`_`/`$`) — deja
+  fuera `a < b` con espacios —, y un `>` la cierra solo si esa profundidad es mayor que 0 y el
+  carácter anterior no es `=` — así `=>` nunca la cierra. Solo se separa por coma cuando las DOS
+  profundidades valen 0.
+- WR-02: `PATRON_ESTADO_DE_MODULO_MUTABLE` acepta, entre el identificador y el `=` de la rama
+  `const`, una anotación de tipo opcional: dos puntos seguidos de cualquier cosa PEREZOSA en la
+  misma línea, hasta un `=` seguido de `new Set`/`new Map`/`ref<`/`ref(`.
+
+**Por qué `indiceDeCierre` no se tocó:** esa función también delimita CUERPOS de función
+(`extraerFuncionesExportadas`, `cuerpoDeFuncionDeclarada` de la Pata 6 — quick 260923-3rn),
+donde `=>`, `>=` y las comparaciones son constantes. Contar `<`/`>` ahí truncaría los cuerpos —
+`.catch(() => {})` de `onResumeContinue` no llegaría a delimitarse bien. Emparejar solo
+paréntesis/corchetes/llaves ya es correcto en presencia de genéricos, porque un `<…>` nunca
+contiene un paréntesis desequilibrado.
+
+**Por qué no se usó la regex literal que la review propone para WR-02** (el opcional de dos puntos
+seguido de «todo lo que no sea `=`», con un cuantificador GREEDY sobre una clase negada): una
+anotación con una función flecha dentro (`const m: Map<string, () => void> = new Map()`) para en
+la PRIMERA `=>` de la anotación — la clase negada no puede cruzar ESE `=` — y vuelve a evadir el
+descubrimiento. El cuantificador PEREZOSO adoptado, en cambio, sigue expandiéndose más allá de la
+flecha hasta encontrar el `=` real seguido de `new Map(`, porque no hay ningún carácter que no
+pueda cruzar.
+
+**Las mutaciones, ejecutadas contra el propio fichero de test y revertidas:**
+- M3 (WR-01): `argumentosDeNivelSuperior` vuelta temporalmente a su forma vieja (sin profundidad
+  angular). `npx vitest run` puso rojos exactamente 4 `it`: los dos casos de aridad del lector con
+  genérico (Pata 1, Record<string, string>), el caso de `=>` dentro de un genérico (Pata 1) y el
+  caso de una llamada de un solo argumento con genérico (Pata 2) — 116 passed / 4 failed sobre 120.
+  Revertido; vuelta a 120 passed.
+- M4 (WR-02): `PATRON_ESTADO_DE_MODULO_MUTABLE` vuelta temporalmente a su forma vieja (sin
+  anotación de tipo). Puso rojos exactamente los 3 casos `const X: Tipo = new Map()/ref(...)` del
+  descubrimiento — 117 passed / 3 failed sobre 120. Revertido; vuelta a 120 passed.
+- M4b (WR-02): `PATRON_ESTADO_DE_MODULO_MUTABLE` sustituida temporalmente por la regex literal de
+  la review (clase negada greedy). Puso rojo SOLO el caso con `=>` dentro de la anotación
+  (`const m: Map<string, () => void> = new Map()`) — 119 passed / 1 failed sobre 120 — y dejó en
+  verde los otros dos casos `const X: Tipo = ...` sin flecha, demostrando por qué esa regex no se
+  adoptó. Revertido; vuelta a 120 passed.
+
+**Observado al cerrar y NO cerrado aquí (fuera del alcance de este ítem; sin instancia real hoy):**
+- `export const`/`export let` a columna 0 no entran en el descubrimiento de
+  `marcasDeEstadoDeModuloDe` — el patrón exige que la línea empiece literalmente por `const `/`let `,
+  no por `export const `/`export let `.
+- Los contenedores que `PATRON_ESTADO_DE_MODULO_MUTABLE` no enumera (`shallowRef`, `reactive`,
+  `WeakMap`, un array o un objeto literal a columna 0) tampoco entran en el descubrimiento.
+- Una coma dentro de un literal de cadena o de plantilla sigue SOBRE-contando argumentos en
+  `argumentosDeNivelSuperior` (no distingue una coma de código de una coma dentro de comillas), así
+  que `lector('a, b')` cuenta 2 argumentos donde en realidad hay uno. Es la misma dirección
+  peligrosa (falso verde por accidente) que WR-01 arreglaba, y queda como candidato a una quick
+  posterior.
+
+Ninguna de las tres observaciones anteriores se ha cerrado en este quick — quedan escritas como
+abiertas, no como cerradas.
+
 ---
 
 ## Nota de cierre (ronda 8, planes 09-37..09-40) — qué cierra este lote, qué sigue abierto y qué atraparía la décima cara
