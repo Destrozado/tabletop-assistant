@@ -19,7 +19,7 @@
 // de sus paquetes (`@firebase/app`, `@firebase/firestore`, `@firebase/auth`,
 // etc.), que solo aparece dentro del código real del SDK.
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 
 /** Ver "LA TRAMPA" arriba: nunca usar 'firebase' a secas. */
 export const FIREBASE_SDK_MARK = '@firebase/'
@@ -56,9 +56,25 @@ export function staticChunkImports(source: string): string[] {
  *
  * Sin semillas, el resultado es [] y no lanza.
  *
+ * Tras el cierre se aplican dos guardas, ambas con throw en vez de degradar
+ * a precachear todo (ver JSDoc de `excludeFirebaseSdkFromPrecache` para el
+ * porqué):
+ *   (i) GUARDA DE INTEGRIDAD — cualquier chunk NO excluido que importe
+ *       estáticamente un chunk excluido dejaría ese chunk excluido varado
+ *       sin red si de verdad se ejecutara: es la app importando el SDK de
+ *       forma estática, contrario a SYNC-05 (solo `import()` dinámico desde
+ *       useHistorySync.ts).
+ *   (ii) GUARDA DE HTML — si se pasa `htmlFiles`, cualquier chunk excluido
+ *        referenciado por un HTML de arranque significa que el SDK está en
+ *        el arranque de esa ruta; excluirlo rompería esa ruta sin red.
+ *
  * @param chunks clave = nombre relativo a `_nuxt/` (p. ej. `BcHXCJVE.js`), valor = contenido del fichero.
+ * @param htmlFiles clave = ruta relativa del HTML, valor = contenido; opcional.
  */
-export function computeFirebaseSdkExclusions(chunks: ReadonlyMap<string, string>): string[] {
+export function computeFirebaseSdkExclusions(
+  chunks: ReadonlyMap<string, string>,
+  htmlFiles?: ReadonlyMap<string, string>,
+): string[] {
   const excluded = new Set<string>()
   for (const [name, content] of chunks) {
     if (content.includes(FIREBASE_SDK_MARK)) excluded.add(name)
@@ -79,6 +95,34 @@ export function computeFirebaseSdkExclusions(chunks: ReadonlyMap<string, string>
     }
   }
 
+  // (i) GUARDA DE INTEGRIDAD: todo chunk NO excluido con un import estático
+  // hacia un chunk excluido queda varado sin red si se ejecutara de verdad.
+  for (const [name, content] of chunks) {
+    if (excluded.has(name)) continue
+    for (const imported of staticChunkImports(content)) {
+      if (excluded.has(imported)) {
+        throw new Error(
+          `[pwa] WR-03: ${name} importa estáticamente ${imported}, que forma parte del SDK de Firebase excluido del precacheo — excluirlo dejaría ${name} roto sin red. SYNC-05 exige que Firebase solo se importe con import() dinámico desde useHistorySync.ts.`,
+        )
+      }
+    }
+  }
+
+  // (ii) GUARDA DE HTML: si el SDK está referenciado desde el HTML de
+  // arranque de alguna ruta, excluirlo rompería el arranque sin red de esa
+  // ruta.
+  if (htmlFiles) {
+    for (const [htmlPath, html] of htmlFiles) {
+      for (const excludedName of excluded) {
+        if (html.includes(`_nuxt/${excludedName}`)) {
+          throw new Error(
+            `[pwa] WR-03: ${htmlPath} referencia _nuxt/${excludedName}, parte del SDK de Firebase excluido del precacheo — el SDK está en el arranque de esta ruta y excluirlo rompería su arranque sin red.`,
+          )
+        }
+      }
+    }
+  }
+
   return [...excluded].sort()
 }
 
@@ -90,6 +134,24 @@ interface WorkboxOptionsLike {
 }
 
 const NUXT_DIR_NAME = '_nuxt'
+
+function collectHtmlFiles(rootDir: string): Map<string, string> {
+  const result = new Map<string, string>()
+  const stack: string[] = [rootDir]
+  while (stack.length > 0) {
+    const dir = stack.pop()!
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = join(dir, entry.name)
+      if (entry.isDirectory()) {
+        stack.push(fullPath)
+      }
+      else if (entry.isFile() && entry.name.endsWith('.html')) {
+        result.set(relative(rootDir, fullPath), readFileSync(fullPath, 'utf-8'))
+      }
+    }
+  }
+  return result
+}
 
 /**
  * Hook `pwa:beforeBuildServiceWorker`: amplía `options.workbox.globIgnores`
@@ -124,7 +186,8 @@ export function excludeFirebaseSdkFromPrecache(options: WorkboxOptionsLike): voi
     chunks.set(name, readFileSync(join(nuxtDir, name), 'utf-8'))
   }
 
-  const excludedNames = computeFirebaseSdkExclusions(chunks)
+  const htmlFiles = collectHtmlFiles(globDirectory)
+  const excludedNames = computeFirebaseSdkExclusions(chunks, htmlFiles)
 
   if (excludedNames.length === 0) return
 
