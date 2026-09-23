@@ -23,73 +23,84 @@ const pressedId = ref<string | null>(null)
 </script>
 
 <template>
-  <div class="h-full bg-background flex flex-col items-center justify-center gap-2xl px-2xl">
-    <div class="flex flex-col items-center gap-md text-center max-w-[720px]">
-      <h1 class="text-heading font-bold text-primary-text">
-        ¿A qué juego vas a jugar?
-      </h1>
-      <p class="text-body font-normal text-secondary-text">
-        Guía de flujo paso a paso — no es buscador de reglas ni contador de vida
-      </p>
-    </div>
+  <!--
+    El centrado vive en un hijo `min-h-full` dentro de un padre que hace
+    scroll, no en el propio `h-full`: con la franja de avisos visible
+    (`UpdateBanner`, alto en móvil) el contenido ya no cabe, y un
+    `justify-center` directo lo desbordaba por arriba Y por abajo — la mitad
+    superior se pintaba encima de la banda y tapaba el botón «Actualizar».
+    Así, si cabe queda centrado como siempre; si no, arranca bajo la banda y
+    se hace scroll.
+  -->
+  <div class="h-full overflow-y-auto bg-background">
+    <div class="min-h-full flex flex-col items-center justify-center gap-2xl px-2xl py-2xl">
+      <div class="flex flex-col items-center gap-md text-center max-w-[720px]">
+        <h1 class="text-heading font-bold text-primary-text">
+          ¿A qué juego vas a jugar?
+        </h1>
+        <p class="text-body font-normal text-secondary-text">
+          Guía de flujo paso a paso — no es buscador de reglas ni contador de vida
+        </p>
+      </div>
 
-    <div class="flex flex-wrap items-center justify-center gap-lg">
-      <template v-for="game in games" :key="game.id">
+      <div class="flex flex-wrap items-center justify-center gap-lg">
+        <template v-for="game in games" :key="game.id">
+          <button
+            v-if="game.status === 'available'"
+            type="button"
+            class="min-w-[220px] min-h-[120px] px-2xl py-lg flex items-center justify-center bg-surface text-heading font-bold text-primary-text border-2 transition-transform duration-75 focus-visible:outline-none"
+            :class="pressedId === game.id ? 'brightness-95 scale-[0.98] border-accent' : 'border-transparent focus-visible:border-accent'"
+            @mousedown="pressedId = game.id"
+            @touchstart="pressedId = game.id"
+            @mouseup="pressedId = null"
+            @touchend="pressedId = null"
+            @click="emit('select', game.id)"
+          >
+            {{ game.title }}
+          </button>
+
+          <div
+            v-else
+            class="min-w-[220px] min-h-[120px] px-2xl py-lg flex flex-col items-center justify-center gap-sm bg-surface opacity-40"
+            aria-disabled="true"
+          >
+            <span class="text-heading font-bold text-primary-text">{{ game.title }}</span>
+            <span class="text-label font-bold text-secondary-text">PRÓXIMAMENTE</span>
+          </div>
+        </template>
+      </div>
+
+      <!-- Accesos secundarios (D-17/STAT-01): fila propia debajo de las
+           tarjetas de juego, sin reestructurar el bloque centrado. Cromado
+           idéntico al botón NO destructivo de ConfirmDialog.vue — la forma
+           "secundaria/neutra" ya establecida en este código. Ninguno se pinta
+           nunca deshabilitado: las dos pantallas tienen estado vacío definido. -->
+      <div class="flex gap-md">
         <button
-          v-if="game.status === 'available'"
           type="button"
-          class="min-w-[220px] min-h-[120px] px-2xl py-lg flex items-center justify-center bg-surface text-heading font-bold text-primary-text border-2 transition-transform duration-75 focus-visible:outline-none"
-          :class="pressedId === game.id ? 'brightness-95 scale-[0.98] border-accent' : 'border-transparent focus-visible:border-accent'"
-          @mousedown="pressedId = game.id"
-          @touchstart="pressedId = game.id"
+          class="min-h-12 px-lg bg-surface text-primary-text text-label font-bold transition-transform duration-75"
+          :class="pressedId === 'history' ? 'brightness-95 scale-[0.98]' : ''"
+          @mousedown="pressedId = 'history'"
+          @touchstart="pressedId = 'history'"
           @mouseup="pressedId = null"
           @touchend="pressedId = null"
-          @click="emit('select', game.id)"
+          @click="emit('open-history')"
         >
-          {{ game.title }}
+          Histórico
         </button>
-
-        <div
-          v-else
-          class="min-w-[220px] min-h-[120px] px-2xl py-lg flex flex-col items-center justify-center gap-sm bg-surface opacity-40"
-          aria-disabled="true"
+        <button
+          type="button"
+          class="min-h-12 px-lg bg-surface text-primary-text text-label font-bold transition-transform duration-75"
+          :class="pressedId === 'statistics' ? 'brightness-95 scale-[0.98]' : ''"
+          @mousedown="pressedId = 'statistics'"
+          @touchstart="pressedId = 'statistics'"
+          @mouseup="pressedId = null"
+          @touchend="pressedId = null"
+          @click="emit('open-statistics')"
         >
-          <span class="text-heading font-bold text-primary-text">{{ game.title }}</span>
-          <span class="text-label font-bold text-secondary-text">PRÓXIMAMENTE</span>
-        </div>
-      </template>
-    </div>
-
-    <!-- Accesos secundarios (D-17/STAT-01): fila propia debajo de las
-         tarjetas de juego, sin reestructurar el bloque centrado. Cromado
-         idéntico al botón NO destructivo de ConfirmDialog.vue — la forma
-         "secundaria/neutra" ya establecida en este código. Ninguno se pinta
-         nunca deshabilitado: las dos pantallas tienen estado vacío definido. -->
-    <div class="flex gap-md">
-      <button
-        type="button"
-        class="min-h-12 px-lg bg-surface text-primary-text text-label font-bold transition-transform duration-75"
-        :class="pressedId === 'history' ? 'brightness-95 scale-[0.98]' : ''"
-        @mousedown="pressedId = 'history'"
-        @touchstart="pressedId = 'history'"
-        @mouseup="pressedId = null"
-        @touchend="pressedId = null"
-        @click="emit('open-history')"
-      >
-        Histórico
-      </button>
-      <button
-        type="button"
-        class="min-h-12 px-lg bg-surface text-primary-text text-label font-bold transition-transform duration-75"
-        :class="pressedId === 'statistics' ? 'brightness-95 scale-[0.98]' : ''"
-        @mousedown="pressedId = 'statistics'"
-        @touchstart="pressedId = 'statistics'"
-        @mouseup="pressedId = null"
-        @touchend="pressedId = null"
-        @click="emit('open-statistics')"
-      >
-        Estadísticas
-      </button>
+          Estadísticas
+        </button>
+      </div>
     </div>
   </div>
 </template>
