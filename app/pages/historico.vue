@@ -197,7 +197,7 @@ function onConfirmarArchivado() {
             :context-line="entry.contextLine"
             :player-lines="entry.playerLines"
             :no-selection-line="entry.noSelectionLine"
-            :round-and-duration-line="entry.roundAndDurationLine"
+            :duration-line="entry.durationLine"
             :delete-aria-label="entry.deleteAriaLabel"
             @delete="onAbrirBorrado(entry)"
           />

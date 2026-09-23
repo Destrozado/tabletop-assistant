@@ -86,7 +86,7 @@ describe('buildHistoryCardView', () => {
       'Luis · Spider-Man',
     ])
     expect(view.noSelectionLine).toBeNull()
-    expect(view.roundAndDurationLine).toBe('Hasta la ronda 7 · 1 h 40 min')
+    expect(view.durationLine).toBe('1 h 40 min')
   })
 
   it('derrota: causeLabel es la cadena de describeLossCause y resultLabel es PERDIDA', () => {
@@ -108,10 +108,10 @@ describe('buildHistoryCardView', () => {
     expect(view.contextLine).toBe('Rhino · Experto · 2 jug')
   })
 
-  it('con durationMs null (D-10): la línea de ronda termina en «· —»', () => {
+  it('con durationMs null (D-10): la línea de duración es «—»', () => {
     const view = buildHistoryCardView(makeEntry({ durationMs: null }))
 
-    expect(view.roundAndDurationLine).toBe('Hasta la ronda 7 · —')
+    expect(view.durationLine).toBe('—')
   })
 
   it('sin villano pero con héroes: la contextLine empieza por «Sin villano»', () => {
@@ -179,7 +179,7 @@ describe('buildHistoryCardView', () => {
     const view = buildHistoryCardView(entry)
     expect(typeof view.id).toBe('string')
     expect(typeof view.resultLabel).toBe('string')
-    expect(typeof view.roundAndDurationLine).toBe('string')
+    expect(typeof view.durationLine).toBe('string')
   })
 
   it('CR-01: una entrada con players: [{}] no lanza', () => {
@@ -190,7 +190,7 @@ describe('buildHistoryCardView', () => {
     const view = buildHistoryCardView(entry)
     expect(typeof view.id).toBe('string')
     expect(typeof view.resultLabel).toBe('string')
-    expect(typeof view.roundAndDurationLine).toBe('string')
+    expect(typeof view.durationLine).toBe('string')
   })
 
   it('CR-01: un hueco inválido se descarta pero los válidos se siguen pintando', () => {

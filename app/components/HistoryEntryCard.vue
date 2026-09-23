@@ -11,7 +11,7 @@ defineProps<{
   contextLine: string
   playerLines: string[] | null
   noSelectionLine: string | null
-  roundAndDurationLine: string
+  durationLine: string
   deleteAriaLabel: string
 }>()
 
@@ -48,7 +48,7 @@ const emit = defineEmits<{
     </p>
 
     <p class="text-body font-normal text-secondary-text">
-      {{ roundAndDurationLine }}
+      {{ durationLine }}
     </p>
 
     <button

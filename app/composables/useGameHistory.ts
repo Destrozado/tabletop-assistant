@@ -93,7 +93,7 @@ export interface HistoryCardView {
   contextLine: string
   playerLines: string[] | null
   noSelectionLine: string | null
-  roundAndDurationLine: string
+  durationLine: string
   deleteAriaLabel: string
   confirmTitle: string
   confirmBody: string
@@ -155,14 +155,13 @@ export function buildHistoryCardView(entry: GameHistoryEntry): HistoryCardView {
   let playerLines: string[] | null
   let noSelectionLine: string | null
 
-  // BF-02: `entry.playerCount`/`entry.round` solo se usan si son finitos —
-  // en caso contrario, el mismo repliegue que `buildHistoryEntry` ya aplica
-  // en origen (09-12): `players.length` y `1` respectivamente. Defensa en
+  // BF-02: `entry.playerCount` solo se usa si es finito — en caso
+  // contrario, el mismo repliegue que `buildHistoryEntry` ya aplica en
+  // origen (09-12): `players.length`. Defensa en
   // profundidad: la frontera de almacenamiento ya filtra estos casos, pero
   // esta función se prueba directamente y su contrato no puede depender de
   // que alguien la haya llamado bien.
   const safePlayerCount = Number.isFinite(entry.playerCount) ? entry.playerCount : players.length
-  const safeRound = Number.isFinite(entry.round) ? entry.round : 1
 
   if (hasVillain || hasAnyHero) {
     // D-10 vs SEL-09: la ausencia de selección se dice con palabras — el
@@ -184,8 +183,9 @@ export function buildHistoryCardView(entry: GameHistoryEntry): HistoryCardView {
     noSelectionLine = 'Sin héroes ni villano anotados'
   }
 
-  // D-09: siempre "hasta la ronda N", nunca "N rondas".
-  const roundAndDurationLine = `Hasta la ronda ${safeRound} · ${formatEntryDuration(entry.durationMs)}`
+  // Solo la duración: la ronda anotada no es realista — una vez dentro del
+  // bucle el grupo deja de pulsar Siguiente, así que se quedaría corta.
+  const durationLine = formatEntryDuration(entry.durationMs)
 
   const villainForCopy = villainDisplayName ?? 'sin villano'
   const deleteAriaLabel = `Borrar partida del ${dateLabel} contra ${villainForCopy}`
@@ -201,7 +201,7 @@ export function buildHistoryCardView(entry: GameHistoryEntry): HistoryCardView {
     contextLine,
     playerLines,
     noSelectionLine,
-    roundAndDurationLine,
+    durationLine,
     deleteAriaLabel,
     confirmTitle,
     confirmBody,
