@@ -2,19 +2,19 @@
 gsd_state_version: "1.0"
 milestone: v1.8
 milestone_name: Elección de personajes, contadores en mesa e histórico de partidas
-current_phase: 10
-status: completed
+status: Awaiting next milestone
 stopped_at: Phase 10 complete — all phases complete
-last_updated: "2026-09-23T02:44:54.657Z"
+last_updated: "2026-09-23T02:55:35.604Z"
 last_activity: 2026-09-23
-last_activity_desc: Phase 10 verified — UAT 17/17, verificación 12/12 re-sellada
-state_head: 9f4b893f392c4b380628566c4ff3a4d9859ea75a
+last_activity_desc: Milestone v1.8 completed and archived
+state_head: 089b89ea4e0d7d8cb73eaa663b7252174e67f824
 progress:
   total_phases: 6
   completed_phases: 11
   total_plans: 72
   completed_plans: 72
   percent: 100
+current_phase: 10
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-23)
 
 **Core value:** Que un grupo pueda jugar una partida completa de Marvel Champions de principio a fin sin abrir el reglamento y sin olvidarse de ningún paso.
-**Current focus:** Hito v1.8 completo (fases 5–10) — listo para cerrar el hito
+**Current focus:** Hito v1.8 cerrado (2026-09-23) — planificar el siguiente con `/gsd-new-milestone`
 
 ## Current Position
 
-Phase: 10
-Plan: Not started
-Status: All phases complete — UAT y verificación de la Fase 10 cerradas
-Last activity: 2026-09-23 — Phase 10 verified (UAT 17/17, 0 incidencias)
+Phase: Milestone v1.8 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-09-23 — Milestone v1.8 completed and archived
 
 ## Performance Metrics
 
@@ -228,9 +228,23 @@ Items acknowledged and carried forward from previous milestone close:
 | verificación | Control de silencio nunca ejercitado en dispositivo | abierto | 2026-08-31 |
 | threat model | voice-probe.html devuelve 200 por el fallback 200.html de Nuxt; el 404 literal no es alcanzable, el riesgo real sí está cerrado | aceptado | 2026-08-31 |
 | proceso | CONT-09 marcado con matiz: cubre el 100% del contenido existente pero no es auditoría de tercero | aceptado | 2026-08-31 |
+| verification_gaps | 09/09-VERIFICATION.md — human_needed: tablet real para franja de avisos, trampa de foco e histórico ilegible (todo `comprobacion-tablet-superficies-nuevas-fase-9`) | human_needed | 2026-09-23 (v1.8) |
+| verification_gaps | 02/02-VERIFICATION.md, 03.1/03.1-VERIFICATION.md, 04/04-VERIFICATION.md (arrastre de v1.7) | human_needed | 2026-09-23 (v1.8) |
+| uat_gaps | 02/02-HUMAN-UAT.md — 1 escenario pendiente (arrastre de v1.7) | partial | 2026-09-23 (v1.8) |
+| quick_tasks | 260831-umh-boton-partida-terminada-para-volver-a-ho | pending-human-verification | 2026-09-23 (v1.8) |
+| seeds | SEED-001 caché local de MarvelCDB | dormant | 2026-09-23 (v1.8) |
+| todos | experto-etapas-de-villano-rhino-ultron-por-verificar (duda de reglas, sin PDF del RR para contrastar) | pending | 2026-09-23 (v1.8) |
+| todos | comprobacion-tablet-superficies-nuevas-fase-9 | pending | 2026-09-23 (v1.8) |
+| todos | escuchar-clip-experto-regenerado | pending | 2026-09-23 (v1.8) |
+| todos | gate-invariantes-evasiones-adyacentes | pending | 2026-09-23 (v1.8) |
+| deferred_items | 09/deferred-items.md: 8 entradas (notas de cierre de rondas 6–8, marca en memoria —Caso A aceptado—, Ronda 8/09-38, huecos de parsing, nota de cierre 3rm) | acknowledged | 2026-09-23 (v1.8) |
 
 ## Session Continuity
 
-Last session: 2026-09-23T00:30:33Z
-Stopped at: Phase 10 verificada (UAT 17/17, 0 incidencias) — hito v1.8 listo para cerrarse
+Last session: 2026-09-23T03:10:00Z
+Stopped at: Hito v1.8 completado y archivado (tag v1.8 local, sin push) — siguiente: /gsd-new-milestone
 Resume file: None
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

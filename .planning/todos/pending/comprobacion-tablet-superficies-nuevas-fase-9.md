@@ -5,6 +5,9 @@ source: 09-VERIFICATION.md ronda 11 (human_needed) — quick 260923-3rm
 severity: warning
 area: verificación humana
 status: pending
+audit_acknowledged:
+  milestone: v1.8
+  at: 2026-09-23
 ---
 
 # Comprobar en la tablet real las tres superficies nuevas de la Fase 9

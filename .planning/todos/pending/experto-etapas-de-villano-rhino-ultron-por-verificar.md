@@ -5,6 +5,9 @@ source: quick 260923-3ri (análisis de CR-03)
 severity: high
 area: fidelidad de reglas
 status: pending
+audit_acknowledged:
+  milestone: v1.8
+  at: 2026-09-23
 ---
 
 # Por verificar: ¿Rhino y Ultron cambian de combinación de etapas en Experto?

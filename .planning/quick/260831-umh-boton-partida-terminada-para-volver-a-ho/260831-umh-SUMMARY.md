@@ -15,12 +15,14 @@ dependency-graph:
     - app/pages/[game]/index.vue
     - app/components/IndexOverlay.vue
     - app/composables/useStepShortcuts.ts
+
 tech-stack:
   added: []
   patterns:
     - "barra inferior shrink-0 en overlay flex-column (sin position:fixed propio)"
     - "ConfirmDialog apilado como hermano DOM tras otro fixed inset-0 z-50 (sin tocar z-index)"
     - "orden explícito silence() -> session=null -> clear() -> navigateTo() para evitar resurrección por watchDebounced"
+
 key-files:
   created: []
   modified:
@@ -28,11 +30,18 @@ key-files:
     - app/composables/useStepShortcuts.ts
     - app/composables/__tests__/useStepShortcuts.test.ts
     - "app/pages/[game]/index.vue"
+
 decisions:
+
   - "D-U1..D-U8 tomadas en planificación, aplicadas sin revisitar (ver PLAN.md)"
+
 metrics:
   duration: "~35 min"
   completed: 2026-08-31
+audit_acknowledged:
+  milestone: v1.8
+  at: 2026-09-23
+  status: pending-human-verification
 ---
 
 # Quick 260831-umh: Botón «Partida terminada» para volver al inicio — Summary
@@ -177,12 +186,14 @@ Ninguno.
 ## Self-Check
 
 Ficheros modificados (existencia verificada):
+
 - FOUND: app/components/IndexOverlay.vue
 - FOUND: app/composables/useStepShortcuts.ts
 - FOUND: app/composables/__tests__/useStepShortcuts.test.ts
 - FOUND: app/pages/[game]/index.vue
 
 Commits (existencia verificada en `git log`):
+
 - FOUND: 1db4bdb — feat(260831-umh): botón «Partida terminada» en la barra inferior del índice
 - FOUND: 30ef579 — feat(260831-umh): cablear borrado + navegación de «Partida terminada»
 

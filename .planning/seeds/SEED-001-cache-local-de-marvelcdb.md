@@ -5,6 +5,10 @@ planted: 2026-09-08
 planted_during: v1.8 — Phase 7 (ready to plan; Phase 6 completada 2026-09-08)
 trigger_when: al cerrar el hito v1.8, antes de arrancar el siguiente (decisión explícita del usuario)
 scope: small
+audit_acknowledged:
+  milestone: v1.8
+  at: 2026-09-23
+  status: dormant
 ---
 
 # SEED-001: Caché local de la respuesta de MarvelCDB, para dejar de depender de la API viva

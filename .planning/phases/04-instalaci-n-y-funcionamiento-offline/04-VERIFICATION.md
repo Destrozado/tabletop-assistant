@@ -5,6 +5,7 @@ status: human_needed
 score: 4/4 truths verified by code+automation+Android device evidence; 1 target-device confirmation still open
 overrides_applied: 0
 human_verification:
+
   - test: "Confirmar modelo exacto de tablet y versión de SO/navegador, e instalar/usar la app en ESA tablet (no un móvil Android) siguiendo el guion completo de 04-06-PLAN.md <how-to-verify>."
     expected: "Instalación a pantalla completa, flujo offline completo (incluida voz) y banda de actualización descartable funcionan igual que en el móvil Android probado."
     why_human: "Bloqueante abierto desde la Fase 1, preguntado dos veces, nunca respondido. Todo el testing de dispositivo real de esta fase se hizo en un móvil Android, no en la tablet de mesa que es el dispositivo objetivo del ROADMAP (tablet en horizontal, a un brazo de distancia)."
@@ -12,6 +13,10 @@ human_verification:
     expected: "El botón SIGUIENTE sigue siendo tocable y visible con la banda desplegada arriba."
     why_human: "El usuario solo confirmó poder seguir jugando tras descartarla/actualizar, lo cual implica pero no prueba directamente que el layout no se superponga. Playwright no hace ninguna aserción visual de layout sobre esto."
 gaps_deferred_from_earlier_plans_but_resolved_in_main: []
+audit_acknowledged:
+  milestone: v1.8
+  at: 2026-09-23
+  status: human_needed
 ---
 
 # Phase 4: Instalación y funcionamiento offline — Verification Report

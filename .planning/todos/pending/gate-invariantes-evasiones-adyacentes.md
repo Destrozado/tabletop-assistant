@@ -5,6 +5,9 @@ source: quick 260923-3rn (registradas en deferred-items.md de la Fase 9, secció
 severity: info
 area: gate de invariantes (Fase 9)
 status: pending
+audit_acknowledged:
+  milestone: v1.8
+  at: 2026-09-23
 ---
 
 # Tres evasiones adyacentes del gate de invariantes de marca de estado

@@ -17,14 +17,20 @@ re_verification:
   gaps_remaining: []
   regressions: []
 advisory:
+
   - finding: "`.planning/REQUIREMENTS.md` (fila de trazabilidad HIST-06, línea 366) sigue afirmando por escrito que «las dos llamadas explícitas a `clearProgressMismatch` no tienen test directo» — esa frase quedó desactualizada por el quick 260923-3rn (Pata 6 del gate de invariantes SÍ las ejerce ahora, confirmado en esta ronda con mutación M1/M2)."
     category: other
     reason: "No es BLOCKER: es una nota de trazabilidad desactualizada, no una afirmación falsa sobre el comportamiento de la app — el propio `deferred-items.md` (quick 260923-3rn) y `ROADMAP.md` ya documentan el cierre real. No se ha editado `REQUIREMENTS.md` en esta verificación (fuera de alcance del verificador); queda como candidato de sincronización de trazabilidad."
     evidence_status: "confirmado por lectura de línea (`REQUIREMENTS.md:366`) frente al código (`invariantesDeMarcaDeEstado.test.ts`, Pata 6) y frente a `deferred-items.md`/`ROADMAP.md` (ambos ya actualizados) en esta ronda"
 human_verification:
+
   - test: "Comprobación visual en tablet horizontal real (viewport ~1180×820) de las TRES superficies visuales nuevas introducidas por el quick 260923-3rm, nunca vistas renderizadas en un dispositivo físico: (1) la franja de avisos EN FLUJO de `app.vue` (sustituye el mecanismo `fixed` que sí se comprobó en la ronda 10) con `UpdateBanner`/`HistorySavedNotice` apilados verticalmente sobre `<NuxtPage/>` que ahora resta su altura en vez de solaparse; (2) la trampa de foco de `GameOutcomeDialog` (Tab/Shift+Tab cicla dentro del diálogo, el foco se restaura al cerrar) con un lector de pantalla o navegación por teclado real; (3) el estado «histórico ilegible» de `/historico` y `/estadisticas` (banda de resultado de archivado independiente del bloque principal, botón «Apartarlo y empezar uno nuevo»)."
     expected: "Ningún control queda tapado por la franja de avisos EN FLUJO; el foco nunca escapa del diálogo de fin de partida al pulsar Tab repetidamente y se restaura sobre un control visible al cerrar; el estado de histórico ilegible se lee completo, con su acción de salida alcanzable y su mensaje de resultado de archivado visible sin desaparecer junto con el bloque principal, todo a un brazo de distancia de la tablet."
     why_human: "Solapamiento visual, orden real del foco con teclado/lector de pantalla, y legibilidad a la distancia de la mesa son juicios sobre un dispositivo físico que ningún grep de CSS/DOM ni test de jsdom puede sustituir. `deferred-items.md` (línea 974, actualizado por el quick 260923-3rm) y `09-UAT.md` (completado el 2026-09-22, ANTES de que estas tres superficies existieran) declaran explícitamente esta comprobación como PENDIENTE — no se ha realizado y no debe darse por hecha."
+audit_acknowledged:
+  milestone: v1.8
+  at: 2026-09-23
+  status: human_needed
 ---
 
 # Fase 9: Histórico y estadísticas — Informe de verificación (11ª ronda)

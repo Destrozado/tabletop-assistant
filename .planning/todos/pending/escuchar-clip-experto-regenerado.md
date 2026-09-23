@@ -5,6 +5,9 @@ source: quick 260923-3ri (CR-03)
 severity: info
 area: locución
 status: pending
+audit_acknowledged:
+  milestone: v1.8
+  at: 2026-09-23
 ---
 
 # Escuchar en la tablet el clip regenerado `setup.escenario.04.expert`

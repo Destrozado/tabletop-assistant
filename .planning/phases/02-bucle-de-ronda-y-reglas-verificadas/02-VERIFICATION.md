@@ -7,9 +7,14 @@ overrides_applied: 0
 gaps: []
 deferred: []
 human_verification:
+
   - test: "Abrir el modal de detalle (⚠ o cualquier opción del turno) en un iPad real (Safari), pulsar SIGUIENTE o el botón ≡ mientras el modal sigue abierto (usando un teclado Bluetooth o VoiceOver para navegar con Tab, ya que el tap no mueve el foco en WebKit)"
     expected: "El foco debería quedar atrapado dentro del modal (o el fondo debería quedar inerte) y el foco debería devolverse al botón que abrió el panel al cerrarlo"
     why_human: "Requiere un dispositivo iPad/Safari real o un lector de accesibilidad; no se puede verificar con grep ni con un test de Vitest en jsdom. El código (WarningDetailModal.vue, app/pages/[game]/index.vue) confirma que no hay focus-trap y que el disparador se captura con document.activeElement, que es <body> en WebKit — el comportamiento descrito en 02-REVIEW.md WR-02/WR-03 es una deducción de código verificada por mí, pero su impacto real en un iPad físico no se ha probado en ningún punto de esta fase (los playtests documentados en 02-CONTENT-REVIEW.md se hicieron con `npm run dev`, previsiblemente en un navegador de escritorio, donde los botones sí retienen el foco al pulsarlos)."
+audit_acknowledged:
+  milestone: v1.8
+  at: 2026-09-23
+  status: human_needed
 ---
 
 # Fase 2: Bucle de ronda y reglas verificadas — Informe de verificación

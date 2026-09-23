@@ -270,6 +270,7 @@ públicos ya fijados por test, fuera del alcance mínimo de un cierre de huecos.
   `engine/__tests__/statistics.test.ts`.
 
 ---
+  status: acknowledged
 
 ## WR-04 (ronda 4) — `UpdateBanner` e `HistorySavedNotice` comparten posición y capa, y la segunda tapa por completo a la primera
 
@@ -549,6 +550,7 @@ demostró que falla. Hoy se prefiere la garantía estructural (Caso B imposible 
 sobre esta cobertura adicional del Caso A.
 
 **Lo que sigue siendo cierto, conservado de la ronda 7:**
+
 - No se escribe en el almacenamiento persistente del navegador: `'stale'` solo es alcanzable
   cuando el registro en el histórico **y** el guardado de cierre han fallado los dos; una
   tercera escritura justo en ese instante sería la operación menos fiable de todo el sistema, y
@@ -569,6 +571,7 @@ alternativa concreta es excluir `updatedAt` de `huellaDelProgreso`
 (`app/composables/useStoredProgress.ts`), con el coste de cobertura ya señalado arriba.
 
 ---
+  status: acknowledged
 
 ## La sonda de cobertura de bordes no clasificó ninguna fila (ronda 7)
 
@@ -642,6 +645,7 @@ y frases previstos por el propio WR-04 — «ningún fichero ni frase apareció 
 anticipado», según el propio `09-30-SUMMARY.md`.
 
 ---
+  status: acknowledged
 
 ## Nota de cierre (ronda 7, planes 09-32..09-36) — qué cierra este lote y qué sigue abierto
 
@@ -680,6 +684,7 @@ Ningún hallazgo nuevo, distinto de los dos registrados arriba (la marca en memo
 sin clasificar), aparece en los SUMMARY de los planes 09-32/09-33/09-34/09-35.
 
 ---
+  status: acknowledged
 
 ## Ronda 8 / plan 09-38 — Gate A trata `huellaDelProgreso` como afirmación sin auditar, y self-tests de fixture del gate de invariantes quedan obsoletos por el propio arreglo
 
@@ -718,6 +723,7 @@ exactamente qué 5 tests quedan en rojo y por qué ninguno de los dos hallazgos 
 regresión de producción.
 
 **Acción sugerida (para el plan 09-39, que ya retoca ambos gates por scope_boundary):**
+
 1. Añadir una entrada a `AFIRMACIONES_AUDITADAS['app/composables/useStoredProgress.ts']` para la
    raíz `'progreso'`, con motivo («`huellaDelProgreso` es la propia autoridad calculando su
    huella, no una afirmación externa sin respaldo») y respaldo
@@ -768,6 +774,7 @@ mismo fichero. Las mutaciones M1/M2, ejecutadas EN DISCO contra `app/pages/[game
 (quitar la llamada real a `clearProgressMismatch(gameId)` de `onResumeContinue` y de
 `onContentChangedAcknowledge`, una detrás de otra) y revertidas con `git checkout --`, pusieron
 rojos estos cuatro `it`:
+
 - `Pata 6 — funcionesSinRetiradaDe (Task 1, quick 260923-3rn) > sobre los consumidores/llamantes reales de useProgressMismatchMark.ts (clearProgressMismatch / readProgressMismatchWarning) da [] — la segunda defensa está intacta hoy`
 - `Pata 6 — mutación PERMANENTE en memoria: ... > quitar la llamada a clearProgressMismatch del cuerpo de onResumeContinue pone roja la pata` (M1) / `...onContentChangedAcknowledge pone roja la pata` (M2)
 - `Pata 6 — invariante: toda función documentada como punto de retirada explícita llama de verdad al retirador, para toda marca no auditada (Task 1, quick 260923-3rn) > app/composables/useProgressMismatchMark.ts: retirador no nulo, llamantes documentados no vacíos, consumidores no vacíos, y funcionesSinRetiradaDe da []`
@@ -779,10 +786,12 @@ sigue siendo la validación de huella de `useProgressMismatchMark.ts` (Patas 1/2
 del quick 260923-3rn para la salida literal completa de M1/M2.
 
 ---
+  status: acknowledged
 
 ## Huecos de parsing del gate de invariantes (`09-REVIEW.md` WR-01/WR-02; advisory de `09-VERIFICATION.md` ronda 10) — CERRADO (quick 260923-3rn)
 
 **Los dos huecos:**
+
 - WR-01: `argumentosDeNivelSuperior` (`invariantesDeMarcaDeEstado.test.ts`) separaba por comas de
   nivel superior contando solo `( [ {`, así que un tipo genérico con coma (`Record<string,
   string>`, `Map<K, V>`) inflaba la aridad de un lector de un solo parámetro genérico (Pata 1) y el
@@ -793,6 +802,7 @@ del quick 260923-3rn para la salida literal completa de M1/M2.
   por completo (evasión total, no solo un recuento erróneo).
 
 **El arreglo de cada uno:**
+
 - WR-01: `argumentosDeNivelSuperior` gana una profundidad angular independiente de la de `( [ {`.
   Un `<` la abre solo si el carácter anterior es de identificador (letra/dígito/`_`/`$`) — deja
   fuera `a < b` con espacios —, y un `>` la cierra solo si esa profundidad es mayor que 0 y el
@@ -818,6 +828,7 @@ flecha hasta encontrar el `=` real seguido de `new Map(`, porque no hay ningún 
 pueda cruzar.
 
 **Las mutaciones, ejecutadas contra el propio fichero de test y revertidas:**
+
 - M3 (WR-01): `argumentosDeNivelSuperior` vuelta temporalmente a su forma vieja (sin profundidad
   angular). `npx vitest run` puso rojos exactamente 4 `it`: los dos casos de aridad del lector con
   genérico (Pata 1, Record<string, string>), el caso de `=>` dentro de un genérico (Pata 1) y el
@@ -833,6 +844,7 @@ pueda cruzar.
   adoptó. Revertido; vuelta a 120 passed.
 
 **Observado al cerrar y NO cerrado aquí (fuera del alcance de este ítem; sin instancia real hoy):**
+
 - `export const`/`export let` a columna 0 no entran en el descubrimiento de
   `marcasDeEstadoDeModuloDe` — el patrón exige que la línea empiece literalmente por `const `/`let `,
   no por `export const `/`export let `.
@@ -848,6 +860,7 @@ Ninguna de las tres observaciones anteriores se ha cerrado en este quick — que
 abiertas, no como cerradas.
 
 ---
+  status: acknowledged
 
 ## Nota de cierre (ronda 8, planes 09-37..09-40) — qué cierra este lote, qué sigue abierto y qué atraparía la décima cara
 
@@ -922,6 +935,7 @@ Esto cubre la clase de defecto que las nueve rondas de esta fase han encontrado 
 afirmación sin respaldo.
 
 ---
+  status: acknowledged
 
 ## Nota de cierre (quick 260923-3rm) — los últimos WARNING reales de la Fase 9
 
@@ -975,3 +989,4 @@ mantiene con el nuevo):**
 
 Ningún hallazgo nuevo, distinto de los que ya trae cada entrada cerrada arriba, aparece en la
 ejecución de este lote.
+  status: acknowledged
