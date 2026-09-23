@@ -38,6 +38,38 @@ function resolveFrozenHeroName(heroNames: unknown, heroId: string): string | nul
   return typeof value === 'string' ? value : null
 }
 
+// IN-05 (09-REVIEW.md, cerrado en la quick 260923-3rl): el id ya no se
+// construye con el sufijo base36 de `Math.random()`
+// (`Math.random().toString(36).slice(2, 12)` daba entre 0 y 10 caracteres —
+// `Math.random() === 0` producía un sufijo VACÍO, incumpliendo el propio
+// regex que el test antiguo fijaba). `crypto.randomUUID()` (disponible en
+// todos los navegadores objetivo, contexto seguro) es la vía principal;
+// invocado COMO MÉTODO de `globalThis.crypto` (una referencia suelta —
+// `const fn = globalThis.crypto.randomUUID; fn()` — lanza «Illegal
+// invocation» en navegador, porque pierde el `this` que la implementación
+// nativa necesita). Decisión propia (documentada en el SUMMARY): UUID PURO,
+// sin prefijo de instante — el orden del histórico lo da `recordedAt` vía
+// `sortEntriesByRecency`, nunca el id; `firestore.rules` (Fase 10, D-03)
+// solo exige que el id de documento sea `string`, así que un UUID es un id
+// de documento válido. Los ids antiguos ya escritos en `localStorage` y en
+// Firestore (con el formato `<now>-<sufijo>`) no se migran: ambos formatos
+// son igual de válidos como `string`, y nada en el resto del sistema
+// distingue de qué generador salió un id.
+//
+// Respaldo, solo alcanzable fuera de un contexto seguro (p. ej. un servidor
+// de desarrollo abierto por IP de la LAN en la tablet, sin HTTPS): mismo
+// formato `<now>-<sufijo>` que antes, pero el sufijo se rellena a la
+// derecha con '0' hasta 10 caracteres para que nunca quede vacío — el
+// contrato de la cabecera de este fichero (`buildHistoryEntry` nunca lanza)
+// se mantiene en los dos caminos.
+function generateHistoryEntryId(now: number): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID()
+  }
+  const suffix = Math.random().toString(36).slice(2, 12).padEnd(10, '0')
+  return `${now}-${suffix}`
+}
+
 // Construye una entrada completa del histórico a partir de una sesión viva
 // (a punto de destruirse), el resultado elegido en GameOutcomeDialog y los
 // nombres congelados ya resueltos por el llamador. Devuelve un objeto
@@ -107,7 +139,7 @@ export function buildHistoryEntry(
   const normalizedRound = Number.isInteger(round) && round >= 1 ? round : 1
 
   return {
-    id: `${now}-${Math.random().toString(36).slice(2, 12)}`,
+    id: generateHistoryEntryId(now),
     gameId,
     result: outcome === 'won' ? 'won' : 'lost',
     lossCause: outcome === 'won' ? null : outcome,

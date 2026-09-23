@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   buildHistoryEntry,
   describeLossCause,
@@ -324,10 +324,39 @@ describe('no-mutación: buildHistoryEntry no modifica session ni names', () => {
   })
 })
 
-describe('id: aleatorio, con la forma esperada', () => {
-  it('cumple /^\\d+-[a-z0-9]+$/', () => {
+// IN-05 (09-REVIEW.md, cerrado en la quick 260923-3rl): el id deja de
+// construirse con el sufijo base36 de Math.random (`Math.random() === 0`
+// producía un sufijo vacío, incumpliendo el regex que el test antiguo
+// fijaba) y pasa a usar crypto.randomUUID() cuando está disponible (Node 24
+// lo expone). El regex antiguo `/^\d+-[a-z0-9]+$/` se sustituye aquí por el
+// nuevo contrato — IN-05 pide expresamente actualizarlo, no conservarlo.
+describe('id (IN-05): crypto.randomUUID con respaldo sin lanzar', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('con crypto.randomUUID disponible, el id cumple el formato UUID v4', () => {
     const entry = buildHistoryEntry(baseSession(), 'won', NOON_UTC_MS, emptyNames)
-    expect(entry.id).toMatch(/^\d+-[a-z0-9]+$/)
+    expect(entry.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+  })
+
+  it('dos entradas construidas con el mismo now tienen ids distintos', () => {
+    const a = buildHistoryEntry(baseSession(), 'won', NOON_UTC_MS, emptyNames)
+    const b = buildHistoryEntry(baseSession(), 'won', NOON_UTC_MS, emptyNames)
+    expect(a.id).not.toBe(b.id)
+  })
+
+  it('sin crypto.randomUUID (contexto no seguro) y con Math.random forzado a 0, buildHistoryEntry no lanza y el id es exactamente `${NOON_UTC_MS}-0000000000` (el sufijo vacío que IN-05 describía queda cerrado)', () => {
+    vi.stubGlobal('crypto', undefined)
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+
+    let entry: GameHistoryEntry | undefined
+    expect(() => {
+      entry = buildHistoryEntry(baseSession(), 'won', NOON_UTC_MS, emptyNames)
+    }).not.toThrow()
+
+    expect(entry!.id).toBe(`${NOON_UTC_MS}-0000000000`)
   })
 })
 

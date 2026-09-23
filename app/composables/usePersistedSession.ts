@@ -51,7 +51,31 @@ const VOICE_KEY = 'tga:voice-enabled'
 // tocarlo jamás: el histórico es el único dato de la app que no se puede
 // reconstruir si se pierde.
 const HISTORY_KEY = 'tga:history'
+// REGLA (IN-12, quick 260923-3rl): todo cambio de FORMA de `GameHistoryEntry`
+// que una build ANTERIOR rechazaría (un campo nuevo obligatorio, un tipo que
+// se endurece, un valor de enum que se retira) DEBE subir esta constante.
+// Desde IN-12, `appendHistoryEntry` descarta del disco las entradas
+// previas que `isGameHistoryEntry` rechaza — el envoltorio de
+// `formatVersion` desconocido es lo ÚNICO que impide que una build antigua
+// (rollback tras un despliegue problemático) trate como basura, en su
+// siguiente registro, las entradas que escribió una build más nueva con una
+// forma que la antigua no reconoce. Sin subir la versión ante un cambio de
+// forma, un rollback destruiría en silencio partidas que el grupo sí puede
+// leer con la versión anterior del código.
 const HISTORY_FORMAT_VERSION = 1
+
+// IN-04 (09-REVIEW.md, cerrado en la quick 260923-3rl): tope de entradas que
+// `appendHistoryEntry` conserva en cada registro con éxito. Constante
+// PRIMITIVA (no estado de módulo mutable — no entra en el perímetro que
+// audita `invariantesDeMarcaDeEstado.test.ts`). 500 partidas son años al
+// ritmo de un grupo de amigos (decenas al año, comentario de D-08 en
+// `useHistorySync.ts`), y `record()` (`useGameHistory.ts`) lanza `flush()`
+// justo después de cada registro con éxito, así que casi toda la ventana ya
+// tiene ocasión de subirse antes de acercarse al tope. Coste aceptado
+// (T-3rl-03 del threat model de este plan): una entrada que salga por el
+// tope sin haberse subido nunca se pierde también del respaldo — riesgo
+// evaluado y aceptado, no una garantía nueva.
+export const HISTORY_MAX_ENTRIES = 500
 
 // D-01 (Fase 10): la marca de sincronizado con Firestore vive en su PROPIA
 // clave, aparte de `HISTORY_KEY` — nunca como campo dentro de la entrada.
@@ -264,8 +288,13 @@ function removeRaw(key: string): void {
 // corrupto, un `formatVersion` distinto del actual (p. ej. tras un rollback
 // de versión), o un envoltorio sin `entries` array — y nunca debe
 // machacarse, solo abortar la escritura. `entries` en la variante 'ok' va
-// SIN FILTRAR por `isGameHistoryEntry`: quien filtra es `loadHistory` (de
-// cara a la pantalla), nunca esta lectura (de cara al disco).
+// SIN FILTRAR por `isGameHistoryEntry`: esta lectura nunca decide qué
+// sobrevive, solo entrega lo que hay en crudo — cada función que la use
+// decide por su cuenta (IN-12, quick 260923-3rl): `loadHistory` filtra de
+// cara a la PANTALLA, `appendHistoryEntry` filtra de cara al REGISTRO (deja
+// de escribir lo que `isGameHistoryEntry` rechaza), y `removeHistoryEntry`
+// no filtra en absoluto — conserva en disco tal cual lo que no reconoce
+// (WR-08/CR-03), un borrado sigue siendo conservador con lo que no entiende.
 type EnvelopeRead =
   | { kind: 'empty' }
   | { kind: 'ok', entries: unknown[] }
@@ -471,21 +500,44 @@ export function usePersistedSession() {
     return read.kind === 'ok' ? read.entries : []
   }
 
-  // D-03: la ÚNICA función de este fichero que no devuelve `void` — es
-  // deliberado. El histórico es el único dato de la app que no se puede
+  // No es `void`: el histórico es el único dato de la app que no se puede
   // reconstruir, así que el grupo tiene que enterarse si el dispositivo no
-  // dejó escribir (modo privado, cuota). Quien vaya a «homogeneizar» la
-  // firma a `void` debe leer D-03 primero. HIST-07: la entrada nueva se
-  // antepone, así que el histórico ya queda ordenado de más reciente a más
-  // antigua tal como se persiste.
+  // dejó escribir (modo privado, cuota). Ya no es la única de este fichero
+  // con ese contrato — `save` (arriba) y, desde IN-11 (quick 260923-3rl),
+  // `removeHistoryEntry` (más abajo) también devuelven `boolean` por el
+  // mismo motivo. HIST-07: la entrada nueva se antepone, así que el
+  // histórico ya queda ordenado de más reciente a más antigua tal como se
+  // persiste.
   //
   // CR-03: aborta devolviendo `false` SIN llamar a `writeRaw` cuando
   // `readEnvelope()` devuelve 'unreadable' — nunca se machaca un blob que
   // no se ha sabido interpretar (`formatVersion` desconocido, JSON
-  // corrupto). Las entradas previas se conservan EN CRUDO (`read.entries`,
-  // sin filtrar por `isGameHistoryEntry`): lo que no pasa la validación se
-  // filtra de cara a la PANTALLA (`loadHistory`), NUNCA de cara al DISCO —
-  // así una entrada hoy ilegible no se destruye para siempre.
+  // corrupto). Esto no cambia con IN-12: un envoltorio ilegible sigue sin
+  // tocarse, sea cual sea el contenido de sus entradas.
+  //
+  // IN-04/IN-12 (09-REVIEW.md, cerrado en la quick 260923-3rl): hasta este
+  // cierre, las entradas previas se conservaban EN CRUDO (`read.entries` sin
+  // filtrar) y sin ningún tope — lo que no pasaba `isGameHistoryEntry` se
+  // filtraba solo de cara a la PANTALLA (`loadHistory`), nunca de cara al
+  // DISCO, y el envoltorio crecía sin límite. Los dos motivos por los que
+  // eso era deuda real: una entrada que `isGameHistoryEntry` rechaza es
+  // invisible (`loadHistory` la filtra antes de pintar) y no se puede borrar
+  // (no hay tarjeta con su `id` para invocar `removeHistoryEntry`) — ocupa
+  // cuota para siempre (IN-12); y sin tope, el día que el histórico agote la
+  // cuota de `localStorage` el síntoma es un aviso de fallo sin ninguna
+  // explicación adicional (IN-04). Este cierre invierte la conservación EN
+  // CRUDO para el REGISTRO — el único punto de mantenimiento, porque ocurre
+  // una vez por partida — y `removeHistoryEntry` (más abajo) sigue siendo
+  // TAN CONSERVADOR COMO ANTES con lo que no reconoce: el endurecimiento no
+  // se propaga al borrado (el test CR-03 que lo fija no se toca).
+  //
+  // No lee ni escribe la marca de sincronizado con Firestore (clave aparte,
+  // ver su comentario más arriba): la poda de esa marca es de
+  // `useHistorySync.ts` (decisión 10-03, D-04), y su lector (`readHistory`,
+  // usado por `syncPending`) ya retira en el siguiente flush cualquier id
+  // que no esté en el histórico — un id que el tope acaba de podar aquí no
+  // puede volver a subirse, porque las pendientes se calculan siempre desde
+  // `loadHistory()`.
   function appendHistoryEntry(entry: GameHistoryEntry): boolean {
     // CR-01 (ronda 2): el predicado que decide qué se puede LEER
     // (`isGameHistoryEntry`, usado por `loadHistory`) debe decidir también
@@ -501,10 +553,16 @@ export function usePersistedSession() {
     const read = readEnvelope()
     if (read.kind === 'unreadable') return false
 
-    const previous = read.kind === 'ok' ? read.entries : []
+    // IN-12: las previas se filtran por `isGameHistoryEntry` ANTES de
+    // anteponer la nueva — el mismo predicado que decide qué se puede LEER
+    // decide ahora también qué sobrevive al siguiente registro. IN-04: el
+    // resultado se corta a los primeros `HISTORY_MAX_ENTRIES` — como cada
+    // registro antepone (más reciente primero), lo que sale por el tope es
+    // siempre lo más antiguo.
+    const previous = read.kind === 'ok' ? read.entries.filter(isGameHistoryEntry) : []
     const envelope = {
       formatVersion: HISTORY_FORMAT_VERSION,
-      entries: [entry, ...previous],
+      entries: [entry, ...previous].slice(0, HISTORY_MAX_ENTRIES),
     }
     return writeRaw(HISTORY_KEY, JSON.stringify(envelope))
   }

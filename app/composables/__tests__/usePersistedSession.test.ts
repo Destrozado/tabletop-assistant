@@ -6,7 +6,7 @@
 // `node` del proyecto `app-logic` con un `window`/`localStorage` de mentira:
 // no hace falta jsdom/happy-dom ni contexto de Nuxt.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { normalizeVoicePreference, usePersistedSession } from '../usePersistedSession'
+import { HISTORY_MAX_ENTRIES, normalizeVoicePreference, usePersistedSession } from '../usePersistedSession'
 import type { EngineSession, GameHistoryEntry } from '~~/engine/types'
 
 function createFakeLocalStorage() {
@@ -308,6 +308,66 @@ describe('tga:history — clave independiente de la partida (D-13/HIST-09)', () 
   it('D-03: con el localStorage falso normal, appendHistoryEntry devuelve true', () => {
     const { appendHistoryEntry } = usePersistedSession()
     expect(appendHistoryEntry(makeEntry())).toBe(true)
+  })
+
+  it('IN-04/IN-12: HISTORY_MAX_ENTRIES vale 500', () => {
+    expect(HISTORY_MAX_ENTRIES).toBe(500)
+  })
+
+  it('IN-12: una entrada previa que isGameHistoryEntry rechaza se descarta del disco en el siguiente registro con éxito', () => {
+    const buenaA = makeEntry({ id: 'buena-a' })
+    const rota = { id: 'rota' } // no pasa isGameHistoryEntry (forma incompleta)
+    const buenaB = makeEntry({ id: 'buena-b' })
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [buenaA, rota, buenaB] }))
+
+    const { appendHistoryEntry } = usePersistedSession()
+    const nueva = makeEntry({ id: 'nueva' })
+    expect(appendHistoryEntry(nueva)).toBe(true)
+
+    const persisted = JSON.parse(fakeStorage.getItem('tga:history')!)
+    expect(persisted.entries.map((e: { id: string }) => e.id)).toEqual(['nueva', 'buena-a', 'buena-b'])
+  })
+
+  it('IN-04: con 500 entradas válidas sembradas, appendHistoryEntry(nueva) deja exactamente 500, la primera es nueva, e-498 es la última y e-499 desaparece', () => {
+    const seeded = Array.from({ length: 500 }, (_, i) => makeEntry({ id: `e-${i}` }))
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: seeded }))
+
+    const { appendHistoryEntry, loadHistory } = usePersistedSession()
+    expect(appendHistoryEntry(makeEntry({ id: 'nueva' }))).toBe(true)
+
+    const ids = loadHistory().map(e => e.id)
+    expect(ids).toHaveLength(500)
+    expect(ids[0]).toBe('nueva')
+    expect(ids[499]).toBe('e-498')
+    expect(ids).not.toContain('e-499')
+  })
+
+  it('IN-04: por debajo del tope no se poda nada (3 sembradas + 1 = 4)', () => {
+    const seeded = [makeEntry({ id: 'a' }), makeEntry({ id: 'b' }), makeEntry({ id: 'c' })]
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: seeded }))
+
+    const { appendHistoryEntry, loadHistory } = usePersistedSession()
+    expect(appendHistoryEntry(makeEntry({ id: 'nueva' }))).toBe(true)
+
+    expect(loadHistory().map(e => e.id)).toEqual(['nueva', 'a', 'b', 'c'])
+  })
+
+  it('D-04: appendHistoryEntry nunca escribe tga:history:synced, aunque el tope pode la entrada que esa clave marca', () => {
+    const seeded = Array.from({ length: 500 }, (_, i) => makeEntry({ id: `e-${i}` }))
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: seeded }))
+    const SYNCED_KEY = 'tga:history:synced'
+    const syncedSeeded = JSON.stringify(['e-499'])
+    fakeStorage.setItem(SYNCED_KEY, syncedSeeded)
+    fakeStorage.setItem.mockClear()
+
+    const { appendHistoryEntry, readHistory } = usePersistedSession()
+    expect(appendHistoryEntry(makeEntry({ id: 'nueva' }))).toBe(true)
+
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === SYNCED_KEY)).toBe(false)
+    expect(fakeStorage.getItem(SYNCED_KEY)).toBe(syncedSeeded)
+    const read = readHistory()
+    expect(read.kind).toBe('ok')
+    expect(read.kind === 'ok' ? read.entries.map(e => e.id) : []).not.toContain('e-499')
   })
 
   it('removeHistoryEntry(id) deja las demás entradas intactas y devuelve true (IN-11: hubo coincidencia y writeRaw funcionó)', () => {
