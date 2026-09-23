@@ -730,3 +730,84 @@ describe('useHistorySync — WR-01 (revisión de código, Fase 10): la poda de D
     expect(JSON.parse(finalRaw as string).sort()).toEqual(['existing', 'ghost', 'new'])
   })
 })
+
+describe('useHistorySync — WR-02 (revisión de código, Fase 10): ninguna llamada de red deja flushInFlight enclavado', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    vi.resetModules()
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    delete (globalThis as { window?: unknown }).window
+    delete (globalThis as { useRuntimeConfig?: unknown }).useRuntimeConfig
+    vi.doUnmock('firebase/app')
+    vi.doUnmock('firebase/auth')
+    vi.doUnmock('firebase/firestore')
+    vi.restoreAllMocks()
+  })
+
+  it('WR-02/1: un setDoc colgado vence el plazo, no marca nada, libera flushInFlight y un `online` posterior sube de verdad', async () => {
+    const entry = baseEntry({ id: 'hung-setdoc' })
+    seedHistory(fakeStorage, [entry])
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn()
+      .mockReturnValueOnce(new Promise(() => {}))
+      .mockResolvedValue(undefined)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    mockWorkingAuthAndApp()
+
+    const { useHistorySync, SYNC_NETWORK_TIMEOUT_MS } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    const onlineHandler = windowAddEventListenerMock().mock.calls[0]![1] as () => void
+
+    // Instalada DESPUÉS del import dinámico y del registro del listener
+    // `online`, y ANTES de flush() — verificado al planificar (spike
+    // desechable, ya borrado): no bloquea los import() dinámicos doblados
+    // con vi.doMock. Solo setTimeout/clearTimeout: queueMicrotask (del que
+    // depende mockWorkingAuthAndApp) sigue siendo real.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+
+    flush()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1))
+
+    // Control negativo: invocar el manejador `online` ANTES de vencer el
+    // plazo no produce una segunda llamada — la guarda (4) de flushInFlight
+    // sigue cortando mientras el primer intento sigue en vuelo.
+    onlineHandler()
+    expect(setDoc).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(SYNC_NETWORK_TIMEOUT_MS)
+
+    // El id NO quedó marcado: ningún «sincronizado» falso.
+    await vi.waitFor(() => {
+      const raw = fakeStorage.getItem(SYNCED_KEY)
+      expect(raw).not.toBeNull()
+      expect(JSON.parse(raw as string)).toEqual([])
+    })
+
+    // El `online` posterior al timeout SÍ dispara un flush nuevo (D-02
+    // recupera su segundo disparador) y esta vez setDoc resuelve de verdad.
+    onlineHandler()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => {
+      const raw = fakeStorage.getItem(SYNCED_KEY)
+      expect(JSON.parse(raw as string)).toEqual(['hung-setdoc'])
+    })
+  })
+})

@@ -60,6 +60,43 @@ let flushInFlight = false
 // razonamiento completo de por qué nunca se retira al desmontar.
 let onlineListenerRegistered = false
 
+// WR-02 (revisión de código, Fase 10): 15 s es el extremo generoso del rango
+// 10-15 s que propone 10-REVIEW.md WR-02, a propósito — un timeout falso no
+// pierde datos (la escritura sigue en la cola en memoria del SDK y llega
+// sola), pero su marca sí se pierde y, por D-11 create-only, ese reintento
+// se rechazará con `permission-denied` para siempre (el ruido acotado que
+// D-03 ya acepta); un plazo holgado lo hace raro en una wifi de mesa lenta.
+export const SYNC_NETWORK_TIMEOUT_MS = 15_000
+
+// Clase de módulo (no exportada): así el rastro existente solo-en-desarrollo
+// del `.catch` de `flush()` (que imprime SOLO el campo `code`) informa de un
+// timeout sin ningún cambio en ese `.catch`.
+class SyncTimeoutError extends Error {
+  readonly code = 'sync-timeout'
+  constructor() {
+    super('WR-02: la llamada de red venció su plazo de espera')
+    this.name = 'SyncTimeoutError'
+  }
+}
+
+// withTimeout: arma el `setTimeout` de forma SÍNCRONA al ser llamada (mismo
+// idioma de tipo `ReturnType<typeof setTimeout>` que useHistorySavedNotice.ts)
+// y hace `Promise.race` entre la promesa original y una que rechaza con
+// `SyncTimeoutError` al vencer. `Promise.race` se suscribe a la promesa
+// original, así que su resolución o rechazo tardío queda manejado y nunca
+// produce `unhandledrejection`. El `.finally` limpia el temporizador para que
+// ninguna llamada que resuelve a tiempo deje un temporizador vivo (test
+// WR-02/6).
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+  const timeoutPromise = new Promise<never>((_resolve, reject) => {
+    timeoutId = setTimeout(() => reject(new SyncTimeoutError()), ms)
+  })
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId !== undefined) clearTimeout(timeoutId)
+  })
+}
+
 // D-13: lee `useRuntimeConfig().public` DENTRO de un try/catch — no es
 // defensa decorativa. En el proyecto `app-logic` de Vitest no hay
 // auto-imports de Nuxt ni contexto de Nuxt, así que `useRuntimeConfig` no
@@ -144,25 +181,27 @@ async function syncPending(
   for (const entry of entries) {
     const payload = buildSyncPayload(entry)
     try {
-      await firestoreModule.setDoc(firestoreModule.doc(db, 'history', payload.id), {
+      await withTimeout(firestoreModule.setDoc(firestoreModule.doc(db, 'history', payload.id), {
         ...payload,
         uid,
         createdAt: firestoreModule.serverTimestamp(),
-      })
+      }), SYNC_NETWORK_TIMEOUT_MS)
       uploadedIds.push(payload.id)
     }
     catch {
       // D-03: un rechazo por reglas (`permission-denied`, un reintento de
-      // algo que el servidor ya tenía) y un fallo de red/servidor caído
-      // (`unavailable`) se tratan EXACTAMENTE IGUAL aquí — ninguno de los
-      // dos añade el id a la lista de subidos, y ninguno interrumpe el
-      // recorrido del resto de pendientes. Tratar un `permission-denied`
-      // como éxito enmascararía unas reglas mal desplegadas, que es justo
-      // el fallo que la verificación humana del plan 10-02 busca detectar.
-      // Consecuencia aceptada: un reintento contra un documento que el
-      // servidor ya tenía se rechaza y esa entrada queda pendiente para
-      // siempre, reintentándose una vez por partida futura — ruido
-      // acotado, invisible y sin coste.
+      // algo que el servidor ya tenía), un fallo de red/servidor caído
+      // (`unavailable`) y un timeout WR-02 (`SyncTimeoutError`, la promesa
+      // de `setDoc` nunca resolvió dentro de `SYNC_NETWORK_TIMEOUT_MS`) se
+      // tratan EXACTAMENTE IGUAL aquí — ninguno de los tres añade el id a la
+      // lista de subidos, y ninguno por sí solo enmascara un intento no
+      // confirmado por el servidor como si fuera una subida. Tratar un
+      // `permission-denied` como éxito enmascararía unas reglas mal
+      // desplegadas, que es justo el fallo que la verificación humana del
+      // plan 10-02 busca detectar. Consecuencia aceptada: un reintento
+      // contra un documento que el servidor ya tenía se rechaza y esa
+      // entrada queda pendiente para siempre, reintentándose una vez por
+      // partida futura — ruido acotado, invisible y sin coste.
     }
   }
 
