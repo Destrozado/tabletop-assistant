@@ -1,232 +1,251 @@
-# Feature Research
+# Feature Research — v1.8 (Character selection, live counters, game history)
 
-**Domain:** Web-based guided rules-flow / turn-tracker assistant for complex board games (Marvel Champions LCG first, Warhammer 40k later), used on a tablet at the table
-**Researched:** 2026-08-28
-**Confidence:** MEDIUM-HIGH (table-stakes tablet UX and TTS patterns are well-documented and cross-verified across multiple product categories; Marvel Champions-specific competitor landscape is confirmed directly from app stores/GitHub; some app-store review sentiment is WebSearch-derived and marked accordingly)
+**Domain:** Board-game companion / score-and-state tracker layer added on top of an existing step-by-step guided-flow app (Marvel Champions, co-op)
+**Researched:** 2026-09-07
+**Confidence:** MEDIUM-HIGH — touch/stepper UX and history-app patterns are well-documented and cross-verified across multiple product categories (Nielsen Norman Group, HIG/Material, BG Stats). Marvel Champions-specific rules claims below were checked directly against the local Rules Reference v1.7 PDF (`~/Downloads/mc_rulesreference_v17-compressed.pdf`), not just WebSearch — these are flagged HIGH confidence but **still require the project's own D-36 human sign-off** before being encoded as app behaviour, per project convention. Direct competitor apps for Marvel Champions specifically (MC Digital Tracker, MC Companion, M Champions Deck Builder, jwtr/mcc) were only reachable via search-result summaries, not live-tested — flagged MEDIUM.
 
-## Executive Framing
+---
 
-This product sits at the intersection of three existing product shapes, none of which is quite the same thing:
+## 0. Rules-accuracy findings that gate several feature decisions
 
-1. **Card/stat companion apps** (MC Companion, MC Card Codex, jwtr/mcc, Marvel Champions Tracker) — solve "manage cards/decks/counters," not "tell me what to do next."
-2. **Interactive rules-teaching apps** (Dized) — solve "teach me the game via tutorial," multi-game, video-heavy, ad/subscription-funded.
-3. **Wargame turn-sequence trackers** (40K Battle Flow, Wargame Toolbox, GrimSlate) — solve exactly the "guided phase-by-phase flow" problem this project wants, but for 40k, and without voice.
+These are not "features" but they determine what a correct feature MUST do. Verified directly against `mc_rulesreference_v17-compressed.pdf` (local, v1.7) on 2026-09-07.
 
-No product in the wild currently does "guided step-by-step flow, one Next button, TTS, for Marvel Champions." That is a genuine gap (see Q8 below), and the 40k wargame-tracker sub-genre is strong evidence that the *shape* of this product (phase flowchart → guided tracker → per-step reminders) is a proven, validated pattern in a directly adjacent domain.
+| Claim | Finding | Confidence | Needs human verification (D-36)? |
+|---|---|---|---|
+| A single hero being defeated (reduced to 0 HP) ends the whole game | **FALSE.** RR, "Player Elimination": *"When a player is eliminated, the remaining players continue to play the game... considered to win or lose along with the rest of the group... If all players are eliminated, the game ends and the players lose."* Losing one hero is a mid-game event, not a game-over event, except in named scenarios with an explicit alternate loss condition. | HIGH (direct RR quote) | Yes — confirm no scenario-specific alternate loss condition applies to any of the 3 villains in scope (Rhino, Ultron, Kang) before the app assumes "one hero at 0 ≠ game over" universally. |
+| The game has exactly two generic loss triggers | RR, "Winning the Game": win = final villain stage defeated; lose = final main-scheme stage completed ("the villain wins the game"), **plus** RR "Player Elimination": all players eliminated → lose, **plus** RR "Encounter Deck": a specific deck-empty infinite-acceleration edge case → lose. Scenario cards can add alternate win/loss conditions on top. | HIGH | Yes, same as above — this app captures only a `result` + optional `reason`, so getting the enum right matters. |
+| Duplicate heroes (two players picking the same identity) are illegal | **NOT confirmed as a hard rule.** RR's uniqueness rule (Deck Building, "Unique") only restricts *card titles inside a single deck*; it says nothing that forbids two players from bringing the same hero identity. Community consensus (BoardGameGeek thread, MEDIUM confidence, not RR text) is that it's *physically/practically awkward* rather than illegal: you'd need a second physical hero pack, and any of that hero's non-identity "unique" signature ally cards can't be played by both copies at once, because unique cards share a title regardless of whose deck they're in. | MEDIUM (RR silent; practical constraint inferred) | Yes — this is exactly the kind of "confident but wrong" claim the project's own philosophy warns against. Do not hard-code a duplicate-hero block as an "official rule" in code comments or UI copy without explicit sign-off. |
 
-## Answers to the Specific Questions Posed
+**Implication for this milestone:** the counter band and the eventual result-capture flow must not assume "hero HP = 0 → game over" or "hero HP = 0 → that player is done, ignore them." Both are behaviours the app needs to explicitly decide, not RAW-mandated shortcuts.
 
-**1. Navigation affordances beyond "Next":** Every guided-flow product studied (40K Battle Flow, Wargame Toolbox, recipe apps like "In the Kitchen"/Hestia/RecipeForLater) offers at minimum: Back/Previous, and a way to see "where am I" without stepping through everything again. 40K Battle Flow's core device is a **tappable, colour-coded flowchart of the whole round** that doubles as a jump-to-step index — you're never limited to linear Next/Back. This validates the project's planned "salto directo a cualquier paso" as correct, not a nice-to-have.
-
-**2. Communicating "round 4, villain phase, step 3 of 4" in a forever-looping flow:** No product studied does this with a single opaque progress bar (a progress bar implies a finish line; a repeating round loop doesn't have one per round). The pattern that recurs is a **compound orientation string / header**: round counter + current phase name + step-within-phase, always visible, updated on every screen (this is effectively what 40K Battle Flow's colour-coded phase cards + round tracker do together). Second-order pattern from recipe/checklist apps: keep the "container" (round N) visually distinct from the "contents" (step X of Y within this phase), because users re-orient by first checking "which round," then "which phase," then "which step" — in that order of granularity.
-
-**3. TTS — real differentiator or novelty?** Real, but only in the narrow "app as narrator" niche (One Night Ultimate Werewolf, Dead of Winter's app, BgVoice) that already validates hands-are-busy voice narration for board games — it is not a novelty, it is an established, well-liked pattern *when scoped to short lines*. What good implementations get right, and where the ones studied get it wrong:
-   - **Read only the essential line, not the whole paragraph.** Dized's biggest voice complaint was a "robotic, repetitive" voiceover that read full text blocks aloud including capitalized words letter-by-letter — that's the fate of naively wiring TTS to a whole content blob instead of curating a short spoken line per step.
-   - **Don't re-read on navigating back.** No product studied does this well by default — it's a documented Dized failure mode ("repeating the same instructions over again"). This is worth treating as an explicit design requirement, not an edge case.
-   - **A mute toggle is assumed, not optional.** Every voice-narrator product (ONUW app, cooking apps) exposes an obvious way to shut the voice off — a group half-listening / half-reading physically cannot tolerate a voice they can't kill.
-   - **Queueing/interruption:** cooking-app pattern (Hestia, Cookie, "In the Kitchen") is speak-current-step-only, cancel-and-restart-speech on any navigation, never queue multiple lines. Directly transferable to this project's Web Speech API usage.
-
-**4. What users complain about (grounded in the products checked):**
-   - **Losing your place / re-syncing state:** Gloomhaven Helper's most damaging complaint (WebSearch-sourced, MEDIUM confidence) was stat resets and disconnects mid-campaign, forcing players to "spend more time troubleshooting than playing" — the exact failure mode this project's browser-persisted progress is designed to prevent.
-   - **Text/tap targets too small:** Gloomhaven Helper — "text and buttons are far too small on phones, making it almost unusable" (users were on the wrong device class: phone instead of tablet — a device-fit problem as much as a design one). Descent: Legends of the Dark app — text "very small and practically illegible on a phone," and rotate/zoom resets by accident. Direct confirmation that tablet-only, large-text, orientation-locked design is not optional polish, it's the baseline for this category.
-   - **App disagreeing with / not matching the rulebook, or not covering what's needed:** Gloomhaven Helper users noted it "didn't help track character ability cards" — a scope mismatch, not a bug, but it reads as "the app doesn't actually help." Lesson: be explicit and narrow about what the guide claims to cover, so users don't expect it to also resolve things it deliberately doesn't (matches this project's decision to exclude rules-lookup from v1, as long as that boundary is communicated).
-   - **Monetization/interruption friction:** Dized's reviews cite frequent video ads and subscription pushes "within minutes" of opening the app, directly breaking the promise of a frictionless companion. Strong anti-feature signal (see below).
-   - **Battery/session-length:** Descent: Legends of the Dark app drains battery over 4+ hour sessions — relevant given Marvel Champions sessions can run long; screen-stays-awake + PWA needs to be paired with a user-visible reminder that the screen will not sleep (battery tradeoff), not silently assumed.
-
-**5. Tablet-at-the-table baseline (industry HIG + evidence from complaints above):**
-   - Minimum tap target ~44×44pt (Apple HIG) / 48×48dp (Material) — non-negotiable given players' hands are busy with cards and touches will be imprecise/from an angle.
-   - Landscape orientation, locked — matches how a tablet actually sits propped next to a table; Descent's "hard to rotate, resets to default" complaint shows orientation *flexibility* is a bug source, not a feature: locking it deliberately avoids that failure mode.
-   - Large, short text — validated repeatedly (Gloomhaven Helper, Descent) as the single most complained-about miss when absent.
-   - Dark mode for dim rooms — standard expectation for any at-the-table screen used in evening play; low implementation cost, meaningful comfort/glare win.
-   - Screen-stays-awake (wake lock) — table stakes; confirmed pattern from "In the Kitchen" cooking app (auto-lock disabled while a recipe/step is open) and implied by every "put it down next to you and glance at it" use case. Must be paired with a note about battery cost (see Q4).
-   - Single-hand reach — tablet propped beside the table, not held, so this matters less than in mobile-in-hand contexts, but primary controls (Next/Back) should still sit within a natural thumb zone at the bottom of the screen given a quick tap without picking the device up.
-   - Glare — no product directly documents this, but it's a direct consequence of dark-mode + high-contrast text choices; treat as achieved via the same lever, not a separate feature.
-
-**6. Anti-features actively disliked (see Anti-Features table below for the full list with alternatives).** Highlights: intrusive ads/subscriptions (Dized), forced account/login for a private single-group tool, stat-tracking state that can desync from the physical table (Gloomhaven Helper), and building a card-database/deckbuilder inside what's supposed to be a lean flow guide (scope creep visible in nearly every MC fan tool — they all tried to also be a card database).
-
-**7. Multi-game entry point:** Dized is the clearest cautionary tale — it supports "numerous board games" but reviews call the navigation "clunky and bulky" with "unintuitive tab switching," and paid features that "don't scale properly on iPad." The lesson for a 2-game (soon) roster: keep the game picker to a single, dumb, obvious choice screen; if a game's content isn't ready (Warhammer 40k in v1), show it in the picker but gate it clearly ("próximamente") rather than let users into a half-built flow — exactly what PROJECT.md already plans. Do not try to make the picker "smart" (recently played, recommended, etc.) — that's solving a problem (many games, need triage) this project doesn't have yet.
-
-**8. Existing Marvel Champions app landscape — direct answer: no product does what this project wants to build.** Named and assessed below (Competitor Feature Analysis). The closest conceptual match is an early prototype ("Marvel Champions Digital," kitze.io) which bundles deck management + campaign tracking + encounter setup + a tablet-first touch UI, but it is (a) not publicly released, (b) fundamentally an organizational/tracking tool rather than a round-by-round "what happens now" narrator, and (c) shows no evidence of a voice/TTS feature or of modeling the setup→round-loop structure this project needs. Everything else in the MC ecosystem is either a card database/deckbuilder (MC Companion, MC Card Codex, marvelcdb.com-linked tools) or a stat/HP/threat counter replacing physical dials (jwtr/mcc, Marvel Champions Tracker "tactical HUD") — i.e., tools this project has deliberately decided *not* to be.
+---
 
 ## Feature Landscape
 
 ### Table Stakes (Users Expect These)
 
 | Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Primary "Siguiente" (Next) button as main interaction | Core interaction model of every guided-flow product studied (cooking apps, 40K Battle Flow) | LOW | Already in PROJECT.md scope |
-| Back / previous-step navigation | Universal in guided-flow and checklist apps; users misclick or the table moves faster than expected | LOW | Already in scope |
-| Jump-to-any-step / step overview | 40K Battle Flow's core UX device (tappable flowchart); prevents forced re-stepping through a whole phase to fix a missed step | MEDIUM | Requires the step-flow engine to support arbitrary jumps and correct re-entry into the loop — already in PROJECT.md scope, correctly flagged as non-trivial |
-| Persistent "where am I" orientation (round + phase + step) | Directly answers the "forever loop" disorientation problem (Q2); no product studied gets away without this | MEDIUM | Needs a stable header/chrome that survives navigation, distinct from the step content itself |
-| Round counter, distinct from step index | Users re-orient at round-granularity first, then phase, then step (see Q2) | LOW | Data model implication: round number must be first-class state, not derived only from step position |
-| Progress persistence across reload/lock (browser storage) | Gloomhaven Helper's biggest failure mode (losing state) is the exact thing local persistence fixes | MEDIUM | Already in scope; validated by evidence, not just intuition |
-| Large, short, high-contrast text | The single most common complaint across Gloomhaven Helper, Descent app reviews when absent | LOW-MEDIUM | Content-writing discipline as much as CSS |
-| Big tap targets (44-48pt/dp minimum) | Standard HIG/Material guidance; hands busy with cards, imprecise touches | LOW | Standard responsive/CSS work |
-| Landscape orientation, locked | Matches how a tablet sits at a table; unlocked orientation is a documented bug source (Descent app) | LOW | CSS/viewport meta + explicit lock, not "let it rotate" |
-| Dark mode | Standard expectation for evening/dim-room play | LOW | Straightforward with a component library; low cost, real comfort win |
-| Screen-stays-awake (wake lock) | "In the Kitchen" cooking-app pattern; without it the guide locks mid-round | LOW-MEDIUM | Use Screen Wake Lock API; must degrade gracefully if unsupported, and battery cost should be visible/expected, not silent |
-| Offline availability (PWA + cache) | Wifi dropping mid-session is a real table risk; matches the explicit constraint in PROJECT.md | MEDIUM | Already in scope |
-| Conditional branches shown as full text (no extra taps) | Directly answers the "too many taps" complaint pattern; avoids interaction cost when hands are full | LOW | Already in scope, and well-justified by the table-stakes evidence above |
-| Clear scope boundary communicated to the user | Prevents the "app doesn't cover X" disappointment seen in Gloomhaven Helper reviews | LOW | A one-line "esto es una guía de flujo, no un buscador de reglas" framing goes a long way |
+|---|---|---|---|
+| Tap-a-slot → modal list → pick one (villain and hero pickers) | This is the exact pattern used by the one directly comparable tool found, "Marvel Champions Digital Tracker" (gameswithtony.com) — pick villain/heroes first, other lists filter from that. Modal-list-pick is also the near-universal mobile pattern for "select one of N named things" (contact pickers, emoji pickers). | LOW | Reuses the existing `WarningDetailModal.vue` interaction shape (tap → modal → dismiss) already proven in v1.7 for options/warnings — same affordance vocabulary, not a new UI language. |
+| Filter box at top of a picker list with >12 items | Standard once a list exceeds roughly a screenful (~7-8 rows) on a tablet; both dedicated MC companion tools (M Champions Deck Builder, jwtr/mcc) and general deckbuilders (MarvelCDB) put a search/filter box above any list of this size. 18 heroes is exactly the size where "no filter" starts to feel broken. | LOW | Villain list (3 items) does NOT need a filter — don't add one just for consistency; 3 items fits on screen with zero search. |
+| Filter matches on BOTH hero name and alter-ego name | Explicitly requested by the milestone, and the correct baseline: players think of "Ms. Marvel" and "Kamala Khan" interchangeably, and Spanish alter-ego names often carry accents ("Araña Escarlata"-style names are common in the ES card pool). A filter that only matches one of the two fields will feel broken to at least half the players who type the "wrong" name. | LOW-MEDIUM | Implementation: normalize both the query and both target fields with Unicode NFD + strip combining marks + lowercase before `.includes()`. This is a ~5-line utility, not a library — no need for a fuzzy-search dependency (Fuse.js etc.) at N=18. |
+| Accent-insensitive matching | Spanish alter-ego/hero names contain accents (é, í, ó, ñ) that a typing-fast, table-side user will often omit or mistype. Every general-purpose picker/search UX guide treats this as baseline for non-English locales, not a stretch feature. | LOW | Same normalization step as above covers this for free — do not treat as a separate feature, it's the same one fix. |
+| Optional editable player name, default "Jugador N" | Table stakes for any multi-player companion app — BG Stats, Board Games Tracker, and every co-op scorer default to numbered/generic labels and let you rename. Not renaming should never block play. | LOW | Free-text input, no validation needed beyond a max length to protect the fixed-width counter band layout. |
+| Fixed, always-visible counter band with ▲▼ steppers, no keyboard | This *is* the differentiator vs. a plain rulebook, but the stepper interaction pattern itself is table stakes once you decide to have live counters at all — every board-game life/health tracker (Magic/D&D life counters, "M Champions Deck Builder"'s own counters tab) uses tap-to-increment arrows, never a keyboard, specifically because keyboards are slow and error-prone one-handed at arm's length. | MEDIUM | Depends on the picker (needs to know starting HP per hero+difficulty and villain HP per stage+player-count) and on a data source — already decided (MarvelCDB catalog) per PROJECT.md, not re-litigated here. |
+| Minimum 44–48px touch targets on stepper buttons, ≥10px gap between adjacent targets | Apple HIG (44×44pt) and Material (48×48dp) agree; NN/g's stepper-specific guidance repeats the same floor. This is non-negotiable given the existing project constraint "tablet a un brazo de distancia, manos ocupadas con cartas." | LOW | Pure CSS/layout — no new dependency. Re-use whatever spacing scale v1.7 already established for the "Siguiente" button (already sized for exactly this environment). |
+| Disable (don't hide) a stepper button at its bound | NN/g's stepper guideline explicitly: "when at min or max, disable the relevant button, don't hide it" — hiding causes mis-taps into the wrong control when a button reappears. | LOW | Applies once min/max bounds are decided (see open questions) — implementation is trivial once the bound itself is decided. |
+| Step text shows the known numeric value in parentheses | Explicitly scoped by the milestone; matches the general UX pattern of "show computed/known values inline, don't make the user re-derive them" — same principle as showing "(14)" next to "ajustad el dial al valor indicado." | LOW-MEDIUM | **Engine dependency:** `StepDefinition`/`TextBlock` currently has no notion of a value slot — `engine/types.ts` has no field for it. This needs either (a) a new optional field like `valueRef` resolved against `SessionContext` at render time, or (b) a small hardcoded map of step-id → value-getter in the UI layer. Either way it's new engine/schema surface, not purely a content edit — flag for roadmap phase-1 of this milestone. |
+| Win/loss result captured when the game ends | Every comparable score-tracking app (BG Stats, Board Games Tracker, Skorio) treats "who won" as the single non-negotiable field of a play log — a history with no result is not a history. | LOW | **Existing dependency:** the "Partida terminada" button already exists from v1.7 as an end-of-session action with no data-capture behind it; this milestone must decide whether pressing it now *always* opens a result-capture flow (see Open Questions). |
+| Result includes villain, heroes, player names, date, difficulty, player count, duration, rounds | This is exactly the "minimal useful entry" that generalist board-game loggers converge on (game, players, result, date, duration, plus whatever the game's own scoring axis is — here, villain/hero stand in for "which variant/character was played," a pattern also used by asymmetric-game trackers). | LOW-MEDIUM | **Engine dependency:** duration and rounds-played are not currently tracked anywhere. `EngineSession.round` exists and can be read at end-of-game, but there is no session start timestamp today — needs to be added (e.g., stamped on first `Siguiente` press or on mini-setup completion; see Open Questions for *when* the clock should start). |
+| History persists across reloads without needing network | Directly required by the project's own "sin conexión a mitad de partida" constraint, and matches every board-game logger's assumption (BG Stats, Board Games Tracker all work fully offline, sync is an add-on not a requirement). | LOW | Already the architecture decision in PROJECT.md (localStorage source of truth + Firestore backup) — not re-argued here, just confirmed as the expected baseline from comparable apps too. |
+| Basic stats screen: win % per hero, win % per villain | This is the smallest slice of "stats people actually check" that WebSearch on BG Stats turned up repeatedly ("who wins more," "win percentage") — it's the floor, not a stretch goal. | LOW-MEDIUM | Pure aggregation over the history array — no new data source needed once history entries exist. |
 
-### Differentiators (Competitive Advantage)
+### Differentiators (Competitive Advantage — Not Required, But Valuable)
 
 | Feature | Value Proposition | Complexity | Notes |
-|---------|--------------------|------------|-------|
-| TTS narration of the current step, scoped to a short essential line (not the full paragraph) | No MC tool does this at all; the closest analog (Dized) does it badly (robotic, repeats full text). Getting this right is a genuine differentiator, not a checkbox | MEDIUM | Requires curating a separate "spoken line" per step, distinct from the on-screen text, per the Q3 findings — a content-authoring decision, not just an engineering one |
-| Cancel-and-don't-repeat speech on Back/jump navigation | Directly fixes Dized's most-cited voice complaint; nobody else in this space handles this well | LOW-MEDIUM | Cancel any in-flight utterance on any navigation event before starting a new one |
-| Obvious, always-visible mute toggle | Table stakes for voice-enabled apps generally, but a real differentiator against Dized specifically, whose voice complaints suggest no easy off-switch was salient | LOW | Simple persistent UI toggle |
-| Generic step-flow engine (setup-linear + round-loop) reusable across games | Nothing in the competitor landscape is built this way — every MC tool is single-purpose (counters OR cards OR log), and 40k tools are 40k-only | HIGH | This is the architectural bet the whole project depends on; see ARCHITECTURE.md research for detail |
-| Difficulty/player-count-aware step text (e.g., "Fase II" in Experto) | No competitor personalizes step text this way; most either don't adapt at all or require manual toggles mid-play | MEDIUM | Needs the content schema to carry variants keyed by player count/difficulty |
-| Content verified against the official Rules Reference before shipping | Directly targets the "app disagrees with the rulebook" failure mode that undermines trust in this whole category | MEDIUM (process, not code) | This is a content-QA process commitment, already reflected in PROJECT.md constraints |
-| Ad-free, account-free, zero-friction open | Direct contrast with Dized's most complained-about anti-pattern (ads/subscription within minutes) | LOW | Free by construction (no backend, no monetization plan) |
+|---|---|---|---|
+| Loss reason captured (scheme completed vs. all heroes eliminated) | Marvel Champions has two genuinely distinct RAW loss conditions (confirmed HIGH confidence above); no companion app or generic board-game logger found in this research distinctly tracks *why* a co-op loss happened. For a 4-friend group, "we lost to the scheme again" vs. "we got wiped" is exactly the kind of detail that makes a history feel like *their* history instead of a generic W/L tally. Not requested explicitly in the current milestone scope — worth flagging as a near-zero-cost add while the result-capture UI is being built anyway. | LOW | Single enum field (`won \| lost-scheme \| lost-heroes \| abandoned`) captured at the same moment as win/loss — no engine dependency beyond what result-capture already needs. |
+| Abandoned/unfinished game as a distinct history entry type | Groups occasionally stop a session without reaching an official win/loss (someone has to leave, it's late). Generic score-tracking apps studied don't clearly solve this (BG Stats' handling wasn't confirmed in this research). For a hobby group playing "occasionally," an honest "no encajó, lo dejamos a medias" entry is more useful than forcing a false win/loss, or than silently dropping the session from history. | LOW | Requires deciding what "Partida terminada" does when neither the villain nor the scheme has actually resolved (see Open Questions) — this is a UI/flow decision layered on top of the enum above, not new engine work. |
+| Recently-used ordering in the hero/villain picker | With repeat play by the same 4 friends, "your last hero" or "heroes not yet played" surfacing near the top saves a filter-and-scroll each session. Common pattern in "recent contacts"-style pickers. | LOW-MEDIUM | At only 18 heroes and infrequent (not daily) play, the value is modest — treat as a "if there's time" polish item, not a milestone-blocking feature. |
+| Soft warning (not hard block) on duplicate hero pick | Given the rules finding above is MEDIUM confidence and not a hard RAW prohibition, a dismissible "⚠ Dos jugadores llevan el mismo héroe — algunas cartas Único pueden chocar" nudge respects the existing project pattern (D-32: warnings are informative, not blocking) without asserting a rule that isn't actually written down. | LOW | Reuses the existing warning/detail modal pattern from v1.7 — same component, same tone system (`warning`/`neutral`) already built. |
+| Per-player win rate / streaks / per-difficulty breakdown | BG Stats power users do look at head-to-head and per-player win rate — but that's for competitive games with many players in a shared pool; for a fixed group of ~4 friends always co-oping together, per-player win rate is nearly identical to the group's overall win rate (everyone wins or loses together every game) and adds little signal. Worth deferring past v1.8, revisit only if a specific friend group question comes up ("does X favor certain heroes and does that correlate with wins"). | MEDIUM | Not in current milestone scope (PROJECT.md only commits to win % per hero/villain) — listed here so the roadmap doesn't accidentally scope-creep it in. |
 
-### Anti-Features (Commonly Requested, Often Problematic)
+### Anti-Features (Would Be a Mistake Here)
 
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|------------------|-------------|
-| Automatic HP/threat/number calculation | Feels like "the app should do the math" | Introduces state that must track the physical dials; if it drifts (misclick, missed step) the app now actively contradicts the table, which is worse than not tracking at all — this is precisely the Gloomhaven Helper failure mode (stat resets, disconnects, distrust) | Show the formula as text; let the group do the arithmetic on the physical dial, same as PROJECT.md already decided |
-| Live HP/threat/status counters per player | Every dedicated tracker in the MC ecosystem (jwtr/mcc, Marvel Champions Tracker) does exactly this, so it looks like "what these apps are for" | It's a different product category (state tracker) with different failure modes (desync, has to be babysat every card played) than a phase/round guide (glanced at once per phase). Merging them multiplies surface area for exactly the bugs users complain about most | Keep this app strictly a narrator of "what happens now"; a counter app is a legitimately separate tool a user could run alongside, not inside, this one |
-| Full in-app rules lookup / keyword glossary | Common in the space (Dized bundles FAQ/search, 40K Battle Flow bundles per-phase rules notes, MC Card Codex focuses on rulings) and does reduce table disputes | Full scope (every keyword, every card interaction) is a large, ongoing content-maintenance burden and directly competes for attention with getting the core flow verified and correct first | Defer to v1.x; the flow already carries the rules text needed for its own steps as branches, which covers the "what do I do now" need — a standalone glossary is additive, not blocking |
-| Web-based content editor for authoring games | Feels like it would let the user (or others) add games without a dev cycle | Adds a whole CMS/admin surface, auth, and validation layer to a project that explicitly has "no backend"; also a step-flow schema is exactly the kind of structured content that benefits from being reviewed like code (PR review against the official rulebook), not edited live | Author content as versioned JSON in the repo, reviewed like code — already the plan, and correctly so |
-| Ads / subscriptions / monetization prompts | None requested by this project, but worth flagging explicitly because it's the top complaint in the closest multi-game competitor (Dized) | Directly breaks trust in exactly the "frictionless companion" promise this product is making | N/A — not a commercial product; irrelevant by design |
-| Accounts / login / cloud sync | Feels necessary "to not lose progress across devices" | No backend, single-tablet, single-session use case; adds real infrastructure for a benefit (multi-device sync) nobody in this group needs | Browser-local persistence only, as already planned |
-| Card database / deck builder inside the flow app | Nearly every existing MC fan tool (MC Companion, MC Card Codex, marvelcdb.com-linked tools) tries to be this, because it's the most obvious "what else could this app do" extension | Scope creep away from the actual observed problem (process mistakes during setup/round transitions, not card knowledge); duplicates tools that already exist and are decent at this (marvelcdb.com) | Explicitly not this app's job; if the group wants deck-building help, point them at marvelcdb.com |
-| Multi-language support in v1 | Common in apps aiming at a broad public audience (BgVoice ships bilingual CN/EN) | This is a private tool for one Spanish-speaking group; i18n adds real translation/content-maintenance work with zero current demand | Spanish-only v1, structured so a language layer could be added later without a rewrite (already the plan) |
-| Video-based tutorials (à la Dized) | Looks richer/more "produced" than plain text+voice | High production cost per game, and directly conflicts with the "glanceable, hands-busy" design goal — video demands sustained visual attention the format this project needs does not | Short text + short TTS line per step |
+| Feature | Why It Looks Appealing | Why It's Wrong For This App | Do Instead |
+|---|---|---|---|
+| Full card/deck database + deckbuilder (what jwtr/mcc, M Champions Deck Builder, MarvelCDB itself already are) | "Since we're touching hero/villain data anyway, why not let people build decks too?" | This is a different, much bigger product (card text, images/legal exposure per this project's own copyright constraint, deck import/export, FAQ/errata tracking) that already exists well-built elsewhere. Building it here trades a focused "run the game" tool for a mediocre clone of MarvelCDB. | Link out to MarvelCDB if deck-building is ever wanted; this app only ever stores *names and numbers* per its own data-sourcing decision. |
+| Automatic threat/scheme/status-card tracking (full game-state simulation) | "We already have HP counters, why not track everything?" | Explicitly and repeatedly ruled out in PROJECT.md's "Out of Scope" (threat, status-card counters excluded by name) precisely because it would require re-implementing large parts of the rules engine and would desync from the physical table the instant one card ability breaks the assumption — the exact risk the original "guía pura, sin calcular cifras" decision was designed to avoid, and it's only partially reverted for HP, not threat/state. | Keep the counter band to exactly Vida Villano + HP1-4, as scoped. Anything else stays on the physical dials/tokens. |
+| User accounts / login / multi-device real-time sync of a live game | "Firestore is already in the stack, why not let a second tablet see the same live counters?" | Contradicts the explicit "sin backend / sin cuentas" constraint that v1.8 only partially and deliberately relaxes (Firestore is a *durable backup of history after the fact*, not a live sync layer for in-progress state). A live multi-device sync also silently reintroduces the offline-reliability risk the whole PWA architecture exists to avoid — if the wifi drops mid-round, a "shared live state" design breaks exactly when it matters most. | Firestore write happens once, at the end of a finished/abandoned game, as a backup — never as the source of truth during play. |
+| Gamification: badges, achievements, ELO/rating, leaderboards | "Stats screens elsewhere have this, wouldn't it be fun?" | This is BG Stats' own "vanity metric" territory (H-index, fives/dimes/centuries) built for a large, comparison-driven community of strangers on BGG. A private group of 4 friends doesn't need a rating system to know who's "better" — it can read as try-hard for a hobby app whose stated Core Value is finishing the actual game, not scoring the group. | Two plain percentages (win % per hero, win % per villain) as scoped — nothing more, unless the group explicitly asks for it later. |
+| Voice-picker UI surfaced for TTS while building the new picker UI | "We're building pickers/modals anyway, TTS voice choice could reuse the same pattern." | Already an explicit anti-feature from the v1.7 stack decision (`getVoices()` is unreliable across Safari/Android) — unrelated to this milestone but worth re-flagging since new modal/picker infrastructure is being built right now and it would be easy to bolt one on "since the plumbing's there." | Leave TTS voice selection untouched; it's out of scope for v1.8 entirely. |
+| Numeric keyboard / free-text entry as a counter fallback "for power users" | "What if someone wants to jump straight to 7 instead of tapping six times?" | Explicitly excluded by the milestone spec itself ("sin teclado") — a keyboard reintroduces exactly the fumbling-at-arm's-length failure mode the ▲▼ stepper exists to prevent, and MC's HP swings are rarely large enough (single-digit damage per hit in most cases) to make batch entry worth the added surface. | Tapping (with press-and-hold repeat, see below) is sufficient; if a group truly needs a big jump, multiple quick taps or a long-press-to-repeat get there fast enough. |
+| Custom/freeform hero or villain text entry as an escape hatch for unlisted content | "What if a new expansion hero isn't in the catalog yet?" | Silently breaks the entire premise of prefilled HP values and parenthetical numbers — a freeform entry has no starting HP to prefill, so half the milestone's value (no math, no guessing) evaporates the moment it's used. | When new content ships, add it to the JSON catalog like any other content update (matches the existing "content is a JSON file the developer edits" project convention) — no runtime escape hatch. |
+
+---
+
+## a) Board-game companion / helper apps — what they get right and what people complain about
+
+- **"Marvel Champions Digital Tracker"** (gameswithtony.com, found via WebSearch, MEDIUM confidence — not independently used): select module/aspect/heroes/villain first, and *all other lists auto-filter from that selection*. This validates a "pick coarse thing first, narrow the rest" flow, but this milestone's scope is simpler (villain + one hero per slot, no aspects/modules), so the auto-filter behaviour isn't directly needed here — noted for later if module/aspect selection is ever added (candidate milestone, per PROJECT.md's "Ampliar configuración avanzada").
+- **"M Champions Deck Builder"** (App Store listing, MEDIUM confidence): ships a dedicated "counters tab with a health tracker for villain tracking" as a separate concern from deck-building — validates that a lightweight, always-visible HP counter is a recognized, standalone feature in this exact game's companion-app ecosystem, not a novel idea this project is inventing from scratch.
+- **BG Stats / Board Game Stats** (general, HIGH confidence — official site + store listings): the pattern that recurs across every review/description found is "log fast, look at stats rarely but specifically" — the specific stats people mention wanting are *who wins more*, *win percentage*, *how often we play this*, *how long it takes*. Nobody in the sources surfaced quoted wanting deep statistical/rating features; those exist in the app (H-index, "fives/dimes/centuries") but read as bonus trivia, not the reason people open the app.
+- **What users complain about, generally** (carried over from this project's own v1.7 FEATURES research, still applicable): small touch targets on the wrong device class, losing state/re-syncing, and apps that quietly don't cover what a group actually needed (scope mismatch). None of the newly-searched sources contradicted this; it reinforces the existing "big buttons, no data loss, be explicit about scope" baseline this app already follows.
+
+## b) Counter/stepper UX at arm's length
+
+- Touch targets ≥44×44pt/48×48dp, ≥10px separation (Apple HIG / Material / NN/g, HIGH confidence, all three converge on the same number).
+- Press-and-hold-to-repeat is the documented expected behaviour for any +/- stepper doing more than trivial single-digit ranges (NN/g, HIGH confidence). MC's typical HP pools run into the 10s (heroes) to 40s+ (villain stages across a game) — repeat-on-hold materially reduces tap count for villain HP especially.
+- Buttons must disable, not hide, at a bound (NN/g, HIGH confidence) — prevents mis-taps when a control reappears mid-sequence.
+- "Undo of a mis-tap" in this domain is inherently solved by the stepper itself being reversible one tap at a time — no dedicated undo button was found as a pattern in any life/HP counter reviewed; the open question is only about the *bound* behaviour (see below), not about needing extra undo affordance.
+- **What happens at 0 is explicitly NOT solved by any generic pattern** — this is domain-specific to Marvel Champions' co-op structure and must be decided by this project, not copied from a generic tracker. See Section 0 above (rules finding) and the Open Questions list below.
+
+## c) Pickers with a filter
+
+- Filter-over-a-list-of-N is standard past ~12 items; accent/diacritic-insensitive matching is standard for any non-English-locale name search (both LOW-complexity, well-understood patterns, HIGH confidence on the UX convention, MEDIUM on any specific competitor's exact implementation since none were directly testable in this research pass).
+- Matching both a "display name" and an "alternate name" field simultaneously (hero name + alter-ego) is a straightforward two-field `OR` filter — no special library needed at N=18.
+- Duplicate-hero enforcement: see Section 0 — this is a rules-accuracy question, not a UX pattern question, and the finding here is that a hard block would be asserting a stricter rule than what's actually written.
+
+## d) Game-history logging — the minimal useful entry
+
+- The milestone's own listed field set (result, villano, héroes, nombres, fecha, dificultad, nº jugadores, duración, rondas) already matches what generalist board-game loggers converge on as "the minimum that makes a history worth having" — nothing in this research suggests a field is missing *except* loss reason (see Differentiators) and an explicit abandoned/unfinished marker (see Differentiators and Open Questions).
+- Editing/deleting a past entry: every general-purpose logger reviewed treats this as assumed baseline CRUD (you can always fix a mis-logged play) — for a from-scratch localStorage array this is genuinely LOW complexity (it's array splice/update), so there's no real reason to ship v1.8 without it once entries exist at all. Treat as table stakes, not differentiator, despite not being explicitly named in the milestone bullet list.
+- Per-player and streak/rating breakdowns read as the "vanity metric" end of the spectrum for a fixed 4-person co-op group specifically (see Anti-Features/Differentiators reasoning above) — don't build these now.
+
+## e) Result capture for a co-op game
+
+- Confirmed HIGH confidence (Section 0): the group wins or loses together, and there are two distinct RAW loss triggers (scheme completed vs. all heroes eliminated) plus scenario-specific alternates. Capturing *which* loss happened is cheap (one enum) and adds real value distinct from a generic win/loss — recommended as a Differentiator to build alongside result capture, not deferred, since the marginal cost once you're already building the "how did it end" UI is close to zero.
+- Abandoned/unfinished sessions are a real, expected occurrence for an "occasionally, with friends" group and are not obviously handled by any generic tracker studied — recommend the app explicitly support a third outcome ("no terminada") rather than forcing every "Partida terminada" press into a Win/Loss binary.
+
+## f) Anti-features — blunt version
+
+See the Anti-Features table above. In one line each: don't build a deckbuilder, don't simulate the whole game state, don't add accounts or live multi-device sync, don't gamify with ratings/badges, don't add a voice picker while you're at it, don't add a keyboard fallback to the counters, and don't add a freeform "type in a hero name" escape hatch for content that isn't in the catalog. Every one of these is solving a problem this specific 4-friend hobby app does not have, at the cost of exactly the scope discipline that got v1.7 shipped in 5 phases.
+
+---
 
 ## Feature Dependencies
 
 ```
-Setup-flow engine (linear steps)
-    └──requires──> Step content schema (JSON, versioned)
-                       └──requires──> Rules verified against official Rules Reference
+Villain/hero picker (setup.heroes.01)
+    └──requires──> Hero/villain data catalog (18 heroes + 3 villains: name, alter-ego, HP, hand size, villain HP per stage per player-count)
+                       [already decided: MarvelCDB-sourced, per PROJECT.md — not re-researched here]
 
-Round-loop engine (repeating steps)
-    └──requires──> Setup-flow engine (shares the same step-rendering component)
-    └──requires──> Round counter as first-class state (not derived)
+Fixed counter band (Vida Villano + HP1-4)
+    └──requires──> Villain/hero picker having already run (needs the chosen identities + player count to prefill starting values)
+    └──requires──> Engine/schema extension: SessionContext needs to carry villain id, per-slot hero id + player name
+                       (SessionContext already has an open `[key: string]: unknown` index — extensible without a schema-breaking change)
 
-Jump-to-any-step navigation
-    └──requires──> Round-loop engine (must know how to re-enter the loop correctly after a jump)
-    └──enhances──> Persistent orientation header (round/phase/step)
+Parenthetical numeric value in step text (e.g. "…(14)")
+    └──requires──> Fixed counter band's data (same starting-value lookup)
+    └──requires──> NEW engine/schema surface: StepDefinition/TextBlock has no value-slot concept today — needs either
+                    a `valueRef`-style field resolved against SessionContext, or a hardcoded step-id → getter map in the UI layer
 
-Persistent orientation header (round/phase/step)
-    └──requires──> Round counter + phase/step position as explicit, addressable state
+Result capture (win/loss/abandoned + loss reason)
+    └──requires──> Fixed counter band existing (duration/rounds/final HP state are meaningless without it)
+    └──requires──> Engine extension: session start timestamp (does not exist today — EngineSession has `round` but no `startedAt`)
+    └──enhances──> "Partida terminada" button (already exists from v1.7, currently has no data-capture behaviour behind it)
 
-Progress persistence (browser storage)
-    └──requires──> Round-loop engine + step content schema (needs a stable step-ID scheme to resume into)
+Persistent history (localStorage + Firestore backup)
+    └──requires──> Result capture (a history is a list of captured results)
 
-Difficulty/player-count-aware step text
-    └──requires──> Step content schema supporting text variants keyed by setup answers
-    └──enhances──> Mini-setup screen (player count + difficulty)
+Stats screen (win % per hero, per villain)
+    └──requires──> Persistent history (pure aggregation, no new data source)
 
-TTS narration (spoken line per step)
-    └──requires──> Step content schema carrying a distinct "spoken line" field, separate from displayed text
-    └──conflicts (if done naively)──> "read the whole paragraph" (breaks the "essential line only" table-stakes lesson)
-
-Cancel-and-don't-repeat speech on navigation
-    └──requires──> TTS narration
-    └──conflicts──> Any speech-queueing approach (queueing is wrong for this use case; always cancel-then-speak)
-
-Multi-game entry point ("¿A qué juego vas a jugar?")
-    └──requires──> Generic step-flow engine (game-agnostic core)
-    └──conflicts──> Exposing a game with unverified/incomplete content as if it were ready (Warhammer 40k must be visibly gated, not silently broken)
+Loss reason capture ──enhances──> Result capture (same UI moment, near-zero marginal cost)
+Abandoned/unfinished outcome ──enhances──> Result capture (needs a decision on what "Partida terminada" does mid-game)
+Duplicate-hero soft warning ──enhances──> Villain/hero picker (reuses existing warning/modal component from v1.7)
 ```
 
 ### Dependency Notes
 
-- **Jump-to-any-step requires the round-loop engine to model re-entry correctly:** this is the single highest-risk dependency in the whole feature set — PROJECT.md already flags it, and the competitor evidence (40K Battle Flow's flowchart-as-navigation) confirms it's both expected and buildable, but it needs deliberate design (what does "Siguiente" do immediately after a manual jump?).
-- **TTS's "essential line only" requirement is a content dependency, not just code:** each step needs both a full displayed text and a shorter spoken variant. Skipping this and just piping the displayed text into the TTS engine is exactly the mistake Dized made (robotic, repetitive full-paragraph reading).
-- **Multi-game entry point conflicts with exposing half-finished content:** the picker must gate Warhammer 40k clearly rather than let it look playable, per the Dized cautionary lesson about inconsistent multi-game quality eroding trust in the whole app.
+- **Counter band requires picker to run first:** the app cannot prefill a starting HP value before it knows which villain/hero/player-count combination was chosen — this fixes the ordering (picker must ship in the same phase as, or before, the counter band).
+- **Parenthetical values require a genuinely new engine concept:** this is the one piece of this milestone that isn't "just UI on top of existing data" — `engine/types.ts` today has zero notion of a value binding inside step text. This should be called out to the roadmapper as needing its own design decision (content-driven vs. UI-layer-hardcoded), not folded silently into "add the picker."
+- **Result capture requires a session-start timestamp that doesn't exist yet:** `EngineSession` has `round` and `cursor` but no `startedAt` — duration cannot be computed without adding this, and *when* the clock starts is itself an open question (see below).
+- **Firestore is a one-way, end-of-game backup, not a live-state dependency:** nothing about the counter band or the picker needs Firestore; only the final history write does. This keeps the "offline mid-game" constraint intact by construction, provided the implementation is disciplined about not touching Firestore before the game ends.
+
+---
 
 ## MVP Definition
 
-### Launch With (v1)
+### Launch With (v1.8)
 
-- [ ] Game picker (Marvel Champions playable, Warhammer 40k visibly gated) — establishes the multi-game shape without the Dized trap
-- [ ] Mini-setup (player count + difficulty) — minimum state needed to personalize text
-- [ ] Setup-flow guide (linear steps) — the first proof that the engine + content model works
-- [ ] Round-loop guide (players phase → villain phase → end of round, looping) — the actual core value
-- [ ] Next / Back / jump-to-step navigation with correct loop re-entry — table stakes, validated by 40K Battle Flow precedent
-- [ ] Persistent round/phase/step orientation header — answers Q2, non-negotiable for a forever-looping flow
-- [ ] Browser-persisted progress (survive reload/lock) — directly targets the #1 competitor failure mode (Gloomhaven Helper)
-- [ ] TTS of a curated short spoken line per step, with mute toggle and cancel-on-navigate — the actual differentiator, done right from day one rather than bolted on later (retrofitting "don't re-read on back" is much harder after step data already conflates displayed and spoken text)
-- [ ] Tablet-first layout: large text, big tap targets, locked landscape, dark mode, wake lock
-- [ ] Offline PWA with cached content
-- [ ] Marvel Champions content verified against the official Rules Reference v17 before considered done
+- [ ] Villain picker (3 items, no filter needed) + hero picker (18 items, filter by name+alter-ego, accent-insensitive) — essential, this is the milestone's stated headline feature
+- [ ] Optional player name per slot, default "Jugador N" — essential, near-zero cost, expected by every comparable app
+- [ ] Fixed counter band, ▲▼ steppers, prefilled starting values, 44-48px targets — essential, the second headline feature
+- [ ] A decided (not left implicit) behaviour for what happens at 0 HP, for both heroes and villain — essential; shipping without deciding this is shipping a guess
+- [ ] Parenthetical numeric values on the steps that reference them — essential, explicitly scoped, but needs its own small design task for the engine/schema change it requires
+- [ ] Result capture: win / loss (+ recommended: loss reason, + recommended: abandoned) with the full field set from the milestone bullet — essential
+- [ ] Persistent history in localStorage, Firestore backup — essential per milestone scope
+- [ ] Basic stats: win % per hero, win % per villain — essential per milestone scope
+- [ ] Edit/delete a mis-logged history entry — treat as essential despite not being named explicitly; it's cheap and the alternative (a wrong entry stuck forever) is a worse UX than the cost of building it
 
-### Add After Validation (v1.x)
+### Add After Validation (v1.8.x / soon after)
 
-- [ ] In-app rules/keyword quick-reference (states, deck exhaustion, card limits) — add once the core flow is trusted and stable; trigger: users still reach for the physical rulebook mid-game for things outside the turn structure
-- [ ] Hero/scenario/modular-set selection in the mini-setup — trigger: player-count/difficulty alone proves insufficiently specific once real play reveals more variation needed
-- [ ] Warhammer 40k content — trigger: engine validated end-to-end with Marvel Champions content
+- [ ] Soft (non-blocking) warning on duplicate hero selection — add once the picker exists and the rules question (Section 0) gets a human decision
+- [ ] Recently-used ordering in the hero picker — add if the group's repeat-play pattern makes re-selecting the same heroes each time noticeably annoying
+- [ ] Press-and-hold repeat on the steppers — nice ergonomic win, safe to add slightly after first ship once real villain-HP tap counts are observed at the table
 
 ### Future Consideration (v2+)
 
-- [ ] Higher-quality pre-generated audio — defer until browser TTS quality is a proven, felt limitation in real play, not a hypothetical one
-- [ ] Multi-language — defer indefinitely unless a non-Spanish-speaking player actually joins the group
-- [ ] Any form of stat/counter tracking — defer indefinitely; treat as a fundamentally separate tool if ever built, not a feature bolted onto this one, per the Anti-Features analysis
+- [ ] Per-player win rate / streaks / per-difficulty breakdown — defer until the group specifically asks a question the two current percentages can't answer
+- [ ] Module/aspect selection with auto-filtering lists (à la MC Digital Tracker) — defer to the "Ampliar configuración avanzada" candidate milestone already listed in PROJECT.md
+- [ ] Any BGG-style import/export or account system — not aligned with this app's private, offline, no-backend-account posture; revisit only if the constraint itself changes
+
+---
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
-|---------|------------|----------------------|----------|
-| Round-loop guide with correct phase sequencing | HIGH | HIGH | P1 |
-| Next/Back/jump-to-step navigation | HIGH | MEDIUM | P1 |
-| Persistent orientation header (round/phase/step) | HIGH | LOW-MEDIUM | P1 |
-| Progress persistence (browser storage) | HIGH | MEDIUM | P1 |
-| TTS with curated short lines + mute + cancel-on-nav | MEDIUM-HIGH | MEDIUM | P1 |
-| Tablet UI baseline (text size, targets, landscape, dark mode, wake lock) | HIGH | LOW | P1 |
-| Offline PWA | HIGH | MEDIUM | P1 |
-| Content verified against official rulebook | HIGH | MEDIUM (process) | P1 |
-| Difficulty/player-count-aware text | MEDIUM | MEDIUM | P1 |
-| Multi-game picker with gating for unfinished games | MEDIUM | LOW | P1 |
-| In-app rules/keyword quick reference | MEDIUM | MEDIUM-HIGH | P2 |
-| Hero/scenario/modular-set selection | LOW-MEDIUM | MEDIUM | P2 |
-| Warhammer 40k content | HIGH (long-term) | HIGH | P2 |
-| Pre-generated high-quality audio | LOW | MEDIUM-HIGH | P3 |
-| Multi-language | LOW (for this group) | MEDIUM | P3 |
-| Live HP/threat counters | N/A (deliberately excluded) | N/A | Rejected |
-| Content editor UI | N/A (deliberately excluded) | N/A | Rejected |
+|---|---|---|---|
+| Villain/hero picker + filter | HIGH | MEDIUM | P1 |
+| Fixed HP counter band | HIGH | MEDIUM | P1 |
+| Decide-and-implement 0-HP behaviour | HIGH (correctness risk if skipped) | LOW (once decided) | P1 |
+| Parenthetical numeric values in step text | MEDIUM | MEDIUM (new engine surface) | P1 |
+| Win/loss result capture + history | HIGH | MEDIUM | P1 |
+| Firestore backup | MEDIUM (durability, not gameplay) | LOW-MEDIUM | P1 |
+| Stats screen (2 percentages) | MEDIUM | LOW | P1 |
+| Edit/delete history entry | MEDIUM | LOW | P1 |
+| Loss reason capture | MEDIUM-HIGH (genuine differentiator, near-zero cost) | LOW | P1 (recommend pulling into launch scope) |
+| Abandoned/unfinished outcome | MEDIUM | LOW | P2 |
+| Duplicate-hero soft warning | LOW-MEDIUM | LOW | P2 |
+| Recently-used picker ordering | LOW | LOW-MEDIUM | P3 |
+| Press-and-hold stepper repeat | LOW-MEDIUM | LOW-MEDIUM | P3 |
+| Per-player/streak/rating stats | LOW (for this group size) | MEDIUM-HIGH | P3 (do not build without explicit ask) |
+
+**Priority key:** P1 must-have for this milestone; P2 should-have, add when possible within the milestone or immediately after; P3 explicitly deferred.
+
+---
 
 ## Competitor Feature Analysis
 
-| Product | Category | What It Does | Strengths | Weaknesses / Gap vs. This Project |
-|---------|----------|---------------|-----------|-------------------------------------|
-| **MC Companion** (danidevca, Google Play) | Card DB / deck builder | Card database, deck-building tools, gameplay guides, stat tracking | Comprehensive card reference | Not a round-flow guide; no TTS; not what a "what do I do now" user needs |
-| **MC Card Codex — LCG Companion** (App Store) | Card DB / rulings | Card synergies, rule interactions, hero tactics reference | Focused rulings/strategy help | Reference tool, not a step-by-step narrator; player must already know the turn structure |
-| **jwtr/mcc** (GitHub, marvel-champions-companion.netlify.app) | Stat/counter tracker | Explicitly "replace the need for using counters to modify hero and villain stats" | Solves the exact HP/threat-tracking problem this project deliberately excludes | This is precisely the anti-feature category; confirms the exclusion is a real design fork in the ecosystem, not an oversight |
-| **Marvel Champions Tracker** / **Marvel Tracker** | Game log / "tactical HUD" | Tracks games played, stats, sharing with friends | Post-game stats | Not a mid-game guide at all |
-| **Marvel Champions Digital** (kitze.io prototype) | Deck mgmt + campaign tracker | "Keeps deck management, campaign progress, and encounter setups in one focused experience," tablet-first touch UI, rules quick-search | Closest conceptual neighbor; tablet-first design intent matches this project | Not public; heavier scope (deckbuilder + campaign) than a lean flow guide; no evidence of TTS or of modeling the linear-setup + round-loop structure specifically |
-| **Dized** (multi-game) | Interactive tutorial/rules companion | Video-based tutorials, rules/FAQ search, supports many games | Proves the "teach/guide during play" concept has market appeal | Reviews cite intrusive ads/subscription prompts, robotic and repetitive TTS, clunky multi-game navigation — a direct cautionary tale on several of this project's key risk areas (voice UX, multi-game picker, monetization) |
-| **Gloomhaven Helper** (discontinued) / **X-haven Assistant** (successor) | Companion app for a specific game (state + monster AI) | Automates monster AI, tracks stats | Proves demand for a "the app runs the game state for us" companion | Text/buttons too small on phone (device-fit issue), and later versions suffered stat resets/disconnects that eroded trust — direct evidence for this project's persistence and tablet-only decisions |
-| **Mansions of Madness app** | Official FFG companion (different genre: hybrid digital board game) | Drives the entire game state, narrative, tile reveals | High production value, positively reviewed (4.2/5) | Different problem shape — the app *is* the game engine, not a lightweight guide alongside a physical game with independent state |
-| **Descent: Legends of the Dark app** | Official FFG companion (hybrid) | Setup, inventory/skill tracking, combat resolution, narrative | Well-integrated hybrid physical/digital experience when it works | Battery drain over long sessions; illegible on phone; accidental rotation/zoom resets — reinforces tablet-only, locked-orientation, wake-lock-aware design needs |
-| **40K Battle Flow** (wargametoolbox.org) | Wargame turn-sequence tracker | Tappable, colour-coded flowchart of the whole round; guided turn tracker with round/phase navigation; per-phase rules reminders; CP/VP counters; attack resolver | Directly validates the "guided phase tracker with a jump-capable overview" shape this project wants, in the closest adjacent domain (40k) | No voice/TTS; bundles combat-math tools this project deliberately excludes; browser-only with no offline/PWA claim found |
-| **Wargame Toolbox** | Wargame turn-sequence tracker | Same shape as 40K Battle Flow (tappable phase flowchart, guided tracker, stratagem reminders) | Second independent confirmation the "phase flowchart as navigator" pattern is proven in this adjacent domain | Same limitations as above |
-| **BgVoice — Board Game Assistant** | Voice-guided social-deduction moderator | AI voice guidance, step-by-step instructions, adjustable speed/volume, bilingual (CN/EN), for Avalon/Werewolf/Secret Hitler/Codenames | Proves "app narrates what to do next, out loud" is a real, executed pattern for board games, not a hypothetical | Deprecated with too few reviews to assess quality; different genre (game master automation for social deduction, where the app *drives* hidden information) rather than a rules/flow guide for a game with public state like Marvel Champions |
-| **One Night Ultimate Werewolf app** | Voice-guided moderator | Fully automates night-phase narration with a professional voice actor recording, eliminates the need for a human moderator | Long-lived, well-regarded, free — strong precedent that voice narration in board games is accepted and valued, not gimmicky | Pre-recorded/scripted narration for a fixed role set, not a general-purpose flexible TTS engine reading arbitrary step content — doesn't directly validate browser TTS quality, only validates the *concept* of voice narration |
+| Feature | MC Digital Tracker (gameswithtony.com) | M Champions Deck Builder / jwtr/mcc | BG Stats | Our Approach |
+|---|---|---|---|---|
+| Hero/villain selection | Pick first, auto-filters everything else | Not confirmed as a selection flow (deck-builder-first tools) | N/A (generic games, not MC-specific) | Tap-slot → modal → filtered list, scoped to just villain + 1 hero/player (no module/aspect yet) |
+| HP tracking | Not confirmed | Dedicated counters tab with health tracker (confirmed by App Store listing) | Generic score entry, not HP-specific | Fixed always-visible band, ▲▼ only, prefilled from data |
+| History/stats | Not confirmed | Not confirmed as a feature of these tools | Full-featured: win rate, H-index, per-player, trends | Deliberately minimal: win/loss (+reason), win % per hero/villain only |
+| Offline-first | Not confirmed | Not confirmed | Confirmed offline-capable, cloud sync optional | Already the app's core architecture (localStorage source of truth, Firestore backup) |
+
+---
+
+## Open Questions — Concrete Behaviour the App Must Decide
+
+*(Collected in one place per the research brief — these are not answered by "how comparable tools do it" because either no comparable tool solves this exact co-op-specific problem, or the answer is a genuine product decision for this group, not a UX convention.)*
+
+**Counters (villain/hero HP):**
+1. When a hero's HP counter reaches 0, does the app show anything different (grey out the row, a small "Eliminado/a" label) or stay visually identical to any other value? Rules fact (HIGH confidence): the game does NOT end, so this must not trigger a game-over state.
+2. Can a hero's HP counter go below 0? (Most stepper patterns clamp at a floor — recommend clamping at 0, but this is undecided.)
+3. Can a hero's HP counter go above its starting/max value (e.g. if a card ability "heals" past what the app prefilled)? Does the ▲ button cap at the starting value, or is it uncapped like a free-scrolling dial?
+4. Does villain HP reaching 0 do anything beyond stopping there (e.g. surface a "¿Termina la partida?" prompt, or stay purely passive and let the group press "Partida terminada" themselves)?
+5. Can villain HP go negative? (Same clamping question as #2, mirrored for the villain.)
+6. Is press-and-hold-to-repeat in scope for v1.8, or is single-tap-only acceptable for launch given MC's typical per-hit damage values?
+
+**Pickers (villain/hero selection):**
+7. Is picking the same hero for two player slots blocked, warned-and-allowed, or fully unrestricted? (Section 0: not a hard RAW rule — needs a human product decision, not a rules citation.)
+8. What is the default sort order of the 18-hero list (alphabetical vs. some curated order)?
+9. Is a player name remembered/suggested across sessions (so re-entering "Ana" every game isn't needed), or does every new game start from "Jugador N" every time?
+10. Can the group proceed past `setup.heroes.01` (press "Siguiente") with some slots unpicked, or is a full villain + per-player hero selection required before continuing? (Ties into the app's existing philosophy of never hard-blocking the flow.)
+
+**History and result capture:**
+11. Does pressing "Partida terminada" always open a mandatory Win/Loss (/Abandoned) prompt, or can the group dismiss it and log nothing? (Existing v1.7 button currently has no data behind it at all — this changes its behaviour.)
+12. Is loss reason (scheme completed vs. all heroes eliminated vs. other/scenario-specific) captured as a required field, an optional field, or not captured at all in v1.8 launch scope?
+13. Is there a distinct "abandoned/unfinished" outcome, and if so, how is it triggered — a third button choice, or a follow-up question after "Partida terminada" ("¿Terminasteis la partida?")?
+14. When does the "duration" clock start — first "Siguiente" press of the whole flow, the moment `setup.heroes.01` selections are completed, or something else? And does it pause if the tab/device sleeps mid-game (wake lock loss), or just measure wall-clock start-to-end?
+15. Is "rondas jugadas" the engine's `round` counter value at the moment of ending (which may be a round in progress, not a completed one) — and if the game ends mid-round, is that reported as N or N-1 rounds played?
+16. Is editing or deleting a past history entry included in v1.8, given it's cheap to build and the alternative (a permanently wrong entry) is worse UX than most other things in scope?
+17. Is per-player win rate explicitly out of scope for v1.8 (current milestone text only commits to per-hero/per-villain), or is it silently expected to come along "for free" once the data model has player names in it? Worth confirming explicitly so the roadmap doesn't under- or over-build the stats screen.
+
+---
 
 ## Sources
 
-- 40K Battle Flow — https://40kflow.wargametoolbox.org/ (MEDIUM confidence, WebFetch-summarized)
-- Wargame Toolbox — https://wargametoolbox.org/ (MEDIUM confidence)
-- GrimSlate / Battle Tracker — https://grimslate.com/features/battle-mode , https://battle-tracker.com/ (MEDIUM confidence)
-- Gloomhaven Helper — http://en.esotericsoftware.com/gloomhaven-helper ; discontinuation and X-haven Assistant context (MEDIUM confidence, WebSearch-derived review sentiment)
-- Mansions of Madness app — App Store / Google Play listings (MEDIUM confidence)
-- Descent: Legends of the Dark app — App Store listing + BGG thread "Companion App (PC) is terrible" (MEDIUM confidence, WebSearch-derived)
-- Dized — Board Game Companion, App Store listing and aggregated reviews via appshunter.io (MEDIUM confidence, WebSearch-derived review sentiment)
-- MC Companion (danidevca) — Google Play listing (LOW-MEDIUM confidence, limited page content retrieved)
-- MC Card Codex / LCG Companion — App Store listing (LOW confidence, title/description only)
-- jwtr/mcc — https://github.com/jwtr/mcc (HIGH confidence, README fetched directly)
-- Marvel Champions Digital (kitze.io) — https://www.kitze.io/projects/marvel-champions-digital (MEDIUM confidence, prototype/not public)
-- Marvel Champions Tracker — https://marvelchampionstracker.com/ (LOW confidence, page had minimal content)
-- BgVoice — Board Game Assistant, App Store listing (MEDIUM confidence)
-- One Night Ultimate Werewolf app — WebSearch summary of narrator/moderator functionality (MEDIUM confidence)
-- Recipe/cooking hands-free apps ("In the Kitchen," Hestia, Cookie Voice Recipes, RecipeForLater) — WebSearch summary, used as cross-domain UX analog for wake-lock, large text, and Next/Previous voice navigation patterns (MEDIUM confidence)
-- Apple Human Interface Guidelines and Material Design tap-target/typography conventions — general industry knowledge (HIGH confidence, not independently re-verified this session but well-established and consistent with all evidence gathered)
-- BoardGameGeek thread "General consensus on companion App for board games" (thread 2067373) and "iOS and Android Marvel Champions app" (thread 3296681) — attempted direct fetch, blocked by BGG (403); only WebSearch snippets available, so not relied upon as a primary source in this report
+- Local Rules Reference v1.7 PDF (`~/Downloads/mc_rulesreference_v17-compressed.pdf`), consulted directly via `pdftotext -layout` and grep — HIGH confidence source for all rules claims in Section 0 (Player Elimination, Winning the Game, Villain Defeat, Unique/deck-building entries).
+- BoardGameGeek thread "Duplicate character question" (WebSearch summary) — MEDIUM confidence, community discussion not official errata, used only to characterize the *practical* (not rules-mandated) friction of duplicate hero picks.
+- `.planning/research/v1.7/FEATURES.md` (this project's own prior research) — reused for the "what users complain about generally" section and to avoid re-deriving already-established tablet/TTS baselines.
+- `content/marvel-champions.json`, `engine/types.ts` (this repo) — read directly to determine what the engine currently models (`SessionContext`, `EngineSession.round`, `TextBlock`/`StepDefinition` shape) and to locate `setup.heroes.01`, `setup.heroes.03`, `setup.escenario.02`.
+- WebSearch: "BG Stats board game score tracking app features" and "BG Stats win rate statistics" — MEDIUM confidence, aggregated app-store/marketing copy, used for "what stats people actually check" and general history-app field conventions.
+- WebSearch: "Marvel Champions app companion hero villain picker health tracker" — MEDIUM confidence (search-result summaries of App Store/GitHub listings for MC Digital Tracker, M Champions Deck Builder, jwtr/mcc; none independently installed/tested).
+- WebSearch/NN-G: "Design Guidelines for Input Steppers" (nngroup.com), Apple HIG and Material touch-target guidance (aggregated via WebSearch) — HIGH confidence, converging figures across independent sources (44×44pt / 48×48dp / ≥10px spacing / disable-not-hide at bounds / press-and-hold repeat expected).
+- WebFetch attempt on marvelcdb.com search page — inconclusive (page content didn't expose search-implementation details); not relied on for any claim above.
 
 ---
-*Feature research for: board game companion / guided-flow rules assistant (Marvel Champions, then Warhammer 40k)*
-*Researched: 2026-08-28*
+*Feature research for: TableGameAssistant v1.8 (Marvel Champions companion features — character selection, live counters, game history)*
+*Researched: 2026-09-07*

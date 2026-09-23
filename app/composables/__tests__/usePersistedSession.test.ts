@@ -6,8 +6,8 @@
 // `node` del proyecto `app-logic` con un `window`/`localStorage` de mentira:
 // no hace falta jsdom/happy-dom ni contexto de Nuxt.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { normalizeVoicePreference, usePersistedSession } from '../usePersistedSession'
-import type { EngineSession } from '~~/engine/types'
+import { HISTORY_MAX_ENTRIES, normalizeVoicePreference, usePersistedSession } from '../usePersistedSession'
+import type { EngineSession, GameHistoryEntry } from '~~/engine/types'
 
 function createFakeLocalStorage() {
   const store = new Map<string, string>()
@@ -30,6 +30,24 @@ function makeSession(gameId: string, round = 1): EngineSession {
     cursor: 0,
     round,
     context: { playerCount: 2, difficulty: 'normal' },
+  }
+}
+
+function makeEntry(overrides: Partial<GameHistoryEntry> = {}): GameHistoryEntry {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    gameId: 'marvel-champions',
+    result: 'won',
+    lossCause: null,
+    villainId: 'rhino',
+    villainName: 'Rhino',
+    players: [{ heroId: 'spider-man', heroName: 'Spider-Man', playerName: 'Jugador 1' }],
+    difficulty: 'normal',
+    playerCount: 1,
+    round: 5,
+    durationMs: 1_200_000,
+    recordedAt: new Date().toISOString(),
+    ...overrides,
   }
 }
 
@@ -146,6 +164,27 @@ describe('usePersistedSession — funciones con estado (WR-02: sin listeners `wi
     expect(() => saveVoicePreference(false)).not.toThrow()
   })
 
+  it('save() devuelve true cuando el progreso queda escrito de verdad (CR-01 ronda 4)', () => {
+    const { save } = usePersistedSession()
+    const result = save(makeSession('marvel-champions'))
+
+    expect(result).toBe(true)
+    expect(fakeStorage.setItem).toHaveBeenCalledWith('tga:progress:marvel-champions', expect.any(String))
+  })
+
+  it('save() devuelve false cuando setItem lanza (modo privado/cuota) — CR-01 ronda 4: es el único dato capaz de sostener lo que el aviso le dice al grupo', () => {
+    fakeStorage.setItem.mockImplementation(() => {
+      throw new Error('QuotaExceededError')
+    })
+    const { save } = usePersistedSession()
+
+    let result: boolean = true
+    expect(() => {
+      result = save(makeSession('marvel-champions'))
+    }).not.toThrow()
+    expect(result).toBe(false)
+  })
+
   it('clear() sobrevive a un localStorage que lanza al borrar', () => {
     fakeStorage.removeItem.mockImplementation(() => {
       throw new Error('SecurityError')
@@ -165,3 +204,925 @@ describe('usePersistedSession — funciones con estado (WR-02: sin listeners `wi
     expect(() => saveVoicePreference(false)).not.toThrow()
   })
 })
+
+describe('tga:history — clave independiente de la partida (D-13/HIST-09)', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('HIST-09: clear(gameId) borra el progreso pero NUNCA el histórico', () => {
+    const { save, clear, load, appendHistoryEntry, loadHistory } = usePersistedSession()
+
+    save(makeSession('marvel-champions'))
+    appendHistoryEntry(makeEntry())
+
+    expect(load('marvel-champions')).not.toBeNull()
+    expect(loadHistory()).toHaveLength(1)
+
+    clear('marvel-champions')
+
+    expect(load('marvel-champions')).toBeNull()
+    expect(loadHistory()).toHaveLength(1) // sobrevive a clear() — D-13/HIST-09
+  })
+
+  it('HISTORY_KEY no comparte prefijo con KEY_PREFIX', () => {
+    const KEY_PREFIX = 'tga:progress:'
+    const HISTORY_KEY = 'tga:history'
+    expect(HISTORY_KEY.startsWith(KEY_PREFIX)).toBe(false)
+  })
+
+  it('sin dato guardado, loadHistory() devuelve []', () => {
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory()).toEqual([])
+  })
+
+  it('JSON corrupto en tga:history devuelve [] y no lanza', () => {
+    fakeStorage.setItem('tga:history', 'esto no es JSON válido {{{')
+    const { loadHistory } = usePersistedSession()
+    expect(() => loadHistory()).not.toThrow()
+    expect(loadHistory()).toEqual([])
+  })
+
+  it('un envoltorio con formatVersion: 2 devuelve [] (punto de migración de D-13)', () => {
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 2, entries: [makeEntry()] }))
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory()).toEqual([])
+  })
+
+  it('un envoltorio con tres entradas de las que una está rota devuelve exactamente las dos buenas', () => {
+    const good1 = makeEntry({ id: 'a' })
+    const good2 = makeEntry({ id: 'b' })
+    const broken = { ...makeEntry(), id: undefined } // sin id: forma inválida
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [good1, broken, good2] }))
+
+    const { loadHistory } = usePersistedSession()
+    const result = loadHistory()
+
+    expect(result).toHaveLength(2)
+    expect(result.map(e => e.id)).toEqual(['a', 'b'])
+  })
+
+  it('una entrada con result inválido se descarta sin tirar el resto', () => {
+    const good = makeEntry({ id: 'good' })
+    const brokenResult = { ...makeEntry({ id: 'bad' }), result: 'draw' }
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [good, brokenResult] }))
+
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory().map(e => e.id)).toEqual(['good'])
+  })
+
+  it('orden: dos appendHistoryEntry seguidos dejan la última entrada la primera del array', () => {
+    const { appendHistoryEntry, loadHistory } = usePersistedSession()
+    appendHistoryEntry(makeEntry({ id: 'first' }))
+    appendHistoryEntry(makeEntry({ id: 'second' }))
+
+    const result = loadHistory()
+    expect(result[0]!.id).toBe('second')
+    expect(result[1]!.id).toBe('first')
+  })
+
+  it('D-03: con un setItem que lanza (modo privado/cuota), appendHistoryEntry devuelve false y no lanza', () => {
+    fakeStorage.setItem.mockImplementation(() => {
+      throw new Error('quota')
+    })
+    const { appendHistoryEntry } = usePersistedSession()
+    let result: boolean = true
+    expect(() => {
+      result = appendHistoryEntry(makeEntry())
+    }).not.toThrow()
+    expect(result).toBe(false)
+  })
+
+  it('D-03: con el localStorage falso normal, appendHistoryEntry devuelve true', () => {
+    const { appendHistoryEntry } = usePersistedSession()
+    expect(appendHistoryEntry(makeEntry())).toBe(true)
+  })
+
+  it('IN-04/IN-12: HISTORY_MAX_ENTRIES vale 500', () => {
+    expect(HISTORY_MAX_ENTRIES).toBe(500)
+  })
+
+  it('IN-12: una entrada previa que isGameHistoryEntry rechaza se descarta del disco en el siguiente registro con éxito', () => {
+    const buenaA = makeEntry({ id: 'buena-a' })
+    const rota = { id: 'rota' } // no pasa isGameHistoryEntry (forma incompleta)
+    const buenaB = makeEntry({ id: 'buena-b' })
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [buenaA, rota, buenaB] }))
+
+    const { appendHistoryEntry } = usePersistedSession()
+    const nueva = makeEntry({ id: 'nueva' })
+    expect(appendHistoryEntry(nueva)).toBe(true)
+
+    const persisted = JSON.parse(fakeStorage.getItem('tga:history')!)
+    expect(persisted.entries.map((e: { id: string }) => e.id)).toEqual(['nueva', 'buena-a', 'buena-b'])
+  })
+
+  it('IN-04: con 500 entradas válidas sembradas, appendHistoryEntry(nueva) deja exactamente 500, la primera es nueva, e-498 es la última y e-499 desaparece', () => {
+    const seeded = Array.from({ length: 500 }, (_, i) => makeEntry({ id: `e-${i}` }))
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: seeded }))
+
+    const { appendHistoryEntry, loadHistory } = usePersistedSession()
+    expect(appendHistoryEntry(makeEntry({ id: 'nueva' }))).toBe(true)
+
+    const ids = loadHistory().map(e => e.id)
+    expect(ids).toHaveLength(500)
+    expect(ids[0]).toBe('nueva')
+    expect(ids[499]).toBe('e-498')
+    expect(ids).not.toContain('e-499')
+  })
+
+  it('IN-04: por debajo del tope no se poda nada (3 sembradas + 1 = 4)', () => {
+    const seeded = [makeEntry({ id: 'a' }), makeEntry({ id: 'b' }), makeEntry({ id: 'c' })]
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: seeded }))
+
+    const { appendHistoryEntry, loadHistory } = usePersistedSession()
+    expect(appendHistoryEntry(makeEntry({ id: 'nueva' }))).toBe(true)
+
+    expect(loadHistory().map(e => e.id)).toEqual(['nueva', 'a', 'b', 'c'])
+  })
+
+  it('D-04: appendHistoryEntry nunca escribe tga:history:synced, aunque el tope pode la entrada que esa clave marca', () => {
+    const seeded = Array.from({ length: 500 }, (_, i) => makeEntry({ id: `e-${i}` }))
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: seeded }))
+    const SYNCED_KEY = 'tga:history:synced'
+    const syncedSeeded = JSON.stringify(['e-499'])
+    fakeStorage.setItem(SYNCED_KEY, syncedSeeded)
+    fakeStorage.setItem.mockClear()
+
+    const { appendHistoryEntry, readHistory } = usePersistedSession()
+    expect(appendHistoryEntry(makeEntry({ id: 'nueva' }))).toBe(true)
+
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === SYNCED_KEY)).toBe(false)
+    expect(fakeStorage.getItem(SYNCED_KEY)).toBe(syncedSeeded)
+    const read = readHistory()
+    expect(read.kind).toBe('ok')
+    expect(read.kind === 'ok' ? read.entries.map(e => e.id) : []).not.toContain('e-499')
+  })
+
+  it('removeHistoryEntry(id) deja las demás entradas intactas y devuelve true (IN-11: hubo coincidencia y writeRaw funcionó)', () => {
+    const { appendHistoryEntry, removeHistoryEntry, loadHistory } = usePersistedSession()
+    appendHistoryEntry(makeEntry({ id: 'keep-1' }))
+    appendHistoryEntry(makeEntry({ id: 'remove-me' }))
+    appendHistoryEntry(makeEntry({ id: 'keep-2' }))
+
+    expect(removeHistoryEntry('remove-me')).toBe(true)
+
+    const result = loadHistory()
+    expect(result.map(e => e.id).sort()).toEqual(['keep-1', 'keep-2'])
+  })
+
+  it('removeHistoryEntry con un id inexistente no cambia nada ni lanza, y devuelve true (IN-11: no había nada que borrar, nada ha fallado)', () => {
+    const { appendHistoryEntry, removeHistoryEntry, loadHistory } = usePersistedSession()
+    appendHistoryEntry(makeEntry({ id: 'a' }))
+    appendHistoryEntry(makeEntry({ id: 'b' }))
+    fakeStorage.setItem.mockClear()
+
+    let result: boolean = false
+    expect(() => {
+      result = removeHistoryEntry('no-existe')
+    }).not.toThrow()
+    expect(result).toBe(true)
+    expect(loadHistory().map(e => e.id).sort()).toEqual(['a', 'b'])
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
+  })
+
+  it('IN-11: con tga:history ausente, removeHistoryEntry devuelve true y no llama a setItem para tga:history', () => {
+    const { removeHistoryEntry } = usePersistedSession()
+    fakeStorage.setItem.mockClear()
+
+    expect(removeHistoryEntry('cualquier-id')).toBe(true)
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
+  })
+
+  it('IN-11: con un envoltorio legible y setItem lanzando al reescribir, removeHistoryEntry devuelve false, no lanza, y la cadena de tga:history sigue idéntica byte a byte', () => {
+    const { appendHistoryEntry, removeHistoryEntry } = usePersistedSession()
+    appendHistoryEntry(makeEntry({ id: 'a' }))
+    appendHistoryEntry(makeEntry({ id: 'b' }))
+    const seeded = fakeStorage.getItem('tga:history')
+
+    fakeStorage.setItem.mockImplementation(() => {
+      throw new Error('QuotaExceededError')
+    })
+
+    let result: boolean = true
+    expect(() => {
+      result = removeHistoryEntry('a')
+    }).not.toThrow()
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+  })
+
+  it('IN-11: con un envoltorio de JSON corrupto, removeHistoryEntry devuelve false y no llama a setItem para tga:history', () => {
+    const seeded = 'esto no es JSON válido {{{'
+    fakeStorage.setItem('tga:history', seeded)
+    fakeStorage.setItem.mockClear()
+
+    const { removeHistoryEntry } = usePersistedSession()
+    expect(removeHistoryEntry('cualquier-id')).toBe(false)
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+  })
+
+  it('CR-03: con formatVersion: 2 guardado, appendHistoryEntry devuelve false y el blob v2 sigue intacto', () => {
+    const seeded = JSON.stringify({ formatVersion: 2, entries: [makeEntry({ id: 'v2-a' }), makeEntry({ id: 'v2-b' })] })
+    fakeStorage.setItem('tga:history', seeded)
+
+    const { appendHistoryEntry } = usePersistedSession()
+    const result = appendHistoryEntry(makeEntry())
+
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+  })
+
+  it('CR-03: con JSON no parseable guardado, appendHistoryEntry devuelve false y la cadena sigue intacta', () => {
+    const seeded = 'esto no es JSON válido {{{'
+    fakeStorage.setItem('tga:history', seeded)
+
+    const { appendHistoryEntry } = usePersistedSession()
+    const result = appendHistoryEntry(makeEntry())
+
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+  })
+
+  it('CR-03: con formatVersion: 2 guardado, removeHistoryEntry no escribe nada y devuelve false (IN-11)', () => {
+    const seeded = JSON.stringify({ formatVersion: 2, entries: [makeEntry({ id: 'v2-a' }), makeEntry({ id: 'v2-b' })] })
+    fakeStorage.setItem('tga:history', seeded)
+    fakeStorage.setItem.mockClear()
+
+    const { removeHistoryEntry } = usePersistedSession()
+    expect(removeHistoryEntry('v2-a')).toBe(false)
+
+    expect(fakeStorage.setItem).not.toHaveBeenCalledWith('tga:history', expect.anything())
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+  })
+
+  it('CR-03: una entrada ilegible sobrevive en disco a un removeHistoryEntry de otra entrada, que devuelve true', () => {
+    const keep = makeEntry({ id: 'keep' })
+    const broken = { id: 'rota' } // no pasa isGameHistoryEntry (forma incompleta)
+    const borrar = makeEntry({ id: 'borrar' })
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [keep, broken, borrar] }))
+
+    const { removeHistoryEntry, loadHistory } = usePersistedSession()
+    expect(removeHistoryEntry('borrar')).toBe(true)
+
+    const persisted = JSON.parse(fakeStorage.getItem('tga:history')!)
+    expect(persisted.entries).toHaveLength(2)
+    expect(persisted.entries.some((e: { id: string }) => e.id === 'rota')).toBe(true)
+
+    // Se filtra de cara a la PANTALLA, nunca de cara al DISCO.
+    expect(loadHistory().map(e => e.id)).toEqual(['keep'])
+  })
+
+  it('CR-01: una entrada con players: [null] no supera loadHistory()', () => {
+    const buena = makeEntry({ id: 'buena' })
+    const rota = { ...makeEntry({ id: 'rota' }), players: [null] as never }
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [buena, rota] }))
+
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory().map(e => e.id)).toEqual(['buena'])
+  })
+
+  it('CR-01: una entrada con players: [{}] no supera loadHistory()', () => {
+    const buena = makeEntry({ id: 'buena' })
+    const rota = { ...makeEntry({ id: 'rota' }), players: [{}] as never }
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [buena, rota] }))
+
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory().map(e => e.id)).toEqual(['buena'])
+  })
+
+  it('CR-02: una entrada con villainId numérico y villainName null no supera loadHistory()', () => {
+    const buena = makeEntry({ id: 'buena' })
+    const rota = makeEntry({ id: 'rota', villainId: 5 as never, villainName: null })
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [buena, rota] }))
+
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory().map(e => e.id)).toEqual(['buena'])
+  })
+
+  it('CR-02: una entrada con players: [{ heroId: 7, ... }] no supera loadHistory()', () => {
+    const buena = makeEntry({ id: 'buena' })
+    const rota = makeEntry({ id: 'rota', players: [{ heroId: 7, heroName: null, playerName: 'Ana' }] as never })
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [buena, rota] }))
+
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory().map(e => e.id)).toEqual(['buena'])
+  })
+
+  it('WR-08: removeHistoryEntry elimina como máximo una entrada aunque dos compartan id, y devuelve true', () => {
+    const dup1 = makeEntry({ id: 'dup' })
+    const dup2 = makeEntry({ id: 'dup' })
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [dup1, dup2] }))
+
+    const { removeHistoryEntry } = usePersistedSession()
+    expect(removeHistoryEntry('dup')).toBe(true)
+
+    const persisted = JSON.parse(fakeStorage.getItem('tga:history')!)
+    expect(persisted.entries).toHaveLength(1)
+  })
+  it('CR-01 (ronda 2): appendHistoryEntry de una entrada sin difficulty devuelve false y no escribe nada', () => {
+    const { appendHistoryEntry } = usePersistedSession()
+    const result = appendHistoryEntry(makeEntry({ difficulty: undefined as never }))
+
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBeNull()
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
+  })
+
+  it('CR-01 (ronda 2): appendHistoryEntry de una entrada sin playerCount devuelve false y no escribe nada', () => {
+    const { appendHistoryEntry } = usePersistedSession()
+    const result = appendHistoryEntry(makeEntry({ playerCount: undefined as never }))
+
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBeNull()
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
+  })
+
+  it('CR-01 (ronda 2): appendHistoryEntry de una entrada con round: NaN devuelve false y no escribe nada', () => {
+    const { appendHistoryEntry } = usePersistedSession()
+    const result = appendHistoryEntry(makeEntry({ round: Number.NaN }))
+
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBeNull()
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
+  })
+
+  it('CR-01 (ronda 2): una entrada válida sigue escribiéndose (el camino feliz no se degrada)', () => {
+    const { appendHistoryEntry, loadHistory } = usePersistedSession()
+    expect(appendHistoryEntry(makeEntry({ id: 'ok' }))).toBe(true)
+    expect(loadHistory().map(e => e.id)).toEqual(['ok'])
+  })
+
+  it('CR-01 (ronda 2): con entradas previas, una entrada inválida no las toca (blob intacto byte a byte)', () => {
+    const { appendHistoryEntry } = usePersistedSession()
+    appendHistoryEntry(makeEntry({ id: 'previa' }))
+    const seeded = fakeStorage.getItem('tga:history')
+
+    const result = appendHistoryEntry(makeEntry({ difficulty: undefined as never }))
+
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+  })
+
+  it('WR-03: round/playerCount/durationMs con Infinity no superan loadHistory() (localStorage manipulado con el literal JSON `1e400`, que `JSON.parse` sí acepta y convierte a `Infinity` — `NaN`/`Infinity` no son literales JSON válidos, así que un blob real solo puede colar un número fuera de rango de esta forma, nunca `NaN`)', () => {
+    const buena = makeEntry({ id: 'buena' })
+    const rotaRound = makeEntry({ id: 'rota-round', round: 999 })
+    const rotaPlayerCount = makeEntry({ id: 'rota-playercount', playerCount: 998 })
+    const rotaDuration = makeEntry({ id: 'rota-duration', durationMs: 997 })
+    let raw = JSON.stringify({
+      formatVersion: 1,
+      entries: [buena, rotaRound, rotaPlayerCount, rotaDuration],
+    })
+    raw = raw.replace('"round":999', '"round":1e400')
+    raw = raw.replace('"playerCount":998', '"playerCount":1e400')
+    raw = raw.replace('"durationMs":997', '"durationMs":1e400')
+    fakeStorage.setItem('tga:history', raw)
+
+    const { loadHistory } = usePersistedSession()
+    expect(loadHistory().map(e => e.id)).toEqual(['buena'])
+  })
+})
+
+describe('CR-01 (ronda 3): un fallo TRANSITORIO de lectura de localStorage nunca autoriza a reconstruir el histórico', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('CR-01 (ronda 3): dos partidas registradas sobreviven a un getItem que lanza una única vez', () => {
+    const { appendHistoryEntry, loadHistory } = usePersistedSession()
+
+    expect(appendHistoryEntry(makeEntry({ id: 'partida-1' }))).toBe(true)
+    expect(appendHistoryEntry(makeEntry({ id: 'partida-2' }))).toBe(true)
+    expect(loadHistory().map(e => e.id)).toEqual(['partida-2', 'partida-1'])
+
+    const seeded = fakeStorage.getItem('tga:history')
+
+    fakeStorage.getItem.mockImplementationOnce(() => {
+      throw new Error('SecurityError')
+    })
+
+    const result = appendHistoryEntry(makeEntry({ id: 'partida-3' }))
+
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+    expect(loadHistory().map(e => e.id)).toEqual(['partida-2', 'partida-1'])
+  })
+
+  it('CR-01 (ronda 3): con la lectura caída, setItem no llega a invocarse para tga:history', () => {
+    const { appendHistoryEntry } = usePersistedSession()
+
+    appendHistoryEntry(makeEntry({ id: 'partida-1' }))
+    appendHistoryEntry(makeEntry({ id: 'partida-2' }))
+    fakeStorage.setItem.mockClear()
+
+    fakeStorage.getItem.mockImplementationOnce(() => {
+      throw new Error('SecurityError')
+    })
+    appendHistoryEntry(makeEntry({ id: 'partida-3' }))
+
+    expect(fakeStorage.setItem.mock.calls.filter(call => call[0] === 'tga:history')).toHaveLength(0)
+  })
+
+  it('CR-01 (ronda 3): removeHistoryEntry con la lectura caída no escribe nada, el blob sigue intacto y devuelve false (IN-11)', () => {
+    const seeded = JSON.stringify({ formatVersion: 1, entries: [makeEntry({ id: 'a' }), makeEntry({ id: 'b' })] })
+    fakeStorage.setItem('tga:history', seeded)
+    fakeStorage.setItem.mockClear()
+
+    fakeStorage.getItem.mockImplementationOnce(() => {
+      throw new Error('SecurityError')
+    })
+
+    const { removeHistoryEntry } = usePersistedSession()
+    let result: boolean = true
+    expect(() => {
+      result = removeHistoryEntry('a')
+    }).not.toThrow()
+    expect(result).toBe(false)
+
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+  })
+
+  it('CR-01 (ronda 3): el contrato hacia la pantalla no cambia — loadHistory() devuelve [] sin lanzar con getItem siempre lanzando', () => {
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+
+    const { loadHistory } = usePersistedSession()
+    expect(() => loadHistory()).not.toThrow()
+    expect(loadHistory()).toEqual([])
+  })
+
+  it('CR-01 (ronda 3): anti-regresión de la vía legítima — tga:history genuinamente ausente sigue permitiendo escribir', () => {
+    const { appendHistoryEntry, loadHistory } = usePersistedSession()
+
+    const result = appendHistoryEntry(makeEntry({ id: 'primera' }))
+
+    expect(result).toBe(true)
+    expect(loadHistory().map(e => e.id)).toEqual(['primera'])
+    expect(JSON.parse(fakeStorage.getItem('tga:history')!).formatVersion).toBe(1)
+  })
+
+  it('CR-01 (ronda 3): SSR/prerender — sin window, loadHistory/appendHistoryEntry/removeHistoryEntry ni leen ni escriben el histórico', () => {
+    delete (globalThis as { window?: unknown }).window
+    const { loadHistory, appendHistoryEntry, removeHistoryEntry } = usePersistedSession()
+
+    expect(loadHistory()).toEqual([])
+    expect(appendHistoryEntry(makeEntry())).toBe(false)
+    let result: boolean = true
+    expect(() => {
+      result = removeHistoryEntry('x')
+    }).not.toThrow()
+    expect(result).toBe(false)
+  })
+
+  it('CR-01 (ronda 3): el endurecimiento no se propaga a los datos reconstruibles — load()/loadVoicePreference() siguen degradando en silencio', () => {
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+
+    const { load, loadVoicePreference } = usePersistedSession()
+    expect(load('marvel-champions')).toBeNull()
+    expect(loadVoicePreference()).toBe(true)
+  })
+})
+
+describe('readProgress (CR-01 ronda 5): «no he podido leer» deja de confundirse con «no hay nada»', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = { localStorage: fakeStorage }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('clave ausente (nada escrito) → { read: "ok", position: null }', () => {
+    const { readProgress } = usePersistedSession()
+    expect(readProgress('marvel-champions')).toEqual({ read: 'ok', position: null })
+  })
+
+  it('tras save() → { read: "ok", position: <no nulo> } con el gameId correcto', () => {
+    const { save, readProgress } = usePersistedSession()
+    save(makeSession('marvel-champions'))
+
+    const lectura = readProgress('marvel-champions')
+    expect(lectura.read).toBe('ok')
+    expect(lectura.read === 'ok' ? lectura.position?.gameId : undefined).toBe('marvel-champions')
+  })
+
+  it('JSON corrupto → { read: "ok", position: null } — lectura correcta, contenido inservible', () => {
+    fakeStorage.setItem('tga:progress:marvel-champions', '{ esto no es JSON')
+
+    const { readProgress } = usePersistedSession()
+    expect(readProgress('marvel-champions')).toEqual({ read: 'ok', position: null })
+  })
+
+  it('getItem que lanza → { read: "failed" }, y load() sigue devolviendo null (el contrato viejo no cambia)', () => {
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+
+    const { readProgress, load } = usePersistedSession()
+    expect(readProgress('marvel-champions')).toEqual({ read: 'failed' })
+    expect(load('marvel-champions')).toBeNull()
+  })
+
+  it('sin window → { read: "failed" }', () => {
+    delete (globalThis as { window?: unknown }).window
+
+    const { readProgress } = usePersistedSession()
+    expect(readProgress('marvel-champions')).toEqual({ read: 'failed' })
+  })
+})
+
+describe('tga:history:synced (D-01/D-04, plan 10-03): la marca de sincronizado con Firestore', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+  const SYNCED_KEY = 'tga:history:synced'
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('sin clave guardada, loadSyncedIds() devuelve []', () => {
+    const { loadSyncedIds } = usePersistedSession()
+    expect(loadSyncedIds()).toEqual([])
+  })
+
+  it('con JSON corrupto en tga:history:synced, loadSyncedIds() devuelve [] y no lanza — colapso deliberado (D-01), la clave es reconstruible', () => {
+    fakeStorage.setItem(SYNCED_KEY, 'esto no es JSON válido {{{')
+    const { loadSyncedIds } = usePersistedSession()
+    expect(() => loadSyncedIds()).not.toThrow()
+    expect(loadSyncedIds()).toEqual([])
+  })
+
+  it('con un getItem que lanza, loadSyncedIds() devuelve [] y no lanza — mismo colapso que loadVoicePreference, nunca el de tga:history', () => {
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+    const { loadSyncedIds } = usePersistedSession()
+    expect(() => loadSyncedIds()).not.toThrow()
+    expect(loadSyncedIds()).toEqual([])
+  })
+
+  it('saveSyncedIds() escribe un array JSON de ids', () => {
+    const { saveSyncedIds } = usePersistedSession()
+    saveSyncedIds(['a', 'b'])
+    expect(JSON.parse(fakeStorage.getItem(SYNCED_KEY)!)).toEqual(['a', 'b'])
+  })
+
+  it('saveSyncedIds() no lanza cuando setItem lanza (cuota llena) — mismo criterio que saveVoicePreference, un fallo aquí solo produce un reintento de más', () => {
+    fakeStorage.setItem.mockImplementation(() => {
+      throw new Error('QuotaExceededError')
+    })
+    const { saveSyncedIds } = usePersistedSession()
+    expect(() => saveSyncedIds(['a'])).not.toThrow()
+  })
+
+  it('un ida y vuelta saveSyncedIds() → loadSyncedIds() conserva los ids', () => {
+    const { saveSyncedIds, loadSyncedIds } = usePersistedSession()
+    saveSyncedIds(['x', 'y', 'z'])
+    expect(loadSyncedIds()).toEqual(['x', 'y', 'z'])
+  })
+})
+
+// WR-02 (quick 260923-3rm): un envoltorio `unreadable` permanente bloqueaba
+// el registro para siempre, sin vía de salida en la interfaz. readHistoryState
+// distingue AHORA los dos motivos de ilegibilidad (readHistory, el contrato
+// de useHistorySync.ts, sigue colapsándolos en 'unreadable'), y
+// archiveUnreadableHistory ofrece la salida: archivar el blob ilegible y
+// empezar limpio, SIN destruir nada que no se haya podido verificar antes.
+describe('readHistoryState (WR-02, quick 260923-3rm): distingue read-failed de uninterpretable', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('clave ausente → { kind: "ok", entries: [] }', () => {
+    const { readHistoryState } = usePersistedSession()
+    expect(readHistoryState()).toEqual({ kind: 'ok', entries: [] })
+  })
+
+  it('envoltorio válido → ok con las entradas válidas', () => {
+    const { appendHistoryEntry, readHistoryState } = usePersistedSession()
+    appendHistoryEntry(makeEntry({ id: 'a' }))
+
+    const state = readHistoryState()
+    expect(state.kind).toBe('ok')
+    expect(state.kind === 'ok' ? state.entries.map(e => e.id) : []).toEqual(['a'])
+  })
+
+  it('JSON corrupto → { kind: "uninterpretable" }', () => {
+    fakeStorage.setItem('tga:history', 'esto no es JSON válido {{{')
+    const { readHistoryState } = usePersistedSession()
+    expect(readHistoryState()).toEqual({ kind: 'uninterpretable' })
+  })
+
+  it('formatVersion distinto → { kind: "uninterpretable" }', () => {
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 2, entries: [] }))
+    const { readHistoryState } = usePersistedSession()
+    expect(readHistoryState()).toEqual({ kind: 'uninterpretable' })
+  })
+
+  it('entries no array → { kind: "uninterpretable" }', () => {
+    fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: 'no-es-un-array' }))
+    const { readHistoryState } = usePersistedSession()
+    expect(readHistoryState()).toEqual({ kind: 'uninterpretable' })
+  })
+
+  it('getItem que lanza → { kind: "read-failed" }', () => {
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+    const { readHistoryState } = usePersistedSession()
+    expect(readHistoryState()).toEqual({ kind: 'read-failed' })
+  })
+
+  it('readHistory() (contrato de useHistorySync.ts) sigue devolviendo { kind: "unreadable" } en los dos casos ilegibles', () => {
+    const { readHistory } = usePersistedSession()
+
+    fakeStorage.setItem('tga:history', 'esto no es JSON válido {{{')
+    expect(readHistory()).toEqual({ kind: 'unreadable' })
+
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+    expect(readHistory()).toEqual({ kind: 'unreadable' })
+  })
+})
+
+describe('archiveUnreadableHistory (WR-02, quick 260923-3rm): salida explícita para un histórico ilegible', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('con blob corrupto → "archived"; el backup contiene el blob byte a byte; tga:history queda ausente; tga:history:synced intacta; un appendHistoryEntry posterior devuelve true', () => {
+    const blobRoto = 'esto no es JSON válido {{{'
+    fakeStorage.setItem('tga:history', blobRoto)
+    fakeStorage.setItem('tga:history:synced', JSON.stringify(['algún-id']))
+
+    const { archiveUnreadableHistory, appendHistoryEntry } = usePersistedSession()
+    const now = 1_700_000_000_000
+    expect(archiveUnreadableHistory(now)).toBe('archived')
+
+    expect(fakeStorage.getItem(`tga:history:backup-${now}`)).toBe(blobRoto)
+    expect(fakeStorage.getItem('tga:history')).toBeNull()
+    expect(fakeStorage.getItem('tga:history:synced')).toBe(JSON.stringify(['algún-id']))
+
+    expect(appendHistoryEntry(makeEntry({ id: 'nueva' }))).toBe(true)
+  })
+
+  it('con envoltorio válido → "not-needed" sin ninguna escritura ni borrado', () => {
+    const { appendHistoryEntry, archiveUnreadableHistory } = usePersistedSession()
+    appendHistoryEntry(makeEntry({ id: 'a' }))
+    fakeStorage.setItem.mockClear()
+    fakeStorage.removeItem.mockClear()
+
+    expect(archiveUnreadableHistory(1_700_000_000_000)).toBe('not-needed')
+    expect(fakeStorage.setItem).not.toHaveBeenCalled()
+    expect(fakeStorage.removeItem).not.toHaveBeenCalled()
+  })
+
+  it('con clave ausente → "not-needed" sin ninguna escritura ni borrado', () => {
+    const { archiveUnreadableHistory } = usePersistedSession()
+    expect(archiveUnreadableHistory(1_700_000_000_000)).toBe('not-needed')
+    expect(fakeStorage.setItem).not.toHaveBeenCalled()
+    expect(fakeStorage.removeItem).not.toHaveBeenCalled()
+  })
+
+  it('con getItem que lanza → "failed" sin setItem ni removeItem', () => {
+    fakeStorage.setItem('tga:history', 'esto no es JSON válido {{{')
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+    fakeStorage.setItem.mockClear()
+
+    const { archiveUnreadableHistory } = usePersistedSession()
+    expect(archiveUnreadableHistory(1_700_000_000_000)).toBe('failed')
+    expect(fakeStorage.setItem).not.toHaveBeenCalled()
+    expect(fakeStorage.removeItem).not.toHaveBeenCalled()
+  })
+
+  it('con setItem del backup que lanza → "failed" y tga:history conserva el blob', () => {
+    const blobRoto = 'esto no es JSON válido {{{'
+    fakeStorage.setItem('tga:history', blobRoto)
+    fakeStorage.setItem.mockImplementation(() => {
+      throw new Error('QuotaExceededError')
+    })
+
+    const { archiveUnreadableHistory } = usePersistedSession()
+    expect(archiveUnreadableHistory(1_700_000_000_000)).toBe('failed')
+    expect(fakeStorage.getItem('tga:history')).toBe(blobRoto)
+  })
+})
+
+// WR-02 (ronda 6, quick 260923-3rm): tras una lectura fallida del progreso
+// al montar, el primer autoguardado de la partida nueva ya no sobrescribe
+// sin más lo que no se pudo leer — se archiva antes, y mientras la clave
+// siga sin poder leerse, no se escribe encima.
+describe('backupProgressBeforeOverwrite (WR-02 ronda 6, quick 260923-3rm)', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('clave ausente → true sin escribir', () => {
+    const { backupProgressBeforeOverwrite } = usePersistedSession()
+    expect(backupProgressBeforeOverwrite('marvel-champions', 1_700_000_000_000)).toBe(true)
+    expect(fakeStorage.setItem).not.toHaveBeenCalled()
+  })
+
+  it('blob presente → copia exacta en tga:progress:<gameId>:backup-<now> y true; nunca escribe la clave principal', () => {
+    const { save, backupProgressBeforeOverwrite } = usePersistedSession()
+    save(makeSession('marvel-champions'))
+    const blobOriginal = fakeStorage.getItem('tga:progress:marvel-champions')
+
+    const now = 1_700_000_000_000
+    expect(backupProgressBeforeOverwrite('marvel-champions', now)).toBe(true)
+
+    expect(fakeStorage.getItem(`tga:progress:marvel-champions:backup-${now}`)).toBe(blobOriginal)
+    expect(fakeStorage.getItem('tga:progress:marvel-champions')).toBe(blobOriginal)
+  })
+
+  it('getItem que lanza → false', () => {
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+    const { backupProgressBeforeOverwrite } = usePersistedSession()
+    expect(backupProgressBeforeOverwrite('marvel-champions', 1_700_000_000_000)).toBe(false)
+  })
+
+  it('setItem del backup que lanza → false, y nunca escribe la clave principal', () => {
+    const { save, backupProgressBeforeOverwrite } = usePersistedSession()
+    save(makeSession('marvel-champions'))
+    const blobOriginal = fakeStorage.getItem('tga:progress:marvel-champions')
+    fakeStorage.setItem.mockImplementation(() => {
+      throw new Error('QuotaExceededError')
+    })
+
+    expect(backupProgressBeforeOverwrite('marvel-champions', 1_700_000_000_000)).toBe(false)
+    expect(fakeStorage.getItem('tga:progress:marvel-champions')).toBe(blobOriginal)
+  })
+})
+
+describe('createOverwriteGuard (WR-02 ronda 6, quick 260923-3rm)', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('sin armar: save escribe como save() — sin ningún backup de por medio', () => {
+    const { createOverwriteGuard } = usePersistedSession()
+    const guard = createOverwriteGuard(() => 1_700_000_000_000)
+    expect(guard.isArmed()).toBe(false)
+
+    expect(guard.save(makeSession('marvel-champions', 1))).toBe(true)
+    const persisted = fakeStorage.getItem('tga:progress:marvel-champions')
+    expect(persisted).not.toBeNull()
+    expect(JSON.parse(persisted!).round).toBe(1)
+    expect(fakeStorage.setItem.mock.calls.some(call => String(call[0]).includes(':backup-'))).toBe(false)
+  })
+
+  it('armado + clave con blob X: la primera save crea el backup con X y escribe la posición nueva; la segunda save no crea otro backup', () => {
+    const { save, createOverwriteGuard } = usePersistedSession()
+    save(makeSession('marvel-champions', 1))
+    const blobX = fakeStorage.getItem('tga:progress:marvel-champions')
+
+    const now = 1_700_000_000_000
+    const guard = createOverwriteGuard(() => now)
+    guard.arm()
+
+    const nueva = makeSession('marvel-champions', 2)
+    expect(guard.save(nueva)).toBe(true)
+    expect(fakeStorage.getItem(`tga:progress:marvel-champions:backup-${now}`)).toBe(blobX)
+    expect(guard.isArmed()).toBe(false)
+
+    fakeStorage.setItem.mockClear()
+    expect(guard.save(makeSession('marvel-champions', 3))).toBe(true)
+    expect(fakeStorage.setItem.mock.calls.some(call => String(call[0]).includes(':backup-'))).toBe(false)
+  })
+
+  it('armado + getItem que lanza: save devuelve false, no escribe la clave principal y sigue armado; al recuperarse la lectura, la siguiente save hace backup y escribe', () => {
+    const { save, createOverwriteGuard } = usePersistedSession()
+    save(makeSession('marvel-champions', 1))
+    const blobX = fakeStorage.getItem('tga:progress:marvel-champions')
+
+    const guard = createOverwriteGuard(() => 1_700_000_000_000)
+    guard.arm()
+
+    // `mockImplementationOnce` lanza SOLO en la próxima llamada (el único
+    // `getItem` que `backupProgressBeforeOverwrite` hace) y después vuelve
+    // al comportamiento normal del doble — sin tener que reconstruir a mano
+    // el Map subyacente de `createFakeLocalStorage`.
+    fakeStorage.getItem.mockImplementationOnce(() => {
+      throw new Error('SecurityError')
+    })
+
+    expect(guard.save(makeSession('marvel-champions', 2))).toBe(false)
+    expect(guard.isArmed()).toBe(true)
+    expect(fakeStorage.getItem('tga:progress:marvel-champions')).toBe(blobX)
+
+    expect(guard.save(makeSession('marvel-champions', 3))).toBe(true)
+    expect(guard.isArmed()).toBe(false)
+    expect(fakeStorage.getItem(`tga:progress:marvel-champions:backup-1700000000000`)).toBe(blobX)
+  })
+
+  it('armado + setItem del backup que lanza: save devuelve false y la clave principal conserva X', () => {
+    const { save, createOverwriteGuard } = usePersistedSession()
+    save(makeSession('marvel-champions', 1))
+    const blobX = fakeStorage.getItem('tga:progress:marvel-champions')
+
+    const guard = createOverwriteGuard(() => 1_700_000_000_000)
+    guard.arm()
+
+    fakeStorage.setItem.mockImplementation(() => {
+      throw new Error('QuotaExceededError')
+    })
+
+    expect(guard.save(makeSession('marvel-champions', 2))).toBe(false)
+    expect(fakeStorage.getItem('tga:progress:marvel-champions')).toBe(blobX)
+  })
+})
+

@@ -1,0 +1,278 @@
+{
+  "gameId": "marvel-champions",
+  "heroes": [
+    {
+      "id": "spider-man",
+      "name": "Spider-Man",
+      "alterEgo": "Peter Parker",
+      "health": 10,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "captain-marvel",
+      "name": "Captain Marvel",
+      "alterEgo": "Carol Danvers",
+      "health": 12,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "she-hulk",
+      "name": "She-Hulk",
+      "alterEgo": "Jennifer Walters",
+      "health": 15,
+      "handSizeHero": 4,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "iron-man",
+      "name": "Iron Man",
+      "alterEgo": "Tony Stark",
+      "health": 9,
+      "handSizeHero": 1,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "black-panther",
+      "name": "Black Panther",
+      "alterEgo": "T'Challa",
+      "health": 11,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "captain-america",
+      "name": "Captain America",
+      "alterEgo": "Steve Rogers",
+      "health": 11,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "ms-marvel",
+      "name": "Ms. Marvel",
+      "alterEgo": "Kamala Khan",
+      "health": 10,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "thor",
+      "name": "Thor",
+      "alterEgo": "Odinson",
+      "health": 14,
+      "handSizeHero": 4,
+      "handSizeAlterEgo": 5
+    },
+    {
+      "id": "black-widow",
+      "name": "Black Widow",
+      "alterEgo": "Natasha Romanoff",
+      "health": 9,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "doctor-strange",
+      "name": "Doctor Strange",
+      "alterEgo": "Stephen Strange",
+      "health": 10,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "hulk",
+      "name": "Hulk",
+      "alterEgo": "Bruce Banner",
+      "health": 18,
+      "handSizeHero": 4,
+      "handSizeAlterEgo": 5
+    },
+    {
+      "id": "ant-man",
+      "name": "Ant-Man",
+      "alterEgo": "Scott Lang",
+      "health": 12,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "wasp",
+      "name": "Wasp",
+      "alterEgo": "Nadia Van Dyne",
+      "health": 11,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "quicksilver",
+      "name": "Quicksilver",
+      "alterEgo": "Pietro Maximoff",
+      "health": 9,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "scarlet-witch",
+      "name": "Scarlet Witch",
+      "alterEgo": "Wanda Maximoff",
+      "health": 10,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "drax",
+      "name": "Drax",
+      "alterEgo": "Drax",
+      "health": 14,
+      "handSizeHero": 4,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "valkyrie",
+      "name": "Valkyrie",
+      "alterEgo": "Brunnhilde",
+      "health": 12,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "vision",
+      "name": "Vision",
+      "alterEgo": "Vision",
+      "health": 11,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 5
+    },
+    {
+      "id": "nova",
+      "name": "Nova",
+      "alterEgo": "Sam Alexander",
+      "health": 10,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "storm",
+      "name": "Storm",
+      "alterEgo": "Ororo Munroe",
+      "health": 10,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "deadpool",
+      "name": "Deadpool",
+      "alterEgo": "Wade Wilson",
+      "health": 9,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "iceman",
+      "name": "Iceman",
+      "alterEgo": "Bobby Drake",
+      "health": 11,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    },
+    {
+      "id": "jubilee",
+      "name": "Jubilee",
+      "alterEgo": "Jubilation Lee",
+      "health": 9,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
+    }
+  ],
+  "villains": [
+    {
+      "id": "rhino",
+      "name": "Rhino",
+      "stages": [
+        {
+          "stage": 1,
+          "health": 14,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 2,
+          "health": 15,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 3,
+          "health": 16,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        }
+      ]
+    },
+    {
+      "id": "kang",
+      "name": "Kang",
+      "stages": [
+        {
+          "stage": 1,
+          "health": 12,
+          "healthPerHero": true,
+          "healthPerGroup": false,
+          "expert": {
+            "health": 15,
+            "healthPerHero": true,
+            "healthPerGroup": false
+          }
+        },
+        {
+          "stage": 2,
+          "health": 18,
+          "healthPerHero": false,
+          "healthPerGroup": false,
+          "expert": {
+            "health": 22,
+            "healthPerHero": false,
+            "healthPerGroup": false
+          }
+        },
+        {
+          "stage": 3,
+          "health": 20,
+          "healthPerHero": true,
+          "healthPerGroup": false,
+          "expert": {
+            "health": 25,
+            "healthPerHero": true,
+            "healthPerGroup": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "ultron",
+      "name": "Ultron",
+      "stages": [
+        {
+          "stage": 1,
+          "health": 17,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 2,
+          "health": 22,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 3,
+          "health": 27,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        }
+      ]
+    }
+  ]
+}

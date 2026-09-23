@@ -8,6 +8,12 @@ import { ref } from 'vue'
 
 defineProps<{
   savedSummary: string
+  // mismatchWarning (plan 09-33): aviso opcional, sin copy propia en este
+  // componente — el texto llega ya decidido desde useProgressMismatchMark.ts
+  // (única vía: markProgressMismatch/readProgressMismatchWarning), calculado
+  // a partir de la discrepancia que planGameEnd comprobó al cerrar la
+  // última partida de este juego. `null` en cualquier otro caso.
+  mismatchWarning?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -34,6 +40,21 @@ const continuePressed = ref(false)
           {{ savedSummary }}
         </p>
       </div>
+
+      <!--
+        Plan 09-33: aviso opcional cuando el último cierre de ESTA partida
+        comprobó que el progreso guardado no correspondía al punto de fin de
+        partida (useProgressMismatchMark.ts). Se lee ANTES del párrafo de
+        decisión de abajo, para que se lea antes de decidir. No lleva NINGÚN
+        atributo de región viva de accesibilidad propio: el contenedor de
+        este modal (línea de arriba) ya se anuncia entero al aparecer, así
+        que añadir aquí una región viva con v-if encima sería el
+        anti-patrón que HistorySavedNotice.vue documenta y que WR-07
+        encontró en MiniSetupScreen.vue.
+      -->
+      <p v-if="mismatchWarning" class="text-body font-normal text-warning">
+        {{ mismatchWarning }}
+      </p>
 
       <p class="text-body font-normal text-secondary-text">
         ¿Continuar o empezar una partida nueva? Empezar una nueva borrará el progreso guardado.

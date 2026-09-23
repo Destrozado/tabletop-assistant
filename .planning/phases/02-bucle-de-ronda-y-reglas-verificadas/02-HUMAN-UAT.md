@@ -4,6 +4,10 @@ phase: 02-bucle-de-ronda-y-reglas-verificadas
 source: [02-VERIFICATION.md]
 started: 2026-08-30T00:25:00Z
 updated: 2026-08-30T00:25:00Z
+audit_acknowledged:
+  milestone: v1.8
+  at: 2026-09-23
+  gap_snapshot: "partial::scenarios=1"
 ---
 
 ## Current Test

@@ -2,7 +2,7 @@
   "gameId": "marvel-champions",
   "title": "Marvel Champions: El Juego de Cartas",
   "locale": "es",
-  "contentVersion": 13,
+  "contentVersion": 14,
   "minPlayers": 1,
   "maxPlayers": 4,
   "sections": [
@@ -20,6 +20,7 @@
               "id": "setup.heroes.01",
               "title": "Elegir villano y héroes",
               "kind": "step",
+              "selection": "characters",
               "text": "Decidid, como grupo, qué villano vais a enfrentar y qué héroe llevará cada jugador.",
               "speech": "Decidid como grupo el villano al que os enfrentaréis y el héroe de cada jugador.",
               "citation": {
@@ -44,6 +45,7 @@
               "id": "setup.heroes.03",
               "title": "Ajustar dial de salud",
               "kind": "step",
+              "value": "heroHealth",
               "text": "Ajustad vuestro dial de salud a la vida inicial de vuestra identidad.",
               "speech": "Ajustad el dial de salud a la vida inicial de vuestra identidad.",
               "citation": {
@@ -172,9 +174,34 @@
               }
             },
             {
+              "id": "setup.escenario.04",
+              "title": "Cartas de villano según dificultad",
+              "kind": "step",
+              "text": "Comprobad qué cartas de villano numeradas (etapas) exige la dificultad elegida.",
+              "speech": "Comprobad qué cartas de villano numeradas exige la dificultad elegida.",
+              "variants": {
+                "difficulty": {
+                  "normal": {
+                    "text": "Dejad las cartas de villano numeradas (etapas) tal como vienen con el escenario.",
+                    "speech": "Dejad las cartas de villano numeradas tal como vienen con el escenario."
+                  },
+                  "expert": {
+                    "text": "Usad las cartas de villano numeradas (etapas) que indica el escenario para Experto.",
+                    "speech": "Usad las cartas de villano numeradas que indica el escenario para el modo Experto."
+                  }
+                }
+              },
+              "citation": {
+                "source": "rules-reference",
+                "section": "Modes of Play — Expert Mode (p.28); ver también Appendix I: Deck Customization, \"Encounter Decks\" (p.48) y \"Villain, Villain Deck\" (p.45, mazo secuencial de cartas de etapa)",
+                "page": 28
+              }
+            },
+            {
               "id": "setup.escenario.02",
               "title": "Ajustar dial de vida del villano",
               "kind": "step",
+              "value": "villainHealth",
               "text": "Ajustad el dial de vida del villano al valor indicado en la carta de villano.",
               "speech": "Ajustad el dial de vida del villano al valor indicado en la carta de villano.",
               "citation": {
@@ -193,30 +220,6 @@
                 "source": "rules-reference",
                 "section": "Apéndice II, paso 7",
                 "page": 49
-              }
-            },
-            {
-              "id": "setup.escenario.04",
-              "title": "Cartas de villano según dificultad",
-              "kind": "step",
-              "text": "Comprobad qué cartas de villano numeradas (etapas) exige la dificultad elegida.",
-              "speech": "Comprobad qué cartas de villano numeradas exige la dificultad elegida.",
-              "variants": {
-                "difficulty": {
-                  "normal": {
-                    "text": "Dejad las cartas de villano numeradas (etapas) tal como vienen con el escenario.",
-                    "speech": "Dejad las cartas de villano numeradas tal como vienen con el escenario."
-                  },
-                  "expert": {
-                    "text": "Sustituid las cartas de villano numeradas por las del modo Experto de este escenario.",
-                    "speech": "Sustituid las cartas de villano numeradas por las del modo Experto de este escenario."
-                  }
-                }
-              },
-              "citation": {
-                "source": "rules-reference",
-                "section": "Modes of Play — Expert Mode (p.28); ver también Appendix I: Deck Customization, \"Encounter Decks\" (p.48) y \"Villain, Villain Deck\" (p.45, mazo secuencial de cartas de etapa)",
-                "page": 28
               }
             },
             {
@@ -302,6 +305,7 @@
               "id": "setup.manos.02",
               "title": "Robar mano inicial",
               "kind": "step",
+              "value": "handSizeAlterEgo",
               "text": "Robad cartas hasta completar vuestra mano inicial.",
               "speech": "Robad hasta completar vuestra mano inicial.",
               "citation": {
@@ -314,6 +318,7 @@
               "id": "setup.manos.03",
               "title": "Mulligan",
               "kind": "step",
+              "value": "handSizeAlterEgo",
               "text": "Podéis descartar cartas de vuestra mano y robar de nuevo hasta vuestra mano inicial.",
               "warning": "No barajéis las descartadas de vuelta al mazo todavía",
               "speech": "Podéis descartar y robar de nuevo hasta vuestra mano inicial.",

@@ -14,20 +14,34 @@ import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
 
-// El id de audio del paso 7 se deriva del contenido REAL de public/audio/
-// (excluyendo public/audio/_probe/, artefactos de la 03.1), para que la
-// prueba no dependa de qué clips se hayan generado ya (hoy los 35 del
-// catálogo, ver 04-CONTEXT.md).
-const AUDIO_DIR = join(process.cwd(), 'public/audio')
-const firstAudioFile = readdirSync(AUDIO_DIR, { withFileTypes: true })
-  .find(entry => entry.isFile() && entry.name.endsWith('.m4a'))
-  ?.name
-
-if (!firstAudioFile) {
-  throw new Error('No se encontró ningún clip .m4a en public/audio/ — el paso 7 necesita al menos uno.')
+// IN-07 (09-REVIEW.md, cerrado en la quick 260923-3rl): antes de este
+// cierre, la resolución del id de audio vivía a NIVEL DE MÓDULO — tanto el
+// `readdirSync` (que lanzaba `ENOENT` si `public/audio/` no existía) como el
+// `throw` explícito si el directorio estaba vacío abortaban la suite
+// ENTERA de Playwright, incluidos los tests de /historico y /estadisticas
+// que no dependen del audio en absoluto (comprobado al planificar y de
+// nuevo al ejecutar esta quick: `--list` mostraba «Total: 0 tests in 1
+// file» sin `public/audio/`, ver el SUMMARY para el mensaje literal).
+// Ahora es una función PEREZOSA que solo invoca el ÚNICO test que la
+// necesita (el paso 7 de la primera prueba de este fichero), envuelta en
+// try/catch para que un directorio ausente también dé `null` en vez de
+// lanzar — el mismo criterio defensivo que el resto del repo aplica a un
+// dato que puede faltar. Sin recursión (`readdirSync` simple, sin bajar a
+// subdirectorios): `public/audio/_probe/` sigue excluido del barrido, igual
+// que antes. El id no depende de qué clips se hayan generado ya (hoy los 35
+// del catálogo, ver 04-CONTEXT.md) — solo del PRIMERO que exista.
+function firstAudioClipId(): string | null {
+  try {
+    const audioDir = join(process.cwd(), 'public/audio')
+    const firstAudioFile = readdirSync(audioDir, { withFileTypes: true })
+      .find(entry => entry.isFile() && entry.name.endsWith('.m4a'))
+      ?.name
+    return firstAudioFile ? firstAudioFile.replace(/\.m4a$/, '') : null
+  }
+  catch {
+    return null
+  }
 }
-
-const AUDIO_ID = firstAudioFile.replace(/\.m4a$/, '')
 
 // Ayuda compartida: primera visita CON red + recarga, hasta que el service
 // worker controla la página. Cortar la red antes de este punto mediría el
@@ -41,6 +55,16 @@ async function waitForServiceWorkerControl(page: import('@playwright/test').Page
 
 test.describe('Flujo completo sin conexión (OFF-02, OFF-03)', () => {
   test('selector -> mini-setup -> preparación con la red cortada, navegación, avance/retroceso, audio y recarga', async ({ page, context }) => {
+    // IN-07: el único test de este fichero que necesita un clip real.
+    // `test.skip` con un `id` nulo reporta el test como SKIPPED (nunca como
+    // passed) — este checkout tiene clips, así que en la práctica esto no
+    // se dispara aquí; en CI los clips están versionados, así que allí el
+    // test se ejecuta entero. Esto NO relaja ninguna aserción del paso 7 —
+    // solo evita que la resolución del clip aborte la suite entera cuando
+    // no hay ninguno.
+    const audioId = firstAudioClipId()
+    test.skip(audioId === null, 'No se encontró ningún clip .m4a en public/audio/ en este checkout — el paso 7 (audio offline) no se puede comprobar.')
+
     // 1. Primera visita con red, hasta que el SW controla la página.
     await waitForServiceWorkerControl(page)
 
@@ -105,8 +129,8 @@ test.describe('Flujo completo sin conexión (OFF-02, OFF-03)', () => {
       catch (error) {
         return { ok: false, status: 0, contentLength: 0, error: String(error) }
       }
-    }, AUDIO_ID)
-    expect(audioResult.ok, `fetch('/audio/${AUDIO_ID}.m4a') offline: ${JSON.stringify(audioResult)}`).toBe(true)
+    }, audioId as string)
+    expect(audioResult.ok, `fetch('/audio/${audioId}.m4a') offline: ${JSON.stringify(audioResult)}`).toBe(true)
     expect(audioResult.status).toBe(200)
     expect(audioResult.contentLength).toBeGreaterThan(0)
 
@@ -126,5 +150,122 @@ test.describe('Flujo completo sin conexión (OFF-02, OFF-03)', () => {
     await context.setOffline(true)
     await page.goto('/marvel-champions')
     await expect(page.getByText('Nº de jugadores').or(page.getByText('Partida guardada'))).toBeVisible()
+  })
+
+  // D-16/09-RESEARCH.md Pitfall 4: '/historico' y '/estadisticas' (plan 09-08)
+  // son rutas nuevas de la Fase 9 que deben quedar enumeradas en
+  // nitro.prerender.routes; si esa lista se olvida, estas dos aserciones son
+  // las que lo detectan — la ruta funcionaría en desarrollo y solo fallaría
+  // la primera vez que se abriera sin red, exactamente el fallo más caro que
+  // este pitfall documenta.
+  test('la ruta /historico se puede abrir directamente sin red (D-16/Pitfall 4)', async ({ page, context }) => {
+    await waitForServiceWorkerControl(page)
+
+    await context.setOffline(true)
+    await page.goto('/historico')
+    // El título de cabecera está siempre presente (con o sin entradas); el
+    // estado vacío añade además su propio encabezado, así que fijarse solo en
+    // el título evita una violación de "strict mode" cuando ambos coexisten.
+    await expect(page.getByRole('heading', { name: 'HISTÓRICO', exact: true })).toBeVisible()
+  })
+
+  test('la ruta /estadisticas se puede abrir directamente sin red (D-16/Pitfall 4)', async ({ page, context }) => {
+    await waitForServiceWorkerControl(page)
+
+    await context.setOffline(true)
+    await page.goto('/estadisticas')
+    await expect(page.getByRole('heading', { name: 'ESTADÍSTICAS', exact: true })).toBeVisible()
+  })
+
+  // 10-04-PLAN.md Task 2 — verificación (a) del ROADMAP (Fase 10, SYNC-04/SYNC-08).
+  //
+  // Qué demuestra: con la red cortada, terminar una partida por el camino
+  // real de la interfaz (índice → «Partida terminada» → un resultado)
+  // registra localmente, vuelve al inicio en un plazo CORTO y explícito (no
+  // se queda colgado), y que /historico y /estadisticas siguen leyendo solo
+  // el dispositivo tras ese registro.
+  //
+  // Qué NO demuestra: nada sobre una escritura real en Firestore. En este
+  // entorno de CI no hay proyecto Firebase configurado (`NUXT_PUBLIC_FIREBASE_*`
+  // vacías), así que la guarda D-13 deja `useHistorySync().flush()` en no-op
+  // desde el primer guardia — el mismo tono honesto que ya usa la cabecera
+  // de e2e/update-banner.spec.ts sobre lo que su suite puede y no puede
+  // demostrar.
+  test('terminar una partida sin red registra el resultado, vuelve al inicio en un plazo corto, y el histórico/estadísticas siguen funcionando (SYNC-04/SYNC-08)', async ({ page, context }) => {
+    // 1. Primera visita CON red, hasta que el SW controla la página — cortar
+    // la red antes mediría un navegador cualquiera sin PWA, no esta app.
+    await waitForServiceWorkerControl(page)
+
+    // 2. Cortar la red y no volver a activarla en este test.
+    await context.setOffline(true)
+
+    // 3. Selector -> mini-setup -> preparación, mismo patrón que el primer
+    // test de este fichero (arranque sin red tras el reload).
+    await page.reload()
+    const gameButton = page.getByRole('button', { name: 'Marvel Champions', exact: true })
+    await expect(gameButton).toBeVisible()
+    await gameButton.click()
+    await expect(page.getByText('Nº de jugadores')).toBeVisible()
+    await page.getByRole('button', { name: '2', exact: true }).click()
+    await page.getByRole('button', { name: 'Normal', exact: true }).click()
+    await page.getByRole('button', { name: 'EMPEZAR PREPARACIÓN ›' }).click()
+
+    // Villano y héroe elegidos para que /estadisticas del paso 7 renderice
+    // filas de verdad — sin selección, ninguna partida produce heroRows ni
+    // villainRows (buildStatisticsView) y la pantalla caería en su propio
+    // estado vacío, que no es lo que este test quiere demostrar.
+    const nextButton = page.getByRole('button', { name: 'SIGUIENTE ›' })
+    const startButton = page.getByRole('button', { name: 'EMPEZAR A JUGAR ›' })
+    const villainRow = page.getByRole('button', { name: 'Elegir villano' })
+    const MAX_ITERATIONS = 40
+    for (let i = 0; i < MAX_ITERATIONS; i++) {
+      if (await villainRow.isVisible().catch(() => false)) break
+      if (await startButton.isVisible().catch(() => false)) {
+        await startButton.click()
+        continue
+      }
+      if (await nextButton.isVisible().catch(() => false)) {
+        await nextButton.click()
+        continue
+      }
+      break
+    }
+    await expect(villainRow, 'paso de selección de personajes no alcanzado tras 40 pasos como máximo').toBeVisible()
+    await villainRow.click()
+    await page.getByRole('button', { name: 'Rhino', exact: true }).click()
+    const playerRow = page.getByRole('button', { name: 'Elegir héroe y nombre de Jugador 1' })
+    await expect(playerRow).toBeVisible()
+    await playerRow.click()
+    await page.getByRole('button', { name: 'Thor', exact: true }).click()
+
+    // 4. Terminar la partida por el camino real de la interfaz, sin red.
+    await page.getByRole('button', { name: 'Abrir índice' }).click()
+    await page.getByRole('button', { name: 'Partida terminada' }).click()
+    await page.getByRole('button', { name: 'GANADA', exact: true }).click()
+
+    // 5. El corazón del test: un `timeout` CORTO y deliberado, nunca el
+    // timeout por defecto de Playwright. Un fin de partida que esperara al
+    // ACK de Firestore sin red no tardaría "un poco más" — se colgaría
+    // indefinidamente, y solo un plazo corto convierte eso en un fallo
+    // rápido y legible en vez de una espera de minuto y medio hasta el
+    // timeout global. `record()` engancha `useHistorySync().flush()`
+    // dispara-y-olvida (D-05/D-06 de 10-CONTEXT.md): si esa promesa se
+    // esperase aquí, este `toBeVisible` sería la aserción que lo cazaría.
+    await expect(gameButton, 'la app no volvió al selector tras terminar la partida sin red — posible cuelgue esperando la subida a Firestore').toBeVisible({ timeout: 5000 })
+
+    // 6. /historico sin red muestra la partida recién terminada.
+    await page.goto('/historico')
+    await expect(page.getByRole('heading', { name: 'HISTÓRICO', exact: true })).toBeVisible()
+    await expect(page.getByText('GANADA')).toBeVisible()
+
+    // 7. /estadisticas sin red sigue mostrando datos de verdad (nunca su
+    // propio estado vacío) — demuestra que las estadísticas siguen leyendo
+    // solo del dispositivo (STAT-04), incluso justo después de un registro
+    // hecho sin red.
+    await page.goto('/estadisticas')
+    await expect(page.getByRole('heading', { name: 'ESTADÍSTICAS', exact: true })).toBeVisible()
+    await expect(page.getByText('Todavía no hay estadísticas')).toHaveCount(0)
+    await expect(page.getByText('% DE VICTORIAS POR HÉROE')).toBeVisible()
+    await expect(page.getByText('% DE VICTORIAS POR VILLANO')).toBeVisible()
   })
 })

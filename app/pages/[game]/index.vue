@@ -1,25 +1,53 @@
 <script setup lang="ts">
 // Runner: compone las bandas y cablea la navegación, y resuelve la
 // reanudación de partida guardada (PERS-02/03, SETUP-04/05) antes de mostrar
-// nada. `expand`/`resume` son las dos únicas funciones puras del motor que
-// esta página necesita para decidir con qué sesión arrancar antes de que
-// exista una — el resto de la navegación sigue pasando siempre por
-// useGameSession (la única costura reactiva).
+// nada. Desde el plan 09-26 (cierre del BLOCKER de la ronda 5) la página ya
+// no compone `expand`/`load`/`resume` a mano para decidir eso: llama a
+// `readStoredProgress` (plan 09-25), la ÚNICA autoridad sobre lo que hay
+// realmente guardado en el dispositivo para este juego — esa composición es
+// exactamente lo que el montaje (`ResumePrompt`) y el fin de partida (el
+// aviso) tienen que compartir para no poder contradecirse nunca. El resto
+// de la navegación sigue pasando siempre por useGameSession (la única
+// costura reactiva).
 import { useEventListener, useWakeLock } from '@vueuse/core'
 import { computed, onMounted, ref } from 'vue'
-// `collectAudioIds` es tan función pura del motor como `expand`/`resume`/
-// `tableOfContents` de aquí abajo: cálculo determinista sobre el
-// `GameDefinition` que esta página ya tiene, sin I/O ni estado (VOZ-07,
-// plan 03.1-02).
+// `collectAudioIds` es tan función pura del motor como `tableOfContents` de
+// aquí abajo: cálculo determinista sobre el `GameDefinition` que esta página
+// ya tiene, sin I/O ni estado (VOZ-07, plan 03.1-02).
 import { collectAudioIds } from '~~/engine/audio'
-import { expand } from '~~/engine/expand'
-import { resume } from '~~/engine/persistence'
+// WR-01 (06-REVIEW.md): el tope de caracteres del nombre de jugador tiene una
+// sola fuente, la constante del motor. Esta página la enlaza a PlayerModal por
+// prop para que el componente siga siendo tonto (sin importar `~~/engine/*`) y
+// para que no exista una segunda copia del número que pueda desincronizarse.
+import { PLAYER_NAME_MAX_LENGTH } from '~~/engine/selection'
 import { tableOfContents } from '~~/engine/toc'
+import type { GameOutcome } from '~~/engine/types'
+import { useCharacterCatalogue } from '~/composables/useCharacterCatalogue'
 import { useGameContent } from '~/composables/useGameContent'
+import { buildDiscardBody, buildEndGameBody } from '~/composables/useGameEndCopy'
+import { useGameHistory } from '~/composables/useGameHistory'
 import { useGameSession } from '~/composables/useGameSession'
+import {
+  buildDuplicateWarningText,
+  buildHeroOptions,
+  buildTakenByMap,
+  buildVillainOptions,
+  findHeroOption,
+  findVillainOption,
+  resolvePlayerLabel,
+} from '~/composables/useHeroSearch'
+import { notifyHistorySaved, planGameEnd } from '~/composables/useHistorySavedNotice'
 import { usePersistedSession } from '~/composables/usePersistedSession'
 import { usePreloadedAudio } from '~/composables/usePreloadedAudio'
+import {
+  clearProgressMismatch,
+  markProgressMismatch,
+  readProgressMismatchWarning,
+} from '~/composables/useProgressMismatchMark'
+import { planProgressMount } from '~/composables/useProgressMountPlan'
 import { shortcutsEnabled, useStepShortcuts } from '~/composables/useStepShortcuts'
+import { readStoredProgress } from '~/composables/useStoredProgress'
+import type { StoredProgress } from '~/composables/useStoredProgress'
 import { useVoiceAnnouncer } from '~/composables/useVoiceAnnouncer'
 
 const route = useRoute()
@@ -27,6 +55,17 @@ const gameId = route.params.game as string
 
 const { getGame } = useGameContent()
 const game = getGame(gameId)
+
+// Fase 6: catálogo estático y sus listas ordenadas, calculados UNA sola vez
+// junto a `game` de arriba — ordenar 23 nombres en cada render sería
+// trabajo repetido sin motivo, y el catálogo no cambia en toda la vida de
+// la página. Un `gameId` sin catálogo (Warhammer 40.000, `coming-soon`)
+// deja las listas vacías sin romper nada — `getCatalogue` ya devuelve
+// `null` en ese caso.
+const { getCatalogue } = useCharacterCatalogue()
+const catalogue = getCatalogue(gameId)
+const heroOptions = catalogue ? buildHeroOptions(catalogue.heroes) : []
+const villainOptions = catalogue ? buildVillainOptions(catalogue.villains) : []
 
 const {
   session,
@@ -41,9 +80,44 @@ const {
   plainSectionTitle,
   position,
   sessionContextLabel,
+  showsSelectionGrid,
+  playerSlots,
+  selectedVillainId,
+  setVillain,
+  setHero,
+  setPlayerName,
+  showsCounterBand,
+  counterCells,
+  stepValueSuffix,
+  stepValueRows,
+  incrementCounter,
+  decrementCounter,
 } = useGameSession()
 
-const { load, save, clear } = usePersistedSession()
+// La página deja de leer el dispositivo por su cuenta (plan 09-26): mientras
+// tuviera `load` a mano, alguien podría construir una respuesta de
+// reanudación en paralelo a `readStoredProgress` y volver a abrir la
+// contradicción que cerró este plan.
+//
+// WR-02 (ronda 6, quick 260923-3rm): `save` directo ya no se usa aquí — los
+// tres llamadores del autoguardado pasan por `progressWriter.save`
+// (`createOverwriteGuard`, más abajo), que arma un guardián cuando el
+// montaje no ha podido comprobar el dispositivo (`avisoLecturaNoComprobada`)
+// y solo entonces exige una copia de seguridad antes de la primera
+// escritura.
+const { clear, createOverwriteGuard } = usePersistedSession()
+
+// progressWriter (WR-02 ronda 6): UNA sola instancia por vida de la página,
+// igual que `useWakeLock()`. Sin armar por defecto — `onMounted` lo arma
+// solo cuando `planProgressMount` ha decidido que el montaje no ha podido
+// comprobar el dispositivo.
+const progressWriter = createOverwriteGuard()
+
+// Fase 9 (HIST-01/02/03): segunda costura reactiva, hermana de
+// useGameSession. `stampEndOfGame` (WR-06 ronda 4, quick 260923-3rm) se
+// destructura junto a `record`: las dos se usan en el único sitio de la app
+// donde una partida termina.
+const { record, stampEndOfGame } = useGameHistory()
 
 // D-09: precarga de los 35 audios pregenerados, disparada junto al wake lock
 // en los tres puntos donde arranca una partida (ver onConfirm/
@@ -90,6 +164,15 @@ const awaitingResumeChoice = ref(false)
 const awaitingContentChangedAck = ref(false)
 const awaitingDiscardConfirm = ref(false)
 const awaitingEndConfirm = ref(false)
+// Plan 09-29: aviso del mini-setup cuando la lectura del dispositivo ha
+// fallado — null en cualquier otro caso.
+const avisoLecturaNoComprobada = ref<string | null>(null)
+// Plan 09-33: aviso del modal de reanudación cuando el ÚLTIMO cierre de
+// ESTA partida comprobó que el progreso guardado no correspondía al punto
+// de fin de partida — null en cualquier otro caso. Invariante exacto: esta
+// marca está puesta exactamente cuando el último cierre de partida de este
+// gameId encontró discrepancia y el progreso que dejó sigue ahí.
+const avisoDiscrepancia = ref<string | null>(null)
 
 onMounted(() => {
   if (!game) {
@@ -97,25 +180,53 @@ onMounted(() => {
     return
   }
 
-  // Context placeholder: la secuencia y los índices de bucle no dependen del
-  // context, solo la estructura del juego. Si hay partida guardada, resume()
-  // sustituye este context por el persistido antes de que se muestre nada.
-  const structural = expand(game, { playerCount: 1, difficulty: 'normal' })
-  const persisted = load(gameId)
-  const result = resume(persisted, structural)
+  // Primer consumidor de la autoridad (plan 09-26): `readStoredProgress`
+  // reproduce internamente el mismo camino (context de relleno, lectura,
+  // regla de reanudación del motor) que esta página componía antes a mano —
+  // el placeholder que usaba vive ahora como `PLACEHOLDER_CONTEXT` dentro de
+  // `useStoredProgress.ts`. El comportamiento observable no cambia (Pitfall
+  // 7 intacto: nada de esto ocurre durante el prerender).
+  //
+  // Plan 09-29 (cierre de la mitad de montaje del Gap #1 de la ronda 6 y de
+  // CR-02/WR-02 de `09-REVIEW.md`): este `onMounted` consumía el `outcome`
+  // de la autoridad, que vale `'fresh'` tanto si no hay ninguna partida
+  // (`stored: 'absent'`) como si la lectura ha fallado (`stored:
+  // 'unknown'`) — así que no podía distinguir «he comprobado el dispositivo
+  // y no hay nada» de «no he podido comprobarlo», la distinción exacta para
+  // la que `StoredProgress` existe. Ahora la decisión vive en
+  // `planProgressMount`, que es total y testeada sobre los cuatro estados,
+  // y el estado «no comprobado» tiene superficie propia en pantalla
+  // (`avisoLecturaNoComprobada`) en vez de delegarse en los ojos del
+  // grupo. Sin `esperada`: al montar no hay ninguna sesión con la que
+  // comparar (a diferencia de `onOutcomeRecorded`, que sí la tiene).
+  const informe = readStoredProgress(game)
+  const plan = planProgressMount(informe.stored, informe.outcome)
+  avisoLecturaNoComprobada.value = plan.unverifiedNotice
+  // WR-02 (ronda 6, quick 260923-3rm): armar el guardián de escritura
+  // exactamente cuando el montaje no ha podido comprobar el dispositivo —
+  // el primer autoguardado de la partida nueva copiará antes lo que
+  // hubiera, en vez de sobrescribirlo sin más.
+  if (plan.unverifiedNotice !== null) progressWriter.arm()
 
-  if (result.outcome === 'fresh') {
+  if (plan.action === 'mini-setup') {
     resumeResolved.value = true
     return
   }
 
-  session.value = result.session
-  if (result.outcome === 'resumed') {
-    awaitingResumeChoice.value = true
-  }
-  else {
-    awaitingContentChangedAck.value = true
-  }
+  session.value = informe.session
+  // Plan 09-33: se llega aquí solo cuando plan.action es 'resume-prompt' o
+  // 'content-changed-notice' (la rama de 'mini-setup' ya ha retornado
+  // arriba), así que este es exactamente el punto en el que la marca puesta
+  // por un cierre de partida anterior (si la hay) vuelve a importar.
+  //
+  // Plan 09-38: el aviso que se pinta ahora afirma, además de lo que ya
+  // afirmaba, que lo que hay en el dispositivo EN ESTE INSTANTE es
+  // exactamente lo mismo que había cuando la discrepancia se comprobó —
+  // `informe.huella` es el testigo de ese referente, calculado por la misma
+  // llamada a `readStoredProgress` de la que ya sale `informe.session`.
+  avisoDiscrepancia.value = readProgressMismatchWarning(gameId, informe.huella)
+  awaitingResumeChoice.value = plan.action === 'resume-prompt'
+  awaitingContentChangedAck.value = plan.action === 'content-changed-notice'
   resumeResolved.value = true
 })
 
@@ -127,7 +238,7 @@ watchDebounced(
   session,
   (value) => {
     if (!value) return
-    save(value)
+    progressWriter.save(value)
   },
   { debounce: 300 },
 )
@@ -142,10 +253,12 @@ watchDebounced(
 // un dedo humano. `pagehide` cubre tanto recarga como cierre/navegación
 // fuera, incluido el caso de Safari en iPad donde `beforeunload` es menos
 // fiable (mismo criterio de "guardado nunca puede perder el último paso"
-// que ya exige PERS-01). Guardar de más aquí es inofensivo: `save()` es
-// idempotente sobre el mismo `session.value`.
+// que ya exige PERS-01). Guardar de más aquí es inofensivo:
+// `progressWriter.save()` es idempotente sobre el mismo `session.value` —
+// sin armar, delega tal cual en `save()`; armado, la primera llamada
+// desarma tras copiar y las siguientes son un `save()` normal.
 useEventListener('pagehide', () => {
-  if (session.value) save(session.value)
+  if (session.value) progressWriter.save(session.value)
 })
 
 // D-43/D-40: entrar al primer paso desde el mini-setup no locuta. Es una
@@ -209,9 +322,9 @@ function onIndexJumpTo(runtimeId: string) {
 // imposible "ambos abiertos" que dos banderas paralelas permitirían.
 // StepScreen emite sin payload de foco (componente tonto, sin acoplarse a
 // cómo la página gestiona el foco), así que la referencia al disparador se
-// captura aquí, en el sitio de la llamada, leyendo `document.activeElement`
-// en el instante del emit — el propio botón que disparó el click es el
-// elemento con foco en ese momento.
+// captura aquí, en el sitio de la llamada, leyendo el elemento activo del
+// documento en el instante del emit — el propio botón que disparó el click
+// es el elemento con foco en ese momento.
 const activeDetail = ref<{ heading: string, body: string, tone: 'warning' | 'neutral' } | null>(null)
 const detailTriggerEl = ref<HTMLElement | null>(null)
 
@@ -255,6 +368,134 @@ function onDismissDetail() {
   detailTriggerEl.value?.focus()
 }
 
+// Fase 6 (D-12/D-13): un `ref` PROPIO, no se reutiliza `activeDetail` porque
+// `activeDetail` está tipado para el modal informativo de un solo botón
+// (`heading`/`body`/`tone`) y forzar ahí un modal de elección desdibujaría
+// los dos; un único `ref` para los dos modales de selección sí evita el
+// estado imposible «los dos abiertos», exactamente el mismo razonamiento
+// que el comentario de `activeDetail` de arriba ya documenta para sus dos
+// disparadores.
+const activeSelectionModal = ref<{ kind: 'villain' } | { kind: 'player', slot: number } | null>(null)
+const selectionTriggerEl = ref<HTMLElement | null>(null)
+
+// D-45: abrir un modal de selección ni locuta ni corta la locución en
+// curso — abrir un modal es mirar, no avanzar, mismo criterio que
+// onOpenWarningDetail de arriba. `StepScreen` emite sin carga de foco
+// (componente tonto), así que el disparador se captura aquí, en el sitio de
+// la llamada, leyendo el elemento activo del documento en el instante del
+// emit — mismo mecanismo que onOpenWarningDetail.
+function onSelectRow(key: string) {
+  selectionTriggerEl.value = document.activeElement as HTMLElement | null
+  if (key === 'villain') {
+    activeSelectionModal.value = { kind: 'villain' }
+    return
+  }
+  const match = /^player-(\d+)$/.exec(key)
+  if (!match) return // clave desconocida: no-op silencioso
+  const slot = Number(match[1])
+  if (!Number.isInteger(slot) || slot < 0 || slot >= playerSlots.value.length) return
+  activeSelectionModal.value = { kind: 'player', slot }
+}
+
+// Calcado de onDismissDetail: cierra y devuelve el foco a la fila que abrió
+// el modal, por cualquiera de las tres vías (✕, velo, Escape).
+function onDismissSelectionModal() {
+  activeSelectionModal.value = null
+  selectionTriggerEl.value?.focus()
+}
+
+// D-13: elegir guarda Y cierra; tocar la opción ya elegida es idempotente y
+// no necesita caso especial.
+function onSelectVillain(villainId: string | null) {
+  setVillain(villainId)
+  onDismissSelectionModal()
+}
+
+function onSelectHero(heroId: string | null) {
+  if (activeSelectionModal.value?.kind !== 'player') return
+  setHero(activeSelectionModal.value.slot, heroId)
+  onDismissSelectionModal()
+}
+
+// D-13: el nombre se guarda según se escribe; solo tocar un héroe cierra el
+// modal — este manejador NUNCA llama a onDismissSelectionModal.
+function onPlayerNameInput(value: string) {
+  if (activeSelectionModal.value?.kind !== 'player') return
+  setPlayerName(activeSelectionModal.value.slot, value)
+}
+
+// Datos del hueco que `PlayerModal` necesita mientras está abierto —
+// `null`/valores neutros cuando no hay ningún modal de jugador activo (la
+// plantilla solo monta `PlayerModal` con `v-if`, así que estas computeds
+// nunca se leen en ese caso, pero se mantienen totales por consistencia).
+const activePlayerName = computed(() =>
+  activeSelectionModal.value?.kind === 'player'
+    ? (playerSlots.value[activeSelectionModal.value.slot]?.playerName ?? '')
+    : '',
+)
+
+const activePlayerHeroId = computed(() =>
+  activeSelectionModal.value?.kind === 'player'
+    ? (playerSlots.value[activeSelectionModal.value.slot]?.heroId ?? null)
+    : null,
+)
+
+const activePlayerTakenBy = computed(() =>
+  activeSelectionModal.value?.kind === 'player'
+    ? buildTakenByMap(playerSlots.value, activeSelectionModal.value.slot)
+    : {},
+)
+
+// Fase 6 (SEL-01/02/03/04/09): filas de la rejilla de selección, resueltas
+// aquí a partir del catálogo y de la sesión. `null` en cualquier paso que no
+// declare `selection: 'characters'` en los datos — así el resto de pasos se
+// renderiza exactamente igual que en v1.7, sin comparar contra el
+// identificador fijo del paso de héroes en ningún sitio de este fichero
+// (esa decisión ya vive en `showsSelectionGrid`, que lee el dato).
+const selectionRows = computed(() => {
+  if (!showsSelectionGrid.value) return null
+
+  const villainOption = findVillainOption(villainOptions, selectedVillainId.value)
+  const rows = [
+    {
+      key: 'villain',
+      label: 'Villano',
+      valueLabel: villainOption?.name ?? '—',
+      hasValue: villainOption !== null,
+      ariaLabel: 'Elegir villano',
+    },
+  ]
+
+  playerSlots.value.forEach((slot, index) => {
+    const heroOption = findHeroOption(heroOptions, slot.heroId)
+    const label = resolvePlayerLabel(index, slot.playerName)
+    rows.push({
+      key: `player-${index}`,
+      label,
+      // '—' es un guion largo (em dash), el mismo carácter del Copywriting
+      // Contract. hasValue:false es lo que hace que el valor se pinte en
+      // texto secundario. Un heroId que no exista en el catálogo cae en
+      // findHeroOption(...) === null y por tanto se muestra como «sin
+      // elegir» — defensa ante un localStorage manipulado, no un caso
+      // imposible.
+      valueLabel: heroOption?.spanishName ?? '—',
+      hasValue: heroOption !== null,
+      // El rótulo ACTUAL de la fila (no "Jugador N" fijo), para que el
+      // aria-label siga siendo exacto cuando el jugador se ponga nombre.
+      ariaLabel: `Elegir héroe y nombre de ${label}`,
+    })
+  })
+
+  return rows
+})
+
+// SEL-07/D-16: avisa y nunca bloquea; SIGUIENTE no cambia de comportamiento
+// por esto (no se toca onNext, ni NavBand, ni se añade ninguna
+// confirmación).
+const duplicateWarningText = computed(() =>
+  showsSelectionGrid.value ? buildDuplicateWarningText(playerSlots.value) : null,
+)
+
 // D-03: la lista de repaso se deriva de los summaryLabel de las fases con al
 // menos un paso kind:step (la fase "mesa lista" queda excluida por no tener
 // ninguno) — nunca tecleada dos veces. WR-03: acotada a la SECCIÓN del nodo
@@ -285,19 +526,45 @@ const savedSummary = computed(() => {
   return parts.join(' · ')
 })
 
-const discardBody = computed(() =>
-  `Se borrará el progreso guardado de la partida en curso (${savedSummary.value}). Esta acción no se puede deshacer.`,
-)
+// discardBody/endGameBody (plan 09-32, Task 2): la copy y su comprobación
+// de veracidad rama por rama viven en `useGameEndCopy.ts`, que sí tiene test
+// puro — el proyecto `app-logic` de Vitest no monta componentes, así que un
+// literal aquí dentro no podía tener test (09-VERIFICATION.md ronda 7).
+const discardBody = computed(() => buildDiscardBody(savedSummary.value))
+const endGameBody = computed(() => buildEndGameBody(savedSummary.value))
 
-const endGameBody = computed(() =>
-  `Se borrará el progreso guardado (${savedSummary.value}) y volveréis a la pantalla de inicio. Esta acción no se puede deshacer.`,
-)
+// outcomeContextLine (09-UI-SPEC.md §Layout 2): `{villano} · {n} jug ·
+// {dificultad} · ronda {N}` — el segmento del villano se OMITE por completo
+// cuando no hay ninguno elegido (SEL-09/D-12: elegir sigue siendo opcional
+// de principio a fin), nunca sustituido por un marcador. `sessionContextLabel`
+// ya produce `{n} jug · {dificultad}`, así que no se recompone aquí.
+const outcomeContextLine = computed(() => {
+  const villainOption = findVillainOption(villainOptions, selectedVillainId.value)
+  const parts = [
+    villainOption?.name,
+    sessionContextLabel.value,
+    session.value ? `ronda ${session.value.round}` : null,
+  ]
+  return parts.filter((part): part is string => Boolean(part)).join(' · ')
+})
 
 // D-43: «Continuar» de la reanudación locuta el paso recuperado — es un
 // toque del usuario (funciona también en iPad) y volver de un bloqueo de
 // tablet es justo cuando oír dónde ibais tiene valor.
 function onResumeContinue() {
   awaitingResumeChoice.value = false
+  // CR-01 (09-REVIEW.md, confirmado por lectura independiente en
+  // 09-VERIFICATION.md ronda 8, la NOVENA cara del defecto de esta fase):
+  // hasta este plan, «Continuar» no retiraba la marca de discrepancia. La
+  // marca describía el autoguardado sobrante que está a punto de
+  // reanudarse y de reescribirse bajo el juego del propio grupo; desde este
+  // instante deja de referirse a «un snapshot que sobró de otra partida» y
+  // pasa a referirse a «la partida en curso», así que retirarla aquí impide
+  // que un montaje posterior la lea como si siguiera siendo cierta. Esta
+  // llamada es la SEGUNDA defensa (plan 09-38): la primera es la validación
+  // de huella de useProgressMismatchMark.ts (Task 1) — las dos son
+  // independientes a propósito, no una sustituye a la otra.
+  clearProgressMismatch(gameId)
   announce()
   // UI-06/08 (D-51): «Continuar» también es un toque que abre partida en
   // curso. Degradación silenciosa igual que en onConfirm — sin aviso de
@@ -318,6 +585,9 @@ function onDiscardCancel() {
 
 function onDiscardConfirm() {
   clear(gameId)
+  // Plan 09-33: la marca describe un progreso concreto; si ese progreso se
+  // borra (esta rama SIEMPRE lo borra), la marca deja de tener referente.
+  clearProgressMismatch(gameId)
   session.value = null
   awaitingResumeChoice.value = false
   awaitingDiscardConfirm.value = false
@@ -336,27 +606,38 @@ function onEndGameRequest() {
   awaitingEndConfirm.value = true
 }
 
-function onEndGameCancel() {
-  awaitingEndConfirm.value = false
-}
-
-// D-U4: orden EXACTO, no cosmético.
-function onEndGameConfirm() {
-  awaitingEndConfirm.value = false
-  isIndexOpen.value = false
-  // Corta la locución en curso: el tryOnScopeDispose de useVoiceAnnouncer
-  // pausa el <audio> pregenerado al desmontar, pero speechSynthesis (el
-  // camino de respaldo) no se detiene solo al cambiar de ruta — sin esto la
-  // voz seguiría oyéndose ya en el selector de juego.
-  silence()
+// finishGame (D-U4): la cola de limpieza que cierra la partida, extraída del
+// antiguo onEndGameConfirm SIN cambiar ni una línea ni un comentario — los
+// tres pasos que siguen destruyen exactamente los datos que el registro del
+// histórico necesita, así que todo llamante debe invocarlos DESPUÉS de haber
+// registrado (o decidido no registrar).
+//
+// preserveProgress (09-16, cierre del WARNING «amplificador del impacto de
+// CR-02» de 09-VERIFICATION.md sobre estas mismas líneas): el progreso solo
+// se borra cuando ya no hace falta; si el registro no se pudo guardar, el
+// progreso es lo único que permite reintentarlo, así que borrarlo convierte
+// un fallo recuperable en una pérdida definitiva. El valor por defecto
+// `false` conserva el comportamiento histórico para todo llamante que no
+// diga nada (onDiscardConfirm no pasa por aquí; onOutcomeDismiss llama sin
+// argumento a propósito). Ninguna rama toca el histórico — `clear` solo
+// borra `tga:progress:<gameId>` (HIST-09 intacto).
+function finishGame(preserveProgress = false) {
   // session.value = null ANTES de clear(gameId): el autoguardado es un
   // watchDebounced de 300ms. Si hubiera una escritura pendiente con la
   // sesión antigua, se ejecutaría DESPUÉS del borrado y resucitaría la
   // clave. Asignar null reprograma esa invocación pendiente con null, que
   // la guarda `if (!value) return` del watch descarta (mismo truco que
-  // onDiscardConfirm).
+  // onDiscardConfirm). Esto es también lo que hace que preservar el
+  // progreso funcione: la clave queda tal como la dejó el último
+  // autoguardado, sin que esta escritura tardía la reescriba.
   session.value = null
-  clear(gameId)
+  if (!preserveProgress) {
+    clear(gameId)
+    // Plan 09-33: mismo razonamiento que onDiscardConfirm — la marca
+    // describe un progreso concreto; si ese progreso se borra, la marca
+    // deja de tener referente.
+    clearProgressMismatch(gameId)
+  }
   // NO se llama a releaseWakeLock() aquí: navigateTo desmonta esta página y
   // el tryOnScopeDispose interno de useWakeLock ya libera el bloqueo solo
   // (mismo razonamiento que el «Atrás» del mini-setup, líneas 434-439 más
@@ -365,10 +646,182 @@ function onEndGameConfirm() {
   navigateTo('/')
 }
 
+// D-U4/Pitfall 1: orden EXACTO, no cosmético. El registro ocurre ENTRE
+// silence() y finishGame() — después de silence(), porque cortar la
+// locución no destruye ningún dato, y ANTES de finishGame(), porque su
+// primer paso (session.value = null) sí lo hace. record() lee
+// session.value, así que moverlo después de finishGame() produciría un
+// histórico vacío en silencio.
+//
+// 09-16 (cierre del WARNING «amplificador del impacto de CR-02»): el orden
+// sigue siendo el mismo y sigue siendo obligatorio; lo que se añade es que
+// el RESULTADO de record() decide también qué se destruye. Si `guardado`
+// es false, finishGame(true) preserva `tga:progress:<gameId>` — el grupo
+// vuelve a `/`, entra otra vez en el juego, ve «Partida guardada …
+// CONTINUAR» y puede volver a pulsar «Partida terminada» para reintentar el
+// registro.
+//
+// 09-20 (cierre del BLOCKER CR-01 ronda 4, 09-VERIFICATION.md): «no borrar»
+// no es «hay algo que preservar». finishGame(!guardado) por sí solo solo
+// evita llamar a clear(gameId); nunca comprueba que `tga:progress:<gameId>`
+// llegara a escribirse en algún momento de la partida. En modo privado del
+// navegador o con la cuota llena, esa clave puede no haberse escrito NUNCA
+// —ni por el watchDebounced del autoguardado ni por el pagehide—, así que
+// afirmar "sigue guardada en el dispositivo" sin comprobarlo es la misma
+// confirmación falsa que las rondas anteriores de esta fase llevan
+// cerrando en el motor. Por eso, cuando el registro falla, se reescribe el
+// progreso SÍNCRONAMENTE aquí mismo (`progressWriter.save()` se intercala
+// entre record() y notifyHistorySaved()) y se guarda su resultado real en
+// `progresoAsegurado`: solo con ese booleano notifyHistorySaved puede
+// elegir entre la variante recuperable y la no recuperable sin inventar
+// nada. El watchDebounced de 300ms no sirve para esto — finishGame pone
+// session.value = null inmediatamente después y cancela cualquier
+// escritura pendiente (ver el comentario de finishGame).
+// Segundo consumidor de la autoridad, más la guarda de reentrada (WR-01 de
+// `09-REVIEW.md`, plan 09-26). Cuatro cosas que hay que tener presentes al
+// tocar esta función, porque son las que impiden que alguien las
+// «simplifique» mañana:
+//
+// 1. La guarda de reentrada. `finishGame()` pone `session.value = null` de
+//    forma SÍNCRONA, pero `navigateTo('/')` es asíncrono: entre la primera y
+//    una eventual segunda invocación (doble toque, `click` duplicado por
+//    touch + emulación de ratón) la página sigue montada con
+//    `session.value` ya vacío. Antes de esta guarda, esa segunda invocación
+//    caía en la rama `else`, llamaba a `finishGame()` sin argumento y
+//    borraba en silencio el progreso que la primera invocación acababa de
+//    preservar a propósito. La bandera que ya marca «este cierre de partida
+//    está en curso» sirve de guarda sin añadir estado nuevo.
+// 2. Por qué se sigue llamando a `progressWriter.save()` cuando el registro
+//    falla, y por qué su booleano ya no decide nada por sí solo:
+//    `progressWriter.save()` es el INTENTO de dejar el progreso a salvo
+//    (armado o no, con o sin copia previa de por medio — ver WR-02 ronda 6
+//    más arriba); la autoridad de lectura de más abajo es la COMPROBACIÓN
+//    de si de verdad quedó algo. Confundir esas dos preguntas es exactamente
+//    el defecto que este plan cierra — por eso la lectura ocurre DESPUÉS del
+//    intento de escritura y es ella, nunca el booleano, quien decide la
+//    variante del aviso.
+// 3. D-U4 sigue intacto, AMPLIADO por WR-06 (ronda 4, quick 260923-3rm): el
+//    orden bloqueado es `silence()` → `stampEndOfGame()` → `record()` →
+//    `progressWriter.save()` → `notifyHistorySaved()` → `finishGame()`; el
+//    sellado se intercala ANTES de `record()` (nunca después: `record()` ya
+//    necesita ver `session.value` sellada para que `recordedAt`/`durationMs`
+//    usen el instante congelado), y la lectura de la autoridad se intercala
+//    entre `progressWriter.save()` y `notifyHistorySaved()`, el único hueco
+//    posible — tiene que
+//    ocurrir después del intento de escritura y antes de que se afirme
+//    nada, y todo ello antes de que `finishGame` vacíe la sesión. Desde el
+//    plan 09-28 la autoridad recibe además, como segundo argumento, la
+//    sesión que acaba de terminar: sin ella solo puede contestar «¿hay algo
+//    reanudable?», nunca «¿es ESTO lo que acaba de terminar?» — Gap #1 de
+//    la ronda 6 (`09-VERIFICATION.md`).
+// 4. La comprobación de que exista sesión Y juego: la autoridad necesita el
+//    `GameDefinition` para reconstruir su lectura, y que exista sesión sin
+//    juego es un estado inalcanzable (la sesión solo nace desde esta misma
+//    página con el juego ya resuelto). La rama `else` conserva el
+//    comportamiento de WR-04: sin ningún intento de escritura, no se avisa
+//    de nada — un aviso ahí sería un diagnóstico falso.
+function onOutcomeRecorded(outcome: GameOutcome) {
+  if (!awaitingEndConfirm.value) return
+  awaitingEndConfirm.value = false
+  isIndexOpen.value = false
+  // Corta la locución en curso: el tryOnScopeDispose de useVoiceAnnouncer
+  // pausa el <audio> pregenerado al desmontar, pero speechSynthesis (el
+  // camino de respaldo) no se detiene solo al cambiar de ruta — sin esto la
+  // voz seguiría oyéndose ya en el selector de juego.
+  silence()
+  if (session.value && game) {
+    // WR-06 (ronda 4, quick 260923-3rm): sellar el instante del desenlace
+    // ANTES de record() — orden D-U4 ampliado: silence() → SELLADO → record()
+    // → progressWriter.save() → lectura → aviso → finishGame(). `record()`,
+    // el guardado del fallo (`progressWriter.save()` más abajo) y
+    // `readStoredProgress` tienen que ver la MISMA sesión sellada, o el
+    // reintento de un registro fallido mediría la duración/fecha hasta el
+    // momento del reintento en vez de hasta este instante (D-08 sin este
+    // sello).
+    session.value = stampEndOfGame(session.value)
+    let registrado = false
+    try {
+      registrado = record(session.value, outcome)
+    }
+    catch {
+      // `false` y `'unknown'` son los valores honestos ante una excepción —
+      // «no se ha registrado» y «no he podido comprobarlo» es literalmente
+      // lo que ha pasado. Sin esto, si cualquiera de las tres líneas lanza,
+      // `awaitingEndConfirm` ya está en `false`, la locución ya está
+      // cortada, el diálogo ha desaparecido, no hay aviso y no se navega a
+      // `/`: el grupo se queda mirando el paso en curso sin ninguna señal
+      // (WR-10 de la ronda 4, WR-06 de la ronda 5).
+    }
+    if (!registrado) progressWriter.save(session.value)
+    let stored: StoredProgress = 'unknown'
+    // Plan 09-38: se captura el INFORME completo, no solo `stored` — la
+    // huella (`informe.huella`) es lo que permite que la marca de más abajo
+    // pueda validarse a sí misma más tarde, en vez de depender solo de que
+    // alguien la invalide en el punto correcto.
+    let huella: string | null = null
+    try {
+      const informe = readStoredProgress(game, session.value)
+      stored = informe.stored
+      huella = informe.huella
+    }
+    catch {
+      // Mismo razonamiento que el bloque de arriba: `'unknown'`/`null` son
+      // los valores honestos ante una excepción de lectura — «no he podido
+      // comprobarlo» es literalmente lo que ha pasado.
+    }
+    const plan = planGameEnd(registrado, stored)
+    // Plan 09-33: se pone/retira la marca en el MISMO instante en que
+    // planGameEnd decide si hubo discrepancia — el else es obligatorio, no
+    // cosmético: un cierre posterior de esta misma partida que NO encuentra
+    // discrepancia deja el progreso que sí corresponde, así que una marca
+    // anterior dejaría de ser cierta y hay que retirarla aquí mismo.
+    //
+    // Plan 09-38: además, solo se pone cuando `huella` no es `null` — si no
+    // se pudo huellar el referente, no se pone marca, porque más tarde sería
+    // imposible demostrar que ese referente sigue ahí, y una marca que no se
+    // puede validar es otra afirmación sin respaldo. Este caso es además
+    // inalcanzable en el escenario canónico (`plan.progressMismatch` exige
+    // `stored === 'stale'`, y el invariante de `useStoredProgress.ts` fija
+    // que `stored === 'stale'` implica `huella` no nulo — ver su test propio
+    // en useStoredProgress.test.ts, Task 3).
+    if (plan.progressMismatch && huella !== null) markProgressMismatch(gameId, huella)
+    else clearProgressMismatch(gameId)
+    notifyHistorySaved(plan.variant)
+    finishGame(plan.preserveProgress)
+  } else {
+    finishGame()
+  }
+}
+
+// NOTA DE RECONCILIACIÓN (HIST-02): «Salir sin registrar» TERMINA la
+// partida sin escribir en el histórico; no es «cancelar y seguir jugando».
+// Lo exigen HIST-02 y el criterio de éxito nº 1 del ROADMAP («o cerrar la
+// partida sin registrar nada»), y D-01 fija exactamente cuatro opciones —
+// con este diálogo desaparece la opción «Cancelar» del ConfirmDialog
+// anterior. Es deliberado, no un olvido.
+//
+// Misma guarda de reentrada que `onOutcomeRecorded` y por el mismo motivo
+// (WR-01 de `09-REVIEW.md`, plan 09-26): un segundo toque no puede volver a
+// ejecutar este cierre.
+function onOutcomeDismiss() {
+  if (!awaitingEndConfirm.value) return
+  awaitingEndConfirm.value = false
+  isIndexOpen.value = false
+  silence()
+  finishGame()
+}
+
 // D-43: mismo razonamiento que onResumeContinue — el CTA de reconocimiento
 // del aviso de contenido cambiado locuta el paso recuperado.
 function onContentChangedAcknowledge() {
   awaitingContentChangedAck.value = false
+  // WR-01 (mismo informe de la ronda 8): mismo razonamiento que
+  // onResumeContinue — SEGUNDA defensa, independiente de la validación de
+  // huella. Diferencia propia de esta rama: aquí el desenlace ya está
+  // decidido (vuelta al inicio de la sección con jugadores y dificultad
+  // conservados), pero la sesión que queda es igual de jugable y su
+  // autoguardado sustituye el mismo referente que la marca describía.
+  clearProgressMismatch(gameId)
   announce()
   // UI-06/08 (D-51): D-43 clasifica este CTA como gesto de reanudación igual
   // que «Continuar» — resume() deja una sesión real y jugable, así que abre
@@ -403,7 +856,14 @@ const atajosActivos = computed(() =>
     awaitingDiscardConfirm: awaitingDiscardConfirm.value,
     awaitingEndConfirm: awaitingEndConfirm.value,
     isIndexOpen: isIndexOpen.value,
-    hasActiveDetail: activeDetail.value !== null,
+    // D-12 se cierra AQUÍ y SOLO aquí: la condición sigue viviendo entera
+    // dentro de `shortcutsEnabled` (D-Q2), lo único que cambia es qué se le
+    // pasa como argumento — `app/composables/useStepShortcuts.ts` no se
+    // toca. Esta es la segunda de las dos guardas que protegen el campo de
+    // nombre: la primera, `isEditableTarget`, ya devuelve `null` para
+    // Espacio con el foco en un `<input>`; esta cubre además `←` con el
+    // foco en el `✕` o en una fila del modal.
+    hasActiveDetail: activeDetail.value !== null || activeSelectionModal.value !== null,
   }),
 )
 
@@ -414,7 +874,7 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
 
 <template>
   <!-- id desconocido: mensaje neutro, sin filtrar el id ni sugerir juegos (T-01-06) -->
-  <div v-if="!game" class="h-dvh bg-background flex items-center justify-center px-2xl">
+  <div v-if="!game" class="h-full bg-background flex items-center justify-center px-2xl">
     <p class="text-body font-normal text-secondary-text text-center max-w-[600px]">
       No encontramos ese juego. Volved al selector e intentadlo de nuevo.
     </p>
@@ -427,20 +887,21 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
   -->
   <ClientOnly v-else>
     <template #fallback>
-      <div class="h-dvh bg-background flex items-center justify-center">
+      <div class="h-full bg-background flex items-center justify-center">
         <p class="text-body font-normal text-secondary-text">Cargando…</p>
       </div>
     </template>
 
     <!-- Estado de carga neutro mientras onMounted no ha resuelto la reanudación todavía (Pitfall 7). -->
-    <div v-if="!resumeResolved" class="h-dvh bg-background flex items-center justify-center">
+    <div v-if="!resumeResolved" class="h-full bg-background flex items-center justify-center">
       <p class="text-body font-normal text-secondary-text">Cargando…</p>
     </div>
 
     <!-- SETUP-04: nunca se reanuda en silencio. ConfirmDialog se apila encima al pedir "Empezar nueva" (SETUP-05). -->
-    <div v-else-if="awaitingResumeChoice" class="h-dvh">
+    <div v-else-if="awaitingResumeChoice" class="h-full">
       <ResumePrompt
         :saved-summary="savedSummary"
+        :mismatch-warning="avisoDiscrepancia"
         @resume="onResumeContinue"
         @new-game="onResumeNewGame"
       />
@@ -461,6 +922,7 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
       v-else-if="awaitingContentChangedAck"
       :session-context="sessionContextLabel"
       :section-label="sectionLabel"
+      :mismatch-warning="avisoDiscrepancia"
       @acknowledge="onContentChangedAcknowledge"
     />
 
@@ -471,6 +933,7 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
       :game-title="game.title"
       :min-players="game.minPlayers ?? 1"
       :max-players="game.maxPlayers ?? 4"
+      :unverified-progress-notice="avisoLecturaNoComprobada"
       @update:player-count="playerCount = $event"
       @update:difficulty="difficulty = $event"
       @confirm="onConfirm"
@@ -496,7 +959,7 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
       @start="next"
     />
 
-    <div v-else class="h-dvh flex flex-col">
+    <div v-else class="h-full flex flex-col">
       <AppHeader
         :section-label="sectionLabel"
         :position="position"
@@ -504,6 +967,22 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         :voice-state="voiceState"
         @index-open="onIndexOpen"
         @voice-toggle="toggleVoice"
+      />
+      <!--
+        D-03: la banda va justo bajo AppHeader, NUNCA junto a NavBand, para
+        que ningún ▼/▲ quede a menos de 96px de SIGUIENTE. El aviso de voz
+        que sigue es un elemento condicional y de altura variable ajeno a los
+        contadores (Fases 6/7), así que se coloca la banda delante de él: su
+        posición queda estable exista o no aviso de voz, sin reestilar ni
+        mover VoiceUnavailableNotice. El bloque de overlays superpuestos del
+        final sigue pintando por encima de la banda sin tocar su apilamiento,
+        misma disciplina D-U3 de orden en el DOM ya documentada más abajo.
+      -->
+      <CounterBand
+        v-if="showsCounterBand"
+        :cells="counterCells"
+        @increment="incrementCounter"
+        @decrement="decrementCounter"
       />
       <VoiceUnavailableNotice
         v-if="showVoiceUnavailableNotice"
@@ -516,9 +995,14 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         :options="currentText.options ?? null"
         :options-warning-text="currentText.optionsWarning ?? null"
         :options-warning-detail-text="currentText.optionsWarningDetail ?? null"
+        :selection-rows="selectionRows"
+        :duplicate-warning-text="duplicateWarningText"
+        :step-value-suffix="stepValueSuffix"
+        :step-value-rows="stepValueRows"
         @open-warning-detail="onOpenWarningDetail"
         @open-option-detail="onOpenOptionDetail"
         @open-options-warning-detail="onOpenOptionsWarningDetail"
+        @select-row="onSelectRow"
       />
       <NavBand @back="onBack" @next="onNext" />
       <IndexOverlay
@@ -535,15 +1019,12 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         tocar ningún z-index (mismo apilamiento que ResumePrompt/su
         ConfirmDialog de descarte).
       -->
-      <ConfirmDialog
+      <GameOutcomeDialog
         v-if="awaitingEndConfirm"
-        title="¿Dar la partida por terminada?"
-        :body="endGameBody"
-        confirm-label="Sí, terminar"
-        cancel-label="Cancelar"
-        :destructive="true"
-        @confirm="onEndGameConfirm"
-        @cancel="onEndGameCancel"
+        :context-line="outcomeContextLine"
+        :warning-body="endGameBody"
+        @record="onOutcomeRecorded"
+        @dismiss="onOutcomeDismiss"
       />
       <WarningDetailModal
         v-if="activeDetail"
@@ -551,6 +1032,32 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         :body="activeDetail.body"
         :tone="activeDetail.tone"
         @dismiss="onDismissDetail"
+      />
+      <!--
+        D-U3: hermanos JUSTO DESPUÉS de WarningDetailModal — ambos son fixed
+        inset-0 z-50, así que el que va después en el DOM pinta encima sin
+        tocar ningún z-index (mismo apilamiento ya usado arriba entre
+        IndexOverlay y ConfirmDialog).
+      -->
+      <VillainPickerModal
+        v-if="activeSelectionModal?.kind === 'villain'"
+        :villains="villainOptions"
+        :selected-id="selectedVillainId"
+        @select="onSelectVillain"
+        @dismiss="onDismissSelectionModal"
+      />
+      <PlayerModal
+        v-if="activeSelectionModal?.kind === 'player'"
+        :key="activeSelectionModal.slot"
+        :slot-number="activeSelectionModal.slot + 1"
+        :name="activePlayerName"
+        :heroes="heroOptions"
+        :selected-hero-id="activePlayerHeroId"
+        :taken-by="activePlayerTakenBy"
+        :name-max-length="PLAYER_NAME_MAX_LENGTH"
+        @name-input="onPlayerNameInput"
+        @select-hero="onSelectHero"
+        @dismiss="onDismissSelectionModal"
       />
     </div>
   </ClientOnly>

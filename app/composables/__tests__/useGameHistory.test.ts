@@ -1,0 +1,826 @@
+// Tests puros de las funciones de vista exportadas por useGameHistory.ts
+// (buildHistoryCardView, buildStatisticsView, resolveFrozenNames), MÁS el
+// ciclo record/reload/remove con un `window`/`localStorage` de mentira —
+// mismo arnés que ya usa usePersistedSession.test.ts, así que ninguno de
+// estos tests necesita jsdom/happy-dom ni contexto de Nuxt. Corre en el
+// proyecto `app-logic` (entorno node, vitest.config.ts).
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  archiveResultMessage,
+  buildHistoryCardView,
+  buildStatisticsView,
+  buildUnreadableHistoryView,
+  DELETE_FAILED_BODY,
+  DELETE_FAILED_HEADING,
+  resolveFrozenNames,
+  useGameHistory,
+} from '../useGameHistory'
+import type { RuntimeStepNode } from '~~/engine/types'
+import { useCharacterCatalogue } from '../useCharacterCatalogue'
+import type { StatisticsSummary } from '~~/engine/statistics'
+import type { EngineSession, GameHistoryEntry, SessionContext } from '~~/engine/types'
+
+function createFakeLocalStorage() {
+  const store = new Map<string, string>()
+  return {
+    getItem: vi.fn((key: string) => (store.has(key) ? store.get(key)! : null)),
+    setItem: vi.fn((key: string, value: string) => {
+      store.set(key, value)
+    }),
+    removeItem: vi.fn((key: string) => {
+      store.delete(key)
+    }),
+  }
+}
+
+// Calcado del ejemplo de 09-UI-SPEC.md §4 (Kang · 3 jugadores, hasta la
+// ronda 7, 1h40min) — así el test fija exactamente la cadena que el mockup
+// ya declara correcta.
+function makeEntry(overrides: Partial<GameHistoryEntry> = {}): GameHistoryEntry {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    gameId: 'marvel-champions',
+    result: 'won',
+    lossCause: null,
+    villainId: 'kang',
+    villainName: 'Kang',
+    players: [
+      { heroId: 'thor', heroName: 'Thor', playerName: 'Ana' },
+      { heroId: 'she-hulk', heroName: 'Hulka', playerName: '' },
+      { heroId: 'spider-man', heroName: 'Spider-Man', playerName: 'Luis' },
+    ],
+    difficulty: 'normal',
+    playerCount: 3,
+    round: 7,
+    durationMs: 6_000_000, // 100 min = 1 h 40 min
+    recordedAt: '2026-09-12T10:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function makeSession(overrides: Partial<SessionContext> = {}, round = 5): EngineSession {
+  return {
+    gameId: 'marvel-champions',
+    contentVersion: 1,
+    sequence: [],
+    cursor: 0,
+    round,
+    context: {
+      playerCount: 1,
+      difficulty: 'normal',
+      ...overrides,
+    },
+  }
+}
+
+describe('buildHistoryCardView', () => {
+  it('victoria con villano y tres jugadores (uno sin nombre): cadenas exactas del mockup de UI-SPEC §4', () => {
+    const view = buildHistoryCardView(makeEntry())
+
+    expect(view.resultLabel).toBe('GANADA')
+    expect(view.causeLabel).toBeNull()
+    expect(view.contextLine).toBe('Kang · Normal · 3 jug')
+    expect(view.playerLines).toEqual([
+      'Ana · Thor',
+      'Jugador 2 · Hulka',
+      'Luis · Spider-Man',
+    ])
+    expect(view.noSelectionLine).toBeNull()
+    expect(view.roundAndDurationLine).toBe('Hasta la ronda 7 · 1 h 40 min')
+  })
+
+  it('derrota: causeLabel es la cadena de describeLossCause y resultLabel es PERDIDA', () => {
+    const view = buildHistoryCardView(makeEntry({
+      result: 'lost',
+      lossCause: 'mainSchemeCompleted',
+      villainId: 'rhino',
+      villainName: 'Rhino',
+      difficulty: 'expert',
+      playerCount: 2,
+      players: [
+        { heroId: 'thor', heroName: 'Thor', playerName: 'Ana' },
+        { heroId: 'spider-man', heroName: 'Spider-Man', playerName: 'Luis' },
+      ],
+    }))
+
+    expect(view.resultLabel).toBe('PERDIDA')
+    expect(view.causeLabel).toBe('Se completó el Plan Principal')
+    expect(view.contextLine).toBe('Rhino · Experto · 2 jug')
+  })
+
+  it('con durationMs null (D-10): la línea de ronda termina en «· —»', () => {
+    const view = buildHistoryCardView(makeEntry({ durationMs: null }))
+
+    expect(view.roundAndDurationLine).toBe('Hasta la ronda 7 · —')
+  })
+
+  it('sin villano pero con héroes: la contextLine empieza por «Sin villano»', () => {
+    const view = buildHistoryCardView(makeEntry({ villainId: null, villainName: null }))
+
+    expect(view.contextLine).toBe('Sin villano · Normal · 3 jug')
+    expect(view.playerLines).not.toBeNull()
+  })
+
+  it('sin nada elegido (D-12): playerLines es null y noSelectionLine es la línea exacta', () => {
+    const view = buildHistoryCardView(makeEntry({
+      villainId: null,
+      villainName: null,
+      difficulty: 'normal',
+      playerCount: 2,
+      players: [
+        { heroId: null, heroName: null, playerName: '' },
+        { heroId: null, heroName: null, playerName: '' },
+      ],
+    }))
+
+    expect(view.playerLines).toBeNull()
+    expect(view.noSelectionLine).toBe('Sin héroes ni villano anotados')
+    expect(view.contextLine).toBe('Normal · 2 jug')
+  })
+
+  it('un hueco sin héroe: esa línea es solo la etiqueta del jugador, sin · final', () => {
+    const view = buildHistoryCardView(makeEntry({
+      players: [
+        { heroId: 'thor', heroName: 'Thor', playerName: 'Ana' },
+        { heroId: null, heroName: null, playerName: 'Luis' },
+      ],
+      playerCount: 2,
+    }))
+
+    expect(view.playerLines).toEqual(['Ana · Thor', 'Luis'])
+  })
+
+  it('confirmBody y deleteAriaLabel: cadenas exactas, con villano', () => {
+    const view = buildHistoryCardView(makeEntry({ recordedAt: '2026-09-12T10:00:00.000Z' }))
+
+    expect(view.confirmTitle).toBe('¿Borrar esta partida del histórico?')
+    expect(view.deleteAriaLabel).toBe('Borrar partida del 12 sep 2026 contra Kang')
+    expect(view.confirmBody).toBe('Ganada del 12 sep 2026 contra Kang. Esta acción no se puede deshacer.')
+  })
+
+  it('confirmBody y deleteAriaLabel: caso «sin villano»', () => {
+    const view = buildHistoryCardView(makeEntry({
+      villainId: null,
+      villainName: null,
+      result: 'lost',
+      lossCause: 'heroesEliminated',
+      recordedAt: '2026-09-09T10:00:00.000Z',
+    }))
+
+    expect(view.deleteAriaLabel).toBe('Borrar partida del 9 sep 2026 contra sin villano')
+    expect(view.confirmBody).toBe('Perdida del 9 sep 2026 contra sin villano. Esta acción no se puede deshacer.')
+  })
+
+  it('CR-01: una entrada con players: [null] no lanza', () => {
+    const entry = makeEntry({ players: [null] as never })
+
+    expect(() => buildHistoryCardView(entry)).not.toThrow()
+
+    const view = buildHistoryCardView(entry)
+    expect(typeof view.id).toBe('string')
+    expect(typeof view.resultLabel).toBe('string')
+    expect(typeof view.roundAndDurationLine).toBe('string')
+  })
+
+  it('CR-01: una entrada con players: [{}] no lanza', () => {
+    const entry = makeEntry({ players: [{}] as never })
+
+    expect(() => buildHistoryCardView(entry)).not.toThrow()
+
+    const view = buildHistoryCardView(entry)
+    expect(typeof view.id).toBe('string')
+    expect(typeof view.resultLabel).toBe('string')
+    expect(typeof view.roundAndDurationLine).toBe('string')
+  })
+
+  it('CR-01: un hueco inválido se descarta pero los válidos se siguen pintando', () => {
+    const view = buildHistoryCardView(makeEntry({
+      villainId: 'kang',
+      villainName: 'Kang',
+      players: [null, { heroId: 'thor', heroName: 'Thor', playerName: 'Ana' }] as never,
+    }))
+
+    expect(view.playerLines).toHaveLength(1)
+    expect(view.playerLines).toContain('Ana · Thor')
+  })
+
+  it('CR-01: una entrada corrupta no impide renderizar el resto de la lista', () => {
+    const entries = [
+      makeEntry({ id: 'a' }),
+      makeEntry({ id: 'b', players: [null] as never }),
+      makeEntry({ id: 'c' }),
+    ]
+
+    let views: ReturnType<typeof buildHistoryCardView>[] = []
+    expect(() => {
+      views = entries.map(buildHistoryCardView)
+    }).not.toThrow()
+    expect(views).toHaveLength(3)
+  })
+})
+
+// BF-01/BF-02 (09-17, barrido de fronteras — WR-01 de 09-REVIEW.md): un hueco
+// de jugador con `heroId`/`heroName` de tipo equivocado (o ausente) no debe
+// producir ninguna cadena con la subcadena literal 'undefined' en NINGÚN
+// campo de la vista — se comprueba sobre `JSON.stringify(view)` para cubrir
+// los diez campos de una vez, no solo el que se esperaba que fallara.
+describe('BF-01/BF-02 (09-17): buildHistoryCardView nunca pinta "undefined" ni "NaN"', () => {
+  it('un hueco sin heroId (players: [{ playerName: "Ana" }]) no produce ninguna cadena "undefined"', () => {
+    const entry = makeEntry({
+      villainId: null,
+      villainName: null,
+      players: [{ playerName: 'Ana' }] as never,
+    })
+
+    const view = buildHistoryCardView(entry)
+
+    expect(JSON.stringify(view)).not.toContain('undefined')
+  })
+
+  it('un hueco con heroId: undefined explícito no produce ninguna cadena "undefined"', () => {
+    const entry = makeEntry({
+      villainId: null,
+      villainName: null,
+      players: [{ heroId: undefined, heroName: undefined, playerName: 'Ana' } as never],
+    })
+
+    const view = buildHistoryCardView(entry)
+
+    expect(JSON.stringify(view)).not.toContain('undefined')
+  })
+
+  it('un hueco con heroId: 7 (tipo equivocado) se normaliza a "sin héroe", nunca pinta el número crudo como si fuera un héroe', () => {
+    const entry = makeEntry({
+      villainId: null,
+      villainName: null,
+      players: [{ heroId: 7, heroName: 'Cualquiera', playerName: 'Ana' } as never],
+    })
+
+    const view = buildHistoryCardView(entry)
+
+    expect(JSON.stringify(view)).not.toContain('undefined')
+    // heroId de tipo equivocado se normaliza a null: sin villano y sin
+    // ningún hueco con heroId válido, la tarjeta cae a la rama D-12 (nunca
+    // filas de jugador con un "7" pintado como si fuera un héroe).
+    expect(view.playerLines).toBeNull()
+    expect(view.noSelectionLine).toBe('Sin héroes ni villano anotados')
+  })
+
+  it('un hueco con heroId real pero heroName: undefined pinta el heroId como respaldo, nunca "undefined"', () => {
+    const entry = makeEntry({
+      villainId: null,
+      villainName: null,
+      players: [{ heroId: 'thor', heroName: undefined, playerName: 'Ana' } as never],
+    })
+
+    const view = buildHistoryCardView(entry)
+
+    expect(JSON.stringify(view)).not.toContain('undefined')
+    expect(view.playerLines).toEqual(['Ana · thor'])
+  })
+
+  it('BF-02: playerCount: NaN y round: NaN no producen ninguna cadena "NaN"', () => {
+    const entry = makeEntry({
+      playerCount: Number.NaN as never,
+      round: Number.NaN as never,
+    })
+
+    const view = buildHistoryCardView(entry)
+
+    expect(JSON.stringify(view)).not.toContain('NaN')
+  })
+
+  it('BF-02: villainId de tipo equivocado (número) no se pinta como si fuera un nombre de villano', () => {
+    const entry = makeEntry({
+      villainId: 7 as never,
+      villainName: undefined as never,
+    })
+
+    const view = buildHistoryCardView(entry)
+
+    expect(view.contextLine).not.toContain('7 ·')
+    expect(JSON.stringify(view)).not.toContain('undefined')
+  })
+})
+
+describe('buildStatisticsView', () => {
+  it('valueLabel con el formato exacto «3 de 4 · 75 %»', () => {
+    const summary: StatisticsSummary = {
+      heroRows: [{ id: 'thor', name: 'Thor', wins: 3, played: 4, pct: 75 }],
+      villainRows: [],
+      totalEntries: 4,
+      entriesWithHeroes: 4,
+      entriesWithVillain: 4,
+    }
+
+    const view = buildStatisticsView(summary)
+
+    expect(view.heroRows).toEqual([{ id: 'thor', name: 'Thor', valueLabel: '3 de 4 · 75 %' }])
+  })
+
+  // WR-07 (09-REVIEW.md, cerrado en el quick 260923-3rm): sampleCaption
+  // (compartido por las dos tablas) se sustituye por heroSampleCaption/
+  // villainSampleCaption — cada tabla describe su PROPIA muestra.
+  it('heroSampleCaption es null cuando todas las partidas tienen héroes anotados', () => {
+    const summary: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 5,
+      entriesWithHeroes: 5,
+      entriesWithVillain: 5,
+    }
+
+    expect(buildStatisticsView(summary).heroSampleCaption).toBeNull()
+  })
+
+  it('heroSampleCaption es la cadena exacta cuando no todas tienen héroes anotados', () => {
+    const summary: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 12,
+      entriesWithHeroes: 10,
+      entriesWithVillain: 12,
+    }
+
+    expect(buildStatisticsView(summary).heroSampleCaption).toBe('12 partidas registradas · 10 con héroes anotados')
+    expect(buildStatisticsView(summary).villainSampleCaption).toBeNull()
+  })
+
+  it('heroSampleCaption usa el singular correcto con una sola partida', () => {
+    const summary: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 1,
+      entriesWithHeroes: 0,
+      entriesWithVillain: 1,
+    }
+
+    expect(buildStatisticsView(summary).heroSampleCaption).toBe('1 partida registrada · 0 con héroes anotados')
+  })
+
+  it('villainSampleCaption es null cuando todas las partidas tienen villano anotado', () => {
+    const summary: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 5,
+      entriesWithHeroes: 5,
+      entriesWithVillain: 5,
+    }
+
+    expect(buildStatisticsView(summary).villainSampleCaption).toBeNull()
+  })
+
+  it('villainSampleCaption es la cadena exacta (singular "villano anotado") cuando no todas tienen villano anotado', () => {
+    const summary: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 1,
+      entriesWithHeroes: 1,
+      entriesWithVillain: 0,
+    }
+
+    expect(buildStatisticsView(summary).villainSampleCaption).toBe('1 partida registrada · 0 con villano anotado')
+  })
+
+  it('isEmpty es true con el resumen vacío', () => {
+    const summary: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 0,
+      entriesWithHeroes: 0,
+      entriesWithVillain: 0,
+    }
+
+    expect(buildStatisticsView(summary).isEmpty).toBe(true)
+  })
+
+  it('WR-01: con partidas registradas pero cero filas, isEmpty es true', () => {
+    const summary: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 3,
+      entriesWithHeroes: 0,
+      entriesWithVillain: 0,
+    }
+
+    expect(buildStatisticsView(summary).isEmpty).toBe(true)
+  })
+
+  it('WR-01: la copy del estado vacío distingue los dos motivos', () => {
+    const historicoVacio: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 0,
+      entriesWithHeroes: 0,
+      entriesWithVillain: 0,
+    }
+    expect(buildStatisticsView(historicoVacio).emptyBody).toBe(
+      'En cuanto registréis vuestra primera partida en el histórico, aquí aparecerá el % de victorias por héroe y por villano.',
+    )
+
+    const sinFilas: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 3,
+      entriesWithHeroes: 0,
+      entriesWithVillain: 0,
+    }
+    expect(buildStatisticsView(sinFilas).emptyBody).toBe(
+      '3 partidas registradas, pero ninguna con héroe ni villano anotados. En cuanto anotéis quién jugó o contra quién, aquí aparecerá el % de victorias.',
+    )
+
+    const unaPartida: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 1,
+      entriesWithHeroes: 0,
+      entriesWithVillain: 0,
+    }
+    expect(buildStatisticsView(unaPartida).emptyBody).toBe(
+      '1 partida registrada, pero ninguna con héroe ni villano anotados. En cuanto anotéis quién jugó o contra quién, aquí aparecerá el % de victorias.',
+    )
+  })
+
+  it('WR-01: con al menos una fila, isEmpty es false y emptyTitle/emptyBody son null', () => {
+    const summary: StatisticsSummary = {
+      heroRows: [{ id: 'thor', name: 'Thor', wins: 1, played: 1, pct: 100 }],
+      villainRows: [],
+      totalEntries: 1,
+      entriesWithHeroes: 1,
+      entriesWithVillain: 1,
+    }
+
+    const view = buildStatisticsView(summary)
+    expect(view.isEmpty).toBe(false)
+    expect(view.emptyTitle).toBeNull()
+    expect(view.emptyBody).toBeNull()
+  })
+})
+
+describe('resolveFrozenNames', () => {
+  const { getCatalogue } = useCharacterCatalogue()
+  const catalogue = getCatalogue('marvel-champions')
+
+  it('resuelve el alias español de un héroe real del catálogo (she-hulk → Hulka, distinto del nombre inglés)', () => {
+    const context: SessionContext = {
+      playerCount: 1,
+      difficulty: 'normal',
+      selection: { villainId: null, heroes: [{ heroId: 'she-hulk', playerName: 'Ana' }] },
+    }
+
+    const names = resolveFrozenNames(context, catalogue)
+
+    expect(names.heroNames['she-hulk']).toBe('Hulka')
+    expect(names.heroNames['she-hulk']).not.toBe('She-Hulk')
+  })
+
+  it('deja fuera del mapa un heroId inexistente en el catálogo', () => {
+    const context: SessionContext = {
+      playerCount: 1,
+      difficulty: 'normal',
+      selection: { villainId: null, heroes: [{ heroId: 'heroe-fantasma', playerName: 'Ana' }] },
+    }
+
+    const names = resolveFrozenNames(context, catalogue)
+
+    expect(names.heroNames['heroe-fantasma']).toBeUndefined()
+  })
+
+  it('devuelve villainName: null sin villano elegido', () => {
+    const context: SessionContext = {
+      playerCount: 1,
+      difficulty: 'normal',
+      selection: { villainId: null, heroes: [{ heroId: null, playerName: '' }] },
+    }
+
+    expect(resolveFrozenNames(context, catalogue).villainName).toBeNull()
+  })
+
+  // CR-02 (ronda 3): las ocho claves heredadas de Object.prototype —
+  // declarada aquí y en engine/__tests__/history.test.ts (deliberadamente
+  // duplicada: cada fichero de test es autocontenido, sin depender de un
+  // import cruzado entre proyectos vitest distintos).
+  const PROTOTYPE_KEYS = [
+    'constructor',
+    'toString',
+    'valueOf',
+    'hasOwnProperty',
+    '__proto__',
+    'isPrototypeOf',
+    'propertyIsEnumerable',
+    'toLocaleString',
+  ] as const
+
+  it('CR-02 (ronda 3): el mapa devuelto no tiene prototipo', () => {
+    const context: SessionContext = {
+      playerCount: 1,
+      difficulty: 'normal',
+      selection: { villainId: null, heroes: [{ heroId: 'thor', playerName: 'Ana' }] },
+    }
+
+    const names = resolveFrozenNames(context, catalogue)
+
+    expect(Object.getPrototypeOf(names.heroNames)).toBeNull()
+  })
+
+  it.each(PROTOTYPE_KEYS)('CR-02 (ronda 3): un heroId igual a "%s" (ausente del catálogo) no resuelve por la cadena de prototipos — el mapa devuelve undefined, nunca una función', (heroId) => {
+    const context: SessionContext = {
+      playerCount: 1,
+      difficulty: 'normal',
+      selection: { villainId: null, heroes: [{ heroId, playerName: 'Ana' }] },
+    }
+
+    const names = resolveFrozenNames(context, catalogue)
+
+    expect(names.heroNames[heroId]).toBeUndefined()
+    expect(typeof names.heroNames[heroId]).not.toBe('function')
+  })
+})
+
+describe('useGameHistory — copy del aviso de borrado fallido (IN-11)', () => {
+  it('DELETE_FAILED_HEADING y DELETE_FAILED_BODY son las cadenas exactas', () => {
+    expect(DELETE_FAILED_HEADING).toBe('⚠ No se pudo borrar la partida')
+    expect(DELETE_FAILED_BODY).toBe('La app no ha conseguido leer o escribir el histórico en este navegador, así que no ha cambiado nada. Podéis volver a intentarlo más tarde.')
+  })
+})
+
+describe('useGameHistory — ciclo record/reload/remove con localStorage falso', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('record() devuelve true, reload() deja una entrada, un segundo record() la coloca primero, remove(id) devuelve true y la quita, e isEmpty vuelve a true', () => {
+    const { record, reload, remove, entries, isEmpty } = useGameHistory()
+
+    const session1 = makeSession({
+      selection: { villainId: 'rhino', heroes: [{ heroId: 'spider-man', playerName: 'Ana' }] },
+    })
+    expect(record(session1, 'won')).toBe(true)
+
+    reload()
+    expect(entries.value).toHaveLength(1)
+    const firstId = entries.value[0]!.id
+
+    const session2 = makeSession({
+      selection: { villainId: 'kang', heroes: [{ heroId: 'thor', playerName: 'Luis' }] },
+    })
+    expect(record(session2, 'mainSchemeCompleted')).toBe(true)
+
+    reload()
+    expect(entries.value).toHaveLength(2)
+    expect(entries.value[0]!.id).not.toBe(firstId)
+    const secondId = entries.value[0]!.id
+
+    expect(remove(secondId)).toBe(true)
+    expect(entries.value).toHaveLength(1)
+    expect(entries.value[0]!.id).toBe(firstId)
+
+    expect(remove(firstId)).toBe(true)
+    expect(entries.value).toHaveLength(0)
+    expect(isEmpty.value).toBe(true)
+  })
+
+  it('IN-11: con el setItem del localStorage falso lanzando justo antes de remove(id), remove() devuelve false y entries.value sigue conteniendo esa id tras la recarga interna', () => {
+    const { record, reload, remove, entries } = useGameHistory()
+
+    const session = makeSession({
+      selection: { villainId: 'rhino', heroes: [{ heroId: 'spider-man', playerName: 'Ana' }] },
+    })
+    expect(record(session, 'won')).toBe(true)
+
+    reload()
+    expect(entries.value).toHaveLength(1)
+    const id = entries.value[0]!.id
+
+    fakeStorage.setItem.mockImplementation(() => {
+      throw new Error('QuotaExceededError')
+    })
+
+    expect(remove(id)).toBe(false)
+    expect(entries.value).toHaveLength(1)
+    expect(entries.value[0]!.id).toBe(id)
+  })
+
+  it('CR-01 (ronda 2): una entrada construida desde context: {} sobrevive a un ciclo record() → loadHistory()', () => {
+    const { record, reload, entries } = useGameHistory()
+
+    const session: EngineSession = {
+      gameId: 'marvel-champions',
+      contentVersion: 1,
+      sequence: [],
+      cursor: 0,
+      round: Number.NaN as unknown as number,
+      context: {} as SessionContext,
+    }
+
+    expect(record(session, 'won')).toBe(true)
+
+    reload()
+    expect(entries.value).toHaveLength(1)
+    const entry = entries.value[0]!
+    expect(entry.difficulty).toBe('normal')
+    expect(entry.playerCount).toBe(0)
+    expect(entry.round).toBe(1)
+    expect(entry.players).toHaveLength(0)
+  })
+
+  it('la misma ida y vuelta con una sesión normal conserva playerCount y round tal cual (camino feliz)', () => {
+    const { record, reload, entries } = useGameHistory()
+
+    const session = makeSession({
+      selection: { villainId: 'rhino', heroes: [{ heroId: 'spider-man', playerName: 'Ana' }] },
+    })
+
+    expect(record(session, 'won')).toBe(true)
+
+    reload()
+    expect(entries.value).toHaveLength(1)
+    const entry = entries.value[0]!
+    expect(entry.playerCount).toBe(1)
+    expect(entry.round).toBe(session.round)
+  })
+
+  it('CR-02 (ronda 3): un heroId "constructor" se REGISTRA — record() devuelve true y reload() la recupera con heroId conservado y heroName null', () => {
+    const { record, reload, entries } = useGameHistory()
+
+    const session = makeSession({
+      selection: { villainId: null, heroes: [{ heroId: 'constructor', playerName: 'Ana' }] },
+    })
+
+    // Contra el código previo a este plan, record() devolvía false (la
+    // entrada tenía heroName: Object, que isHistoryPlayerEntry rechazaba) y
+    // entries.value quedaba vacío: la partida se perdía sin diagnóstico
+    // correcto (notifyHistorySaved(false) culpaba al almacenamiento).
+    expect(record(session, 'won')).toBe(true)
+
+    reload()
+    expect(entries.value).toHaveLength(1)
+    const entry = entries.value[0]!
+    expect(entry.players[0]!.heroId).toBe('constructor')
+    expect(entry.players[0]!.heroName).toBeNull()
+  })
+
+  it('CR-02 (ronda 3): la variante con un heroId real (spider-man) sigue recuperando el alias congelado (camino feliz)', () => {
+    const { record, reload, entries } = useGameHistory()
+
+    const session = makeSession({
+      selection: { villainId: null, heroes: [{ heroId: 'spider-man', playerName: 'Ana' }] },
+    })
+
+    expect(record(session, 'won')).toBe(true)
+
+    reload()
+    expect(entries.value).toHaveLength(1)
+    const entry = entries.value[0]!
+    expect(entry.players[0]!.heroId).toBe('spider-man')
+    expect(entry.players[0]!.heroName).toBe('Spider-Man')
+  })
+})
+
+// WR-06 (ronda 4, quick 260923-3rm): stampEndOfGame lee Date.now() AQUÍ y
+// SOLO aquí (mismo criterio que record()), delegando la decisión pura en
+// freezeEndInstant (engine/history.ts).
+describe('useGameHistory — stampEndOfGame (WR-06 ronda 4)', () => {
+  function makeNode(runtimeId: string): RuntimeStepNode {
+    return {
+      runtimeId,
+      sectionId: 'test',
+      sectionTitle: 'Test',
+      sectionRepeats: false,
+      phaseId: 'test.phase',
+      phaseTitle: 'Fase',
+      breadcrumb: 'Test › Fase',
+      step: { id: runtimeId, title: 'Paso de prueba', kind: 'step', text: 'Texto base.' },
+    }
+  }
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('sella context.endedAt con Date.now() leído en este instante', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-12T12:00:00.000Z'))
+
+    const { stampEndOfGame } = useGameHistory()
+    const session = makeSession({}, 3)
+    session.sequence = [makeNode('loop.turno.02')]
+    session.cursor = 0
+
+    const sealed = stampEndOfGame(session)
+
+    expect(sealed.context.endedAt).toEqual({
+      at: Date.parse('2026-09-12T12:00:00.000Z'),
+      runtimeId: 'loop.turno.02',
+      round: 3,
+    })
+  })
+})
+
+// WR-02 (quick 260923-3rm): un envoltorio `unreadable` permanente bloqueaba
+// el registro para siempre, sin vía de salida en la interfaz.
+describe('buildUnreadableHistoryView (WR-02, quick 260923-3rm)', () => {
+  it('uninterpretable: título, cuerpo y canArchive: true', () => {
+    const view = buildUnreadableHistoryView('uninterpretable')
+    expect(view.title).toBe('No se puede leer el histórico')
+    expect(view.body).toBe(
+      'Hay un histórico anterior que la app no sabe interpretar. Mientras siga ahí, no se muestra ninguna partida y no se pueden registrar partidas nuevas. Podéis apartarlo como copia y empezar un histórico nuevo: la copia se queda aparte, sin tocar.',
+    )
+    expect(view.canArchive).toBe(true)
+  })
+
+  it('read-failed: título, cuerpo y canArchive: false', () => {
+    const view = buildUnreadableHistoryView('read-failed')
+    expect(view.title).toBe('No se ha podido leer el histórico')
+    expect(view.body).toBe(
+      'La app no ha conseguido leerlo en este momento, así que no puede saber qué partidas hay registradas. Puede deberse al modo privado del navegador. Volved a abrir esta pantalla más tarde.',
+    )
+    expect(view.canArchive).toBe(false)
+  })
+
+  it('statisticsBody es la misma cadena en los dos casos', () => {
+    const esperado = 'Las estadísticas salen del histórico, y ahora mismo la app no puede leerlo. En «Histórico» se explica qué podéis hacer.'
+    expect(buildUnreadableHistoryView('uninterpretable').statisticsBody).toBe(esperado)
+    expect(buildUnreadableHistoryView('read-failed').statisticsBody).toBe(esperado)
+  })
+})
+
+describe('archiveResultMessage (WR-02, quick 260923-3rm)', () => {
+  it('"archived" produce el mensaje de éxito', () => {
+    expect(archiveResultMessage('archived')).toBe('Histórico apartado: la lista empieza de nuevo vacía.')
+  })
+
+  it('"failed" produce el mensaje de fallo', () => {
+    expect(archiveResultMessage('failed')).toBe('No se pudo apartar el histórico. Podéis intentarlo de nuevo más tarde.')
+  })
+
+  it('"not-needed" produce null', () => {
+    expect(archiveResultMessage('not-needed')).toBeNull()
+  })
+})
+
+describe('useGameHistory — unreadableView/archiveUnreadable (WR-02, quick 260923-3rm)', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('con blob corrupto: tras reload(), unreadableView.canArchive === true y entries vacío; archiveUnreadable() → "archived" y después unreadableView === null e isEmpty === true', () => {
+    fakeStorage.setItem('tga:history', 'esto no es JSON válido {{{')
+
+    const { reload, entries, unreadableView, archiveUnreadable, isEmpty } = useGameHistory()
+    reload()
+
+    expect(entries.value).toEqual([])
+    expect(unreadableView.value).not.toBeNull()
+    expect(unreadableView.value?.canArchive).toBe(true)
+
+    expect(archiveUnreadable()).toBe('archived')
+
+    expect(unreadableView.value).toBeNull()
+    expect(isEmpty.value).toBe(true)
+  })
+
+  it('con getItem que lanza: unreadableView.canArchive === false', () => {
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+
+    const { reload, unreadableView } = useGameHistory()
+    reload()
+
+    expect(unreadableView.value).not.toBeNull()
+    expect(unreadableView.value?.canArchive).toBe(false)
+  })
+
+  it('con historia válida, unreadableView es null', () => {
+    const { record, reload, unreadableView } = useGameHistory()
+    record(makeSession(), 'won')
+    reload()
+
+    expect(unreadableView.value).toBeNull()
+  })
+})

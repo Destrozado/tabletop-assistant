@@ -1,5 +1,6 @@
 // engine/schema.ts
-// Único fichero del repo (fuera de node_modules) que importa `zod`. `zod` es
+// engine/schema.ts y engine/catalogueSchema.ts son los dos únicos ficheros
+// del repo (fuera de node_modules) que importan `zod`. `zod` es
 // devDependency y no debe cruzar nunca a `app/` — este esquema corre solo en
 // Node/CI (Vitest), nunca en el navegador (T-01-19).
 import { z } from 'zod'
@@ -68,6 +69,19 @@ const StepSchema = TextBlockSchema.extend({
   id: z.string().regex(idPattern),
   title: z.string().min(1),
   kind: z.enum(['step', 'summary']).default('step'),
+  // D-02 (Fase 6): declara que este paso pinta la rejilla de selección de
+  // villano/héroes. Enum de un solo miembro (no booleano) para que un
+  // segundo valor futuro (p. ej. Warhammer 40.000) sea aditivo, no un
+  // cambio incompatible — hermana de `kind`, que ya cumple el mismo rol de
+  // "qué rama de render usar". No necesita regla en `superRefine`: a
+  // diferencia de `warningDetail`/`optionsWarningDetail`, es un flag
+  // solitario sin campo dependiente que pueda quedar huérfano.
+  selection: z.enum(['characters']).optional(),
+  // D-01/D-02 (Fase 8): mismo enum que `StepValueKind` en engine/types.ts,
+  // literal por literal. Flag solitario sin campo dependiente que pueda
+  // quedar huérfano, igual que `selection` — no necesita regla en
+  // `superRefine`.
+  value: z.enum(['villainHealth', 'heroHealth', 'handSizeAlterEgo']).optional(),
   variants: z.strictObject({
     difficulty: z.strictObject({
       normal: TextBlockSchema.partial().optional(),

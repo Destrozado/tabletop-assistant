@@ -35,6 +35,17 @@ export default defineConfig({
           },
         },
       },
+      {
+        test: {
+          // 260923-3rk (WR-03): código de build solo de Node (scripts/pwa/,
+          // consumido por nuxt.config.ts, nunca por app/). Sin alias: los
+          // ficheros bajo scripts/ usan imports relativos y `node:*`.
+          name: 'build-tooling',
+          include: ['scripts/**/*.test.ts'],
+          environment: 'node',
+          passWithNoTests: true,
+        },
+      },
     ],
   },
 })

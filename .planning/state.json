@@ -1,0 +1,68 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": "v1.8 — Elección de personajes, contadores en mesa e histórico de partidas",
+  "phases": [
+    {
+      "number": "1",
+      "name": "Motor de flujo, selector y preparación de mesa",
+      "status": "complete"
+    },
+    {
+      "number": "2",
+      "name": "Bucle de ronda y reglas verificadas",
+      "status": "complete"
+    },
+    {
+      "number": "3",
+      "name": "Locución por voz y pantalla siempre encendida",
+      "status": "complete"
+    },
+    {
+      "number": "03.1",
+      "name": "Voz pregenerada en español con Gemini TTS",
+      "status": "complete"
+    },
+    {
+      "number": "4",
+      "name": "Instalación y funcionamiento offline",
+      "status": "complete"
+    },
+    {
+      "number": "5",
+      "name": "Catálogo de héroes y villanos",
+      "status": "complete"
+    },
+    {
+      "number": "6",
+      "name": "Selección de villano, héroes y jugadores",
+      "status": "complete"
+    },
+    {
+      "number": "7",
+      "name": "Banda de contadores y compatibilidad de sesión",
+      "status": "complete"
+    },
+    {
+      "number": "8",
+      "name": "Valores conocidos dentro del paso",
+      "status": "complete"
+    },
+    {
+      "number": "9",
+      "name": "Histórico y estadísticas",
+      "status": "complete"
+    },
+    {
+      "number": "10",
+      "name": "Respaldo en Firestore",
+      "status": "complete"
+    }
+  ],
+  "next": {
+    "command": "/gsd:progress",
+    "label": "Show progress",
+    "reason": "Unsure of state — showing progress"
+  },
+  "updated_at": "2026-09-23T02:55:35.613Z"
+}

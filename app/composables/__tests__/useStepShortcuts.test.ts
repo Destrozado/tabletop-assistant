@@ -124,6 +124,19 @@ describe('shortcutsEnabled (D-Q4: cualquier overlay abierto desactiva el atajo)'
   it('hasActiveDetail=true -> false', () => {
     expect(shortcutsEnabled(shortcutState({ hasActiveDetail: true }))).toBe(false)
   })
+
+  // Fase 6 (D-12): con el modal de jugador abierto, `app/pages/[game]/index.vue`
+  // pasa `hasActiveDetail: true` (su condición real es
+  // `activeDetail.value !== null || activeSelectionModal.value !== null`, no
+  // reimplementada aquí — este test solo nombra el caso de esta fase sobre la
+  // MISMA función pura que ya cubre `activeDetail`). La parte no testeable —
+  // que `activeSelectionModal` se ponga y se quite de verdad en `index.vue` al
+  // abrir/cerrar el modal de jugador— es cableado de componente y se verifica
+  // a mano en el plan 06-07 (no hay entorno de test de componentes,
+  // 06-RESEARCH.md Q7).
+  it('D-12: con el modal de jugador abierto (hasActiveDetail=true), Espacio/Enter/← no avanzan el paso -> false', () => {
+    expect(shortcutsEnabled(shortcutState({ hasActiveDetail: true }))).toBe(false)
+  })
 })
 
 describe('isEditableTarget (trampa 4: no robar la tecla a un campo de texto)', () => {
@@ -147,6 +160,9 @@ describe('isEditableTarget (trampa 4: no robar la tecla a un campo de texto)', (
     expect(isEditableTarget({ tagName: 'DIV', isContentEditable: true })).toBe(true)
   })
 
+  // D-17 (Fase 7): este es también el test que fija que los botones ▼/▲ de
+  // la banda de contadores (CounterBand.vue) no quedan excluidos por esta
+  // guarda — cruce de trazabilidad con D-Q1, no una aserción duplicada.
   it('BUTTON -> false (no es editable; el doble avance lo resuelve preventDefault, D-Q1)', () => {
     expect(isEditableTarget({ tagName: 'BUTTON' })).toBe(false)
   })

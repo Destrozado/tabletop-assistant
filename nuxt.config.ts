@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite'
+import { excludeFirebaseSdkFromPrecache } from './scripts/pwa/firebase-sdk-precache'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -10,6 +11,27 @@ export default defineNuxtConfig({
   modules: ['@vueuse/nuxt', '@vite-pwa/nuxt'],
 
   css: ['~/assets/css/main.css'],
+
+  // D-13 (Fase 10): sección nueva — este fichero no tenía `runtimeConfig` en
+  // absoluto antes de esta fase. Las cuatro claves alimentan la config web
+  // de Firebase; NO son un secreto (la seguridad real la dan las reglas de
+  // Firestore, plan 10-02), pero con `nuxt generate` (SSG puro, sin servidor
+  // en producción) estos valores se HORNEAN en el payload en tiempo de
+  // BUILD — cambiar una variable de entorno en Vercel sin disparar un nuevo
+  // build/deploy no tiene ningún efecto sobre el sitio ya servido.
+  // Deliberadamente NO se declaran `storageBucket` ni `messagingSenderId`:
+  // Cloud Storage y Cloud Messaging son OPT-OUT (`COVERAGE.md`), así que no
+  // hay nada que configurar para ellos.
+  runtimeConfig: {
+    public: {
+      // Convención de Nuxt: `NUXT_PUBLIC_<CLAVE_EN_MAYÚSCULAS_CON_GUION_BAJO>`
+      // sobreescribe cada valor por defecto de abajo.
+      firebaseApiKey: '', // NUXT_PUBLIC_FIREBASE_API_KEY
+      firebaseAuthDomain: '', // NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+      firebaseProjectId: '', // NUXT_PUBLIC_FIREBASE_PROJECT_ID — vacío = guarda de configuración (D-13) corta antes del import() dinámico
+      firebaseAppId: '', // NUXT_PUBLIC_FIREBASE_APP_ID
+    },
+  },
 
   vite: {
     plugins: [tailwindcss()],
@@ -56,8 +78,13 @@ export default defineNuxtConfig({
       // navegación entre pantallas usa navigateTo() en un manejador de click,
       // no un <NuxtLink> con href real en el HTML — el crawler no lo
       // descubriría solo, así que cada ruta prerenderizable se enumera aquí.
+      // D-16/09-RESEARCH.md Pitfall 4: el histórico y las estadísticas (plan
+      // 09-08) se añaden por el mismo motivo — sin enumerarlas aquí no
+      // tendrían HTML que Workbox pudiera precachear y fallarían la primera
+      // vez que se abrieran con la red cortada, exactamente el mismo fallo
+      // que ya obligó a declarar '/marvel-champions' a mano.
       crawlLinks: false,
-      routes: ['/', '/marvel-champions'],
+      routes: ['/', '/marvel-champions', '/historico', '/estadisticas'],
     },
   },
 
@@ -174,6 +201,11 @@ export default defineNuxtConfig({
       // No se toca `maximumFileSizeToCacheInBytes`: el límite por defecto de
       // Workbox son 2 MiB por fichero; con los 36 clips reales el mayor pesa
       // ~173 KB y el total ronda 1,4 MB, muy por debajo del límite.
+      //
+      // Los chunks del SDK de Firebase (WR-03) se añaden a esta lista en
+      // TIEMPO DE BUILD, vía el hook `pwa:beforeBuildServiceWorker` de abajo
+      // — no están declarados aquí a mano porque sus nombres cambian de
+      // hash en cada build.
     },
     // Plan 04-04 Task 2: `experimental.enableWorkboxPayloadQueryParams`
     // mitiga que Workbox `generateSW` no resuelva `_payload.json?query`
@@ -183,5 +215,39 @@ export default defineNuxtConfig({
     // "/" a "/marvel-champions" sin red (paso 4) y pasa sin activar esta
     // opción. NO se activa: es una decisión consciente documentada con su
     // evidencia (SUMMARY del plan 04-04), no un olvido.
+  },
+
+  // WR-03 (260923-3rk): sin este hook, `workbox.globPatterns` (arriba,
+  // '**/*.{js,css,html}') precachearía TODOS los `_nuxt/*.js`, incluidos los
+  // que contienen el SDK de Firebase (~715 KB) — contradice D-13: sin las
+  // variables `NUXT_PUBLIC_FIREBASE_*` la sincronización es un no-op
+  // completo, pero descargar el SDK para nada no lo es. Tampoco tiene
+  // sentido precachearlo para uso offline: sin red no hay nada que
+  // sincronizar.
+  //
+  // Por qué se identifica por MARCA DE CONTENIDO (`@firebase/`) y no por
+  // nombre de chunk: los nombres son `[hash].js` sin ninguna convención
+  // legible; forzar un nombre estable con `manualChunks`/`chunkFileNames`
+  // tocaría el troceado de Vite 8/Rolldown del que depende el gate de
+  // e2e/bundle-budget.spec.ts (D-16/SYNC-05), fuera de alcance de este
+  // arreglo.
+  //
+  // TRAMPA evitada (ver <interfaces> del plan 260923-3rk): declarar
+  // `workbox.manifestTransforms` a mano desactivaría el transform propio de
+  // @vite-pwa/nuxt que convierte `marvel-champions/index.html` en la URL
+  // limpia `marvel-champions` — rompería la navegación sin red. Por eso se
+  // usa este hook más `globIgnores`, nunca `manifestTransforms`.
+  //
+  // Compromiso aceptado: sin red, el SDK ya no está precacheado, lo que no
+  // habilita nada porque sin red no hay nada que sincronizar. Tras un
+  // despliegue que cambie el hash del SDK, una pestaña con la build vieja
+  // podría no encontrar su chunk del SDK hasta aplicar la banda de
+  // actualización (COMP-03) — `syncPending` (useHistorySync.ts) ya captura
+  // ese fallo de import() y las partidas siguen pendientes, sin pérdida de
+  // datos.
+  hooks: {
+    'pwa:beforeBuildServiceWorker'(options) {
+      excludeFirebaseSdkFromPrecache(options)
+    },
   },
 })

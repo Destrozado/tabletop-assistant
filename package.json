@@ -8,10 +8,12 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "test": "vitest run",
+    "typecheck": "nuxt typecheck",
     "postinstall": "nuxt prepare",
     "voice:generate": "node scripts/voice/generate.mjs",
     "voice:probe": "node scripts/voice/generate.mjs --probe",
     "icons:generate": "node scripts/pwa/generate-icons.mjs",
+    "catalogue:generate": "node scripts/catalogue/fetch-marvelcdb.mjs",
     "e2e": "playwright test",
     "e2e:install": "playwright install chromium"
   },
@@ -20,6 +22,7 @@
     "@vite-pwa/nuxt": "^1.1.1",
     "@vueuse/core": "^14.4.0",
     "@vueuse/nuxt": "^14.4.0",
+    "firebase": "^12.19.0",
     "nuxt": "^4.5.2",
     "tailwindcss": "^4.3.3",
     "vue": "^3.5.41",
@@ -28,7 +31,9 @@
   "devDependencies": {
     "@nuxt/test-utils": "^4.2.0",
     "@playwright/test": "^1.62.1",
+    "typescript": "^5.9.3",
     "vitest": "^4.1.11",
+    "vue-tsc": "^3.3.11",
     "zod": "^4.4.3"
   }
 }

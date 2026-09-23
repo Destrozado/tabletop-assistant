@@ -209,6 +209,27 @@ describe('GameDefinitionSchema', () => {
     })
   })
 
+  describe('selection (D-02, Fase 6)', () => {
+    it('acepta un paso con selection: "characters"', () => {
+      const game = baseGame()
+      ;(game.sections[0].phases[0].steps[0] as any).selection = 'characters'
+      expect(() => GameDefinitionSchema.parse(game)).not.toThrow()
+    })
+
+    it('lanza ZodError con un valor de selection fuera del enum', () => {
+      const game = baseGame()
+      ;(game.sections[0].phases[0].steps[0] as any).selection = 'personajes'
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+
+    it('lanza ZodError con selection declarado dentro de una variante de dificultad (Pitfall 2: no es parte de TextBlockSchema)', () => {
+      const game = baseGame()
+      const step = game.sections[0].phases[0].steps[0] as any
+      step.variants = { difficulty: { normal: { selection: 'characters' } } }
+      expect(() => GameDefinitionSchema.parse(game)).toThrow()
+    })
+  })
+
   describe('warningDetail (D-32)', () => {
     it('lanza ZodError con un warningDetail de 400 caracteres', () => {
       const game = baseGame()

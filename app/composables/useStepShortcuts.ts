@@ -115,6 +115,16 @@ export function shortcutsEnabled(state: ShortcutState): boolean {
 // pasarle `event.target` real en el cableado sin un cast a un tipo del DOM.
 // Un `<button>` NO es editable: el doble avance que produciría lo resuelve
 // `preventDefault()` (D-Q1), no esta guarda.
+//
+// D-17 (Fase 7): los botones ▼/▲ de `CounterBand.vue` son elementos
+// `<button>`, por tanto NO quedan excluidos por esta guarda — con el foco en
+// una flecha, Espacio sigue avanzando el paso exactamente igual que en
+// v1.7. Esto es LA DECISIÓN (los contadores se operan con el dedo, no con
+// el teclado, HP-09), no un descuido que nadie vio. `shortcutsEnabled` no
+// gana ninguna rama nueva por esta fase. Quien vaya a "arreglarlo"
+// añadiendo una guarda para `<button>` (o para `BUTTON` en concreto) debe
+// leer D-17 primero: cambiaría el comportamiento de Espacio/Enter/← para
+// TODOS los botones de la app, no solo los de la banda de contadores.
 export function isEditableTarget(target: { tagName?: string, isContentEditable?: boolean } | null): boolean {
   if (!target) return false
   if (target.isContentEditable) return true

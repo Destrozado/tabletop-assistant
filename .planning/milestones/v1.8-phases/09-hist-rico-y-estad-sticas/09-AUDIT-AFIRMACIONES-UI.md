@@ -1,0 +1,276 @@
+# Auditoría de afirmaciones de interfaz — Q4: ¿qué le afirma esta pantalla al grupo sobre sus datos?
+
+**Encargo:** cerrar el agujero de proceso que `09-AUDIT-FRONTERAS.md` §5 dejó abierto a propósito
+(«fuera de perímetro: los ficheros `.vue`») y que `09-VERIFICATION.md` (ronda 4) confirmó que era
+exactamente por donde CR-01 (ronda 4) se coló: la afirmación sin respaldo no vivía ya en el motor
+ni en la costura de almacenamiento — se había mudado al texto que la interfaz le muestra al grupo.
+
+**Perímetro auditado:** exactamente los 24 ficheros que devuelve `find app -name "*.vue" | sort` a
+fecha de este plan, en ese mismo orden. Ni una función más de las 54 ya auditadas por
+`09-AUDIT-FRONTERAS.md` — esas no se repiten aquí.
+
+---
+
+## 1. Método
+
+`09-AUDIT-FRONTERAS.md` (plan 09-17) formuló tres preguntas —Q1 (fallo a medias), Q2 (clave de
+objeto no confiable), Q3 (el valor que una función le devuelve a OTRA función puede afirmar algo
+que no ha ocurrido)— y las aplicó a 54 funciones de composables y motor. Ninguna de las tres cubre
+la superficie que este documento audita, porque las tres miran una función pasándole un valor a
+otra función. Ninguna mira **la última costura**: la que llega a los ojos del grupo sentado a la
+mesa.
+
+**Q4 — ¿puede esta frase que la pantalla muestra afirmar algo sobre los datos del grupo que no ha
+ocurrido?** Nace directamente de CR-01 ronda 4 (`09-VERIFICATION.md`): `HistorySavedNotice.vue`
+pintaba «la partida… sigue guardada en el dispositivo» sin que ningún valor de retorno lo
+respaldara — `save()` descartaba a propósito el booleano de `writeRaw()` (decisión VOZ-06/D-51,
+correcta para no bloquear `next()`/`prev()`, pero incompatible con la promesa nueva que la
+interfaz hacía desde 09-16). El patrón es idéntico al de Q3, trasladado un nivel más arriba: de
+«¿la función que devuelve el dato miente?» a «¿la pantalla que pinta el dato miente, aunque el
+dato que recibe sea el correcto?». Sin Q4, una interfaz que compone una frase nueva a partir de
+datos ya buenos —pero sin comprobar el booleano concreto que la sostiene— pasaría cualquier
+barrido de Q1/Q2/Q3 sin que nadie lo notara hasta la quinta ronda.
+
+**Q5 — ¿el dato que respalda esta frase responde a la MISMA pregunta que la frase
+plantea?** Nace de un agujero que el propio Q4 dejó abierto sin querer, y que la ronda 5
+(`09-VERIFICATION.md`) encontró exactamente donde Q4 debería haberlo cazado: la ronda 4
+introdujo Q4 y el barrido de este documento marcó `HistorySavedNotice.vue` como
+`RESPALDADA` por comprobar que su texto dependía de un booleano real (`save()`/
+`writeRaw()`) — sin auditar si ESE booleano contestaba la pregunta que el texto hacía. Una
+escritura contesta «¿ha funcionado esto que acabo de hacer AHORA?»; el texto de la
+interfaz afirmaba algo sobre el estado COMPLETO del dispositivo («la partida sigue
+guardada»), una pregunta distinta que el mismo booleano no puede responder por sí solo.
+Q4 comprueba que existe un valor de retorno; Q5 comprueba que ese valor de retorno mide lo
+que la frase dice medir. Q5 es la pregunta que habría cazado la ronda 5 dentro del propio
+barrido de la ronda 4, y la que convierte un veredicto `RESPALDADA` en algo que
+efectivamente significa algo.
+
+**Q6 — ¿la lectura que respalda esta frase mide el MISMO objeto del que la frase habla?**
+Nace, sin suavizarlo, de que Q5 se aplicó **a medias** sobre `HistorySavedNotice.vue`: el
+addendum de la ronda 5 (más abajo) comprobó que el dato venía de una lectura real —que era
+el hallazgo de esa ronda— y no que esa lectura fuera de **la misma partida** de la que el
+texto hablaba. La ronda 6 (`09-VERIFICATION.md`) encontró el hueco exacto: `failure-recoverable`
+afirmaba «esta partida sigue guardada», pero `readStoredProgress(game)` (sin segundo
+argumento) solo podía contestar «¿hay ALGUNA partida reanudable?». Q5 distingue «escritura
+vs lectura»; Q6 distingue «alguna vs ésta». Las dos hay que hacerlas, en ese orden, y
+**aprobar Q5 no exime de Q6** — es precisamente el error de método que dejó pasar la
+séptima cara del defecto de esta fase.
+
+**Cierre de la regla de exclusión por «acción futura».** Hasta esta ronda, la fila del
+diálogo de fin de partida en el inventario de §2 llevaba el veredicto que este §1 excluía
+con este motivo literal: «describen… una acción FUTURA — “Se borrará el progreso
+guardado…” —, no un hecho ya comprobado; excluido por la regla de acción futura». Esa exclusión es lo que dejó vivir a `endGameBody`
+como defecto invisible para este barrido desde la ronda 4. La regla queda reescrita: una
+promesa sobre una acción futura **sí** entra en el barrido cuando la app es quien ejecuta
+esa acción y tiene una rama en la que no la ejecuta; lo que queda fuera son las promesas
+sobre cosas que no dependen de la app (p. ej. que la pantalla siga encendida).
+`endGameBody` es el ejemplar que la regla vieja dejó pasar durante tres rondas (4, 5 y 6) —
+sin la reescritura, esta misma pregunta (Q6) no habría tenido ninguna fila de
+`GameOutcomeDialog.vue` sobre la que aplicarse.
+
+**Criterio de inclusión** (para que el barrido sea reproducible y no una lista a ojo): entra en el
+inventario **toda frase que la interfaz muestre y que afirme un hecho sobre el estado de los datos
+persistidos del grupo** (histórico, progreso de partida, preferencia de voz): que existen, que se
+guardaron, que se borraron, que siguen ahí, o que no hay ninguno. **NO** entran las etiquetas de
+control («GANADA», «Cerrar aviso», «Histórico»), las preguntas («¿Cómo terminó la partida?»), el
+contenido de las reglas del juego (texto de paso, opciones, avisos de turno) ni los textos que
+describen una acción **futura que no depende de la app** («La pantalla se mantendrá
+encendida…»): eso es una promesa sobre algo que la app no controla del todo, no una
+afirmación sobre datos guardados. Reescrito tras la ronda 6: una promesa sobre una acción
+futura que la app SÍ ejecuta —y que tiene una rama en la que NO la ejecuta— («Se borrará el
+progreso guardado…», cuando `preserveProgress` puede ser `true`) **sí** entra en el
+barrido, porque es exactamente el tipo de afirmación que puede ser falsa en una rama
+concreta sin que nadie la comprobara nunca (`endGameBody`, ronda 6).
+
+**Veredictos, exactamente tres, uno por fila:**
+
+- **RESPALDADA** — existe un valor de retorno concreto que sostiene la afirmación; se nombra la
+  función y el fichero.
+- **DEFECTO UI-xx** — la afirmación no tiene respaldo; identificador correlativo, con el escenario
+  concreto en que resulta falsa. Por escribirse en este barrido, no por arreglarse aquí
+  (`<scope_boundary>` de este plan: ningún fichero de código se toca).
+- **ACEPTADO** — la afirmación es imprecisa o depende de una condición de baja probabilidad, pero
+  el riesgo está evaluado explícitamente y es bajo. **La justificación tiene que ser de RIESGO,
+  nunca de alcance de plan** — la regla que este mismo barrido nace de aplicar: el dictamen de
+  `09-VERIFICATION.md` (ronda 4) sobre los dos diferidos reclasificados (WR-04, WR-05(b)) fue
+  precisamente que su motivo de aplazamiento registrado «es una razón de ALCANCE DE PLAN, no una
+  evaluación de riesgo aceptado», y por eso dejaron de ser diferidos válidos. Ningún `ACEPTADO` de
+  este documento repite ese error: cada uno explica POR QUÉ el riesgo es bajo, nunca que "no
+  entraba en el encargo".
+
+**Ficheros sin ninguna afirmación de este tipo** (rótulos de control, contenido de reglas,
+promesas de acción futura, estado de sesión en memoria que no compromete ningún dato persistido)
+llevan una única fila con veredicto `NO APLICA` — no es un hueco del barrido, es que la pregunta
+Q4 no tiene nada que morder ahí.
+
+**Comandos ejecutados** (además de la lectura íntegra de los 24 ficheros y de
+`useHistorySavedNotice.ts`/`useGameHistory.ts`, que es donde vive el texto que varios de estos
+componentes solo interpolan):
+
+```
+find app -name "*.vue" | sort
+grep -n "Partida guardada\|CONTINUAR\|savedSummary" app/pages "app/pages/[game]/index.vue" app/components/ResumePrompt.vue
+grep -n "function save\|function load\|function resume\|function clear" app/composables/usePersistedSession.ts
+grep -n "export function resume\|outcome:" engine/persistence.ts
+```
+
+---
+
+## 2. Inventario
+
+Una fila por cada fichero de `find app -name "*.vue" | sort`, en ese orden. Los ficheros con
+varias afirmaciones llevan una fila por afirmación.
+
+| Fichero | Afirmación (texto literal o su origen) | Valor de retorno que la respalda | Veredicto |
+|---|---|---|---|
+| `app/app.vue` | — (sin afirmación de estado: solo monta `<NuxtPwaManifest/>`, la banda de actualización y el aviso de histórico) | — | NO APLICA |
+| `app/components/AppHeader.vue` | — (componente tonto: `sectionLabel`/`position`/`sessionContext` describen la posición actual de la sesión en memoria, no un hecho sobre datos guardados; `voiceState` es una etiqueta de control del botón de silencio, no una afirmación de que la preferencia se guardó) | — | NO APLICA |
+| `app/components/ConfirmDialog.vue` | — (genérico: `title`/`body` llegan enteros por prop desde quien lo monta; este fichero no compone ninguna frase propia) | — | NO APLICA |
+| `app/components/ContentChangedNotice.vue` | «La partida guardada ya no coincide con el contenido actual» (solo se monta cuando `awaitingContentChangedAck` es `true`) | `resume(persisted, structural)` (`engine/persistence.ts:88-123`) devuelve `outcome: 'content-changed'` exactamente cuando el `context` persistido no encaja con la estructura del contenido actual (verificado en el código: líneas 108-123, tres rutas de `content-changed` distintas, todas explícitas); `app/pages/[game]/index.vue:159-164` solo activa este aviso con ese `outcome` concreto | RESPALDADA |
+| `app/components/CounterBand.vue` | — (`displayValue`/`defeated` son el estado de vida EN CURSO calculado por el motor sobre la sesión en memoria; no es una afirmación sobre si algo se guardó, se borró o sigue ahí) | — | NO APLICA |
+| `app/components/GameOutcomeDialog.vue` | Su `warningBody` es `endGameBody`, calculado en `app/pages/[game]/index.vue`. Bajo la regla de §1 reescrita en la ronda 6, la promesa «se borrará el progreso guardado» ENTRA en el barrido porque la app sí ejecuta ese borrado y tiene una rama en la que no lo hace | `endGameBody` era falso en la rama `preserveProgress: true` (registro fallido): el texto anterior («Se borrará…Esta acción no se puede deshacer») prometía un borrado incondicional cuando `planGameEnd(false, stored).preserveProgress` es `true` — NO se borra. El plan 09-30 lo reescribió: «Salir sin registrar» y «Registro con éxito» → SE BORRA (`preserveProgress: false`); «Registro fallido» (cualquiera de los cuatro estados) → NO SE BORRA, y el texto ahora lo dice («la app conservará el progreso para que podáis reintentarlo») | DEFECTO (rondas 4-6) → CORREGIDO en 09-30 |
+| `app/components/GameSelectorScreen.vue` | — (`PRÓXIMAMENTE`/títulos de juego y los rótulos «Histórico»/«Estadísticas» son etiquetas de navegación, no afirmaciones sobre datos) | — | NO APLICA |
+| `app/components/HistoryEntryCard.vue` | `resultLabel`/`causeLabel`/`contextLine`/`playerLines`/`noSelectionLine`/`roundAndDurationLine` — toda la tarjeta de una partida registrada | `buildHistoryCardView` (`app/composables/useGameHistory.ts:103-207`); el propio componente no calcula ni interpola nada, solo renderiza el resultado. Nota: las guardas de tipo de esa función (BF-01/BF-02, ya cerradas por 09-17 y registradas en `09-AUDIT-FRONTERAS.md` §3) son las que sostienen que esta tarjeta nunca pinte `undefined`/`NaN` literal — este barrido no las repite, solo confirma que el componente que las consume no añade ninguna afirmación propia encima | RESPALDADA |
+| `app/components/HistorySavedNotice.vue` | «✓ Partida registrada» / «⚠ No se pudo guardar la partida» + cuerpo (tres variantes, incluida «La partida no se ha perdido: sigue guardada en el dispositivo…») | ~~`resolveNoticeVariant(historyRecorded, progressSecured)` (`app/composables/useHistorySavedNotice.ts:39-42`), alimentada por `NOTICE_HEADING`/`NOTICE_BODY` (líneas 66-81); `historyRecorded` es el booleano real de `record()` (`appendHistoryEntry`) y `progressSecured` es el booleano real de `save()` (plan 09-18, `usePersistedSession.ts:313`), cableados en `app/pages/[game]/index.vue:607-611` (`onOutcomeRecorded`: `guardado = record(...)`, `progresoAsegurado = guardado ? false : save(session.value)`). Esto es precisamente el cierre de CR-01 (ronda 4) — la variante `failure-unrecoverable` (líneas 77-80) YA NO contiene «sigue guardada» ni la instrucción de reintentar, exactamente lo que `missing:` de `09-VERIFICATION.md` pedía~~ **CORREGIDO (ronda 5, plan 09-27):** este veredicto `RESPALDADA` de la ronda 4 era incompleto bajo Q5 — `progressSecured` (el booleano de `save()`) contestaba «¿ha funcionado esta escritura de AHORA?», no la pregunta que el texto («la partida sigue guardada en el dispositivo») realmente plantea sobre el estado COMPLETO del dispositivo. La ronda 5 (`09-VERIFICATION.md`) lo encontró como BLOCKER. Situación tras el cierre (planes 09-24/09-25/09-26): la variante la decide `planGameEnd(historyRecorded, stored)` (`app/composables/useHistorySavedNotice.ts`) a partir de un `StoredProgress` (`'resumable' \| 'absent' \| 'unknown'`) procedente de una lectura real del dispositivo, `readStoredProgress` (`app/composables/useStoredProgress.ts`) — nunca ya de un booleano de escritura — y un gate automatizado (`app/composables/__tests__/afirmacionesRespaldadas.test.ts`) impide que una frase nueva vuelva a entrar sin que su valor de retorno responda la misma pregunta que plantea **CORREGIDO OTRA VEZ (ronda 6, plan 09-28):** el veredicto anterior seguía incompleto bajo Q6 — comprobó que `stored` venía de una lectura real (Q5), pero no que esa lectura fuera de LA MISMA partida que el texto nombraba: `readStoredProgress(game)`, sin segundo argumento, solo podía contestar «¿hay alguna?», mientras `failure-recoverable` afirmaba «esta partida sigue guardada». Situación tras el plan 09-28: la variante la decide `planGameEnd` a partir de un `StoredProgress` de **cuatro** valores producido por `readStoredProgress(game, esperada)`, que compara `runtimeId`/`round`/`context` de lo que hay en disco contra la sesión que acaba de terminar (`esLaMismaPartida`, `app/composables/useStoredProgress.ts`), y existe la variante `failure-stale` para el caso «hay algo, pero no es esto» | RESPALDADA bajo Q6 desde la ronda 6 (09-28) — pendiente de confirmación por verificación |
+| `app/components/IndexOverlay.vue` | Marcas `✓`/`●` (paso hecho / paso actual) en la lista de pasos | `tableOfContents(session.value.sequence, session.value.cursor)` (`app/pages/[game]/index.vue:231-233`, `engine/toc.ts`); el propio componente no guarda ningún estado de qué se ha visitado, solo pinta lo que la posición real del cursor ya determina | RESPALDADA |
+| `app/components/MesaListaScreen.vue` | — (`checklist` es contenido de reglas del juego —qué repasar antes de empezar—, no un dato del grupo) | — | NO APLICA |
+| `app/components/MiniSetupScreen.vue` | «No hemos podido comprobar si este dispositivo tiene una partida guardada de este juego. Podéis empezar una nueva, pero si había alguna, al guardar la nueva podríais sustituirla.» (`unverifiedProgressNotice`, nueva en el plan 09-29, ronda 6); «La pantalla se mantendrá encendida…» sigue siendo promesa de comportamiento futuro que no depende de la app, excluida por la regla del §1 | `planProgressMount(stored, outcome)` (`app/composables/useProgressMountPlan.ts`) solo emite `unverifiedNotice = UNVERIFIED_PROGRESS_NOTICE` cuando `stored === 'unknown'`; la frase afirma exactamente eso (que la lectura falló), sin negar ni afirmar la existencia de una partida | RESPALDADA |
+| `app/composables/useProgressMountPlan.ts` | La casa de la copy de arriba (`UNVERIFIED_PROGRESS_NOTICE`) y de la decisión de qué pantalla mostrar al montar | `planProgressMount` es una función pura y TOTAL sobre los cuatro valores de `StoredProgress`, con guarda `never` en el `default` del `switch` (un quinto valor futuro rompe `npm run typecheck`) y test propio (`useProgressMountPlan.test.ts`) con tabla de verdad completa; `'absent'` y `'unknown'` producen resultados DISTINTOS — el hueco exacto del Gap #1/CR-02 de la ronda 6 | RESPALDADA |
+| `app/components/NavBand.vue` | — (rótulos de los dos botones fijos, sin ninguna afirmación de datos) | — | NO APLICA |
+| `app/components/PlayerModal.vue` | «ya lo lleva {nombre}» junto al héroe de la lista | `buildTakenByMap(playerSlots.value, activeSelectionModal.value.slot)` (`app/pages/[game]/index.vue:376-380`, `app/composables/useHeroSearch.ts:150-171`), sobre `playerSlots` derivado en vivo de `session.context` — refleja la asignación real de héroes entre jugadores de ESTA partida. Nota: el riesgo de que esta misma función **lance** con un `heroId` heredado de `Object.prototype` (`localStorage` manipulado a mano) es BF-05, ya identificado y registrado por `09-AUDIT-FRONTERAS.md` §3 — es un riesgo de Q2 (clave no confiable), no de Q4 (esta fila no encuentra ninguna afirmación FALSA, solo confirma que, cuando el componente consigue pintarse, lo que dice es cierto) | RESPALDADA |
+| `app/components/ResumePrompt.vue` | «Partida guardada» + `{{ savedSummary }}` (solo se monta cuando `awaitingResumeChoice` es `true`) | `resume(persisted, structural)` (`engine/persistence.ts:88-144`) devuelve `outcome: 'resumed'` únicamente cuando `isPersistedPosition(persisted)` ya validó las 5 propiedades del envoltorio (verificado como `OK` por `09-AUDIT-FRONTERAS.md` §2); `app/pages/[game]/index.vue:158-161` solo activa este aviso con ese `outcome` concreto. `resume()` no forma parte del perímetro de 54 funciones de `09-AUDIT-FRONTERAS.md` (vive en `engine/persistence.ts`, no en los 3+3 ficheros que ese barrido cubrió), pero `09-VERIFICATION.md` (ronda 4) ya la verificó de forma independiente («`resume()` degrada a `'fresh'` ante un `context` no validable») | RESPALDADA |
+| `app/components/StepScreen.vue` | — (contenido de reglas del paso actual — texto, opciones, avisos — y valores de contador EN CURSO, no afirmaciones sobre histórico/progreso/voz) | — | NO APLICA |
+| `app/components/UpdateBanner.vue` | «Podéis seguir jugando y aplicarla cuando queráis: la partida se reanuda en el mismo paso» | Depende de que el autoguardado (`watchDebounced` de 300 ms sobre `session` + el listener de `pagehide`, `app/pages/[game]/index.vue:172-195`) haya escrito con éxito ANTES de que `updateServiceWorker(true)` recargue la página — y ese autoguardado, igual que `save()`/`saveVoicePreference()` en el resto de la app, **ignora a propósito** el booleano de `writeRaw()` (decisión ya documentada y aceptada en `09-AUDIT-FRONTERAS.md` §2, fila `save`, motivo VOZ-06/D-51: un fallo de almacenamiento no puede bloquear la partida). Riesgo evaluado, no de alcance: exige que el modo privado del navegador o la cuota llena coincidan EXACTAMENTE con el instante de recarga; y aun si ocurriera, el resultado es volver al mini-setup (una fricción de configurar de nuevo), no una pérdida de datos ni una confirmación falsa sobre un resultado ya jugado — categoría de impacto muy distinta de CR-01 (ronda 4), que afirmaba sobre el desenlace de una partida ya terminada | ACEPTADO |
+| `app/components/VillainPickerModal.vue` | `✓` junto al villano marcado como elegido | `selectedVillainId` (`resolveVillainId(session.context)`, `engine/selection.ts`, ya verificada `OK` por `09-AUDIT-FRONTERAS.md` §2), pasada por prop desde `app/pages/[game]/index.vue` — refleja la elección real de la sesión en curso | RESPALDADA |
+| `app/components/VoiceUnavailableNotice.vue` | «Sin voz en este dispositivo» | Describe una capacidad del dispositivo (síntesis de voz no disponible), no un dato persistido del grupo — excluida por el criterio de inclusión del §1 (no es histórico, progreso ni preferencia GUARDADA, es disponibilidad de hardware/SO en este momento) | NO APLICA |
+| `app/components/WarningDetailModal.vue` | — (`heading`/`body` son contenido de reglas del paso —el detalle de un aviso o de una opción del turno—, no un dato del grupo) | — | NO APLICA |
+| `app/pages/[game]/index.vue` | — (el propio fichero de página no compone ninguna frase propia sobre datos persistidos fuera de las que ya delega en los componentes de arriba; «No encontramos ese juego»/«Cargando…» son estados neutros de carga/routing) | — | NO APLICA |
+| `app/pages/estadisticas.vue` | `row.valueLabel` («{wins} de {played} · {pct} %») en las tablas de héroe/villano | `toStatRowView`/`aggregateStatistics` (`engine/statistics.ts`, `app/composables/useGameHistory.ts:230-236`), ya auditadas `OK`/`ACEPTADO` (IN-13, cosmético) por `09-AUDIT-FRONTERAS.md` §2 — este barrido confirma que la plantilla no añade ninguna afirmación propia encima de esas cifras | RESPALDADA |
+| `app/pages/estadisticas.vue` | «Todavía no hay estadísticas» (estado vacío, `statisticsView.emptyTitle`/`emptyBody`) | `buildStatisticsView`/`isEmpty` (`app/composables/useGameHistory.ts:241-272`), sobre `entries.value` cargado por `loadHistory()`. `loadHistory()` colapsa a propósito `read.kind !== 'ok'` —lo que incluye un `tga:history` `'unreadable'`— al mismo `[]` que «no hay ninguna partida» (`09-AUDIT-FRONTERAS.md` §2, fila `loadHistory`, veredicto `OK` documentado como colapso deliberado). Con un histórico realmente ilegible, esta pantalla dice «Todavía no hay estadísticas» cuando en realidad SÍ hay partidas, solo que no se pueden leer — el mismo riesgo, exactamente, que WR-02 ya registra en `deferred-items.md` para `/historico`. Se ENLAZA aquí en vez de duplicarse: es la misma causa raíz (`readEnvelope`/`loadHistory`), la misma decisión de riesgo ya evaluada (recuperar un blob `unreadable` exige una superficie de interfaz nueva que `09-UI-SPEC.md` no cubre), solo que `/estadisticas` no se había nombrado explícitamente hasta este barrido | ACEPTADO — mismo riesgo que WR-02 (`deferred-items.md`), extendido aquí a `/estadisticas` |
+| `app/pages/historico.vue` | Tarjetas de partida (delegadas en `HistoryEntryCard`, ver fila propia arriba) | `cardViews` (`app/composables/useGameHistory.ts:306`) | RESPALDADA |
+| `app/pages/historico.vue` | «Todavía no hay partidas registradas» (estado vacío, `!isEmpty`) | `isEmpty` (`app/composables/useGameHistory.ts:308`), mismo `entries.value`/`loadHistory()` que la fila de `estadisticas.vue` de arriba. Este es el caso NOMBRADO explícitamente por el propio `<read_first>` de este plan y por WR-02 en `deferred-items.md`: con un `tga:history` `'unreadable'` de forma permanente, esta pantalla afirma «todavía no hay partidas» cuando en realidad SÍ las hay y no se pueden leer. **Se ENLAZA a WR-02 en vez de duplicarse** — el motivo de aplazamiento de WR-02 ya es de RIESGO (exige una superficie de interfaz nueva de archivado/recuperación, no construida a ciegas en un cierre de huecos), no de alcance, así que sigue siendo una razón de aplazamiento válida bajo el criterio que este mismo documento aplica | ACEPTADO — WR-02 (`deferred-items.md`), confirmado vigente por este barrido |
+| `app/pages/index.vue` | — (compone `GameSelectorScreen` con el catálogo real de juegos y navega; ninguna frase propia) | — | NO APLICA |
+
+---
+
+## 3. Defectos
+
+Ningún `DEFECTO UI-xx` nuevo. Los tres BLOCKER/afirmaciones sin respaldo que las rondas 3 y 4 de
+`09-VERIFICATION.md` encontraron en esta misma superficie (`.vue`) — CR-01 ronda 4
+(`HistorySavedNotice.vue`), y las dos piezas accionables de WR-04/WR-05(b) — ya están cerrados por
+los planes 09-18 (`save()` devuelve el resultado real), 09-19 (foco y nombre accesible en
+`GameOutcomeDialog.vue`) y 09-22 (las bandas fuera de flujo). Este barrido los ha vuelto a leer
+directamente en el código (no ha aceptado los SUMMARY sin contrastar) y confirma que las
+afirmaciones actuales de esas tres superficies están respaldadas. Las dos afirmaciones que este
+barrido añade como `ACEPTADO` (`UpdateBanner.vue`, y el estado vacío compartido de
+`estadisticas.vue`/`historico.vue`) llevan razón de riesgo explícita, no de alcance — ninguna
+exige un cambio de código bajo el `<scope_boundary>` de este plan.
+
+### Addendum (ronda 5, plan 09-27) — la fila `HistorySavedNotice.vue` se corrige bajo Q5
+
+El veredicto `RESPALDADA` de la fila `HistorySavedNotice.vue` en §2 (arriba) fue correcto
+bajo Q4 pero **incompleto bajo Q5**: comprobó que existía un booleano real
+(`progressSecured`, de `save()`), sin comprobar que ese booleano contestara la misma
+pregunta que el texto de la interfaz planteaba. La ronda 5 (`09-VERIFICATION.md`) encontró
+el hueco como BLOCKER. La fila queda corregida en §2 con tachado sobre la justificación
+original y la situación real tras los planes 09-24/09-25/09-26: `readStoredProgress`
+como autoridad de lectura única, `StoredProgress` como tipo que sustituye al booleano de
+escritura, y el gate `afirmacionesRespaldadas.test.ts`.
+
+**No se rehace el barrido de los 24 `.vue`.** Verificado con
+`git log --oneline 7a409b2..HEAD -- 'app/**/*.vue'` (`7a409b2` es el commit que creó este
+documento): el único commit que ha tocado un `.vue` desde entonces es `4b02c0e` (plan
+09-26), y el único fichero que toca es `app/pages/[game]/index.vue` — cuya fila en §2 ya
+está marcada `NO APLICA` (la página no compone ninguna frase propia, solo cablea props a
+los componentes de arriba) y cuyo cambio real fue de qué función invoca
+(`readStoredProgress`/`planGameEnd` en vez de la composición manual anterior), no de qué
+`<template>` pinta. Ningún otro de los 23 ficheros restantes tiene un commit posterior a
+`7a409b2`. Afirmar un barrido íntegro que no se ha hecho sería, literalmente, el defecto
+que este documento audita. El resto de las filas de §2 se mantiene tal cual estaba, con
+su veredicto original vigente.
+
+### Addendum (ronda 6, plan 09-31) — Q6, la regla de acción futura y las filas que la ronda 6 obliga a corregir
+
+La ronda 6 (`09-VERIFICATION.md`) encontró que el veredicto `RESPALDADA` de
+`HistorySavedNotice.vue`, corregido en la ronda 5 bajo Q5, seguía incompleto: comprobó que
+`stored` venía de una lectura real, no que esa lectura fuera de LA MISMA partida que el
+texto nombraba. §1 gana Q6 para cazar exactamente ese patrón, y la fila de
+`HistorySavedNotice.vue` en §2 queda corregida otra vez con la situación tras el plan 09-28
+(`readStoredProgress(game, esperada)`, `esLaMismaPartida`, `failure-stale`).
+
+Un segundo hallazgo de la ronda 6, de proceso: la regla de exclusión por «acción futura» de
+§1 dejó vivir a `endGameBody` (`GameOutcomeDialog.vue`) como defecto invisible para este
+barrido durante tres rondas (4, 5 y 6), porque estaba marcado `NO APLICA` sin más
+comprobación. La regla queda reescrita (ver §1) y la fila de `GameOutcomeDialog.vue` deja
+de ser `NO APLICA`: pasa a `DEFECTO (rondas 4-6) → CORREGIDO en 09-30`, con la tabla de
+veracidad rama por rama resumida en la fila.
+
+Este lote también crea dos superficies nuevas que el barrido no había visto: el aviso de
+lectura no comprobada del mini-setup (`app/components/MiniSetupScreen.vue`, ahora
+`RESPALDADA`) y su composable (`app/composables/useProgressMountPlan.ts`, `RESPALDADA`,
+primer fichero `.ts` que entra en este inventario — el perímetro original de §0 seguía
+siendo exactamente los 24 `.vue`; esta única excepción se documenta aquí en vez de
+reescribir esa declaración, porque el criterio de inclusión de §1 nunca excluyó los `.ts`
+por diseño, solo el barrido original no tuvo ninguno que auditar).
+
+**No se rehace el resto del barrido de los 24 `.vue`.** Los ficheros que este lote NO ha
+tocado (los otros 21, y las filas de `ContentChangedNotice.vue`, `HistoryEntryCard.vue`,
+`IndexOverlay.vue`, `PlayerModal.vue`, `ResumePrompt.vue`, `UpdateBanner.vue`,
+`VillainPickerModal.vue`, `estadisticas.vue`, `historico.vue`) mantienen su veredicto
+original, verificado por `09-28-SUMMARY.md`/`09-29-SUMMARY.md`/`09-30-SUMMARY.md`: ninguno
+de los tres planes de cierre tocó esos ficheros más allá de lo ya descrito en sus propios
+SUMMARY (`app/composables/useStoredProgress.ts`, `useHistorySavedNotice.ts`,
+`useProgressMountPlan.ts`, `MiniSetupScreen.vue`,
+`app/composables/__tests__/afirmacionesRespaldadas.test.ts` y
+`app/pages/[game]/index.vue`).
+
+---
+
+## 4. Recuento
+
+**Actualizado en la ronda 6 (plan 09-31).** El perímetro original (§0) siguió siendo
+exactamente los 24 `.vue`; este lote añade un único fichero `.ts` (`useProgressMountPlan.ts`)
+por ser la casa nueva de una afirmación sobre los datos del grupo — no se ha rehecho el
+barrido de los 24 `.vue`, solo se han corregido/añadido las filas que las Tasks 1-2 de este
+plan nombran.
+
+- **Ficheros auditados:** 24 `.vue` (perímetro original, sin rehacer) + 1 `.ts` nuevo
+  (`useProgressMountPlan.ts`, plan 09-29) = 25.
+- **Afirmaciones inventariadas:** 15 (filas con veredicto distinto de `NO APLICA`; antes 12).
+- **Desglose por veredicto:**
+  - `RESPALDADA`: 11 (`ContentChangedNotice.vue`, `HistoryEntryCard.vue`, `HistorySavedNotice.vue` [corregida otra vez bajo Q6], `IndexOverlay.vue`, `MiniSetupScreen.vue` [nueva, ronda 6], `PlayerModal.vue`, `ResumePrompt.vue`, `VillainPickerModal.vue`, `estadisticas.vue` [filas de tabla], `historico.vue` [tarjetas], `useProgressMountPlan.ts` [nueva, ronda 6])
+  - `DEFECTO UI-xx`: 1 (`GameOutcomeDialog.vue` — `endGameBody`, DEFECTO de las rondas 4-6, CORREGIDO en el plan 09-30; se referencia por IN-03/WR-04 en vez de un identificador `UI-xx` propio, por ser continuación de un hallazgo ya nombrado)
+  - `ACEPTADO`: 3 (`UpdateBanner.vue`, `estadisticas.vue` [estado vacío], `historico.vue` [estado vacío])
+  - `NO APLICA`: 12 (`app.vue`, `AppHeader.vue`, `ConfirmDialog.vue`, `CounterBand.vue`, `GameSelectorScreen.vue`, `MesaListaScreen.vue`, `NavBand.vue`, `StepScreen.vue`, `VoiceUnavailableNotice.vue`, `WarningDetailModal.vue`, `app/pages/[game]/index.vue`, `app/pages/index.vue`)
+
+Comprobación de suma: 11 (RESPALDADA) + 1 (DEFECTO) + 3 (ACEPTADO) = 15 afirmaciones; 15
+afirmaciones + 12 `NO APLICA` = 27 filas totales sobre 25 ficheros (dos ficheros —
+`estadisticas.vue`, `historico.vue` — aportan 2 filas cada uno). ✓
+
+---
+
+## 5. La regla que este barrido deja escrita para el futuro
+
+**Ninguna frase que la interfaz muestre al grupo sobre el estado de sus datos puede carecer de un
+valor de retorno real que la respalde; si hace falta una frase nueva, primero el booleano que la
+sostiene y el test que lo fija, después el texto.**
+
+Esta es la extensión de perímetro que Q4 aporta a `09-AUDIT-FRONTERAS.md`: aquel documento cubría
+Q1/Q2/Q3 sobre composables y motor y dejó explícitamente fuera —por diseño, en su §5— los ficheros
+`.vue`. Esa exclusión, hecha por motivo de ALCANCE DE PLAN y no de riesgo evaluado, fue exactamente
+el hueco por el que CR-01 (ronda 4) se coló. Este documento cierra esa exclusión con una cuarta
+pregunta explícita, y dictamina que en adelante ninguna superficie de interfaz puede quedar fuera
+de un barrido de afirmaciones por el mismo motivo que ya se demostró insuficiente una vez.
+
+**Actualización (ronda 6, plan 09-31), lo que el gate hace ahora de verdad:** el gate
+automatizado (`app/composables/__tests__/afirmacionesRespaldadas.test.ts`) barre el fichero
+entero menos comentarios y `<style>` (`regionVigilada`, plan 09-30 — 16.936 caracteres
+barridos frente a 485 de la regex perezosa vieja, 34,9x), incluye `<script setup>` y
+`app/**/*.ts` (no solo `.vue`), tiene excepciones **por frase** con motivo escrito
+(`AFIRMACIONES_AUDITADAS`, no una lista plana por fichero) y se autocomprueba con un SFC
+sintético de `<template>` anidado (Gate S). La regla de método para el futuro queda así,
+ampliada con Q6: **ninguna frase nueva sobre los datos del grupo entra sin pasar Q1-Q6 y
+sin que el gate la vea; si el gate no la ve, el defecto está en el gate.** La ronda 6
+demuestra por qué la primera mitad de esta regla (Q1-Q5) no basta por sí sola: aprobar Q5
+no exime de Q6, y un método que se detiene en Q5 vuelve a dejar pasar la siguiente cara del
+mismo patrón, exactamente como pasó aquí.

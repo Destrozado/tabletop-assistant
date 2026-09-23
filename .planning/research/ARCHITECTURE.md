@@ -1,609 +1,318 @@
-# Architecture Research
+# Architecture Research — v1.8 Integration
 
-**Domain:** Data-driven guided-step engine for board game rules flows (static Nuxt 4 PWA, no backend)
-**Researched:** 2026-08-28
-**Confidence:** HIGH (Nuxt 4 structure/prerendering verified against current official docs; flow-model and schema design is original engineering derived directly from the stated constraints in PROJECT.md, cross-checked for internal consistency, not copied from a precedent — flagged MEDIUM only where noted)
+**Domain:** Subsequent-milestone integration into an existing, shipped Nuxt 4 SSG codebase (TableGameAssistant)
+**Researched:** 2026-09-07
+**Confidence:** HIGH for everything grounded in code read directly (cited `path:line`); MEDIUM for Firestore SDK behavior (verified against training knowledge + official-pattern reasoning, not re-checked against 2026 Firebase JS SDK release notes); explicitly flagged where a design decision is left open for the phase planner.
 
----
-
-## 1. The Step/Flow Model — Decision
-
-### Candidates, compared honestly
-
-| Model | Authoring ergonomics | Second game as data | Jump-to-any-step | Round counter | Verdict |
-|---|---|---|---|---|---|
-| **Flat array + `loopStart` pointer** | Poor. A human authoring 40+ steps in one flat list loses the rulebook's own structure (Setup / Round / Player Phase / Villain Phase / End of Round). Hard to eyeball-audit against the PDF section by section. | Works, but the file itself doesn't communicate "this is a section" — a second author has to infer where phases begin from naming conventions alone. | Trivial — it's just an index. | Trivial — one conditional at the wrap index. | Good runtime shape, bad authoring shape. |
-| **Nested: game → section → phase → step, `repeats: true` on a section** | Good. Mirrors how the rulebook and the human summary are already organized. Easy to write, easy to review against the PDF ("does the `round` section, `villain` phase, have exactly 4 steps matching Rules Reference §2.3–2.6?"). | Works cleanly — a new game is a new tree with the same shape; W40k's "Command → Movement → Psychic → Shooting → Charge → Fight" round is just another `repeats:true` section with different phases. | Requires resolving a tree path to a position — awkward to do repeatedly at runtime. | Requires knowing which section is "the" repeating one and where it starts/ends — derivable, but not free at the leaf level. | Good authoring shape, needs a runtime step to become good runtime shape. |
-| **Explicit state machine (XState-style statechart)** | Poor for this content. Authors would write states/transitions/guards in JSON instead of an ordered list of "what happens now" text — much harder to hand-write and to audit line-by-line against a rulebook page. | Technically works (a statechart can express anything), but a genuinely different-shaped statechart per game means the *transition logic*, not just the *content*, differs per game — which is exactly the coupling we're trying to avoid. | Works via targeted transitions, but you're modeling "jump to any of 40 states" as 40 explicit transitions or a dynamic `send({type: 'JUMP', target})` escape hatch that bypasses the statechart's whole value proposition. | Modeled as context + entry actions on the wrap transition — fine, but no better than a plain conditional. | Solves problems this project doesn't have. |
-
-**Recommendation: nested authoring schema, flattened+expanded runtime engine.** Don't pick one model — use two, each optimized for what it's good at, connected by a pure transformation:
-
-1. **Authors write** the nested `game → section (repeats?) → phase → step` shape (see §2). This is what goes in the JSON files and what gets diffed against the PDF.
-2. **At load time**, a pure `flatten()` function walks the tree once and produces a flat, ordered array of step nodes, each carrying its section/phase lineage for breadcrumbs and grouping in the jump overlay. This is the runtime shape the engine actually navigates.
-3. **At session-start time** (once player count / difficulty are known from the mini-setup), a pure `expand()` function walks the flat array once more and expands any `perPlayer` step into N runtime nodes (see §2), and computes exactly two integers: `loopStartIndex` and `loopEndIndex` — the first and last index belonging to the one section marked `repeats: true`.
-
-Navigation (`next`, `prev`, `jumpTo`) then operates *only* on this flat, expanded array with two precomputed integers. That's the entire flow model. No tree walking happens during play.
-
-**Is XState over-engineering here? Yes — explicitly.** XState earns its complexity when a flow has genuine branching (different next-states depending on runtime conditions), parallel/orthogonal regions, or side-effecting entry/exit actions that need formal modeling. This project's transition graph is a straight line with exactly one wrap edge. The "conditional branches" in the requirements (Héroe / Alter-Ego) are *not* flow branches at all — both are displayed simultaneously as text (per PROJECT.md: "los pasos condicionales muestran todas las ramas como texto"), so there is no runtime branching to model. Introducing a statechart library would (a) force authors to write transition graphs instead of ordered lists, directly hurting the "hand-authored JSON, audited against a PDF" workflow that is this project's actual bottleneck, and (b) add an API surface (guards, invoked services, history states, parallel states) this app will never use. If a future requirement introduces genuine flow branching (e.g. "skip step 4 entirely in solo mode"), the fix is a `skipIf` predicate evaluated once during `expand()` that filters a node out of the array — still no state machine library.
-
-**Round counter placement (answering the "at the right boundary" requirement precisely):**
-
-```
-next(session):
-  if session.cursor === session.loopEndIndex:
-      cursor = loopStartIndex
-      round  = session.round + 1        # crossing the wrap edge, and ONLY here
-  else:
-      cursor = min(cursor + 1, length - 1)
-  return { ...session, cursor, round }
-
-prev(session):
-  if session.cursor === session.loopStartIndex and session.round > 1:
-      cursor = loopEndIndex
-      round  = session.round - 1        # symmetric undo of the wrap
-  else:
-      cursor = max(cursor - 1, 0)
-  return { ...session, cursor, round }
-
-jumpTo(session, runtimeId):
-  cursor = indexOf(session.sequence, runtimeId)
-  return { ...session, cursor }         # round is untouched — a jump is a look-around, not a round transition
-```
-
-This is the single most important correctness property in the whole system and it reduces to two `if` statements over two integers, fully unit-testable with plain objects — no Vue, no DOM, no mocking.
+This file answers the seven questions in the research brief directly, in order, with real file paths and line numbers. It does not restate the generic template sections that don't apply to a codebase-grounded integration doc (e.g. "Scaling Considerations 100k+ users" — not relevant to a friend-group hobby app) — see `## Template Cross-Reference` at the bottom for where template sections map.
 
 ---
 
-## 2. The JSON Content Schema
+## a) Where does the new state live?
 
-### Design choices made (per the explicit "no formula evaluator" constraint)
+**Recommendation: inside `EngineSession.context` (i.e. `SessionContext`, `engine/types.ts:95-99`), NOT a parallel store.**
 
-- **Player-count adaptation → token substitution**, not arithmetic. `{playerCount}` and `{n}` are replaced by literal string substitution against numbers already known from the mini-setup. No expression language.
-- **Difficulty adaptation → variant text blocks**, not a formula. Normal/Experto differences in Marvel Champions are usually categorical rewordings ("Fase I" vs "Fase II", different draw counts stated as text), so a `variants.difficulty` object holding an alternate `TextBlock` is more honest than trying to template a single sentence two ways.
-- **Conditional branches → always-shown labeled text blocks**, not a `when` condition evaluated against hidden state. This matches the explicit product decision that all branches are shown and the player reads the one that applies. There is no condition evaluator anywhere in this schema.
-- **Per-player iteration → enumeration, not computation.** A step marked `perPlayer.enabled: true` is expanded by the engine into N runtime copies (one per player in turn order) at session-start; the JSON never states "for i in 1..playerCount" as logic, it just flags the step as a per-player template.
-- **IDs are for reference (deep links, persistence, citations), never for ordering.** Canonical order is array position in the authored JSON. This avoids the trap of trying to sort by dotted-id strings, which breaks the moment an author inserts a step between two existing ones.
+### Why this works today, structurally, with almost no new code
 
-### Annotated example (Marvel Champions excerpt)
+- `SessionContext` already declares `[key: string]: unknown` (`engine/types.ts:98`) alongside its two required fields (`playerCount`, `difficulty`). Adding `selection`, `counters`, `startedAt` as new optional fields is additive and backward-compatible — no existing reader of `SessionContext` breaks.
+- `engine/persistence.ts::toPersistedPosition` persists `context` **wholesale** (`persistence.ts:34`, `context: session.context`) — any new field added to `SessionContext` is persisted automatically, with zero new serialization code.
+- `resume()` (`persistence.ts:67-91`) restores `context` wholesale on the happy path (`persistence.ts:88`, `context: persisted.context`) **and** on the `content-changed` fallback (`persistence.ts:62-65`, `contentChangedFallback` returns `{ ...fresh, cursor: 0, round: 1, context }` where `context` is the *persisted* one if it passes the minimal `isValidContext` check). This is exactly the resume behavior the milestone wants: don't force the group to re-pick heroes just because a content-text typo bumped `contentVersion`.
+- `app/pages/[game]/index.vue:126-133` already has a single `watchDebounced(session, (v) => save(v), { debounce: 300 })` that fires on **any** reassignment of `session.value`. Since `EngineSession`/`useGameSession.ts` already follows a strict "never mutate in place, always reassign a new object" discipline (`useGameSession.ts:6-7` comment; `next`/`prev`/`jumpTo` all reassign `session.value`), a new counter-adjust or selection-set action that does `session.value = { ...session.value, context: { ...session.value.context, ... } }` gets autosave, debounce, and the existing `pagehide` flush (`index.vue:147-149`) **for free**. No new persistence plumbing is needed for selection/counters at all — only a type extension plus new mutator functions in `useGameSession.ts`.
+- `usePersistedSession().clear(gameId)` (`usePersistedSession.ts:127-132`) removes the entire `tga:progress:<gameId>` key — selection and counters disappear automatically on "Partida terminada" and on "Empezar partida nueva" (discard), exactly as the milestone requires ("estado de la partida" is scoped 1:1 to the game in progress).
 
-```jsonc
-{
-  "gameId": "marvel-champions",
-  "title": "Marvel Champions: El Juego de Cartas",
-  "locale": "es",
-  "contentVersion": 1,               // bump on ANY structural or textual change to this file
-  "sections": [
-    {
-      "id": "setup",
-      "title": "Preparación de la partida",
-      "repeats": false,               // walked exactly once, ever
-      "phases": [
-        {
-          "id": "setup.mesa",
-          "title": "Preparar la mesa",
-          "steps": [
-            {
-              "id": "setup.mesa.01",  // stable, used for deep links + persisted position
-              "title": "Elegid villano y héroes",
-              "text": "Elegid el villano al que os enfrentaréis y un héroe por jugador.",
-              "detail": "El villano determina el mazo de villano y el mazo de encuentro base que usaréis.",
-              "citation": { "source": "rules-reference", "section": "1.1 Elegir un villano", "page": 4 }
-            },
-            {
-              "id": "setup.mesa.02",
-              "title": "Separad los Archienemigos",
-              "text": "Separad del mazo de villano cualquier carta de Archienemigo y dejadla aparte por ahora.",
-              "citation": { "source": "rules-reference", "section": "1.3", "page": 5 }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "round",
-      "title": "Ronda",
-      "repeats": true,                // exactly one section in the whole file may set this true
-      "phases": [
-        {
-          "id": "round.player",
-          "title": "Fase de jugadores",
-          "steps": [
-            {
-              "id": "round.player.01",
-              "title": "Cada jugador resuelve su turno",
-              "text": "En orden de turno, cada jugador juega su turno completo.",
-              "perPlayer": { "enabled": true, "ordinalTemplate": "Jugador {n} de {playerCount}: resuelve tu turno." },
-              "citation": { "source": "rules-reference", "section": "2.2", "page": 9 }
-            }
-          ]
-        },
-        {
-          "id": "round.villain",
-          "title": "Fase del villano",
-          "steps": [
-            {
-              "id": "round.villain.01",
-              "title": "Avance del villano",
-              "text": "El villano avanza a la Fase {villainPhaseLabel}.",
-              // NOTE: {villainPhaseLabel} is NOT a computed token — it is resolved via the
-              // difficulty variant below, which supplies the literal word for each mode.
-              "variants": {
-                "difficulty": {
-                  "normal": { "text": "El villano avanza a la Fase I." },
-                  "expert": { "text": "El villano avanza a la Fase II." }
-                }
-              },
-              "citation": { "source": "rules-reference", "section": "2.3", "page": 10 }
-            },
-            {
-              "id": "round.villain.02",
-              "title": "Robo de cartas de encuentro",
-              "text": "Cada jugador roba 1 carta de encuentro.",
-              "branches": [
-                { "label": "Si estás en forma de Héroe", "text": "Resuelve la carta de encuentro robada normalmente." },
-                { "label": "Si estás en Alter Ego", "text": "Resuelve la carta de encuentro robada; algunos efectos pueden variar en Alter Ego — consulta el texto de la carta." }
-              ],
-              "citation": { "source": "rules-reference", "section": "2.4", "page": 10 }
-            },
-            { "id": "round.villain.03", "title": "El villano ataca", "text": "El villano ataca al jugador con más amenaza." },
-            { "id": "round.villain.04", "title": "Efectos de \"Fin de la fase del villano\"", "text": "Resuelve cualquier efecto que se dispare al final de la fase del villano." }
-          ]
-        },
-        {
-          "id": "round.end",
-          "title": "Fin de ronda",
-          "steps": [
-            { "id": "round.end.01", "title": "Comprobad condiciones de fin de partida", "text": "Comprobad si se ha cumplido alguna condición de victoria o derrota." },
-            { "id": "round.end.02", "title": "Nueva ronda", "text": "Empieza una nueva ronda: volved a la Fase de jugadores." }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
+### Why NOT a parallel store
 
-Note the fixed field it replaces above — `{villainPhaseLabel}` in a comment is illustrative of the *wrong* approach (a token that would require computing which phase label applies); the actual schema instead uses a **difficulty variant with the full literal sentence**, which is the pattern actually recommended. Author files should not include ad-hoc computed tokens beyond `{playerCount}` and `{n}`.
+The codebase already has a precedent for a *second*, independent localStorage key inside the same composable: `VOICE_KEY` (`usePersistedSession.ts:39`, D-46). But that pattern exists for the **opposite** reason — a voice preference must **survive** `clear(gameId)` because it's a device-level preference, not part of any one game. Selection/counters are the reverse: they must be wiped by "Partida terminada." Building a second store for them would mean hand-rolling the exact save/clear/resume orchestration that `context` already gets from the engine for free, and would introduce a new failure mode: session and a parallel selection-store could desync (e.g. `resume()`'s `content-changed` fallback resets `cursor`/`round` but a parallel store wouldn't know to do the analogous thing).
 
-### TypeScript types
+### Recommended shape (extends, does not replace, `SessionContext`)
 
 ```typescript
-// engine/types.ts — zero Vue/Nuxt imports
-
-export type Difficulty = 'normal' | 'expert'
-
-export interface Citation {
-  source: 'rules-reference' | 'learn-to-play'
-  section: string        // human-readable rulebook section, e.g. "2.3 Fase del villano"
-  page?: number
-}
-
-export interface TextBlock {
-  text: string            // primary "what happens now" — shown big, spoken by default
-  detail?: string         // optional elaboration — shown smaller, not spoken unless `speech` says so
-  speech?: string         // override of what TTS reads, when `text` isn't speech-friendly
-}
-
-export interface Branch extends TextBlock {
-  label: string           // "Si estás en Alter Ego" — always rendered, never conditionally hidden
-}
-
-export interface PerPlayerConfig {
-  enabled: true
-  ordinalTemplate?: string  // default "Jugador {n} de {playerCount}" if omitted
-}
-
-export interface StepDefinition extends TextBlock {
-  id: string                // stable dotted id: "round.villain.02" — reference only, NOT sort order
-  title: string              // short label for the jump/index overlay
-  branches?: Branch[]
-  variants?: {
-    difficulty?: Partial<Record<Difficulty, Partial<TextBlock>>>
-  }
-  perPlayer?: PerPlayerConfig
-  citation?: Citation
-}
-
-export interface PhaseDefinition {
-  id: string
-  title: string
-  steps: StepDefinition[]
-}
-
-export interface SectionDefinition {
-  id: string
-  title: string
-  repeats: boolean          // exactly one section per game may be `true`
-  phases: PhaseDefinition[]
-}
-
-export interface GameDefinition {
-  gameId: string
-  title: string
-  locale: 'es'
-  contentVersion: number
-  sections: SectionDefinition[]
-}
-
-// --- runtime shapes, produced by flatten()/expand(), never authored by hand ---
-
-export interface FlatStepNode {
-  step: StepDefinition
-  sectionId: string
-  sectionRepeats: boolean
-  phaseId: string
-  breadcrumb: string        // "Ronda › Fase del villano" — for the jump overlay
-}
-
-export interface RuntimeStepNode extends FlatStepNode {
-  runtimeId: string          // step.id, or `${step.id}::p${playerIndex}` when per-player expanded
-  playerIndex?: number       // 1-based; present only on expanded per-player nodes
+// engine/types.ts — additive fields only
+export interface HeroSelection {
+  playerName: string          // defaults to "Jugador N" in the UI layer, not persisted as null
+  heroId: string | null       // catalogue id (content/marvel-characters.json), null = not yet chosen
 }
 
 export interface SessionContext {
   playerCount: number
   difficulty: Difficulty
-}
-```
-
-### Zod validation sketch
-
-```typescript
-// engine/schema.ts
-import { z } from 'zod'
-
-const idPattern = /^[a-z0-9]+(\.[a-z0-9]+)*$/
-
-const CitationSchema = z.object({
-  source: z.enum(['rules-reference', 'learn-to-play']),
-  section: z.string().min(1),
-  page: z.number().int().positive().optional(),
-})
-
-const TextBlockSchema = z.object({
-  text: z.string().min(1),
-  detail: z.string().optional(),
-  speech: z.string().optional(),
-})
-
-const BranchSchema = TextBlockSchema.extend({
-  label: z.string().min(1),
-})
-
-const DifficultyVariantSchema = z.object({
-  normal: TextBlockSchema.partial().optional(),
-  expert: TextBlockSchema.partial().optional(),
-})
-
-const PerPlayerSchema = z.object({
-  enabled: z.literal(true),
-  ordinalTemplate: z.string().optional(),
-})
-
-const StepSchema = TextBlockSchema.extend({
-  id: z.string().regex(idPattern),
-  title: z.string().min(1),
-  branches: z.array(BranchSchema).optional(),
-  variants: z.object({ difficulty: DifficultyVariantSchema.optional() }).optional(),
-  perPlayer: PerPlayerSchema.optional(),
-  citation: CitationSchema.optional(),
-})
-
-const PhaseSchema = z.object({
-  id: z.string().regex(idPattern),
-  title: z.string().min(1),
-  steps: z.array(StepSchema).min(1),
-})
-
-const SectionSchema = z.object({
-  id: z.string().regex(idPattern),
-  title: z.string().min(1),
-  repeats: z.boolean(),
-  phases: z.array(PhaseSchema).min(1),
-})
-
-export const GameDefinitionSchema = z.object({
-  gameId: z.string().regex(idPattern),
-  title: z.string().min(1),
-  locale: z.literal('es'),
-  contentVersion: z.number().int().positive(),
-  sections: z.array(SectionSchema).min(1),
-}).superRefine((game, ctx) => {
-  const repeating = game.sections.filter(s => s.repeats)
-  if (repeating.length !== 1) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom,
-      message: `Expected exactly one section with repeats:true, found ${repeating.length}` })
+  selection?: {
+    villainId: string | null
+    heroes: HeroSelection[]   // length === playerCount
   }
-  const allIds = game.sections.flatMap(s =>
-    [s.id, ...s.phases.flatMap(p => [p.id, ...p.steps.map(st => st.id)])])
-  const dupes = allIds.filter((id, i) => allIds.indexOf(id) !== i)
-  if (dupes.length) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Duplicate ids: ${[...new Set(dupes)].join(', ')}` })
+  counters?: {
+    villainHealth: number | null
+    heroHealth: number[]      // length === playerCount, index-aligned with selection.heroes
   }
-})
-
-export function validateGameDefinition(json: unknown) {
-  return GameDefinitionSchema.parse(json) // throws with a readable message on malformed content
+  startedAt?: string           // ISO timestamp, set once in useGameSession.start(), never on resume
+  [key: string]: unknown
 }
 ```
 
-This validation is what an author (or a CI check) runs against a game JSON before it ships — it catches the two structural mistakes that would otherwise silently break navigation: more/fewer than one repeating section, and duplicate ids that would make `jumpTo` ambiguous.
+### `contentVersion` / `formatVersion` resume-gate implications — read this carefully
+
+This is the sharpest correctness risk in part (a), and it is **not** solved by bumping `contentVersion`:
+
+1. `PersistedPosition.formatVersion` (`persistence.ts:10`, literal `1`) describes the **outer envelope** shape (`gameId`, `contentVersion`, `runtimeId`, `round`, `context`, `updatedAt`) — it does not, and should not, change just because `context`'s *internal* shape grows a field. **Do not bump `formatVersion` for this milestone.**
+2. `contentVersion` gates whether the *step sequence* (`GameDefinition.sections`) is trusted to still match what was persisted. Tagging existing steps with a new `showsValue` field (part c) or adding new UI around `setup.heroes.01` does **not by itself require a `contentVersion` bump**, because it doesn't change `text`/`speech`/step structure that `resume()`'s `runtimeId` lookup depends on. It's still reasonable to bump `contentVersion` as a matter of hygiene when shipping v1.8 (forces a clean break from any lingering v1.7 in-progress session on a tester's device), but understand exactly what it does and does not fix — see point 3.
+3. **The real gap:** neither the `resumed` branch (`persistence.ts:87-90`) nor the `content-changed` fallback (`persistence.ts:62-65`) validates that `persisted.context` contains the *new* fields (`selection`, `counters`, `startedAt`). `isValidContext` (`persistence.ts:45-49`) only checks `playerCount: number` and `difficulty: string`. A session saved by the v1.7 build (or an early v1.8 session saved before the player made a selection) will resume successfully with `context.selection === undefined` and `context.counters === undefined` — **regardless of whether `contentVersion` was bumped**, because both resume paths copy `persisted.context` through verbatim. **This means the app layer (not the engine) must treat "no selection yet" as a normal, expected state to render defensively** (e.g. `CounterBand` shows placeholders/dashes, `displayText` falls back to plain text with no parenthetical, the hero/villain picker opens pre-populated with nothing chosen) rather than assuming a resumed session always has fresh-v1.8 shape. This is a genuine, previously-nonexistent invariant this milestone introduces and it should be an explicit test case in whichever phase builds selection/counters.
+4. No change to `isPersistedPosition` (`usePersistedSession.ts:60-69`) is required — it validates only the four/five envelope keys and that `context` is an object, which remains true regardless of what's inside `context`.
 
 ---
 
-## 3. Component Boundaries
+## b) How does game history relate to session state?
+
+**Boundary:** `EngineSession`/`context` is *current-game-scoped* and dies with "Partida terminada." History is a *separate, additive, append-only* log that must survive every `clear(gameId)` call — same survival requirement as `VOICE_KEY`, different lifecycle from `context`.
+
+### Where "Partida terminada" lives today
+
+Confirmed by grep: the button lives in `app/components/IndexOverlay.vue:139-152` (emits `end-game`), handled in `app/pages/[game]/index.vue`:
+
+- `onEndGameRequest` (`index.vue:335-337`) — opens confirmation, does not close the index overlay (D-U3).
+- `onEndGameConfirm` (`index.vue:343-366`) — **the exact hook point**. Current order (D-U4, "exact order, not cosmetic"):
+  1. `awaitingEndConfirm.value = false`
+  2. `isIndexOpen.value = false`
+  3. `silence()` — stop any in-flight speech
+  4. `session.value = null` (before `clear`, to prevent a pending debounced save from resurrecting the key)
+  5. `clear(gameId)`
+  6. `navigateTo('/')`
+
+This is the **only** place a finished game is currently detected. There is a second, distinct path — `onDiscardConfirm` (`index.vue:319-329`), reached from "Empezar partida nueva" inside `ResumePrompt` — which **abandons** an in-progress game without a result. Per the milestone spec ("Registro de resultado... al terminar la partida"), only the `onEndGameConfirm` path should produce a history entry; the discard path is out of scope (no "abandoned" outcome category is requested) and should be left untouched.
+
+### The insertion point
+
+Everything a history entry needs (villain, per-player heroes/names, difficulty, playerCount, round count, duration) is about to be destroyed by step 4-5 above. The new outcome-capture UI must be inserted **between step 2 (`isIndexOpen.value = false`) and step 4 (`session.value = null`)**, i.e.:
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│  content/*.json                                                       │
-│  Hand-authored, nested game→section→phase→step. Source of truth,      │
-│  auditable line-by-line against the official PDF via `citation`.      │
-└───────────────────────────────┬────────────────────────────────────────┘
-                                 │ (static import at build time — no fetch)
-                                 ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│  engine/  (pure TypeScript — zero Vue, zero Nuxt, zero DOM)           │
-│  ┌────────────┐ ┌───────────┐ ┌──────────┐ ┌───────────┐ ┌─────────┐ │
-│  │ schema.ts  │ │flatten.ts │ │expand.ts │ │navigator.ts│ │resolve.ts│ │
-│  │ (Zod)      │ │(tree→list)│ │(per-player│ │(next/prev/ │ │(variant+ │ │
-│  │            │ │           │ │ + loop    │ │ jumpTo)    │ │ token    │ │
-│  │            │ │           │ │ bounds)   │ │            │ │ resolve) │ │
-│  └────────────┘ └───────────┘ └──────────┘ └───────────┘ └─────────┘ │
-│  ┌────────────────────────────────────────────────────────────────┐   │
-│  │ persistence.ts — pure resume(persisted, freshSession) → session│   │
-│  └────────────────────────────────────────────────────────────────┘   │
-│  Unit-tested directly with vitest, no mounting, no Nuxt test-utils.   │
-└───────────────────────────────┬────────────────────────────────────────┘
-                                 │ imported explicitly (no auto-import magic)
-                                 ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│  app/composables/  — thin reactive adapter (the ONLY layer that      │
-│  knows both "engine" and "Vue reactivity" exist)                     │
-│  useGameContent(gameId)   → loads + validates the right JSON          │
-│  useGameSession(gameId)   → reactive session, wraps next/prev/jumpTo  │
-│  usePersistedSession()    → localStorage read/write, calls resume()  │
-│  useSpeech()               → Web Speech API wrapper, independent      │
-└───────────────────────────────┬────────────────────────────────────────┘
-                                 │ reactive refs / computed
-                                 ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│  app/components/  — presentational, dumb, framework-idiomatic        │
-│  StepDisplay · NextPrevControls · StepIndexOverlay ·                 │
-│  MiniSetupForm · SpeechToggle                                        │
-└──────────────────────────────────────────────────────────────────────┘
+onEndGameConfirm (unchanged: steps 1-3)
+  → NEW: awaitingOutcomeChoice.value = true  (blocks steps 4-6)
+  → NEW: user picks "Ganado" / "Perdido" in a new small screen/modal
+  → NEW: onOutcomeChosen(outcome) reads session.context + session.round + Date.now() - context.startedAt
+         → builds a plain history-entry object (pure function, see engine/history.ts below)
+         → calls usePersistedSession().appendHistoryEntry(entry)   [localStorage write, synchronous, always happens]
+         → fire-and-forget mirrors to Firestore (see part e)        [never blocks the next line]
+  → THEN: existing steps 4-6 run exactly as today (session.value = null; clear(gameId); navigateTo('/'))
 ```
 
-**Rule that makes this work:** nothing above the composable layer imports Vue, and nothing below the composable layer imports anything Vue-adjacent. The composable layer is the single seam. This is what lets `engine/` be tested with plain `vitest` fixtures (a hand-written 6-step fake game) with zero mounting, zero jsdom, in milliseconds — which matters because the round-boundary logic in §1 is exactly the kind of off-by-one bug that needs fast, cheap, exhaustive tests, not component tests.
+`duration` requires a `startedAt` timestamp that doesn't exist anywhere today. Set it once, in `useGameSession.ts::start()`, as part of the initial `context` object passed to `expand()`. Because `context` round-trips wholesale through persistence (part a), `startedAt` survives resume unchanged — it must **not** be reset in the resume path, only set at genuine session creation.
+
+### Where the localStorage write lives
+
+`usePersistedSession.ts`'s own header comment states it is the app's **only** localStorage seam (`usePersistedSession.ts:1-2`, and repeated in `CLAUDE.md`'s architecture table). Two options: open a second file that touches `window.localStorage`, or extend this file. **Recommend extending `usePersistedSession.ts`** with a new key (`HISTORY_KEY = 'tga:history'`) and two new exported functions (`appendHistoryEntry(entry)`, `loadHistory()`), reusing the existing private `readRaw`/`writeRaw` helpers (`usePersistedSession.ts:76-105`) which already implement the correct defensive behavior (SSR-safe, private-mode/quota-safe, JSON-corruption-safe). This keeps the "one seam" claim literally true and matches the file's own established pattern of multiple independent keys living in one composable (`KEY_PREFIX + gameId`, `VOICE_KEY`, now `HISTORY_KEY`).
 
 ---
 
-## 4. Nuxt 4 Project Layout
+## c) How do known numbers reach step text without touching stored content?
 
-Nuxt 4's default `srcDir` is `app/` (confirmed against current docs: `~` resolves to `app/`, `~~` resolves to project root; `server/`, `shared/`, `public/`, `modules/`, `layers/` live at the project root, outside `srcDir`). Recommended layout:
+This is the sharpest constraint. The mechanism must leave `speech` (and therefore the 37 audio clips and the voice-drift gate) completely untouched while adding a computed number to what's shown on screen.
 
-```
-TableGameAssistant/
-├── engine/                        # pure TS, framework-free — root-level, NOT inside app/
-│   ├── types.ts
-│   ├── schema.ts                  # Zod validation
-│   ├── flatten.ts                 # tree → ordered FlatStepNode[]
-│   ├── expand.ts                  # per-player expansion + loop bounds
-│   ├── resolve.ts                 # variant + token → final TextBlock
-│   ├── navigator.ts               # next/prev/jumpTo — pure functions over EngineSession
-│   ├── persistence.ts             # pure resume(persisted, fresh) logic
-│   └── __tests__/
-│       ├── navigator.test.ts      # exhaustive round-boundary + jump tests
-│       ├── expand.test.ts
-│       └── fixtures/tiny-game.json  # 6-step fake game, not real content — fast, deliberate
-│
-├── content/
-│   ├── games-index.ts             # [{ id, title, status: 'available'|'coming-soon' }, ...]
-│   ├── marvel-champions.json      # real content, verified against Rules Reference v17
-│   └── warhammer-40k.json         # added later, same schema
-│
-├── app/                            # Nuxt 4 srcDir
-│   ├── app.vue
-│   ├── pages/
-│   │   ├── index.vue               # "¿A qué juego vas a jugar?" — reads content/games-index.ts
-│   │   └── [game]/
-│   │       └── index.vue           # single runner page: mini-setup OR step display, same route
-│   ├── components/
-│   │   ├── setup/
-│   │   │   └── MiniSetupForm.vue   # nº jugadores + Normal/Experto
-│   │   └── runner/
-│   │       ├── StepDisplay.vue     # renders resolved TextBlock + branches
-│   │       ├── NextPrevControls.vue
-│   │       ├── StepIndexOverlay.vue  # jump-to-any-step, grouped by breadcrumb
-│   │       └── SpeechToggle.vue
-│   ├── composables/
-│   │   ├── useGameContent.ts
-│   │   ├── useGameSession.ts
-│   │   ├── usePersistedSession.ts
-│   │   └── useSpeech.ts
-│   ├── app.config.ts
-│   └── error.vue
-│
-├── public/
-│   ├── manifest.webmanifest         # PWA
-│   └── icons/
-│
-├── nuxt.config.ts                   # ssr: true (default), nitro.prerender.routes explicit list
-└── vitest.config.ts                  # points at engine/**/*.test.ts, no jsdom needed for engine
-```
+### Confirmed: `text` and `speech` are already independent at every layer that matters
 
-**Why `engine/` lives outside `app/`, not in `app/utils/` or `shared/`:** `app/utils/` is Nuxt's auto-import convenience folder for the *application*; putting the engine there works mechanically but blurs the boundary (it becomes "just some app code"). `shared/` is Nuxt's convention for code shared between the client app and a Nitro *server* — this project has no server, so that convention doesn't describe our situation, even though it would also work as a neutral folder. A genuinely separate, root-level `engine/` makes the purity boundary a physical fact: it's outside `srcDir` entirely, nothing about it is Nuxt-flavored, and it could be extracted into its own npm package later with zero rewrite if the guided-flow concept ever needed to power something other than this Nuxt app. Import it via the `~~` (rootDir) alias Nuxt already provides: `import { next } from '~~/engine/navigator'`.
+- `engine/resolve.ts::resolveText` returns a `TextBlock` with `text` and `speech` as **separate fields**, resolved independently per difficulty variant (`resolve.ts:9-16`). Its header comment is explicit: *"No hace aritmética ni sustituye tokens numéricos... el nº de jugadores nunca entra en el texto de un paso"* (`resolve.ts:3-4`) — this is an existing, deliberate invariant of this exact file. **Do not add the arithmetic inside `resolveText`.**
+- `app/composables/useVoiceAnnouncer.ts:268` reads **only** `currentText.value.speech` (`// Única fuente de la frase locutada — nunca currentText.value.text`, its own comment). It never touches `.text`.
+- `engine/audio.ts::collectSpeechEntries`/`collectAudioIds` (`audio.ts:23-48`) walk `step.speech` and `step.variants.difficulty[x].speech` **only** — they never read `step.text` and would never read a new `showsValue` field either, since they don't inspect it.
+- `engine/__tests__/voice-drift.test.ts` fingerprints `entry.speech` exclusively (`voice-drift.test.ts:45`, `fingerprint(entry.speech)`) against the frozen `scripts/voice/manifest.json`, and separately asserts the manifest's id-set matches `collectAudioIds(game)` exactly (`voice-drift.test.ts:91-105`).
 
-**Routing shape:** a single `/` selector page (statically lists games from `content/games-index.ts`, including Warhammer 40k as `coming-soon` so it's visible but not clickable-through-to-content) and a single dynamic `/[game]` runner page. The runner page checks `usePersistedSession()` on mount: if a valid saved session exists, render `StepDisplay` directly (resume in place); if not, render `MiniSetupForm` first. This avoids a `/[game]/setup` vs `/[game]/play` split that would need its own persistence-driven redirect logic for no real benefit.
+**Conclusion: a new content field that never assigns to `text` or `speech`, and is never read by `engine/audio.ts`, is structurally invisible to the voice-drift gate.** It cannot register as requiring a new clip and cannot change any existing fingerprint.
 
-**Prerendering a dynamic `[game]` route:** `nuxt generate` (Nuxt's static-site build) crawls links reachable from `/`, so `/marvel-champions` and `/warhammer-40k` will be discovered automatically because the selector page renders real `<NuxtLink>` anchors to them. Still, add them explicitly to `nitro.prerender.routes` in `nuxt.config.ts` (computed from `content/games-index.ts`, so it's one array, not duplicated data) as cheap insurance against crawler discovery gaps. Set `ssr: true` (Nuxt's default) so `nuxt generate` produces fully static HTML+payload per game route deployable to any static host — no Node runtime needed, consistent with the "no backend" constraint. `server/` stays empty/unused.
+### Recommended mechanism
 
-**Content loading:** static `import` of the JSON files at build time (`import marvelChampions from '~~/content/marvel-champions.json'`), not a runtime `fetch`/`useFetch`. This means game content is baked into the JS bundle Nuxt already prerenders and the service worker already has to cache — there is no separate network request to fail offline, and no separate cache-invalidation path to design for content. `useGameContent(gameId)` becomes a synchronous lookup + `validateGameDefinition()` call, not an async operation.
+1. **New optional content field**, added to `TextBlockSchema`/`StepSchema` (`engine/schema.ts:31-78`) and `TextBlock`/`StepDefinition` (`engine/types.ts:19-51`):
+   ```typescript
+   showsValue?: 'villainHealth' | 'heroHealth' | 'handSize'
+   ```
+   Authored per-step in `content/marvel-champions.json`, sibling to `text`/`speech`, never inside them.
+
+2. **New pure resolver**, `engine/valueDisplay.ts` (framework-agnostic, unit-tested like the rest of `engine/`), that takes the current node, the session context (for `selection`/`playerCount`/`difficulty`), and the catalogue (part d), and returns either `null` (nothing to show — e.g. selection not made yet, part a's resume gap) or a **pre-formatted string** ready to append in parentheses. Two distinct shapes are needed, discovered by reading the actual content (see the two concrete examples below) — not one:
+   - **Single shared value** (villain health): returns e.g. `"14"`.
+   - **Per-player list** (hero health, hand size): returns e.g. `"Jugador 1: 10 · Jugador 2: 8"`.
+
+3. **New computed in `useGameSession.ts`**, alongside `currentText`:
+   ```typescript
+   const displayText = computed<string>(() => {
+     if (!session.value || !currentNode.value) return currentText.value.text
+     const suffix = resolveKnownValue(currentNode.value, session.value.context, catalogue)
+     return suffix !== null ? `${currentText.value.text} (${suffix})` : currentText.value.text
+   })
+   ```
+   `currentText` itself is **not modified** — `useVoiceAnnouncer` keeps consuming the original, unsuffixed `currentText` exactly as today (`index.vue:63-70` passes `currentText` to `useVoiceAnnouncer`, unchanged).
+
+4. **One binding change** in `app/pages/[game]/index.vue`: `StepScreen`'s `action-text` prop (`index.vue:513`, currently `currentText.text`) switches to `displayText`. `StepScreen.vue` itself needs no change — `actionText` is already a plain `string` prop (`StepScreen.vue:5-6`).
+
+### Two concrete steps this applies to, found by reading the actual content (not hypothetical)
+
+- `setup.escenario.02` — *"Ajustad el dial de vida del villano al valor indicado en la carta de villano."* (`content/marvel-champions.json:176-178`). This is villain stage-1 health, a **single shared value** — clean case, matches the milestone's own `(14)` example exactly.
+- `setup.heroes.03` — *"Ajustad vuestro dial de salud a la vida inicial de vuestra identidad."* (`content/marvel-champions.json:46-48`) and `ronda.jugadores.02` — *"Descartad o robad hasta el tamaño de vuestra mano."* (`content/marvel-champions.json:414-419`, this one repeats every round). **Both are per-player-variable values shown in one shared instruction line** — each player has a different hero with a different health/hand-size number, but the text is read once for the whole table. A bare `(14)` is ambiguous here; **`valueDisplay.ts` must return the per-player-list format** for `showsValue: 'heroHealth' | 'handSize'`, using `selection.heroes[].playerName` from part (a) to label each value. **Flag for the phase planner:** the milestone's own spec text uses the singular "un valor... (14)" example, which only unambiguously describes the villain-health case; the hero-health/hand-size cases need this explicit multi-value design decided before Chunk 4 (part g) is built, not discovered mid-implementation.
+
+### What would break the voice-drift gate (explicitly, as required)
+
+1. Writing the literal number into `step.text` in the JSON directly (defeats the whole point — this is the CLAUDE.md-forbidden path the milestone exists to avoid).
+2. Also editing `step.speech` "to explain the number out loud" — any speech-string edit changes its fingerprint against the frozen manifest and fails `voice-drift.test.ts`'s D-04 check until `npm run voice:generate` is rerun (real money, per `CLAUDE.md`/`STACK.md`).
+3. Implementing the number append **inside** `resolveText()` itself rather than in the new separate `displayText` layer — would not, on its own, touch `.speech` or break the gate mechanically, but it violates `resolve.ts`'s own stated invariant (point 3, above) and risks a future caller of `resolveText().text` (there is currently exactly one: `StepScreen`'s `actionText`) picking up numbers it didn't ask for.
+4. Adding `showsValue` to the schema **without** `z.strictObject` semantics being preserved — per `schema.ts:12-24` (CR-01), any new field must be added to the existing `z.strictObject`-based schemas, not a plain `z.object`, or the "clicked build is honest" guarantee the project already relies on regresses silently for this new field too.
 
 ---
 
-## 5. Data Flow
+## d) Where does the hero/villain catalogue live?
 
-```
-User presses "Siguiente"
-        │
-        ▼
-NextPrevControls.vue  — emits @next
-        │
-        ▼
-useGameSession()  — calls engine navigator.next(session)  [pure, synchronous]
-        │
-        ▼
-new EngineSession { cursor, round, ... }  — assigned to a reactive ref
-        │
-        ├──▶ computed currentNode = session.sequence[session.cursor]
-        │           │
-        │           ▼
-        │    engine resolve.ts → resolveText(currentNode, session.context)
-        │           │
-        │           ▼
-        │    { text, detail, speech, branches }  — final, display-ready
-        │           │
-        │           ├──▶ StepDisplay.vue renders text/detail/branches (big, tablet-first)
-        │           └──▶ watcher on `speech` calls useSpeech().speak(speech) if voice is on
-        │
-        └──▶ debounced watcher on { session.cursor/round/context } →
-             usePersistedSession().save({ gameId, contentVersion, runtimeId, round, context })
-             → localStorage["tga:progress:<gameId>"]
-```
+**New file: `content/marvel-characters.json`** — same tier as `content/marvel-champions.json` (plain committed JSON, `content/games-index.ts:1-13` shows this directory is already the established home for per-game static data).
 
-**Where the round counter lives:** inside the reactive `EngineSession` object owned by `useGameSession()`, specifically the `round: number` field — it is never derived from a step id string, never recomputed from scratch on render; it only changes via the two boundary-crossing branches in `next()`/`prev()` shown in §1. It is part of what gets persisted, so a reload mid-round resumes at the correct round number, not round 1.
+### Schema and test
 
-**Where persistence hooks in:** at the composable layer only. `engine/persistence.ts` exposes pure `resume(persisted, freshSession) → EngineSession`; `usePersistedSession()` is the only place that touches `localStorage` (the actual I/O), calling `resume()` on mount and a debounced `save()` on every session change. The engine never does I/O and is never aware `localStorage` exists.
+- **New schema**, e.g. `engine/catalogueSchema.ts` (a second small Zod file, not folded into `engine/schema.ts`). Note: `engine/schema.ts`'s own header comment currently claims to be *"Único fichero del repo (fuera de node_modules) que importa zod"* (`schema.ts:1-4`) — **this comment becomes false the moment a second schema file is added and must be updated explicitly**, flagged here so it isn't missed.
+- **New test**, e.g. `engine/__tests__/characters.test.ts`, validating `content/marvel-characters.json` against the new schema at CI time — mirrors the existing `content.test.ts`/`schema.test.ts` "fail loudly at build" pattern (`CLAUDE.md`).
+- **New composable**, `app/composables/useCharacterCatalogue.ts`, statically importing the JSON exactly like `useGameContent.ts:9` imports `marvel-champions.json` — same offline guarantee, same "no runtime fetch" discipline (`useGameContent.ts:1-6` header comment, Anti-Patrón 3).
 
-**Where variant/token resolution happens:** lazily, in a `computed`, every time the cursor changes — not baked into the expanded sequence. `expand()` only decides *how many* runtime nodes exist (structural, depends on `playerCount` for per-player steps); `resolve()` decides *what text* a given node shows (depends on `difficulty` and the numeric tokens), and is cheap enough to recompute on every navigation without memoization concerns.
+### Shape — Marvel-specific now, generic-enough-later by staying per-game, not by over-abstracting today
 
----
+`PROJECT.md`'s own milestone description is explicit about the numbers needed: *"vida, tamaño de mano, vida de villano por etapa y por jugador"* (`.planning/PROJECT.md:35`). This confirms villain health is tiered by **both stage and player count** (consistent with `setup.escenario.02`/`setup.escenario.04`'s existing stage/difficulty-card content, `content/marvel-champions.json:174-220`), while hero health and hand size are flat per-hero numbers:
 
-## 6. Persistence and Content Versioning
-
-**Persisted shape** (one entry per game, namespaced key `tga:progress:<gameId>` in `localStorage`):
-
-```typescript
-interface PersistedPosition {
-  formatVersion: 1            // versions the STORAGE SHAPE itself, independent of content
-  gameId: string
-  contentVersion: number      // copied from the GameDefinition that was active when saved
-  runtimeId: string           // e.g. "round.villain.02" or "round.player.01::p2"
-  round: number
-  context: SessionContext     // { playerCount, difficulty } — kept even on fallback
-  updatedAt: string           // ISO timestamp, informational
+```json
+{
+  "gameId": "marvel-champions",
+  "villains": [
+    {
+      "id": "rhino",
+      "name": "Rhino",
+      "healthByStage": { "1": { "1": 10, "2": 14, "3": 18, "4": 22 } }
+    }
+  ],
+  "heroes": [
+    { "id": "spider-man", "name": "Spider-Man", "alterEgo": "Peter Parker", "health": 10, "handSize": 5 }
+  ]
 }
 ```
 
-**Strategy — conservative fallback, never a crash:**
+**Recommendation: keep this file per-game and Marvel-vocabulary-specific (`villains`/`heroes`) rather than inventing a generic `characters[]`/`factions[]` taxonomy now.** Warhammer 40.000 content is an explicit future milestone (`PROJECT.md:47`, "Candidatos para hitos posteriores") whose actual shape isn't designed yet — this project's own established practice is to add fields/files when a second real need appears, not to guess an abstraction in advance (the `GameDefinitionSchema` itself grew incrementally this way: `variants`, `options`, `optionsWarning` etc. were each added when a concrete need arrived, per the inline history comments throughout `engine/schema.ts`). When W40K content is actually designed, a parallel `content/warhammer-characters.json` with its own schema, informed by real W40K rules, is cheap to add later and won't be constrained by a premature Marvel-shaped generic type. **Generality is achieved at the `GameDefinition`/`showsValue`/catalogue-composable-interface level (each game gets its own catalogue file + its own lookup composable, same pattern), not by forcing one shared JSON shape across two unrelated games.**
 
-1. On load, read `PersistedPosition` for the current `gameId`. If absent → fresh session, show `MiniSetupForm`.
-2. If present, compare `persisted.contentVersion` to the freshly-loaded `GameDefinition.contentVersion`.
-   - **Mismatch** → do not attempt to resolve `runtimeId` against the new structure at all, even if it happens to still exist (a coincidental id match after a restructure is worse than an honest reset — it could land the user on a step that used to mean something else). Fall back to session start (`cursor = 0, round = 1`), but **keep** `persisted.context` (playerCount/difficulty are still meaningful) so the player doesn't have to redo the mini-setup. Optionally show a one-line notice ("Se actualizó el contenido; empezamos desde el principio").
-   - **Match** → look up `persisted.runtimeId` in the freshly expanded `sequence`. Found → resume exactly (cursor + round + context restored). **Not found** (defensive — e.g. manual storage tampering, or a same-version content diff that shouldn't happen but might) → same fallback as mismatch.
-3. **Versioning discipline:** bump `contentVersion` on *any* edit to that game's JSON that could shift meaning — reordering, inserting, deleting, or renaming a step id. Bumping too eagerly (e.g. on a pure typo fix) only costs an unnecessary reset to session start, which is cheap and safe; failing to bump when structure changed risks a subtly wrong resume, which is the worse failure mode. Recommend: bump on every deploy that touches that game's content file, full stop — don't try to be clever about "was this change structural."
+### Offline constraint
 
-This keeps the fallback logic entirely inside `engine/persistence.ts` as a pure function (`resume(persisted, freshSession): EngineSession`), fully unit-testable with fixtures for "version matches," "version mismatch," and "id vanished" without touching `localStorage` in the test at all.
+Committed + statically imported means the catalogue is bundled into the prerendered JS output at `nuxt generate` time exactly like `marvel-champions.json` already is. It is automatically covered by `@vite-pwa/nuxt`'s existing `workbox.globPatterns: ['**/*.{js,css,html}', ...]` (`nuxt.config.ts:147`) because it ships inside a JS chunk, not as a standalone `public/` asset — **no new Workbox glob entry is needed** (unlike the `.m4a` audio clips, which needed their own `audio/*.m4a` glob because they're separate static files, `nuxt.config.ts:156`).
 
 ---
 
-## 7. Suggested Build Order
+## e) Where does Firestore sit?
+
+**Seam: a new, lazily-imported, client-only composable — never a plugin, never loaded at boot.**
+
+### Design
+
+- **New file**, e.g. `app/composables/useHistorySync.client.ts` (Nuxt's `.client.` suffix convention gives a hard guarantee against accidental SSR execution, rather than relying on caller discipline alone — safer than relying solely on the fact that its only real caller sits inside the page's existing `<ClientOnly>` boundary, `index.vue:428`).
+- **Invoked only from the new history-write hook** (part b's `onOutcomeChosen`), never at route load, never at app boot. If nobody has ever finished a game, **zero Firebase code, config, or network request is ever touched** — this satisfies "cold offline start" trivially by construction, not by a runtime network-detection branch.
+- **Dynamic import inside the function body**: `const { initializeApp } = await import('firebase/app')`, `const { getFirestore, addDoc, ... } = await import('firebase/firestore')` — not static top-level imports. This keeps Firebase's SDK weight out of the prerendered critical-path bundle entirely; Vite/Nuxt code-splits it into its own chunk fetched only on first history write.
+- **Fire-and-forget, exactly matching the existing idiom already used for audio preloading**: `prefetchAll(audioIds.value).catch(() => {})` (`index.vue:164`). The Firestore mirror call should be invoked the same way from the history-write hook — never `await`ed in the critical path that leads to `navigateTo('/')`.
+- **Config guard before any import happens**: read Firebase project config from `runtimeConfig.public.firebase*` (`nuxt.config.ts` addition); if the project id is empty/undefined (e.g. a fork without Firebase configured, or a build where env vars weren't set), short-circuit to a no-op **before** the dynamic import runs, so a misconfigured build degrades to "sync silently never happens" rather than throwing.
+
+### Explicit non-blocking failure modes (as required)
+
+| Failure | Handling |
+|---|---|
+| Dynamic import of the Firebase chunk fails (offline at the moment of first write) | catch, log nothing user-visible, treat as "sync skipped, retry later" |
+| `addDoc`/`setDoc` rejects (offline, quota, security-rule denial, project misconfigured) | catch, same treatment, never surfaces to the group, never blocks `navigateTo('/')` |
+| Firebase env vars missing/invalid | short-circuit before import, per the config guard above |
+| Firestore SDK's own offline queue/IndexedDB layer misbehaves | irrelevant if never enabled — see below |
+
+### Coexistence with Workbox and with the project's existing "no IndexedDB" decision
+
+`STACK.md`'s existing decision explicitly rejects IndexedDB for the app's **own** progress persistence ("solving a problem this app doesn't have"). That decision is about the app's own storage layer, not about a third-party SDK's internals, but it's worth deliberately **not** compounding it: **do not call `enableIndexedDbPersistence`/enable Firestore's multi-tab offline persistence.** Since localStorage (via `usePersistedSession.ts`, extended per part b) is already the durable source of truth and Firestore is explicitly "a durable backup, never-blocking" per the milestone spec, there is no need to also pay for Firestore's own offline write-queue complexity. If a write fails offline, it's simply skipped — recommend a lightweight `syncedToFirestore: boolean` flag on each localStorage history entry (`usePersistedSession.ts`'s new `appendHistoryEntry`), with an opportunistic `flushPending()` retry (e.g. triggered by a `window` `online` event listener, or attempted once more the next time a game starts) rather than adopting Firestore's built-in offline queue. This keeps the retry logic small, hand-rolled, and consistent with the project's stated preference for "no dependency for a job this small" (same reasoning `STACK.md` gives for skipping IndexedDB and Pinia).
+
+Firestore traffic goes to `firestore.googleapis.com`, a cross-origin host that the existing `generateSW` Workbox config (`nuxt.config.ts:145-177`) never touches — its `globPatterns`/`globIgnores` only cover same-origin build output. **No `runtimeCaching` entry should be added** for Firestore; that would be over-engineering a best-effort, ok-to-fail write path that the app must function perfectly without.
+
+---
+
+## f) New vs modified files
+
+### NEW
+
+| File | Reason |
+|---|---|
+| `content/marvel-characters.json` | Villain/hero numeric catalogue (18 heroes, 3 villains), MarvelCDB-sourced |
+| `scripts/marvelcdb/<fetch-script>.mjs` | Committed, documented procedure that produces the catalogue offline — never runs at app runtime |
+| `engine/catalogueSchema.ts` | Zod schema for the catalogue, Node/CI-only (mirrors `engine/schema.ts`'s role) |
+| `engine/__tests__/characters.test.ts` | Validates the catalogue at CI time (mirrors `content.test.ts`) |
+| `engine/valueDisplay.ts` | Pure resolver: `showsValue` + selection + catalogue → parenthetical string or `null` |
+| `engine/__tests__/valueDisplay.test.ts` | Unit tests for the above (same pure-function pattern as `resolve.test.ts`) |
+| `engine/history.ts` | Pure `buildHistoryEntry(session, outcome, catalogue)` — keeps the page component thin, same role `engine/header.ts::describeHeader` already plays for header strings |
+| `engine/statistics.ts` (optional but recommended) | Pure win% aggregation over `loadHistory()`'s output, unit-testable without any UI |
+| `app/composables/useCharacterCatalogue.ts` | Static import + lookup helpers over the catalogue (mirrors `useGameContent.ts`) |
+| `app/composables/useHistorySync.client.ts` | Lazy Firebase/Firestore mirror, fire-and-forget, client-only by file suffix |
+| `app/components/HeroVillainPicker.vue` | Modal: per-player hero pick + name-filter + optional player name, invoked at `setup.heroes.01` |
+| `app/components/CounterBand.vue` | Fixed villain HP + HP1..HP4 band with ▲▼, visible during the round loop |
+| `app/components/GameOutcomeScreen.vue` (or a small extension of `ConfirmDialog.vue` — design choice) | Captures ganado/perdido, inserted into the end-game flow per part (b) |
+| `app/pages/estadisticas.vue` | Win % per hero / per villain screen, reads `loadHistory()` + `engine/statistics.ts` |
+
+### MODIFIED
+
+| File | Change |
+|---|---|
+| `engine/types.ts` | Extend `SessionContext` with `selection`/`counters`/`startedAt`; add `showsValue` to `TextBlock`/`StepDefinition` |
+| `engine/schema.ts` | Add `showsValue: z.enum([...]).optional()` to `TextBlockSchema` (`schema.ts:31-65`), preserving `z.strictObject` semantics (CR-01); update the file's own "único fichero que importa zod" header comment once `catalogueSchema.ts` exists |
+| `content/marvel-champions.json` | Tag `setup.escenario.02` with `showsValue: 'villainHealth'`; tag `setup.heroes.03` and `ronda.jugadores.02` with `showsValue: 'heroHealth'` / `'handSize'` respectively; consider a `contentVersion` bump for hygiene (part a explains exactly what this does and doesn't guarantee) |
+| `app/composables/useGameSession.ts` | Add `displayText` computed (part c); add selection/counter mutator functions that reassign `session.value` with an updated `context`, following the file's existing "never mutate in place" convention (`useGameSession.ts:6-7`) |
+| `app/composables/usePersistedSession.ts` | Add `HISTORY_KEY`, `appendHistoryEntry(entry)`, `loadHistory()`, reusing existing `readRaw`/`writeRaw` (part b) — the one required change to keep "only localStorage seam" literally true |
+| `app/pages/[game]/index.vue` | Wire `HeroVillainPicker` into the `setup.heroes.01` rendering path; render `CounterBand` during the round loop; insert the new outcome-choice state into `onEndGameConfirm` (part b); rebind `StepScreen`'s `action-text` from `currentText.text` (`index.vue:513`) to the new `displayText` |
+| `nuxt.config.ts` | Add `runtimeConfig.public.firebase*` entries; no PWA/Workbox/`routeRules` changes needed (parts d and e explain why) |
+| `package.json` | Add `firebase` dependency (dynamically imported, never a static top-level import) |
+
+### Confirmed NOT modified (worth stating explicitly, since "no change needed" is itself a finding)
+
+- `engine/resolve.ts` — no arithmetic added here; `showsValue` is read directly off `node.step` in the new `valueDisplay.ts`, not through `resolveText`'s output (part c).
+- `engine/audio.ts` and `scripts/voice/generate.mjs` — neither reads `text` or `showsValue`, so neither needs to change or regenerate anything (part c).
+- `engine/persistence.ts` — `context` is already generic/opaque; `isValidContext`'s minimal two-field guard remains correct and sufficient (part a).
+- `app/components/StepScreen.vue` — remains a dumb component receiving `actionText: string`; no prop/slot changes needed if `displayText` is fully resolved upstream in the composable (part c). *If* the hero/villain picker or counter band end up composed as children of `StepScreen` rather than page-level siblings (a layout decision for the phase planner), this assumption would need revisiting.
+
+---
+
+## g) Suggested build order
+
+Dependency graph (not a strict linear chain — chunks 3 and 4 can run in parallel once chunk 2 lands):
 
 ```
-1. engine/ core                         ──┐
-   (types, schema, flatten, expand,        │  parallelizable — no shared dependency,
-    resolve, navigator, persistence)        │  can all start day one
-   + unit tests against a hand-written      │
-   6-step fixture (NOT real content)       │
-                                            │
-2. Content research + authoring            │  (reading the two PDFs, drafting
-   (Marvel Champions JSON, verified          │  Marvel Champions JSON) — independent
-   against Rules Reference v17)              │  research work; final zod-parse +
-                                            │  flatten sanity-check depends on (1)
-3. Nuxt scaffold                           │  (pages/index.vue, [game]/index.vue
-   (routing skeleton, empty placeholders)  ──┘  skeleton, nuxt.config prerender list)
-        │
-        ▼ (needs 1 + 3)
-4. Composable/store adapter layer
-   (useGameContent, useGameSession, usePersistedSession)
-        │
-        ▼ (needs 4)
-5. Presentational components
-   (StepDisplay, NextPrevControls, MiniSetupForm)
-        │
-        ▼ (needs 4 + a small engine addition: listSteps()/table-of-contents helper)
-6. Jump/index overlay (StepIndexOverlay)
-        │
-        ▼ (can slip later — lower priority than 1-5)
-
-Independent tracks, mergeable whenever convenient:
-7. useSpeech() (Web Speech API wrapper) — zero dependency on engine or content;
-   build anytime, wire into StepDisplay's speech watcher last.
-8. Persistence wiring end-to-end — needs (1)'s persistence.ts + (4); do this AFTER
-   next/prev/jump already work manually, so there's something meaningful to persist.
-9. PWA/offline shell (manifest, service worker) — mostly infrastructure, can start
-   after (3) exists, but finalize after content is stable-ish; since content is
-   statically imported into the JS bundle (not fetched), the service worker's job
-   shrinks to "cache the app shell," which is the default behavior of most Nuxt
-   PWA setups — no custom content-caching strategy needed.
-10. Warhammer 40k content — pure content addition once (1) is proven against
-    Marvel Champions. Should require zero changes to 1, 4-9 (see §8).
+Chunk 1 (catalogue)
+    │
+    ▼
+Chunk 2 (selection + picker UI)
+    │
+    ├──────────────┐
+    ▼              ▼
+Chunk 3        Chunk 4
+(counters)     (showsValue)
+    │              │
+    └──────┬───────┘
+           ▼
+     Chunk 5 (history + statistics)
+           │
+           ▼
+     Chunk 6 (Firestore backup)
 ```
 
-**Critical path for the roadmap:** 1 → (2 in parallel) → 3 → 4 → 5, with 7 buildable anytime and 6/8/9 following once 5 lands. Nothing about the "no calculation" or "hand-authored JSON" constraints is threatened by this ordering — the engine's correctness (round boundary, jump, persistence fallback) is fully verifiable in step 1 before a single line of real Marvel Champions content or a single Vue component exists, which is exactly the leverage point worth spending roadmap phase 1 on.
+**Chunk 1 — Catalogue.** `content/marvel-characters.json`, `scripts/marvelcdb/...`, `engine/catalogueSchema.ts`, `engine/__tests__/characters.test.ts`, `app/composables/useCharacterCatalogue.ts`. **Fully independent** — zero dependency on session state, selection UI, or Firestore. Testable entirely via Vitest with no UI at all. Build and validate this first because everything else (numbers to show, numbers to prefill counters with) reads from it.
+
+**Chunk 2 — Selection state + picker UI.** Depends on Chunk 1 (needs hero/villain names+ids to populate the picker's filter/list). `engine/types.ts` (`SessionContext.selection`), `useGameSession.ts` selection mutator, `HeroVillainPicker.vue`, wiring at `setup.heroes.01` in `index.vue`. Persistence needs **no new code** — part (a) established that `context` extensions are saved/resumed for free by the existing debounced watcher and `resume()`. Testable: unit-test the mutator purely; manually verify persistence survives a reload using the app's existing resume flow.
+
+**Chunk 3 — Counters + CounterBand.** Depends on Chunk 2 (initial HP values are "prefilled from the selection and player count," per `PROJECT.md:36`) and Chunk 1 (for the actual numbers). Independent of Chunk 4/5/6. `SessionContext.counters`, counter mutator, `CounterBand.vue`, wiring into the round-loop rendering. Same free-persistence argument as Chunk 2.
+
+**Chunk 4 — `showsValue` rendering.** Depends on Chunk 1 (catalogue numbers) and Chunk 2 (which villain/hero is selected). **Does not depend on Chunk 3** — the three concrete steps identified in part (c) (`setup.heroes.03`, `setup.escenario.02`, `ronda.jugadores.02`) all read static catalogue base values, not live counters (setup-phase steps run once before any counter changes; `ronda.jugadores.02`'s hand size is a fixed per-hero number, not a decrementing counter). `engine/types.ts` (`TextBlock.showsValue`), `engine/schema.ts`, the three content-JSON tags, `engine/valueDisplay.ts` + tests, `useGameSession.ts`'s `displayText`, the `StepScreen` prop rebind. **Gate check for this chunk specifically: run `npm test` after the content-JSON edit and confirm `engine/__tests__/voice-drift.test.ts` is unchanged/still green with zero regeneration** — this is the concrete, mechanical verification that part (c)'s reasoning held.
+
+**Chunk 5 — History capture + statistics.** Depends on Chunks 2/3 for the *data* it records (villain/heroes/names/duration/rounds), but `engine/history.ts`'s `buildHistoryEntry` and `engine/statistics.ts`'s aggregation are pure functions that can be built and unit-tested against a hand-built fixture session **before** Chunks 2-4 are fully wired into the UI — don't block this chunk's engine-level work on the others' UI work. `usePersistedSession.ts` additions (`HISTORY_KEY`), the new outcome-choice UI + `onEndGameConfirm` flow change, `app/pages/estadisticas.vue`. This chunk should ship and be verified as fully correct **entirely offline, with zero Firestore involvement**, before Chunk 6 is touched — it's the "localStorage as source of truth" half of the milestone and must stand on its own.
+
+**Chunk 6 — Firestore backup.** Strictly last; depends only on Chunk 5's `appendHistoryEntry` call site existing as the hook point. `package.json` (`firebase` dep), `useHistorySync.client.ts`, `nuxt.config.ts` runtime config, wiring the fire-and-forget call into the Chunk 5 hook, the `syncedToFirestore`/`flushPending()` retry design (part e). If this chunk is deferred, delayed, or fails entirely in production, **Chunks 1-5 remain fully functional** — this is the one chunk that touches network/third-party config and the one place "cold offline start" needs explicit manual or Playwright verification (the project already has this pattern in `e2e/offline-flow.spec.ts`).
 
 ---
 
-## 8. Extensibility Check: Adding Warhammer 40k
+## Template Cross-Reference
 
-Concretely, adding W40k under this architecture requires:
+The generic research template's "System Overview" diagram / "Scaling Considerations 100k+ users" / "External Services integration pattern table" sections are collapsed into the question-by-question answers above, since this is a codebase-grounded integration doc for a single-digit-user hobby app, not a from-scratch ecosystem survey. The one template section worth calling out on its own:
 
-1. Write `content/warhammer-40k.json` conforming to the same `GameDefinitionSchema`: `sections = [ Setup(repeats:false, phases=[...]), BattleRound(repeats:true, phases=[Command, Movement, Psychic, Shooting, Charge, Fight, Morale-or-whatever-the-current-edition-uses, ...]) ]`. (The exact current-edition W40k phase list is a *content research* question for whenever that milestone starts, not an architecture question — out of scope here.)
-2. Flip its entry in `content/games-index.ts` from `status: 'coming-soon'` to `status: 'available'`.
-3. Add its route to `nitro.prerender.routes` (or trust the crawler, since it's already linked from `/`).
+### Internal boundary this milestone must not blur
 
-**That's it — zero changes to `engine/`, `app/composables/`, or `app/components/`.** Nothing in those layers knows the words "villano," "héroe," "Command phase," or "Morale." `StepDisplay.vue` renders whatever `title`/`text`/`detail`/`branches` a resolved node has; `navigator.ts` only knows "one section repeats, here are its bounds"; `MiniSetupForm.vue` only knows "player count + difficulty," both of which W40k also needs.
-
-**Honest limitation, stated rather than hidden:** this model assumes exactly one repeating section per game and a flat `playerCount + difficulty` session context. Two situations would require touching engine code:
-
-- **A game with two independent repeating cycles** (e.g. a repeating sub-phase nested inside the repeating round — not the case for either Marvel Champions or the currently-known W40k round structure). The fix is a small, contained generalization: `expand()` would track an array of `(loopStartIndex, loopEndIndex)` pairs instead of one, and `navigator.ts`'s two `if` branches would loop over that array instead of comparing against a single pair. The *schema* doesn't need to change at all — `repeats: true` already generalizes to "more than one section may set this," it's only the runtime engine's bookkeeping that would grow. This is a bounded, testable extension, not a rewrite.
-- **A game needing a third mini-setup question** beyond player count/difficulty (e.g. a faction picker). The fix, if designed for now rather than later, is to make `SessionContext` an open bag (`{ playerCount: number; difficulty: Difficulty; [key: string]: unknown }`) from day one, so a new field is additive to the type and to `MiniSetupForm.vue`, not a breaking change to the engine's function signatures. Recommend doing this now, even though only two fields exist today — it costs nothing and forecloses a future partial-rewrite.
-
-Neither situation applies to the two games actually in scope. The honest takeaway: **adding W40k as specified is pure data + a registry flip; the architecture only needs engine changes if a future game's structure genuinely doesn't fit "one setup, one repeating round," which is a real but currently-hypothetical risk, flagged and designed around rather than ignored.**
+| Boundary | Rule |
+|---|---|
+| `~~/engine/*` ↔ `app/composables/useGameSession.ts` | **Unchanged by this milestone.** `useGameSession.ts:2-4`'s own comment states it is the *only* reactive seam between the pure engine and Vue — no component may import `~~/engine/*` directly. `valueDisplay.ts`/`history.ts`/`statistics.ts` (new pure engine modules) must be consumed through `useGameSession.ts` (or a new sibling composable following the identical pattern), never imported directly into `HeroVillainPicker.vue`/`CounterBand.vue`/`estadisticas.vue`. |
+| `usePersistedSession.ts` ↔ everything else | **Extended, not duplicated.** Remains the only file that touches `window.localStorage` (part b). |
+| `useHistorySync.client.ts` ↔ Firestore | **New boundary, intentionally thin and one-directional.** The app never reads from Firestore at runtime (no "restore history from cloud" feature in this milestone) — it only writes, fire-and-forget. This keeps the failure surface small: Firestore being unreachable can never prevent the app from displaying its own (correct, local) history/statistics. |
 
 ---
 
-## Anti-Patterns to Avoid
-
-### Anti-Pattern 1: Formula evaluator for player-count/difficulty text
-**What people do:** build a small expression language (`"{playerCount * 2} cartas"`) or embed conditionals (`{{#if expert}}...{{/if}}`) directly in content strings.
-**Why it's wrong:** directly contradicts the stated "no calculation" philosophy, and turns every content file into code that needs its own test suite. It also makes citation-auditing against the PDF harder — a reviewer has to mentally execute the formula to know what a player will actually see.
-**Instead:** literal variant text blocks (`variants.difficulty`) and literal token substitution (`{playerCount}`, `{n}`) against numbers already known — both shown in §2.
-
-### Anti-Pattern 2: Ordering steps by sorting their `id` strings
-**What people do:** rely on dotted ids like `round.villain.02` sorting correctly, then later need to insert a step between `.02` and `.03` and either renumber everything (breaking persisted positions and citations) or invent fragile decimal ids (`.025`).
-**Why it's wrong:** couples content authoring convenience to a fragile string-sort invariant that will eventually break.
-**Instead:** order = array position in the authored JSON, full stop. Ids exist only for lookup (persistence, deep links, uniqueness checks), never for ordering.
-
-### Anti-Pattern 3: Fetching content JSON at runtime instead of importing it
-**What people do:** `useFetch('/content/marvel-champions.json')`, treating content like a CMS response.
-**Why it's wrong:** adds an async loading state, a network dependency the PWA then has to work around via service-worker caching rules, and a cache-invalidation problem completely disjoint from Nuxt's own build-output caching.
-**Instead:** static `import` at build time. Content is part of the JS bundle Nuxt already prerenders and the service worker already has to cache as "the app."
-
-### Anti-Pattern 4: Silently resuming a stale persisted step id after a content change
-**What people do:** on version mismatch, still try `sequence.findIndex(id)` and resume if it happens to match.
-**Why it's wrong:** a coincidental id survival after a restructure can land the user mid-flow with the wrong `round` number or wrong surrounding context, which is worse than a full reset for a "guides you so you don't miss a step" product.
-**Instead:** version mismatch → unconditional fallback to session start, keep only `playerCount`/`difficulty` (see §6).
-
----
-
-## Sources
-
-- [Nuxt Directory Structure v4](https://nuxt.com/docs/4.x/directory-structure) — `app/` as default `srcDir`, `server/`/`shared/`/`public/`/`modules/`/`layers/` remain at project root, `~` → `srcDir`, `~~` → `rootDir`. HIGH confidence, official docs.
-- [Nuxt v4 Upgrade Guide](https://nuxt.com/docs/4.x/getting-started/upgrade) — confirms the `app/` migration shape and automated codemod. HIGH confidence.
-- [Nuxt Prerendering v4](https://nuxt.com/docs/4.x/getting-started/prerendering) and [Nuxt Deployment v4](https://nuxt.com/docs/4.x/getting-started/deployment) — `nuxt generate` crawls linked routes at build time; unlinked dynamic routes need explicit `nitro.prerender.routes`. HIGH confidence, official docs.
-- Flow-model comparison (flat array vs nested-with-repeats vs XState/statecharts) and the full schema/engine design in §1–§8 are original architecture reasoning derived directly from the constraints in `.planning/PROJECT.md`, not sourced from an existing precedent — internally verified for consistency (round-boundary logic traced through explicit pseudocode, extensibility walkthrough checked against both target games), but MEDIUM confidence in the sense that no third-party "guided rules engine" reference implementation was found to benchmark against; this is a from-scratch design for a niche product category.
-
----
-*Architecture research for: data-driven guided-step engine for board game rules flows, static Nuxt 4 PWA, no backend*
-*Researched: 2026-08-28*
+*Architecture research for: TableGameAssistant v1.8 (Elección de personajes, contadores en mesa e histórico de partidas)*
+*Researched: 2026-09-07*

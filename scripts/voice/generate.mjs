@@ -7,9 +7,10 @@
 //
 // D-06: este script NUNCA se invoca desde `build`, `generate`, ni desde CI, ni
 // desde Vercel. Meter una llamada de red a la API de Gemini (y la necesidad de
-// la clave) en el build de despliegue rompería "sin backend". Requiere macOS
-// (usa `afconvert`, nativo) y la variable de entorno de la clave de la API en
-// un fichero `.env` no versionado.
+// la clave) en el build de despliegue rompería "sin backend". Usa `afconvert`
+// (nativo) en macOS y, como respaldo, `ffmpeg` en Linux/WSL (260923-3ri, ver
+// scripts/voice/convert.mjs). La clave de la API puede venir de un fichero
+// `.env` no versionado o ya estar exportada en el entorno del shell.
 //
 // Este fichero es el ÚNICO escritor de scripts/voice/manifest.json (Pitfall 3
 // de 03.1-RESEARCH.md): si alguien edita el manifiesto o los `.m4a` a mano sin
@@ -21,6 +22,7 @@ import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from '
 import { randomUUID } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { buildM4aCommand, SUPPORTED_CONVERTERS } from './convert.mjs'
 import { fingerprint } from './fingerprint.mjs'
 import { ACTIVE_STYLE, PROBE_PHRASE, STYLES } from './styles.mjs'
 import { wrapPcmAsWav } from './wav.mjs'
@@ -47,14 +49,25 @@ if (!GEMINI_API_KEY) {
   process.exit(1)
 }
 
-// ── 2. Comprobar que afconvert existe (solo macOS) ─────────────────────────
-try {
-  execFileSync('which', ['afconvert'], { stdio: 'ignore' })
+// ── 2. Elegir conversor (afconvert en macOS, ffmpeg de respaldo en Linux/WSL) ─
+// 260923-3ri: recorre SUPPORTED_CONVERTERS en orden de preferencia y se queda
+// con el primero que exista en el PATH. Si no hay ninguno, aborta como antes.
+let CONVERTER = null
+for (const candidate of SUPPORTED_CONVERTERS) {
+  try {
+    execFileSync('which', [candidate], { stdio: 'ignore' })
+    CONVERTER = candidate
+    break
+  }
+  catch {
+    // Este conversor no está en el PATH: probar el siguiente.
+  }
 }
-catch {
-  console.error('No se encontró `afconvert`. La generación de audio solo corre en macOS.')
+if (!CONVERTER) {
+  console.error('No se encontró ningún conversor de audio. Instala `afconvert` (macOS) o `ffmpeg` (Linux/WSL).')
   process.exit(1)
 }
+console.log(`Conversor de audio: ${CONVERTER}`)
 
 // ── 3. Constantes ────────────────────────────────────────────────────────────
 const MODEL = 'gemini-2.5-flash-preview-tts'
@@ -180,12 +193,13 @@ async function synthesize(text) {
   }
 }
 
-// ── 8. WAV -> M4A vía afconvert (nunca shell: argumentos en array) ─────────
+// ── 8. WAV -> M4A vía CONVERTER (nunca shell: argumentos en array) ─────────
 function convertPcmToM4a(pcm, m4aPath) {
   const tmpWavPath = join(tmpdir(), `voice-${randomUUID()}.wav`)
   writeFileSync(tmpWavPath, wrapPcmAsWav(pcm))
   try {
-    execFileSync('afconvert', ['-f', 'm4af', '-d', 'aac', '-b', '64000', tmpWavPath, m4aPath])
+    const { command, args } = buildM4aCommand(CONVERTER, tmpWavPath, m4aPath)
+    execFileSync(command, args)
   }
   finally {
     try {

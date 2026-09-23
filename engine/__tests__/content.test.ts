@@ -278,6 +278,74 @@ describe('content/marvel-champions.json', () => {
     expect(() => validateGameDefinition(mutated)).toThrow()
   })
 
+  // CR-01/VAL-01 (plan 08-04): este describe fija la ruta elegida para cerrar el
+  // hueco de la Fase 8 (reordenar el contenido) en vez de la alternativa rechazada
+  // (dar al paso del dial su propia variante de dificultad). Si algún día se
+  // prefiriera esa segunda ruta, este test debe reescribirse A CONCIENCIA, nunca
+  // borrarse: es la única red que impide que un paso "value: villainHealth" vuelva
+  // a leerse antes de que el grupo haya sustituido las cartas de villano por las
+  // de la dificultad elegida (en Experto, la cifra impresa dejaría de coincidir
+  // con la carta física que el grupo tiene delante).
+  describe('CR-01/VAL-01: la sustitución de cartas por dificultad precede al dial', () => {
+    // Localiza el paso de sustitución por el DATO, nunca por el id: si mañana se
+    // renombrara, este helper seguiría encontrándolo (y el test de identidad de
+    // abajo fallaría a propósito, en vez de que el gate se desactivara en silencio).
+    function findDifficultySwapStep(game: GameDefinition) {
+      const steps = allSteps(game)
+      const candidates = steps.filter(s => /cartas de villano/i.test(s.variants?.difficulty?.expert?.text ?? ''))
+      if (candidates.length !== 1) {
+        throw new Error(`Se esperaba exactamente 1 paso de sustitución de cartas por dificultad, se encontraron ${candidates.length}`)
+      }
+      return candidates[0]
+    }
+
+    // Helper puro compartido entre el gate real y el test que lo muerde (mismo
+    // patrón que findStaleAudio en voice-drift.test.ts): devuelve los ids de todo
+    // paso value:"villainHealth" cuyo índice en el recorrido de allSteps() sea
+    // menor o igual que el del paso de sustitución.
+    function villainHealthStepsBeforeSwap(game: GameDefinition): string[] {
+      const steps = allSteps(game)
+      const swapStep = findDifficultySwapStep(game)
+      const swapIndex = steps.findIndex(s => s.id === swapStep.id)
+      return steps
+        .filter((s, i) => s.value === 'villainHealth' && i <= swapIndex)
+        .map(s => s.id)
+    }
+
+    it('identidad del paso de sustitución: exactamente uno, y es setup.escenario.04', () => {
+      const swapStep = findDifficultySwapStep(marvelChampions)
+      expect(swapStep.id).toBe('setup.escenario.04')
+    })
+
+    it('no vacuidad: al menos un paso declara value:"villainHealth", y es exactamente setup.escenario.02', () => {
+      const withVillainHealth = allSteps(marvelChampions).filter(s => s.value === 'villainHealth')
+      expect(withVillainHealth.map(s => s.id)).toEqual(['setup.escenario.02'])
+    })
+
+    it('el invariante: ningún paso value:"villainHealth" precede (ni empata con) el paso de sustitución', () => {
+      const offenders = villainHealthStepsBeforeSwap(marvelChampions)
+      expect(
+        offenders,
+        `Estos pasos imprimirían la vida del villano antes de que el grupo sustituya las cartas por dificultad, contradiciendo la carta física en Experto: ${offenders.join(', ')}`,
+      ).toEqual([])
+    })
+
+    it('el gate muerde: mover el paso de sustitución al final de su fase (en memoria) hace fallar el invariante', () => {
+      const mutated: GameDefinition = JSON.parse(JSON.stringify(rawMarvelChampions))
+      for (const section of mutated.sections) {
+        for (const phase of section.phases) {
+          const swapIndex = phase.steps.findIndex((s: { variants?: { difficulty?: { expert?: { text?: string } } } }) =>
+            /cartas de villano/i.test(s.variants?.difficulty?.expert?.text ?? ''))
+          if (swapIndex !== -1) {
+            const [swapStep] = phase.steps.splice(swapIndex, 1)
+            phase.steps.push(swapStep)
+          }
+        }
+      }
+      expect(villainHealthStepsBeforeSwap(mutated)).toEqual(['setup.escenario.02'])
+    })
+  })
+
   describe('sección ronda (D-34/D-35, CONT-02/03/04/05/06/07, ADAPT-04)', () => {
     it('existe una sección ronda con repeats:true, exactamente 2 fases; jugadores tiene 3 pasos kind step y villano exactamente 6; el último paso es ronda.villano.06', () => {
       const ronda = marvelChampions.sections.find(s => s.id === 'ronda')
@@ -534,8 +602,8 @@ describe('content/marvel-champions.json', () => {
         expect(step.warningDetail).toMatch(/aturdido|confundido/i)
       })
 
-      it('contentVersion es exactamente 13 (PERS-03)', () => {
-        expect(marvelChampions.contentVersion).toBe(13)
+      it('contentVersion es exactamente 14 (PERS-03)', () => {
+        expect(marvelChampions.contentVersion).toBe(14)
       })
 
       it('la citation.section de ronda.jugadores.01 casa con /Player Turn \\(p\\. 34\\)/', () => {
