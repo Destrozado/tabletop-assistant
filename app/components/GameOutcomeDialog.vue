@@ -30,8 +30,10 @@
 // hasta el botón de cierre sin registrar y `Enter`.
 // Ver `deferred-items.md` §WR-04 y `09-VERIFICATION.md` (ronda 4, «Sobre los
 // dos diferidos reclasificados») — esto es una decisión contrastada, no un
-// olvido pendiente.
-import { onMounted, onUnmounted, ref } from 'vue'
+// olvido pendiente. Re-comprobada por el quick 260923-3rm: sigue cerrada, y
+// la trampa de foco nueva (WR-02 r4) la complementa sin reabrirla.
+import { ref } from 'vue'
+import { useDialogFocusTrap } from '~/composables/useDialogFocusTrap'
 
 defineProps<{
   contextLine: string
@@ -50,10 +52,16 @@ const wonPressed = ref(false)
 const mainSchemePressed = ref(false)
 const heroesEliminatedPressed = ref(false)
 
-// Foco gestionado (WR-04): el panel entra en foco al abrirse y el foco vuelve
-// a donde estaba al cerrarse — mismo patrón de forma que
-// `WarningDetailModal.vue` (ref al elemento, onMounted → focus(), onUnmounted
-// → restaurar).
+// Foco gestionado y ATRAPADO (WR-02 r4, quick 260923-3rm): el panel entra en
+// foco al abrirse, `Tab`/`Shift+Tab` ciclan SOLO entre los botones de este
+// diálogo (nunca escapan hacia «SIGUIENTE» ni ningún otro control detrás del
+// velo), y el foco vuelve a donde estaba al cerrarse SOLO si ese nodo sigue
+// conectado al DOM (WR-03 r4: nunca `.focus()` sobre un nodo desprendido).
+// Extraído a `useDialogFocusTrap` (mismo patrón de alta/baja de listener que
+// `WarningDetailModal.vue`, pero con el ciclo de Tab añadido) — ver la
+// cabecera de ese fichero para el razonamiento completo, incluido por qué la
+// restauración es un no-op intencional en las cuatro salidas reales de este
+// diálogo.
 //
 // El foco inicial va al PANEL, no a ningún botón, y esa es la diferencia
 // deliberada con `WarningDetailModal.vue` (que sí enfoca su único botón
@@ -65,18 +73,7 @@ const heroesEliminatedPressed = ref(false)
 // diálogo (el siguiente `Tab` cae en el primer botón de resultado, el
 // `Shift+Tab` en el botón de cierre sin registrar) sin preseleccionar nada.
 const panel = ref<HTMLElement | null>(null)
-let previouslyFocused: HTMLElement | null = null
-
-onMounted(() => {
-  previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null
-  panel.value?.focus()
-})
-
-onUnmounted(() => {
-  if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
-    previouslyFocused.focus()
-  }
-})
+useDialogFocusTrap(panel)
 </script>
 
 <template>

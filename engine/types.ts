@@ -78,6 +78,22 @@ export interface StepDefinition extends TextBlock {
   citation?: Citation
 }
 
+// FrozenEndInstant (WR-06 ronda 4, quick 260923-3rm): el instante
+// congelado del PRIMER «Partida terminada» en una posición dada — sellado
+// para que un reintento de registro (tras un fallo de escritura del
+// histórico) mida la duración y la fecha hasta ESE instante, nunca hasta el
+// momento del reintento (D-08: reloj de pared sin tope, sin acumular tiempo
+// activo ni descontar pausas — el sello no cambia esa regla, solo fija en
+// qué instante se aplica). `runtimeId`/`round` son el TESTIGO de la
+// posición en la que se selló: si la sesión avanza a otro nodo o cambia de
+// ronda antes del reintento, el sello deja de aplicar (D-08 tal cual, sin
+// sello).
+export interface FrozenEndInstant {
+  at: number
+  runtimeId: string
+  round: number
+}
+
 // D-19 (Fase 6): la selección de la partida en curso. Vive dentro de
 // `SessionContext` y por tanto viaja entera en `toPersistedPosition` sin
 // una línea de fontanería nueva (`engine/persistence.ts` no se toca).
@@ -169,6 +185,17 @@ export interface SessionContext {
   // no se toca. `undefined` es el estado real de una sesión guardada por
   // v1.7, la primera versión sin este campo (D-10).
   startedAt?: number
+  // endedAt (WR-06 ronda 4, quick 260923-3rm): campo ADITIVO igual que
+  // `selection`/`counters`/`startedAt` — no bumpea `formatVersion` ni
+  // `contentVersion`, y `engine/persistence.ts` no se toca (ya persiste
+  // `context` entero). Sellado la PRIMERA vez que el grupo pulsa un
+  // resultado en `GameOutcomeDialog` en la posición actual
+  // (`stampEndOfGame`, `useGameHistory.ts`); solo válido mientras la sesión
+  // siga en esa misma posición (`freezeEndInstant`, `engine/history.ts`,
+  // que es quien decide si el sello sigue aplicando o hay que sustituirlo).
+  // `undefined` es el estado normal de cualquier partida en curso que no ha
+  // llegado a ese diálogo todavía.
+  endedAt?: FrozenEndInstant
   [key: string]: unknown
 }
 
@@ -195,8 +222,13 @@ export interface HistoryPlayerEntry {
 // porque hay UN SOLO histórico para toda la app (D-15); `lossCause` es
 // `null` cuando `result === 'won'` (D-06); `round` es el valor del motor
 // tal cual, se lee «hasta la ronda N», nunca `round - 1` (D-09); `durationMs`
-// es un reloj de pared sin tope, `null` cuando no se puede saber (D-08/D-10);
-// `recordedAt` es la fecha ISO del momento de registro.
+// es un reloj de pared sin tope, `null` cuando no se puede saber (D-08/D-10).
+// `recordedAt` (WR-06 ronda 4, quick 260923-3rm): la fecha ISO del INSTANTE
+// DEL DESENLACE — el sello de `context.endedAt` cuando sigue aplicando a la
+// posición actual (`freezeEndInstant`), o el momento del registro cuando no
+// hay sello válido (D-08 tal cual, camino sin cambios). Antes de este quick
+// era siempre «el momento del registro»; un reintento muy posterior a un
+// fallo de escritura ya no infla ni la duración ni la fecha de la tarjeta.
 export interface GameHistoryEntry {
   id: string
   gameId: string

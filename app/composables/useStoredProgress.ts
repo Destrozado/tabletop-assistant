@@ -109,9 +109,25 @@ function normalizar(value: unknown): unknown {
   return value
 }
 
+// quitarSelloDeFin (WR-06 ronda 4, quick 260923-3rm): copia superficial de
+// `context` sin el campo `endedAt`. `context.endedAt` (freezeEndInstant,
+// engine/history.ts) es el sello del INSTANTE DE FIN, nunca una marca de
+// POSICIÓN — dos contexts que solo difieren en si llevan sello o no siguen
+// siendo la MISMA partida (el reintento tras un fallo de escritura del
+// histórico guarda de nuevo la posición, ahora con `context.endedAt`
+// puesto; la `esperada` reconstruida en memoria para comparar no lo tiene
+// necesariamente). Sin esta exclusión, ese reintento pasaría a `'stale'`
+// sin serlo — el mismo defecto de fondo que ya obligó a excluir
+// `updatedAt` de esta comparación.
+function quitarSelloDeFin(context: Record<string, unknown>): Record<string, unknown> {
+  const { endedAt: _endedAt, ...resto } = context
+  return resto
+}
+
 // Se exporta para que tenga test propio, no porque nadie fuera vaya a
 // llamarla. Compara exactamente estos campos y ninguno más: `gameId`,
-// `contentVersion`, `formatVersion`, `runtimeId`, `round` y `context`.
+// `contentVersion`, `formatVersion`, `runtimeId`, `round` y `context` (sin
+// `context.endedAt`, ver `quitarSelloDeFin` arriba).
 //
 // `updatedAt` queda EXCLUIDO por escrito: cambia en cada escritura (incluso
 // de la misma partida en el mismo punto), así que incluirlo en la
@@ -123,7 +139,8 @@ export function esLaMismaPartida(enDisco: PersistedPosition, objetivo: Persisted
     && enDisco.formatVersion === objetivo.formatVersion
     && enDisco.runtimeId === objetivo.runtimeId
     && enDisco.round === objetivo.round
-    && JSON.stringify(normalizar(enDisco.context)) === JSON.stringify(normalizar(objetivo.context))
+    && JSON.stringify(normalizar(quitarSelloDeFin(enDisco.context)))
+      === JSON.stringify(normalizar(quitarSelloDeFin(objetivo.context)))
   )
 }
 

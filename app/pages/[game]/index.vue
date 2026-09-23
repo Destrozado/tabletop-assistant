@@ -101,9 +101,10 @@ const {
 const { save, clear } = usePersistedSession()
 
 // Fase 9 (HIST-01/02/03): segunda costura reactiva, hermana de
-// useGameSession — solo se usa `record` aquí, en el único sitio de la app
+// useGameSession. `stampEndOfGame` (WR-06 ronda 4, quick 260923-3rm) se
+// destructura junto a `record`: las dos se usan en el único sitio de la app
 // donde una partida termina.
-const { record } = useGameHistory()
+const { record, stampEndOfGame } = useGameHistory()
 
 // D-09: precarga de los 35 audios pregenerados, disparada junto al wake lock
 // en los tres puntos donde arranca una partida (ver onConfirm/
@@ -677,16 +678,19 @@ function finishGame(preserveProgress = false) {
 //    preguntas es exactamente el defecto que este plan cierra — por eso la
 //    lectura ocurre DESPUÉS del intento de escritura y es ella, nunca el
 //    booleano, quien decide la variante del aviso.
-// 3. D-U4 sigue intacto: el orden bloqueado es
-//    `silence()` → `record()` → `save()` → `notifyHistorySaved()` →
-//    `finishGame()`; la lectura de la autoridad se intercala entre `save()`
-//    y `notifyHistorySaved()`, el único hueco posible — tiene que ocurrir
-//    después del intento de escritura y antes de que se afirme nada, y todo
-//    ello antes de que `finishGame` vacíe la sesión. Desde el plan 09-28 la
-//    autoridad recibe además, como segundo argumento, la sesión que acaba de
-//    terminar: sin ella solo puede contestar «¿hay algo reanudable?», nunca
-//    «¿es ESTO lo que acaba de terminar?» — Gap #1 de la ronda 6
-//    (`09-VERIFICATION.md`).
+// 3. D-U4 sigue intacto, AMPLIADO por WR-06 (ronda 4, quick 260923-3rm): el
+//    orden bloqueado es `silence()` → `stampEndOfGame()` → `record()` →
+//    `save()` → `notifyHistorySaved()` → `finishGame()`; el sellado se
+//    intercala ANTES de `record()` (nunca después: `record()` ya necesita
+//    ver `session.value` sellada para que `recordedAt`/`durationMs` usen el
+//    instante congelado), y la lectura de la autoridad se intercala entre
+//    `save()` y `notifyHistorySaved()`, el único hueco posible — tiene que
+//    ocurrir después del intento de escritura y antes de que se afirme
+//    nada, y todo ello antes de que `finishGame` vacíe la sesión. Desde el
+//    plan 09-28 la autoridad recibe además, como segundo argumento, la
+//    sesión que acaba de terminar: sin ella solo puede contestar «¿hay algo
+//    reanudable?», nunca «¿es ESTO lo que acaba de terminar?» — Gap #1 de
+//    la ronda 6 (`09-VERIFICATION.md`).
 // 4. La comprobación de que exista sesión Y juego: la autoridad necesita el
 //    `GameDefinition` para reconstruir su lectura, y que exista sesión sin
 //    juego es un estado inalcanzable (la sesión solo nace desde esta misma
@@ -703,6 +707,14 @@ function onOutcomeRecorded(outcome: GameOutcome) {
   // voz seguiría oyéndose ya en el selector de juego.
   silence()
   if (session.value && game) {
+    // WR-06 (ronda 4, quick 260923-3rm): sellar el instante del desenlace
+    // ANTES de record() — orden D-U4 ampliado: silence() → SELLADO → record()
+    // → save() → lectura → aviso → finishGame(). `record()`, el guardado del
+    // fallo (`save()` más abajo) y `readStoredProgress` tienen que ver la
+    // MISMA sesión sellada, o el reintento de un registro fallido mediría la
+    // duración/fecha hasta el momento del reintento en vez de hasta este
+    // instante (D-08 sin este sello).
+    session.value = stampEndOfGame(session.value)
     let registrado = false
     try {
       registrado = record(session.value, outcome)

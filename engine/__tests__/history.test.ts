@@ -4,9 +4,10 @@ import {
   describeLossCause,
   formatEntryDate,
   formatEntryDuration,
+  freezeEndInstant,
   sortEntriesByRecency,
 } from '../history'
-import type { EngineSession, GameHistoryEntry, SessionContext } from '../types'
+import type { EngineSession, GameHistoryEntry, RuntimeStepNode, SessionContext } from '../types'
 
 // Regla obligatoria de este fichero (09-01-PLAN.md): usar instantes ISO a
 // mediodía UTC (p. ej. 2026-09-12T12:00:00.000Z) para que el desplazamiento
@@ -26,6 +27,29 @@ function baseSession(overrides: Partial<EngineSession> = {}): EngineSession {
     round: 1,
     context: baseContext(),
     ...overrides,
+  }
+}
+
+// makeNode (quick 260923-3rm, WR-06 ronda 4): mismo patrón que
+// engine/__tests__/resolve.test.ts — un nodo mínimo pero completo de
+// RuntimeStepNode, para construir sesiones con `sequence[cursor]` real que
+// `freezeEndInstant`/`buildHistoryEntry` puedan validar contra un
+// `runtimeId` de verdad.
+function makeNode(runtimeId: string): RuntimeStepNode {
+  return {
+    runtimeId,
+    sectionId: 'test',
+    sectionTitle: 'Test',
+    sectionRepeats: false,
+    phaseId: 'test.phase',
+    phaseTitle: 'Fase',
+    breadcrumb: 'Test › Fase',
+    step: {
+      id: runtimeId,
+      title: 'Paso de prueba',
+      kind: 'step',
+      text: 'Texto base.',
+    },
   }
 }
 
@@ -523,5 +547,215 @@ describe('CR-02 (ronda 3): el mapa de nombres congelados se indexa con dato no c
 
     const entryFeliz = buildHistoryEntry(session, 'won', NOON_UTC_MS, { villainName: 'Rhino', heroNames: {} })
     expect(entryFeliz.villainName).toBe('Rhino')
+  })
+})
+
+// WR-06 (ronda 4, quick 260923-3rm): congelar el instante del desenlace para
+// que un reintento de registro (tras un fallo de escritura del histórico)
+// mida la duración hasta el momento en que el grupo pulsó un resultado, no
+// hasta el momento del reintento — sin tocar D-07 (startedAt nunca se
+// reescribe) ni D-08 (reloj de pared sin tope, sin acumular tiempo activo).
+describe('freezeEndInstant (WR-06 ronda 4): sella el primer instante en una posición y no lo pisa', () => {
+  it('sesión sin sello: devuelve una sesión NUEVA con context.endedAt = { at, runtimeId, round } y no muta la entrada', () => {
+    const node = makeNode('loop.turno.02')
+    const session = baseSession({ sequence: [node], cursor: 0, round: 3 })
+    const snapshot = JSON.stringify(session)
+
+    const result = freezeEndInstant(session, NOON_UTC_MS)
+
+    expect(result).not.toBe(session)
+    expect(result.context.endedAt).toEqual({ at: NOON_UTC_MS, runtimeId: 'loop.turno.02', round: 3 })
+    expect(JSON.stringify(session)).toBe(snapshot)
+  })
+
+  it('aplicado dos veces en la misma posición conserva el PRIMER at (misma referencia devuelta en la segunda llamada)', () => {
+    const node = makeNode('loop.turno.02')
+    const session = baseSession({ sequence: [node], cursor: 0, round: 3 })
+
+    const first = freezeEndInstant(session, NOON_UTC_MS)
+    const second = freezeEndInstant(first, NOON_UTC_MS + 3_600_000)
+
+    expect(second).toBe(first)
+    expect(second.context.endedAt).toEqual({ at: NOON_UTC_MS, runtimeId: 'loop.turno.02', round: 3 })
+  })
+
+  it('tras mover el cursor (otro runtimeId) sustituye el sello por uno nuevo con el now nuevo', () => {
+    const nodeA = makeNode('loop.turno.02')
+    const nodeB = makeNode('loop.turno.03')
+    const session = baseSession({ sequence: [nodeA], cursor: 0, round: 3 })
+    const sealed = freezeEndInstant(session, NOON_UTC_MS)
+
+    const moved = { ...sealed, sequence: [nodeB], cursor: 0 }
+    const resealed = freezeEndInstant(moved, NOON_UTC_MS + 3_600_000)
+
+    expect(resealed.context.endedAt).toEqual({ at: NOON_UTC_MS + 3_600_000, runtimeId: 'loop.turno.03', round: 3 })
+  })
+
+  it('tras cambiar round sustituye el sello por uno nuevo con el now nuevo', () => {
+    const node = makeNode('loop.turno.02')
+    const session = baseSession({ sequence: [node], cursor: 0, round: 3 })
+    const sealed = freezeEndInstant(session, NOON_UTC_MS)
+
+    const roundChanged = { ...sealed, round: 4 }
+    const resealed = freezeEndInstant(roundChanged, NOON_UTC_MS + 3_600_000)
+
+    expect(resealed.context.endedAt).toEqual({ at: NOON_UTC_MS + 3_600_000, runtimeId: 'loop.turno.02', round: 4 })
+  })
+
+  it('con cursor fuera de rango devuelve la sesión sin cambios', () => {
+    const session = baseSession({ sequence: [], cursor: 0, round: 1 })
+    const result = freezeEndInstant(session, NOON_UTC_MS)
+    expect(result).toBe(session)
+  })
+
+  it('con now no finito devuelve la sesión sin cambios', () => {
+    const node = makeNode('loop.turno.02')
+    const session = baseSession({ sequence: [node], cursor: 0, round: 3 })
+    for (const now of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+      expect(freezeEndInstant(session, now)).toBe(session)
+    }
+  })
+})
+
+describe('buildHistoryEntry usa el sello congelado como instante de referencia (WR-06 ronda 4)', () => {
+  it('con sello válido en la posición actual y now = sello + 24h: durationMs === sello - startedAt y recordedAt === new Date(sello).toISOString()', () => {
+    const node = makeNode('loop.turno.02')
+    const startedAt = NOON_UTC_MS - 6_000_000
+    const sealedAt = NOON_UTC_MS
+    const now = sealedAt + 24 * 60 * 60 * 1000
+    const session = baseSession({
+      sequence: [node],
+      cursor: 0,
+      round: 3,
+      context: baseContext({ startedAt, endedAt: { at: sealedAt, runtimeId: 'loop.turno.02', round: 3 } }),
+    })
+
+    const entry = buildHistoryEntry(session, 'won', now, emptyNames)
+
+    expect(entry.durationMs).toBe(sealedAt - startedAt)
+    expect(entry.recordedAt).toBe(new Date(sealedAt).toISOString())
+  })
+
+  it('con sello de otra posición (runtimeId distinto): durationMs === now - startedAt y recordedAt de now (D-08 tal cual)', () => {
+    const node = makeNode('loop.turno.03')
+    const startedAt = NOON_UTC_MS - 6_000_000
+    const now = NOON_UTC_MS + 24 * 60 * 60 * 1000
+    const session = baseSession({
+      sequence: [node],
+      cursor: 0,
+      round: 3,
+      context: baseContext({ startedAt, endedAt: { at: NOON_UTC_MS, runtimeId: 'loop.turno.02', round: 3 } }),
+    })
+
+    const entry = buildHistoryEntry(session, 'won', now, emptyNames)
+
+    expect(entry.durationMs).toBe(now - startedAt)
+    expect(entry.recordedAt).toBe(new Date(now).toISOString())
+  })
+
+  it('con sello de otra posición (round distinta): durationMs === now - startedAt y recordedAt de now', () => {
+    const node = makeNode('loop.turno.02')
+    const startedAt = NOON_UTC_MS - 6_000_000
+    const now = NOON_UTC_MS + 24 * 60 * 60 * 1000
+    const session = baseSession({
+      sequence: [node],
+      cursor: 0,
+      round: 4,
+      context: baseContext({ startedAt, endedAt: { at: NOON_UTC_MS, runtimeId: 'loop.turno.02', round: 3 } }),
+    })
+
+    const entry = buildHistoryEntry(session, 'won', now, emptyNames)
+
+    expect(entry.durationMs).toBe(now - startedAt)
+    expect(entry.recordedAt).toBe(new Date(now).toISOString())
+  })
+
+  it('sello corrupto (at: NaN) se ignora y no lanza', () => {
+    const node = makeNode('loop.turno.02')
+    const now = NOON_UTC_MS
+    const session = baseSession({
+      sequence: [node],
+      cursor: 0,
+      round: 3,
+      context: baseContext({ endedAt: { at: Number.NaN, runtimeId: 'loop.turno.02', round: 3 } }),
+    })
+
+    let entry: GameHistoryEntry | undefined
+    expect(() => {
+      entry = buildHistoryEntry(session, 'won', now, emptyNames)
+    }).not.toThrow()
+    expect(entry!.recordedAt).toBe(new Date(now).toISOString())
+  })
+
+  it('sello corrupto (at > now) se ignora — no se puede afirmar un desenlace en el futuro', () => {
+    const node = makeNode('loop.turno.02')
+    const now = NOON_UTC_MS
+    const session = baseSession({
+      sequence: [node],
+      cursor: 0,
+      round: 3,
+      context: baseContext({ endedAt: { at: now + 1_000, runtimeId: 'loop.turno.02', round: 3 } }),
+    })
+
+    const entry = buildHistoryEntry(session, 'won', now, emptyNames)
+    expect(entry.recordedAt).toBe(new Date(now).toISOString())
+  })
+
+  it('sello corrupto (at < startedAt) se ignora — un desenlace no puede preceder al inicio de la partida', () => {
+    const node = makeNode('loop.turno.02')
+    const startedAt = NOON_UTC_MS - 1_000
+    const now = NOON_UTC_MS + 10_000
+    const session = baseSession({
+      sequence: [node],
+      cursor: 0,
+      round: 3,
+      context: baseContext({ startedAt, endedAt: { at: startedAt - 1, runtimeId: 'loop.turno.02', round: 3 } }),
+    })
+
+    const entry = buildHistoryEntry(session, 'won', now, emptyNames)
+    expect(entry.durationMs).toBe(now - startedAt)
+    expect(entry.recordedAt).toBe(new Date(now).toISOString())
+  })
+
+  it('sello corrupto (endedAt no es un objeto) se ignora y no lanza', () => {
+    const node = makeNode('loop.turno.02')
+    const now = NOON_UTC_MS
+    const session = baseSession({
+      sequence: [node],
+      cursor: 0,
+      round: 3,
+      context: { ...baseContext(), endedAt: 'no-es-un-objeto' as never },
+    })
+
+    let entry: GameHistoryEntry | undefined
+    expect(() => {
+      entry = buildHistoryEntry(session, 'won', now, emptyNames)
+    }).not.toThrow()
+    expect(entry!.recordedAt).toBe(new Date(now).toISOString())
+  })
+
+  it('sello corrupto (runtimeId no es cadena) se ignora y no lanza', () => {
+    const node = makeNode('loop.turno.02')
+    const now = NOON_UTC_MS
+    const session = baseSession({
+      sequence: [node],
+      cursor: 0,
+      round: 3,
+      context: { ...baseContext(), endedAt: { at: now, runtimeId: 7, round: 3 } as never },
+    })
+
+    let entry: GameHistoryEntry | undefined
+    expect(() => {
+      entry = buildHistoryEntry(session, 'won', now, emptyNames)
+    }).not.toThrow()
+    expect(entry!.recordedAt).toBe(new Date(now).toISOString())
+  })
+
+  it('los tests existentes de durationMs (sin sello) siguen en verde: sin endedAt, durationMs es now - startedAt', () => {
+    const startedAt = NOON_UTC_MS - 6_000_000
+    const session = baseSession({ context: baseContext({ startedAt }) })
+    const entry = buildHistoryEntry(session, 'won', NOON_UTC_MS, emptyNames)
+    expect(entry.durationMs).toBe(NOON_UTC_MS - startedAt)
+    expect(entry.recordedAt).toBe(new Date(NOON_UTC_MS).toISOString())
   })
 })

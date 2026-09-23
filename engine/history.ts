@@ -9,7 +9,7 @@
 // puede alcanzar ningún módulo bajo la carpeta de la interfaz.
 import { resolvePlayerSlots, resolveVillainId } from './selection'
 import type { GameHistoryEntry, GameOutcome, LossCause } from './types'
-import type { EngineSession } from './types'
+import type { EngineSession, FrozenEndInstant } from './types'
 
 // Resuelve la Open Question 2 de 09-RESEARCH.md: los nombres congelados los
 // resuelve el llamador y llegan como DATO PLANO. `heroNames` es un mapa
@@ -70,6 +70,75 @@ function generateHistoryEntryId(now: number): string {
   return `${now}-${suffix}`
 }
 
+// freezeEndInstant (WR-06 ronda 4, quick 260923-3rm): sella el instante
+// congelado del PRIMER «Partida terminada» en la posición actual de
+// `session` — pura, nunca muta su argumento, nunca lanza. Devuelve una
+// sesión NUEVA con `context.endedAt` cuando no había sello válido para la
+// posición actual; devuelve la MISMA referencia (`session`, sin clonar)
+// cuando el sello ya existente sigue aplicando (conserva el PRIMER `at`,
+// nunca lo pisa) o cuando no hay nada que sellar (cursor fuera de rango,
+// `now` no finito).
+//
+// Por qué el sello se valida contra `runtimeId`+`round` y no se sustituye a
+// la primera: un reintento de registro (tras un fallo de escritura del
+// histórico) vuelve a llamar a este punto desde la MISMA posición — ahí es
+// donde D-08 exige congelar el instante real del desenlace, no el del
+// reintento. Si la sesión avanzara a otro nodo o cambiara de ronda antes del
+// reintento (D-08 tal cual: sin sello, `buildHistoryEntry` sigue usando
+// `now`), el sello viejo ya no describe la posición actual y se sustituye
+// por uno nuevo — nunca se conserva un sello de un desenlace distinto.
+export function freezeEndInstant(session: EngineSession, now: number): EngineSession {
+  if (!Number.isFinite(now)) return session
+
+  const node = session.sequence[session.cursor]
+  if (!node) return session
+
+  const existing = session.context.endedAt as FrozenEndInstant | undefined
+  const sigueAplicando
+    = existing !== null
+      && typeof existing === 'object'
+      && typeof existing.at === 'number'
+      && Number.isFinite(existing.at)
+      && typeof existing.runtimeId === 'string'
+      && existing.runtimeId === node.runtimeId
+      && typeof existing.round === 'number'
+      && existing.round === session.round
+
+  if (sigueAplicando) return session
+
+  return {
+    ...session,
+    context: {
+      ...session.context,
+      endedAt: { at: now, runtimeId: node.runtimeId, round: session.round },
+    },
+  }
+}
+
+// resolveFrozenEndInstant (WR-06 ronda 4): el instante de referencia que
+// `buildHistoryEntry` usa para `durationMs`/`recordedAt` — el `at` del
+// sello SOLO si sigue describiendo la posición actual de `session` (mismo
+// `runtimeId`/`round` que `session.sequence[session.cursor]`/`session.round`)
+// y es cronológicamente coherente (`at <= now`, y `at >= startedAt` cuando
+// `startedAt` es finito); en cualquier otro caso —incluido cualquier sello
+// corrupto: `at` no finito, `endedAt` no es un objeto, `runtimeId` no es
+// cadena— devuelve `now` (D-08 tal cual, el camino sin sello). Nunca lanza.
+function resolveFrozenEndInstant(session: EngineSession, now: number): number {
+  const stamp = session.context.endedAt as FrozenEndInstant | undefined
+  if (stamp === null || typeof stamp !== 'object') return now
+  if (typeof stamp.at !== 'number' || !Number.isFinite(stamp.at)) return now
+  if (typeof stamp.runtimeId !== 'string' || typeof stamp.round !== 'number') return now
+
+  const node = session.sequence[session.cursor]
+  if (!node || stamp.runtimeId !== node.runtimeId || stamp.round !== session.round) return now
+  if (stamp.at > now) return now
+
+  const startedAt = session.context.startedAt
+  if (typeof startedAt === 'number' && Number.isFinite(startedAt) && stamp.at < startedAt) return now
+
+  return stamp.at
+}
+
 // Construye una entrada completa del histórico a partir de una sesión viva
 // (a punto de destruirse), el resultado elegido en GameOutcomeDialog y los
 // nombres congelados ya resueltos por el llamador. Devuelve un objeto
@@ -105,14 +174,20 @@ export function buildHistoryEntry(
     }
   })
 
+  // WR-06 (ronda 4, quick 260923-3rm): instante de referencia para
+  // durationMs/recordedAt — el sello congelado si sigue aplicando a la
+  // posición actual (`resolveFrozenEndInstant`), o `now` en cualquier otro
+  // caso (D-08 tal cual, camino sin cambios cuando no hay sello).
+  const referenceInstant = resolveFrozenEndInstant(session, now)
+
   // T-09-02: durationMs solo se calcula con una guarda explícita — nunca 0
   // de relleno, nunca un negativo (un startedAt manipulado en el futuro cae
   // a null).
   const durationMs
     = typeof context.startedAt === 'number'
       && Number.isFinite(context.startedAt)
-      && now >= context.startedAt
-      ? now - context.startedAt
+      && referenceInstant >= context.startedAt
+      ? referenceInstant - context.startedAt
       : null
 
   // CR-01 (ronda 2): el motor no propaga un hueco que la frontera de
@@ -150,7 +225,7 @@ export function buildHistoryEntry(
     playerCount,
     round: normalizedRound,
     durationMs,
-    recordedAt: new Date(now).toISOString(),
+    recordedAt: new Date(referenceInstant).toISOString(),
   }
 }
 

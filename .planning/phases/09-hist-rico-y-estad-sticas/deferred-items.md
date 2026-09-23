@@ -94,6 +94,11 @@ sin querer — la salida por teclado sigue existiendo vía `Tab` hasta el botón
 registrar» + `Enter`. Verificado por `npm run build` (exit 0) y `npx vitest run` (785 tests, exit
 0) según `09-19-SUMMARY.md`.
 
+**Re-comprobado (quick 260923-3rm):** sigue cerrado; `Escape` sigue sin cerrar el diálogo A
+PROPÓSITO (comprobado de nuevo en `e2e/game-outcome-dialog.spec.ts`, navegador real). La trampa
+de foco nueva de WR-02 (ronda 4, más abajo en este fichero) lo complementa sin reabrirlo: ahora
+además de no cerrarse con `Escape`, el foco tampoco puede salir del diálogo con `Tab`.
+
 ---
 
 ## WR-05 (b): `HistorySavedNotice`/`UpdateBanner` empujan fuera del viewport las pantallas `h-dvh`
@@ -339,6 +344,25 @@ UNA tarjeta del histórico.
 **Acción sugerida:** congelar el instante de referencia al reanudar, o acumular la
 duración en vez de derivarla de `startedAt` en el momento del registro.
 
+**Actualización (quick 260923-3rm) — CERRADO:** `freezeEndInstant` (`engine/history.ts`)
+congela el instante del PRIMER «Partida terminada» en `context.endedAt`, sellado por
+`stampEndOfGame` (`useGameHistory.ts`, `Date.now()` leído ahí y solo ahí) justo antes de
+`record()` en `onOutcomeRecorded` (`app/pages/[game]/index.vue`). `buildHistoryEntry` usa
+ese sello para `durationMs`/`recordedAt` mientras siga describiendo la posición actual
+(mismo `runtimeId`+`round`); D-07 (`startedAt` nunca se reescribe) y D-08 (reloj de pared
+sin tope, sin acumular tiempo activo) quedan intactos — lo único que cambia es CUÁNDO se
+lee ese reloj. Dos residuos conocidos, sin esconderlos:
+(a) si el guardado del fallo (`save()`) tampoco llega a escribirse, el reintento no lleva
+sello en disco y mide como antes (D-08 sin sello, camino ya existente);
+(b) tras una reanudación con «el contenido ha cambiado» (`ContentChangedNotice`) la
+posición cambia (otra `round`/`runtimeId` de reinicio de sección) y el sello deja de
+aplicar por diseño — `freezeEndInstant` lo sustituye por uno nuevo, D-08 tal cual.
+Fijado por test en `engine/__tests__/history.test.ts` (`freezeEndInstant`/`buildHistoryEntry`
+con sello válido, de otra posición, y cinco variantes de sello corrupto que nunca lanzan) y
+por `app/composables/__tests__/useGameHistory.test.ts` (`stampEndOfGame`). Comandos y
+resultado: `npx vitest run engine/__tests__/history.test.ts` (76 tests), `npx vitest run`
+(1224 tests, 0 fallos), `npm run typecheck` (exit 0).
+
 ---
 
 ## WR-02 (ronda 4) — `GameOutcomeDialog` declara `aria-modal` sin atrapar el foco (y WR-03, la restauración de foco inalcanzable)
@@ -361,6 +385,21 @@ exige un teclado físico Y tabular a ciegas más allá del último botón.
 
 **Acción sugerida:** el ciclo de foco de `WarningDetailModal.vue`, que ya es el patrón
 bueno del repo.
+
+**Actualización (quick 260923-3rm) — CERRADO:** `useDialogFocusTrap.ts` (composable nuevo)
+atrapa el foco dentro de `GameOutcomeDialog.vue`: `Tab`/`Shift+Tab` ciclan SOLO entre sus
+botones, incluso cuando el foco llega desde fuera del diálogo (`nextTrappedIndex`, función
+pura con tabla de verdad completa), y la restauración de foco al cerrar (WR-03) solo llama
+a `.focus()` cuando el nodo previamente enfocado SIGUE conectado al DOM
+(`resolveRestoreTarget`) — en las cuatro salidas reales de este diálogo el botón que lo
+abrió se desmonta en el mismo flush, así que la restauración es un no-op intencional ahí, y
+protege un futuro cierre no terminal. Fijado por test en
+`app/composables/__tests__/useDialogFocusTrap.test.ts` (las dos funciones puras, tabla de
+verdad completa) y por `e2e/game-outcome-dialog.spec.ts` (navegador real: 12 `Tab` + 12
+`Shift+Tab` comprobando tras CADA pulsación que el foco sigue dentro del diálogo y en un
+`BUTTON`; `Escape` sigue sin cerrar; «Salir sin registrar» + `Enter` sí cierra). Comandos y
+resultado: `npx vitest run app/composables/__tests__/useDialogFocusTrap.test.ts` (10 tests),
+`npx playwright test e2e/game-outcome-dialog.spec.ts` (1 passed).
 
 ---
 

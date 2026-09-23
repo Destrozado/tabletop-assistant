@@ -19,6 +19,7 @@ import {
   describeLossCause,
   formatEntryDate,
   formatEntryDuration,
+  freezeEndInstant,
   sortEntriesByRecency,
 } from '~~/engine/history'
 import type { FrozenNames } from '~~/engine/history'
@@ -332,6 +333,18 @@ export function useGameHistory() {
     return removed
   }
 
+  // stampEndOfGame (WR-06 ronda 4, quick 260923-3rm): el reloj real se lee
+  // AQUÍ y solo aquí — mismo criterio que `record()` arriba con `Date.now()`
+  // — y se delega en `freezeEndInstant` (motor puro, `engine/history.ts`)
+  // para decidir si hace falta un sello nuevo o si el que ya hubiera sigue
+  // aplicando. El llamador (`app/pages/[game]/index.vue`, `onOutcomeRecorded`)
+  // reasigna `session.value` con el resultado ANTES de llamar a `record()`,
+  // así que `record()`, el guardado del fallo y la lectura de
+  // `readStoredProgress` ven todas la misma sesión ya sellada.
+  function stampEndOfGame(session: EngineSession): EngineSession {
+    return freezeEndInstant(session, Date.now())
+  }
+
   const cardViews = computed(() => entries.value.map(buildHistoryCardView))
   const statisticsView = computed(() => buildStatisticsView(aggregateStatistics(entries.value)))
   const isEmpty = computed(() => entries.value.length === 0)
@@ -344,5 +357,6 @@ export function useGameHistory() {
     reload,
     remove,
     record,
+    stampEndOfGame,
   }
 }

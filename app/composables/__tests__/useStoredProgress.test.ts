@@ -411,4 +411,29 @@ describe('esLaMismaPartida — comparación normalizada, sin `updatedAt` (plan 0
     const session = expand(tinyGame, { playerCount: 2, difficulty: 'normal' })
     expect(esLaMismaPartida(toPersistedPosition(session), toPersistedPosition(session))).toBe(true)
   })
+
+  // Quick 260923-3rm (WR-06 ronda 4): `context.endedAt` es el sello de fin de
+  // partida (freezeEndInstant, engine/history.ts), NUNCA una marca de
+  // posición. Sin esta exclusión, un reintento de registro cuyo primer
+  // guardado del fallo (`save()`) escribió el sello junto a la posición
+  // dejaría en disco la MISMA posición con un `context.endedAt` que la
+  // `esperada` (reconstruida en memoria, sin ese sello) no tiene —
+  // `esLaMismaPartida` marcaría `'stale'` una partida que no lo es.
+  it('con context.endedAt distinto (uno con sello, otro sin él) sigue siendo true (WR-06 ronda 4, quick 260923-3rm)', () => {
+    const enDisco: PersistedPosition = {
+      formatVersion: 1,
+      gameId: 'tiny-game',
+      contentVersion: 1,
+      runtimeId: 'r1',
+      round: 1,
+      context: { playerCount: 2, difficulty: 'normal', endedAt: { at: 123, runtimeId: 'r1', round: 1 } },
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const objetivo: PersistedPosition = {
+      ...enDisco,
+      context: { playerCount: 2, difficulty: 'normal' },
+    }
+
+    expect(esLaMismaPartida(enDisco, objetivo)).toBe(true)
+  })
 })

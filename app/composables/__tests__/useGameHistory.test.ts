@@ -13,6 +13,7 @@ import {
   resolveFrozenNames,
   useGameHistory,
 } from '../useGameHistory'
+import type { RuntimeStepNode } from '~~/engine/types'
 import { useCharacterCatalogue } from '../useCharacterCatalogue'
 import type { StatisticsSummary } from '~~/engine/statistics'
 import type { EngineSession, GameHistoryEntry, SessionContext } from '~~/engine/types'
@@ -645,5 +646,45 @@ describe('useGameHistory — ciclo record/reload/remove con localStorage falso',
     const entry = entries.value[0]!
     expect(entry.players[0]!.heroId).toBe('spider-man')
     expect(entry.players[0]!.heroName).toBe('Spider-Man')
+  })
+})
+
+// WR-06 (ronda 4, quick 260923-3rm): stampEndOfGame lee Date.now() AQUÍ y
+// SOLO aquí (mismo criterio que record()), delegando la decisión pura en
+// freezeEndInstant (engine/history.ts).
+describe('useGameHistory — stampEndOfGame (WR-06 ronda 4)', () => {
+  function makeNode(runtimeId: string): RuntimeStepNode {
+    return {
+      runtimeId,
+      sectionId: 'test',
+      sectionTitle: 'Test',
+      sectionRepeats: false,
+      phaseId: 'test.phase',
+      phaseTitle: 'Fase',
+      breadcrumb: 'Test › Fase',
+      step: { id: runtimeId, title: 'Paso de prueba', kind: 'step', text: 'Texto base.' },
+    }
+  }
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('sella context.endedAt con Date.now() leído en este instante', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-12T12:00:00.000Z'))
+
+    const { stampEndOfGame } = useGameHistory()
+    const session = makeSession({}, 3)
+    session.sequence = [makeNode('loop.turno.02')]
+    session.cursor = 0
+
+    const sealed = stampEndOfGame(session)
+
+    expect(sealed.context.endedAt).toEqual({
+      at: Date.parse('2026-09-12T12:00:00.000Z'),
+      runtimeId: 'loop.turno.02',
+      round: 3,
+    })
   })
 })
