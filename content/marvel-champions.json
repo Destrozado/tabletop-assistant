@@ -186,8 +186,8 @@
                     "speech": "Dejad las cartas de villano numeradas tal como vienen con el escenario."
                   },
                   "expert": {
-                    "text": "Sustituid las cartas de villano numeradas por las del modo Experto de este escenario.",
-                    "speech": "Sustituid las cartas de villano numeradas por las del modo Experto de este escenario."
+                    "text": "Usad las cartas de villano numeradas (etapas) que indica el escenario para Experto.",
+                    "speech": "Usad las cartas de villano numeradas que indica el escenario para el modo Experto."
                   }
                 }
               },

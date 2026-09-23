@@ -2,7 +2,7 @@
   "voice": "Rasalgethi",
   "model": "gemini-2.5-flash-preview-tts",
   "style": "plano-agil",
-  "generatedAt": "2026-09-01T22:38:10.439Z",
+  "generatedAt": "2026-09-23T01:08:14.007Z",
   "entries": {
     "ronda.jugadores.01": {
       "hash": "845b9b2ca02cc174",
@@ -110,9 +110,9 @@
       "generatedAt": "2026-08-31T11:48:54.672Z"
     },
     "setup.escenario.04.expert": {
-      "hash": "0fe57496f8db2bbd",
-      "bytes": 244366,
-      "generatedAt": "2026-08-31T11:49:06.733Z"
+      "hash": "f0d1e2a9a62b7a3f",
+      "bytes": 196366,
+      "generatedAt": "2026-09-23T01:08:14.007Z"
     },
     "setup.escenario.04.normal": {
       "hash": "eebd50b7a5dfba1b",
