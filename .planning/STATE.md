@@ -217,6 +217,7 @@ None yet.
 | 260923-3rn | Gate de invariantes de la Fase 9: Pata 6 (retirada explícita) y huecos de parsing WR-01/WR-02 | 2026-09-23 | 9f4b893 | — | .planning/quick/260923-3rn-phase-9-gate-follow-ups-add-a-test-that-fails-if-onresumecon |
 | fast | Histórico: la tarjeta muestra solo la duración, sin «Hasta la ronda N» (la ronda anotada nunca era realista una vez dentro del bucle) | 2026-09-23 | 452925b | — | — |
 | fast | Banda de contadores en móvil vertical: cada vida pegada a su etiqueta (VILLANO/Jugador), el hueco sobrante separa las filas; apaisado sin cambios | 2026-09-23 | 2aa4ca2 | — | — |
+| fast | Selector de juego: con el aviso «Nueva versión disponible» visible el título ya no se pinta encima del botón Actualizar (centrado sin desbordar + scroll) | 2026-09-23 | 699dd3b | — | — |
 
 ## Deferred Items
 
