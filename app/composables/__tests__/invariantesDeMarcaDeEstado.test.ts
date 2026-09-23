@@ -112,15 +112,48 @@ function indiceDeCierre(region: string, aperturaIndex: number): number {
 // Divide el contenido entre paréntesis en argumentos/parámetros de nivel
 // superior. Nunca `split(',')` — es exactamente lo que confundiría
 // `lector(f(a, b))` con una llamada de dos argumentos.
+//
+// PROFUNDIDAD ANGULAR (09-REVIEW.md WR-01; quick 260923-3rn): además de la
+// profundidad de `( [ {`, se lleva una profundidad angular independiente,
+// para que un tipo genérico con coma (`Record<string, string>`, `Map<K,
+// V>`) no infle el recuento de argumentos. Un `<` la abre SOLO si el
+// carácter inmediatamente anterior es de identificador (letra, dígito, `_` o
+// `$`) — es el caso de `Record<`/`Map<`/`ref<`/`f<`, y deja fuera `a < b` con
+// espacios (caso f). Un `>` la cierra SOLO si la profundidad angular es
+// mayor que 0 y el carácter anterior no es `=` — así `=>` nunca la cierra
+// (caso e: ni una función flecha dentro de un genérico, ni una fuera de él,
+// truncan o inflan nada) — y nunca baja de 0. Solo se separa por coma
+// cuando las DOS profundidades valen 0.
+//
+// RESIDUO CONOCIDO (documentado a propósito, no arreglado aquí): una
+// comparación SIN espacios como `a<b, c>d` abre profundidad angular por
+// error (el carácter anterior a `<` es de identificador) y cae del lado
+// INFRA-contado — menos argumentos de los reales. Eso es seguro: hace que
+// las Patas 1/2 marquen de más (rojo), nunca que dejen pasar un lector sin
+// testigo (verde) — nunca la dirección peligrosa.
+//
+// `indiceDeCierre` (arriba) NO gana `<`/`>`, aunque sea el fragmento que
+// propone la review: esa función también delimita CUERPOS de función
+// (`extraerFuncionesExportadas`, `cuerpoDeFuncionDeclarada` de la Pata 6),
+// donde `=>`, `>=` y las comparaciones son constantes — contarlos ahí
+// truncaría los cuerpos (`.catch(() => {})` de `onResumeContinue` no
+// llegaría a delimitarse bien). Emparejar solo paréntesis/corchetes/llaves
+// ya es correcto en presencia de genéricos, porque un `<…>` nunca contiene
+// un paréntesis desequilibrado.
 function argumentosDeNivelSuperior(contenido: string): string[] {
   if (contenido.trim().length === 0) return []
   const argumentos: string[] = []
   let profundidad = 0
+  let profundidadAngular = 0
   let actual = ''
-  for (const c of contenido) {
+  for (let i = 0; i < contenido.length; i++) {
+    const c = contenido[i]!
+    const anterior = i > 0 ? contenido[i - 1]! : ''
     if (c === '(' || c === '[' || c === '{') profundidad++
     if (c === ')' || c === ']' || c === '}') profundidad--
-    if (c === ',' && profundidad === 0) {
+    if (c === '<' && /[\w$]/.test(anterior)) profundidadAngular++
+    if (c === '>' && profundidadAngular > 0 && anterior !== '=') profundidadAngular--
+    if (c === ',' && profundidad === 0 && profundidadAngular === 0) {
       argumentos.push(actual.trim())
       actual = ''
     }
@@ -187,14 +220,31 @@ function soloComposables(ficheros: Record<string, string>): Record<string, strin
 // Un glob más DOS predicados — nunca una lista de módulos tecleada a mano.
 // (a) el contenido tiene, a COLUMNA 0, al menos una línea de estado de
 // módulo mutable: `const X = new Set(...)`, `const X = new Map(...)`,
-// `const X = ref(...)`/`ref<T>(...)`, o `let X`. Es la forma exacta que
-// `useProgressMismatchMark.ts` y `useHistorySavedNotice.ts` tienen hoy.
+// `const X = ref(...)`/`ref<T>(...)`, o `let X` — y, desde el quick
+// 260923-3rn (09-REVIEW.md WR-02), TAMBIÉN con una anotación de tipo
+// explícita entre el identificador y el `=` (`const X: Map<string, string> =
+// new Map()`, `const X: Ref<string | null> = ref(null)`). Es la forma exacta
+// que `useProgressMismatchMark.ts` y `useHistorySavedNotice.ts` tienen hoy.
 // (b) `regionVigilada(contenido)` contiene alguna raíz de
 // `RAICES_SOBRE_LOS_DATOS_DEL_GRUPO` (importada del vocabulario
 // compartido, nunca recopiada). Un composable nuevo con estos dos rasgos
 // entra en el descubrimiento SOLO, sin que nadie edite ninguna lista — es
 // el corazón anti-recurrencia de este plan.
-const PATRON_ESTADO_DE_MODULO_MUTABLE = /^(const [A-Za-z_$][\w$]* = (new (Set|Map)\b|ref[<(])|let [A-Za-z_$])/m
+//
+// ANOTACIÓN DE TIPO OPCIONAL (WR-02, quick 260923-3rn): la rama `const`
+// acepta, entre el identificador y el `=`, dos puntos seguidos de cualquier
+// cosa PEREZOSA en la MISMA línea (`[^\n]*?`), hasta un `=` que vaya seguido
+// de `new Set`/`new Map`/`ref<`/`ref(`. La rama `let` y el ancla de columna 0
+// no cambian. NO se usa la regex literal que la review propone (el opcional
+// de dos puntos seguido de «todo lo que no sea `=`», con cuantificador
+// GREEDY sobre una clase negada) — una anotación con `=>` (`const m:
+// Map<string, () => void> = new Map()`) para en la primera flecha (la clase
+// negada no puede cruzar ESE `=`) y vuelve a evadir el descubrimiento
+// (demostrado por mutación M4b, ver el SUMMARY del quick 260923-3rn). El
+// cuantificador PEREZOSO de aquí, en cambio, sigue expandiéndose más allá de
+// la flecha hasta encontrar el `=` real seguido de `new Map(`/`ref(`, porque
+// no hay ningún carácter que no pueda cruzar.
+const PATRON_ESTADO_DE_MODULO_MUTABLE = /^(const [A-Za-z_$][\w$]*(?::[^\n]*?)? = (new (Set|Map)\b|ref[<(])|let [A-Za-z_$])/m
 
 export function marcasDeEstadoDeModuloDe(ficheros: Record<string, string>): string[] {
   const marcas: string[] = []
@@ -334,6 +384,31 @@ describe('Descubrimiento — marcasDeEstadoDeModuloDe (Task 1)', () => {
     const sintetico = { '/app/composables/Sintetico.ts': 'export function f(): string { return \'esto habla de dispositivo y de progreso\' }' }
     expect(marcasDeEstadoDeModuloDe(sintetico)).toEqual([])
   })
+
+  // --- Casos (g)-(j) del hueco de parsing 2 (09-REVIEW.md WR-02; quick 260923-3rn) ---
+  // Hasta este quick, `PATRON_ESTADO_DE_MODULO_MUTABLE` rechazaba `const X:
+  // Tipo = ...` — una marca con anotación de tipo explícita se saltaba el
+  // descubrimiento (falso verde, la dirección peligrosa).
+
+  it('const con anotación de tipo genérica (Map<string, string>) más raíz vigilada SÍ se descubre (WR-02, caso sintético)', () => {
+    const sintetico = { '/app/composables/Sintetico.ts': 'const marcas: Map<string, string> = new Map()\nexport function f(): string { return \'progreso\' }' }
+    expect(marcasDeEstadoDeModuloDe(sintetico)).toEqual(['app/composables/Sintetico.ts'])
+  })
+
+  it('const con anotación de tipo (Ref<string | null>) más raíz vigilada SÍ se descubre (WR-02, caso sintético)', () => {
+    const sintetico = { '/app/composables/Sintetico.ts': 'const aviso: Ref<string | null> = ref(null)\nexport function f(): string { return \'progreso\' }' }
+    expect(marcasDeEstadoDeModuloDe(sintetico)).toEqual(['app/composables/Sintetico.ts'])
+  })
+
+  it('const con anotación de tipo que contiene => (Map<string, () => void>) más raíz vigilada SÍ se descubre — el caso que separa este arreglo de la regex literal de la review (WR-02, caso sintético)', () => {
+    const sintetico = { '/app/composables/Sintetico.ts': 'const m: Map<string, () => void> = new Map()\nexport function f(): string { return \'progreso\' }' }
+    expect(marcasDeEstadoDeModuloDe(sintetico)).toEqual(['app/composables/Sintetico.ts'])
+  })
+
+  it('const con anotación de tipo primitiva (number) SIN new Set/new Map/ref más raíz vigilada NO se descubre — la anotación de tipo no convierte cualquier const en estado de módulo (WR-02, caso sintético)', () => {
+    const sintetico = { '/app/composables/Sintetico.ts': 'const x: number = 5\nexport function f(): string { return \'progreso\' }' }
+    expect(marcasDeEstadoDeModuloDe(sintetico)).toEqual([])
+  })
 })
 
 // --- Pata 1: contratoDeLaMarcaDe (Task 1) ---
@@ -462,6 +537,52 @@ export function leer(id: string, testigo?: string): string | null {
 `
     expect(contratoDeLaMarcaDe(sintetico).segundoParametroOpcional).toBe(true)
   })
+
+  // --- Casos (a)/(b) del hueco de parsing 1 (09-REVIEW.md WR-01; quick 260923-3rn) ---
+  // Un tipo genérico con coma (`Record<string, string>`) inflaba la aridad
+  // del lector porque `argumentosDeNivelSuperior` separaba por comas dentro
+  // de `<...>` — un lector con UN SOLO parámetro genérico pasaba la Pata 1
+  // como si exigiera testigo.
+
+  it('lector con un único parámetro de tipo genérico con coma (Record<string, string>) da aridadDelLector=1, no 2 (WR-01, caso sintético)', () => {
+    const sintetico = `
+const marcas = new Set<string>()
+export function leer(claves: Record<string, string>): string | null {
+  return marcas.has(claves) ? marcas.get(claves) ?? null : null
+}
+`
+    expect(contratoDeLaMarcaDe(sintetico).aridadDelLector).toBe(1)
+  })
+
+  it('lector con id + un segundo parámetro de tipo genérico con coma da aridadDelLector=2, no 3 (WR-01, caso sintético)', () => {
+    const sintetico = `
+const marcas = new Set<string>()
+export function leer(id: string, testigo: Record<string, string>): string | null {
+  return marcas.has(id) ? marcas.get(id) ?? null : null
+}
+`
+    expect(contratoDeLaMarcaDe(sintetico).aridadDelLector).toBe(2)
+  })
+
+  it('=> no cierra la profundidad angular: un único parámetro con una función flecha dentro de un genérico (m: Map<string, () => void>) da aridadDelLector=1, no 2 (WR-01, caso sintético)', () => {
+    const sintetico = `
+const marcas = new Set<string>()
+export function leer(m: Map<string, () => void>): string | null {
+  return marcas.has(m) ? null : null
+}
+`
+    expect(contratoDeLaMarcaDe(sintetico).aridadDelLector).toBe(1)
+  })
+
+  it('un parámetro de función flecha (sin genérico) seguido de otro parámetro sí cuenta dos — => sin < previo no abre profundidad angular (WR-01, caso sintético)', () => {
+    const sintetico = `
+const marcas = new Set<string>()
+export function leer(cb: () => void, testigo: string): string | null {
+  return marcas.has(testigo) ? null : null
+}
+`
+    expect(contratoDeLaMarcaDe(sintetico).aridadDelLector).toBe(2)
+  })
 })
 
 describe('Pata 1 — invariante: el lector exige aridad >= 2 y segundo parámetro NO opcional, para toda marca no auditada (Task 1)', () => {
@@ -509,6 +630,28 @@ describe('Pata 2 — lecturasSinTestigoDe (Task 1)', () => {
 
   it('sobre una llamada sin ningún argumento la cuenta como 0 argumentos, sin testigo (caso sintético)', () => {
     expect(lecturasSinTestigoDe('lector()', 'lector')).toEqual(['lector()'])
+  })
+
+  // --- Casos (c)-(f) del hueco de parsing 1 (09-REVIEW.md WR-01; quick 260923-3rn) ---
+  // Un argumento con un tipo genérico con coma dentro (`x as Map<string,
+  // string>`) inflaba el recuento de argumentos de nivel superior — una
+  // llamada de UN SOLO argumento con un genérico dentro pasaba la Pata 2
+  // como si llevara testigo.
+
+  it('una llamada de un solo argumento que contiene un genérico con coma (x as Map<string, string>) SÍ se marca sin testigo — el genérico no cuenta como un segundo argumento (WR-01, caso sintético)', () => {
+    expect(lecturasSinTestigoDe('lector(x as Map<string, string>)', 'lector')).toEqual(['lector(x as Map<string, string>)'])
+  })
+
+  it('una llamada de dos argumentos donde el segundo contiene un genérico con coma NO se marca — el genérico sigue siendo un único argumento (WR-01, caso sintético)', () => {
+    expect(lecturasSinTestigoDe('lector(gameId, x as Map<string, string>)', 'lector')).toEqual([])
+  })
+
+  it('=> no cierra la profundidad angular: un genérico con una función flecha dentro (Map<string, () => void>) sigue siendo un único argumento sin testigo (WR-01, caso sintético)', () => {
+    expect(lecturasSinTestigoDe('lector(gameId, (a: string) => a)', 'lector')).toEqual([])
+  })
+
+  it('una comparación con espacios (a > b) no se confunde con un genérico — sigue contando dos argumentos (WR-01, caso sintético)', () => {
+    expect(lecturasSinTestigoDe('lector(a > b, testigo)', 'lector')).toEqual([])
   })
 })
 
