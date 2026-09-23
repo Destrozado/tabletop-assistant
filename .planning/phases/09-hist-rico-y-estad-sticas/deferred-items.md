@@ -56,6 +56,23 @@ contradice el `<scope_boundary>` de este mismo plan.
 acción explícita de archivado: renombrar la clave a `tga:history:backup-<ts>` y empezar limpio,
 conservando el dato antiguo intacto para una futura herramienta de recuperación manual.
 
+**Actualización (quick 260923-3rm) — CERRADO:** `usePersistedSession.ts` distingue ahora
+`readHistoryState()` (`'ok' | 'read-failed' | 'uninterpretable'`, exactamente la propuesta de
+arriba) de `readHistory()` (contrato sin cambios, sigue colapsando en `'unreadable'` para
+`useHistorySync.ts`). `archiveUnreadableHistory(now)` es la acción explícita sugerida: copia el
+blob a `tga:history:backup-<now>`, RELEE y compara byte a byte antes de retirar `tga:history`, y
+solo devuelve `'archived'` tras una relectura final que confirma la clave ausente — nunca destruye
+lo que no ha podido verificar (CR-03 intacto). `/historico` explica el estado (con copy distinta
+según `'read-failed'`/`'uninterpretable'`, la segunda con botón «Apartarlo y empezar uno nuevo») y
+`/estadisticas` explica su propia mitad. Fijado por test en
+`app/composables/__tests__/usePersistedSession.test.ts` (`readHistoryState`/
+`archiveUnreadableHistory`, los cinco resultados del `<behavior>`) y por
+`e2e/unreadable-storage.spec.ts` (a) (navegador real: apartar de verdad, con el backup verificado
+byte a byte en `localStorage`). Comandos y resultado: `npx vitest run
+app/composables/__tests__/usePersistedSession.test.ts` (90 tests), `npx vitest run` (1259 tests,
+0 fallos), `npm run typecheck` (exit 0), `npx playwright test e2e/unreadable-storage.spec.ts` (3
+passed).
+
 ---
 
 ## WR-04: `GameOutcomeDialog` sin `Escape`, sin gestión de foco y sin salida no terminal
@@ -173,6 +190,18 @@ de este plan lo señala explícitamente como uno de los WARNING que quedan fuera
 **Acción sugerida:** añadir `entriesWithVillain` a `StatisticsSummary` (mismo criterio que
 `entriesWithHeroes`) y que `buildStatisticsView` exponga una leyenda por tabla en vez de una
 única `sampleCaption` compartida.
+
+**Actualización (quick 260923-3rm) — CERRADO:** `engine/statistics.ts` añade
+`entriesWithVillain` a `StatisticsSummary`, contado con el MISMO predicado que `extractVillainId`
+(el que alimenta `villainRows`). `buildStatisticsView` sustituye `sampleCaption` por
+`heroSampleCaption`/`villainSampleCaption` (misma forma de copy de 09-UI-SPEC, «villano anotado»
+en singular tal como pedía la especificación), y `estadisticas.vue` pinta cada leyenda encima de
+su propio `<h2>` en vez de un pie compartido. Fijado por test en
+`engine/__tests__/statistics.test.ts` (`entriesWithVillain` con villano-sin-héroes y
+héroes-sin-villano) y `app/composables/__tests__/useGameHistory.test.ts`
+(`heroSampleCaption`/`villainSampleCaption`, incluido el singular «villano anotado»). Comandos y
+resultado: `npx vitest run engine/__tests__/statistics.test.ts` (30 tests), `npx vitest run`
+(1259 tests, 0 fallos), `npm run typecheck` (exit 0).
 
 ---
 
@@ -438,6 +467,30 @@ para que una ronda futura pueda revisarla sin tener que volver a deducirla.
 **Acción sugerida:** si alguna vez se aborda, archivar el blob ilegible bajo
 `tga:progress:<gameId>:backup-<ts>` antes del primer `save()` de la partida nueva, en vez
 de condicionar el autoguardado.
+
+**Actualización (quick 260923-3rm) — CERRADO:** exactamente la acción sugerida arriba.
+`backupProgressBeforeOverwrite(gameId, now)` (`usePersistedSession.ts`) copia el crudo de
+`tga:progress:<gameId>` a `tga:progress:<gameId>:backup-<now>`, releído y comparado byte a byte,
+ANTES de que pueda escribirse nada — nunca escribe la clave principal. `createOverwriteGuard`
+envuelve `save` con esa copia: se arma en `onMounted` (`app/pages/[game]/index.vue`) exactamente
+cuando `planProgressMount` devolvió un aviso de lectura no verificada, y los tres llamadores del
+autoguardado (`watchDebounced`, `pagehide`, el guardado tras registro fallido) pasan por
+`progressWriter.save(...)` en vez de `save(...)` directo. El «Supuesto NO verificado» de arriba
+deja de sostener nada: el guardián ya NO depende de que lectura y escritura fallen juntas —
+mientras la clave siga sin poder leerse, sencillamente no se escribe encima, punto. Coste
+aceptado, registrado por escrito: las copias se acumulan en la cuota una vez por episodio de
+lectura fallida (T-3rm-02 del threat model de este plan) — riesgo evaluado, no una garantía
+nueva. `UNVERIFIED_PROGRESS_NOTICE` se reescribe para describir la mitigación real en vez de
+advertir de un riesgo que ya no corre («antes de guardar la nueva, la app aparta una copia de la
+que hubiera, y mientras no consiga leerla no guarda encima»). Fijado por test en
+`app/composables/__tests__/usePersistedSession.test.ts` (`backupProgressBeforeOverwrite`/
+`createOverwriteGuard`, el `<behavior>` completo: sin armar, armado con backup, armado con
+lectura caída, armado con escritura del backup caída) y por `e2e/unreadable-storage.spec.ts` (b)
+y (c) (navegador real: el backup aparece con el blob anterior byte a byte, y con la lectura
+SIEMPRE caída la clave principal nunca se sobrescribe). Comandos y resultado: `npx vitest run
+app/composables/__tests__/usePersistedSession.test.ts` (90 tests), `npx vitest run` (1259 tests,
+0 fallos), `npm run typecheck` (exit 0), `npx playwright test e2e/unreadable-storage.spec.ts` (3
+passed).
 
 ---
 
@@ -773,3 +826,58 @@ vigilado por su propio test de cierre de cobertura en ambos gates.
 
 Esto cubre la clase de defecto que las nueve rondas de esta fase han encontrado — y **no es una promesa** de que no haya una décima de otra clase: decir lo contrario sería, una vez más, una
 afirmación sin respaldo.
+
+---
+
+## Nota de cierre (quick 260923-3rm) — los últimos WARNING reales de la Fase 9
+
+Este lote cierra los siete WARNING que seguían abiertos de rondas anteriores y re-comprueba los
+dos que ya estaban cerrados por un mecanismo distinto. Repaso explícito, uno a uno, con su tarea:
+
+**Cerrados en este lote:**
+
+- **WR-04 (ronda 4)** — solapamiento `UpdateBanner`/`HistorySavedNotice` — **CERRADO (Task 1)**:
+  franja en flujo en `app/app.vue`, sin `fixed`/`z-40`/`pointer-events` en ninguna de las dos
+  bandas.
+- **WR-05 (ronda 4)** — toques invisibles sobre la cabecera de `/historico` — **CERRADO (Task
+  1)**: la franja resta altura en vez de superponerse, así que no hay nada que atravesar.
+- **WR-02 (ronda 4) + WR-03 (ronda 4)** — `GameOutcomeDialog` sin trampa de foco y restauración
+  inalcanzable — **CERRADOS (Task 2)**: `useDialogFocusTrap.ts`
+  (`nextTrappedIndex`/`resolveRestoreTarget`).
+- **WR-06 (ronda 4)** — reintento de registro con duración inflada — **CERRADO (Task 2)**:
+  `freezeEndInstant`/`stampEndOfGame`, con los dos residuos conocidos escritos en su propia
+  entrada arriba.
+- **WR-02 (primera entrada, «un envoltorio `unreadable` permanente…»)** — sin salida en la
+  interfaz — **CERRADO (Task 3)**: `readHistoryState`/`archiveUnreadableHistory` + la acción
+  «Apartarlo y empezar uno nuevo» en `/historico`.
+- **WR-02 (ronda 6)** — el primer autoguardado sobrescribía un progreso no leído — **CERRADO
+  (Task 3)**: `backupProgressBeforeOverwrite`/`createOverwriteGuard`.
+- **WR-07** — `sampleCaption` ignoraba la muestra de villanos — **CERRADO (Task 3)**:
+  `entriesWithVillain` + `heroSampleCaption`/`villainSampleCaption` por tabla.
+
+**Re-comprobados (ya estaban cerrados por otro mecanismo, se confirma que la propiedad se
+mantiene con el nuevo):**
+
+- **WR-04** (`GameOutcomeDialog` sin `Escape`/foco, ronda 1) — sigue **CERRADO** por 09-19;
+  `Escape` sigue sin cerrar A PROPÓSITO; la trampa de foco nueva de WR-02 (ronda 4) lo
+  complementa sin reabrirlo.
+- **WR-05 (b)** (pantallas `h-dvh` empujadas por los avisos) — sigue **CERRADO**, ahora por el
+  mecanismo de franja en flujo de la Task 1 en vez del `fixed`+`pointer-events` de 09-22; la
+  propiedad («ninguna pantalla se sale del viewport») la fija ahora
+  `app/composables/__tests__/pilaDeAvisos.test.ts` parte (c) y `e2e/notice-stack.spec.ts`.
+
+**Lo que sigue abierto, sin que este lote lo toque:**
+
+- **La sonda de cobertura de bordes** (ronda 7) — las 14 filas HIST-01..09/STAT-01..05 siguen sin
+  clasificar; ninguna garantía de este lote se apoya en ella.
+- **`DEV-02`** (comprobación visual humana en tablet horizontal) — sigue **ABIERTA**, y su guion
+  gana en este lote CUATRO puntos nuevos que nadie ha comprobado todavía en un dispositivo real:
+  la franja de avisos en flujo con la banda de versión nueva real (nunca simulada en Playwright,
+  T-04-15) visible a la vez que el aviso de registro; la pantalla de histórico ilegible y su
+  diálogo de archivado; el estado ilegible de `/estadisticas`; y el foco del diálogo de fin de
+  partida con un teclado físico conectado a la tablet (la spec de Playwright demuestra el
+  comportamiento con teclado emulado de escritorio, no con un teclado Bluetooth real sobre la
+  tablet objetivo). **No se declara realizada aquí ni en `REQUIREMENTS.md`** — sigue PENDIENTE.
+
+Ningún hallazgo nuevo, distinto de los que ya trae cada entrada cerrada arriba, aparece en la
+ejecución de este lote.

@@ -98,7 +98,20 @@ const {
 // tuviera `load` a mano, alguien podría construir una respuesta de
 // reanudación en paralelo a `readStoredProgress` y volver a abrir la
 // contradicción que cerró este plan.
-const { save, clear } = usePersistedSession()
+//
+// WR-02 (ronda 6, quick 260923-3rm): `save` directo ya no se usa aquí — los
+// tres llamadores del autoguardado pasan por `progressWriter.save`
+// (`createOverwriteGuard`, más abajo), que arma un guardián cuando el
+// montaje no ha podido comprobar el dispositivo (`avisoLecturaNoComprobada`)
+// y solo entonces exige una copia de seguridad antes de la primera
+// escritura.
+const { clear, createOverwriteGuard } = usePersistedSession()
+
+// progressWriter (WR-02 ronda 6): UNA sola instancia por vida de la página,
+// igual que `useWakeLock()`. Sin armar por defecto — `onMounted` lo arma
+// solo cuando `planProgressMount` ha decidido que el montaje no ha podido
+// comprobar el dispositivo.
+const progressWriter = createOverwriteGuard()
 
 // Fase 9 (HIST-01/02/03): segunda costura reactiva, hermana de
 // useGameSession. `stampEndOfGame` (WR-06 ronda 4, quick 260923-3rm) se
@@ -189,6 +202,11 @@ onMounted(() => {
   const informe = readStoredProgress(game)
   const plan = planProgressMount(informe.stored, informe.outcome)
   avisoLecturaNoComprobada.value = plan.unverifiedNotice
+  // WR-02 (ronda 6, quick 260923-3rm): armar el guardián de escritura
+  // exactamente cuando el montaje no ha podido comprobar el dispositivo —
+  // el primer autoguardado de la partida nueva copiará antes lo que
+  // hubiera, en vez de sobrescribirlo sin más.
+  if (plan.unverifiedNotice !== null) progressWriter.arm()
 
   if (plan.action === 'mini-setup') {
     resumeResolved.value = true
@@ -220,7 +238,7 @@ watchDebounced(
   session,
   (value) => {
     if (!value) return
-    save(value)
+    progressWriter.save(value)
   },
   { debounce: 300 },
 )
@@ -235,10 +253,12 @@ watchDebounced(
 // un dedo humano. `pagehide` cubre tanto recarga como cierre/navegación
 // fuera, incluido el caso de Safari en iPad donde `beforeunload` es menos
 // fiable (mismo criterio de "guardado nunca puede perder el último paso"
-// que ya exige PERS-01). Guardar de más aquí es inofensivo: `save()` es
-// idempotente sobre el mismo `session.value`.
+// que ya exige PERS-01). Guardar de más aquí es inofensivo:
+// `progressWriter.save()` es idempotente sobre el mismo `session.value` —
+// sin armar, delega tal cual en `save()`; armado, la primera llamada
+// desarma tras copiar y las siguientes son un `save()` normal.
 useEventListener('pagehide', () => {
-  if (session.value) save(session.value)
+  if (session.value) progressWriter.save(session.value)
 })
 
 // D-43/D-40: entrar al primer paso desde el mini-setup no locuta. Es una
@@ -650,8 +670,8 @@ function finishGame(preserveProgress = false) {
 // afirmar "sigue guardada en el dispositivo" sin comprobarlo es la misma
 // confirmación falsa que las rondas anteriores de esta fase llevan
 // cerrando en el motor. Por eso, cuando el registro falla, se reescribe el
-// progreso SÍNCRONAMENTE aquí mismo (save() se intercala entre record() y
-// notifyHistorySaved()) y se guarda su resultado real en
+// progreso SÍNCRONAMENTE aquí mismo (`progressWriter.save()` se intercala
+// entre record() y notifyHistorySaved()) y se guarda su resultado real en
 // `progresoAsegurado`: solo con ese booleano notifyHistorySaved puede
 // elegir entre la variante recuperable y la no recuperable sin inventar
 // nada. El watchDebounced de 300ms no sirve para esto — finishGame pone
@@ -671,20 +691,23 @@ function finishGame(preserveProgress = false) {
 //    borraba en silencio el progreso que la primera invocación acababa de
 //    preservar a propósito. La bandera que ya marca «este cierre de partida
 //    está en curso» sirve de guarda sin añadir estado nuevo.
-// 2. Por qué se sigue llamando a `save()` cuando el registro falla, y por
-//    qué su booleano ya no decide nada por sí solo: `save()` es el INTENTO
-//    de dejar el progreso a salvo; la autoridad de lectura de más abajo es
-//    la COMPROBACIÓN de si de verdad quedó algo. Confundir esas dos
-//    preguntas es exactamente el defecto que este plan cierra — por eso la
-//    lectura ocurre DESPUÉS del intento de escritura y es ella, nunca el
-//    booleano, quien decide la variante del aviso.
+// 2. Por qué se sigue llamando a `progressWriter.save()` cuando el registro
+//    falla, y por qué su booleano ya no decide nada por sí solo:
+//    `progressWriter.save()` es el INTENTO de dejar el progreso a salvo
+//    (armado o no, con o sin copia previa de por medio — ver WR-02 ronda 6
+//    más arriba); la autoridad de lectura de más abajo es la COMPROBACIÓN
+//    de si de verdad quedó algo. Confundir esas dos preguntas es exactamente
+//    el defecto que este plan cierra — por eso la lectura ocurre DESPUÉS del
+//    intento de escritura y es ella, nunca el booleano, quien decide la
+//    variante del aviso.
 // 3. D-U4 sigue intacto, AMPLIADO por WR-06 (ronda 4, quick 260923-3rm): el
 //    orden bloqueado es `silence()` → `stampEndOfGame()` → `record()` →
-//    `save()` → `notifyHistorySaved()` → `finishGame()`; el sellado se
-//    intercala ANTES de `record()` (nunca después: `record()` ya necesita
-//    ver `session.value` sellada para que `recordedAt`/`durationMs` usen el
-//    instante congelado), y la lectura de la autoridad se intercala entre
-//    `save()` y `notifyHistorySaved()`, el único hueco posible — tiene que
+//    `progressWriter.save()` → `notifyHistorySaved()` → `finishGame()`; el
+//    sellado se intercala ANTES de `record()` (nunca después: `record()` ya
+//    necesita ver `session.value` sellada para que `recordedAt`/`durationMs`
+//    usen el instante congelado), y la lectura de la autoridad se intercala
+//    entre `progressWriter.save()` y `notifyHistorySaved()`, el único hueco
+//    posible — tiene que
 //    ocurrir después del intento de escritura y antes de que se afirme
 //    nada, y todo ello antes de que `finishGame` vacíe la sesión. Desde el
 //    plan 09-28 la autoridad recibe además, como segundo argumento, la
@@ -709,11 +732,12 @@ function onOutcomeRecorded(outcome: GameOutcome) {
   if (session.value && game) {
     // WR-06 (ronda 4, quick 260923-3rm): sellar el instante del desenlace
     // ANTES de record() — orden D-U4 ampliado: silence() → SELLADO → record()
-    // → save() → lectura → aviso → finishGame(). `record()`, el guardado del
-    // fallo (`save()` más abajo) y `readStoredProgress` tienen que ver la
-    // MISMA sesión sellada, o el reintento de un registro fallido mediría la
-    // duración/fecha hasta el momento del reintento en vez de hasta este
-    // instante (D-08 sin este sello).
+    // → progressWriter.save() → lectura → aviso → finishGame(). `record()`,
+    // el guardado del fallo (`progressWriter.save()` más abajo) y
+    // `readStoredProgress` tienen que ver la MISMA sesión sellada, o el
+    // reintento de un registro fallido mediría la duración/fecha hasta el
+    // momento del reintento en vez de hasta este instante (D-08 sin este
+    // sello).
     session.value = stampEndOfGame(session.value)
     let registrado = false
     try {
@@ -728,7 +752,7 @@ function onOutcomeRecorded(outcome: GameOutcome) {
       // `/`: el grupo se queda mirando el paso en curso sin ninguna señal
       // (WR-10 de la ronda 4, WR-06 de la ronda 5).
     }
-    if (!registrado) save(session.value)
+    if (!registrado) progressWriter.save(session.value)
     let stored: StoredProgress = 'unknown'
     // Plan 09-38: se captura el INFORME completo, no solo `stored` — la
     // huella (`informe.huella`) es lo que permite que la marca de más abajo

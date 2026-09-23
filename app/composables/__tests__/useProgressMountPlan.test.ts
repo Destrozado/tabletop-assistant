@@ -74,4 +74,12 @@ describe('planProgressMount — la decisión de montaje, pura y total', () => {
     expect(UNVERIFIED_PROGRESS_NOTICE).not.toContain('sigue guardada')
     expect(UNVERIFIED_PROGRESS_NOTICE).not.toContain('no hay')
   })
+
+  // WR-02 (ronda 6, quick 260923-3rm): la redacción anterior advertía de un
+  // riesgo («al guardar la nueva podríais sustituirla») que dejó de ser
+  // cierto en cuanto `createOverwriteGuard` empezó a proteger el primer
+  // autoguardado — la copy nueva describe la mitigación real, no un riesgo.
+  it('10. UNVERIFIED_PROGRESS_NOTICE ya no contiene "podríais sustituirla" (WR-02 ronda 6, quick 260923-3rm)', () => {
+    expect(UNVERIFIED_PROGRESS_NOTICE).not.toContain('podríais sustituirla')
+  })
 })

@@ -6,8 +6,10 @@
 // proyecto `app-logic` (entorno node, vitest.config.ts).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  archiveResultMessage,
   buildHistoryCardView,
   buildStatisticsView,
+  buildUnreadableHistoryView,
   DELETE_FAILED_BODY,
   DELETE_FAILED_HEADING,
   resolveFrozenNames,
@@ -308,6 +310,7 @@ describe('buildStatisticsView', () => {
       villainRows: [],
       totalEntries: 4,
       entriesWithHeroes: 4,
+      entriesWithVillain: 4,
     }
 
     const view = buildStatisticsView(summary)
@@ -315,37 +318,68 @@ describe('buildStatisticsView', () => {
     expect(view.heroRows).toEqual([{ id: 'thor', name: 'Thor', valueLabel: '3 de 4 · 75 %' }])
   })
 
-  it('sampleCaption es null cuando todas las partidas tienen héroes anotados', () => {
+  // WR-07 (09-REVIEW.md, cerrado en el quick 260923-3rm): sampleCaption
+  // (compartido por las dos tablas) se sustituye por heroSampleCaption/
+  // villainSampleCaption — cada tabla describe su PROPIA muestra.
+  it('heroSampleCaption es null cuando todas las partidas tienen héroes anotados', () => {
     const summary: StatisticsSummary = {
       heroRows: [],
       villainRows: [],
       totalEntries: 5,
       entriesWithHeroes: 5,
+      entriesWithVillain: 5,
     }
 
-    expect(buildStatisticsView(summary).sampleCaption).toBeNull()
+    expect(buildStatisticsView(summary).heroSampleCaption).toBeNull()
   })
 
-  it('sampleCaption es la cadena exacta cuando no todas tienen héroes anotados', () => {
+  it('heroSampleCaption es la cadena exacta cuando no todas tienen héroes anotados', () => {
     const summary: StatisticsSummary = {
       heroRows: [],
       villainRows: [],
       totalEntries: 12,
       entriesWithHeroes: 10,
+      entriesWithVillain: 12,
     }
 
-    expect(buildStatisticsView(summary).sampleCaption).toBe('12 partidas registradas · 10 con héroes anotados')
+    expect(buildStatisticsView(summary).heroSampleCaption).toBe('12 partidas registradas · 10 con héroes anotados')
+    expect(buildStatisticsView(summary).villainSampleCaption).toBeNull()
   })
 
-  it('sampleCaption usa el singular correcto con una sola partida', () => {
+  it('heroSampleCaption usa el singular correcto con una sola partida', () => {
     const summary: StatisticsSummary = {
       heroRows: [],
       villainRows: [],
       totalEntries: 1,
       entriesWithHeroes: 0,
+      entriesWithVillain: 1,
     }
 
-    expect(buildStatisticsView(summary).sampleCaption).toBe('1 partida registrada · 0 con héroes anotados')
+    expect(buildStatisticsView(summary).heroSampleCaption).toBe('1 partida registrada · 0 con héroes anotados')
+  })
+
+  it('villainSampleCaption es null cuando todas las partidas tienen villano anotado', () => {
+    const summary: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 5,
+      entriesWithHeroes: 5,
+      entriesWithVillain: 5,
+    }
+
+    expect(buildStatisticsView(summary).villainSampleCaption).toBeNull()
+  })
+
+  it('villainSampleCaption es la cadena exacta (singular "villano anotado") cuando no todas tienen villano anotado', () => {
+    const summary: StatisticsSummary = {
+      heroRows: [],
+      villainRows: [],
+      totalEntries: 1,
+      entriesWithHeroes: 1,
+      entriesWithVillain: 0,
+    }
+
+    expect(buildStatisticsView(summary).villainSampleCaption).toBe('1 partida registrada · 0 con villano anotado')
   })
 
   it('isEmpty es true con el resumen vacío', () => {
@@ -354,6 +388,7 @@ describe('buildStatisticsView', () => {
       villainRows: [],
       totalEntries: 0,
       entriesWithHeroes: 0,
+      entriesWithVillain: 0,
     }
 
     expect(buildStatisticsView(summary).isEmpty).toBe(true)
@@ -365,6 +400,7 @@ describe('buildStatisticsView', () => {
       villainRows: [],
       totalEntries: 3,
       entriesWithHeroes: 0,
+      entriesWithVillain: 0,
     }
 
     expect(buildStatisticsView(summary).isEmpty).toBe(true)
@@ -376,6 +412,7 @@ describe('buildStatisticsView', () => {
       villainRows: [],
       totalEntries: 0,
       entriesWithHeroes: 0,
+      entriesWithVillain: 0,
     }
     expect(buildStatisticsView(historicoVacio).emptyBody).toBe(
       'En cuanto registréis vuestra primera partida en el histórico, aquí aparecerá el % de victorias por héroe y por villano.',
@@ -386,6 +423,7 @@ describe('buildStatisticsView', () => {
       villainRows: [],
       totalEntries: 3,
       entriesWithHeroes: 0,
+      entriesWithVillain: 0,
     }
     expect(buildStatisticsView(sinFilas).emptyBody).toBe(
       '3 partidas registradas, pero ninguna con héroe ni villano anotados. En cuanto anotéis quién jugó o contra quién, aquí aparecerá el % de victorias.',
@@ -396,6 +434,7 @@ describe('buildStatisticsView', () => {
       villainRows: [],
       totalEntries: 1,
       entriesWithHeroes: 0,
+      entriesWithVillain: 0,
     }
     expect(buildStatisticsView(unaPartida).emptyBody).toBe(
       '1 partida registrada, pero ninguna con héroe ni villano anotados. En cuanto anotéis quién jugó o contra quién, aquí aparecerá el % de victorias.',
@@ -408,6 +447,7 @@ describe('buildStatisticsView', () => {
       villainRows: [],
       totalEntries: 1,
       entriesWithHeroes: 1,
+      entriesWithVillain: 1,
     }
 
     const view = buildStatisticsView(summary)
@@ -686,5 +726,101 @@ describe('useGameHistory — stampEndOfGame (WR-06 ronda 4)', () => {
       runtimeId: 'loop.turno.02',
       round: 3,
     })
+  })
+})
+
+// WR-02 (quick 260923-3rm): un envoltorio `unreadable` permanente bloqueaba
+// el registro para siempre, sin vía de salida en la interfaz.
+describe('buildUnreadableHistoryView (WR-02, quick 260923-3rm)', () => {
+  it('uninterpretable: título, cuerpo y canArchive: true', () => {
+    const view = buildUnreadableHistoryView('uninterpretable')
+    expect(view.title).toBe('No se puede leer el histórico')
+    expect(view.body).toBe(
+      'Hay un histórico anterior que la app no sabe interpretar. Mientras siga ahí, no se muestra ninguna partida y no se pueden registrar partidas nuevas. Podéis apartarlo como copia y empezar un histórico nuevo: la copia se queda aparte, sin tocar.',
+    )
+    expect(view.canArchive).toBe(true)
+  })
+
+  it('read-failed: título, cuerpo y canArchive: false', () => {
+    const view = buildUnreadableHistoryView('read-failed')
+    expect(view.title).toBe('No se ha podido leer el histórico')
+    expect(view.body).toBe(
+      'La app no ha conseguido leerlo en este momento, así que no puede saber qué partidas hay registradas. Puede deberse al modo privado del navegador. Volved a abrir esta pantalla más tarde.',
+    )
+    expect(view.canArchive).toBe(false)
+  })
+
+  it('statisticsBody es la misma cadena en los dos casos', () => {
+    const esperado = 'Las estadísticas salen del histórico, y ahora mismo la app no puede leerlo. En «Histórico» se explica qué podéis hacer.'
+    expect(buildUnreadableHistoryView('uninterpretable').statisticsBody).toBe(esperado)
+    expect(buildUnreadableHistoryView('read-failed').statisticsBody).toBe(esperado)
+  })
+})
+
+describe('archiveResultMessage (WR-02, quick 260923-3rm)', () => {
+  it('"archived" produce el mensaje de éxito', () => {
+    expect(archiveResultMessage('archived')).toBe('Histórico apartado: la lista empieza de nuevo vacía.')
+  })
+
+  it('"failed" produce el mensaje de fallo', () => {
+    expect(archiveResultMessage('failed')).toBe('No se pudo apartar el histórico. Podéis intentarlo de nuevo más tarde.')
+  })
+
+  it('"not-needed" produce null', () => {
+    expect(archiveResultMessage('not-needed')).toBeNull()
+  })
+})
+
+describe('useGameHistory — unreadableView/archiveUnreadable (WR-02, quick 260923-3rm)', () => {
+  let fakeStorage: ReturnType<typeof createFakeLocalStorage>
+
+  beforeEach(() => {
+    fakeStorage = createFakeLocalStorage()
+    ;(globalThis as unknown as { window: unknown }).window = {
+      localStorage: fakeStorage,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+  })
+
+  afterEach(() => {
+    delete (globalThis as { window?: unknown }).window
+    vi.restoreAllMocks()
+  })
+
+  it('con blob corrupto: tras reload(), unreadableView.canArchive === true y entries vacío; archiveUnreadable() → "archived" y después unreadableView === null e isEmpty === true', () => {
+    fakeStorage.setItem('tga:history', 'esto no es JSON válido {{{')
+
+    const { reload, entries, unreadableView, archiveUnreadable, isEmpty } = useGameHistory()
+    reload()
+
+    expect(entries.value).toEqual([])
+    expect(unreadableView.value).not.toBeNull()
+    expect(unreadableView.value?.canArchive).toBe(true)
+
+    expect(archiveUnreadable()).toBe('archived')
+
+    expect(unreadableView.value).toBeNull()
+    expect(isEmpty.value).toBe(true)
+  })
+
+  it('con getItem que lanza: unreadableView.canArchive === false', () => {
+    fakeStorage.getItem.mockImplementation(() => {
+      throw new Error('SecurityError')
+    })
+
+    const { reload, unreadableView } = useGameHistory()
+    reload()
+
+    expect(unreadableView.value).not.toBeNull()
+    expect(unreadableView.value?.canArchive).toBe(false)
+  })
+
+  it('con historia válida, unreadableView es null', () => {
+    const { record, reload, unreadableView } = useGameHistory()
+    record(makeSession(), 'won')
+    reload()
+
+    expect(unreadableView.value).toBeNull()
   })
 })

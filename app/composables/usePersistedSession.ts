@@ -295,37 +295,52 @@ function removeRaw(key: string): void {
 // de escribir lo que `isGameHistoryEntry` rechaza), y `removeHistoryEntry`
 // no filtra en absoluto — conserva en disco tal cual lo que no reconoce
 // (WR-08/CR-03), un borrado sigue siendo conservador con lo que no entiende.
+//
+// WR-02 (quick 260923-3rm): la variante `'unreadable'` gana `reason` — un
+// `getItem` que lanza (`'read-failed'`) y un blob que existe pero no se sabe
+// interpretar (`'uninterpretable'`, JSON corrupto/`formatVersion` desconocido/
+// `entries` no array) eran indistinguibles hasta este quick, y
+// `archiveUnreadableHistory` (más abajo) SOLO tiene permiso para archivar la
+// segunda variante — un `getItem` que lanza no tiene ningún blob que copiar
+// de verdad.
 type EnvelopeRead =
   | { kind: 'empty' }
   | { kind: 'ok', entries: unknown[] }
-  | { kind: 'unreadable' }
+  | { kind: 'unreadable', reason: 'read-failed' | 'uninterpretable' }
 
-// CR-03/CR-01 (ronda 3): separa "leer el envoltorio en crudo" de "leer las
-// entradas válidas" (que sigue siendo trabajo de `loadHistory`, más abajo).
-// Nunca lanza. `'empty'` tiene ahora UNA sola fuente: `readRaw` devolviendo
-// `'absent'` — la clave no existe de verdad, confirmado por `getItem`
-// devolviendo `null` sin lanzar. Un `getItem` que lanza (`'unreadable'` de
-// LECTURA) y un JSON que no se sabe interpretar (`catch` del `JSON.parse`,
-// `formatVersion` desconocido, `entries` no array) desembocan los dos en
-// `'unreadable'`, y esa variante ya aborta toda escritura en
-// `appendHistoryEntry`/`removeHistoryEntry` sin tocar `writeRaw` (T-09-01).
-// Si alguien vuelve a colapsar «no he podido leer» y «no hay nada» en un
-// mismo camino, vuelve a abrir el BLOCKER CR-01 (ronda 3).
-function readEnvelope(): EnvelopeRead {
-  const read = readRaw(HISTORY_KEY)
-  if (read.kind === 'unreadable') return { kind: 'unreadable' }
+// interpretHistoryRaw (WR-02, quick 260923-3rm): la interpretación del blob
+// (JSON → `formatVersion` → `entries`) extraída a una función interna
+// ÚNICA, para que `readEnvelope` (usada por `appendHistoryEntry`/
+// `removeHistoryEntry`) y `archiveUnreadableHistory` (más abajo) NUNCA
+// puedan divergir sobre qué cuenta como ilegible. Nunca lanza. `'empty'`
+// tiene una sola fuente: `read.kind === 'absent'` — la clave no existe de
+// verdad, confirmado por `getItem` devolviendo `null` sin lanzar. Si alguien
+// vuelve a colapsar «no he podido leer» y «no hay nada» en un mismo camino,
+// vuelve a abrir el BLOCKER CR-01 (ronda 3).
+function interpretHistoryRaw(read: RawRead): EnvelopeRead {
+  if (read.kind === 'unreadable') return { kind: 'unreadable', reason: 'read-failed' }
   if (read.kind === 'absent') return { kind: 'empty' }
 
   try {
     const parsed = JSON.parse(read.raw) as Partial<HistoryEnvelope>
-    if (parsed.formatVersion !== HISTORY_FORMAT_VERSION) return { kind: 'unreadable' }
-    if (!Array.isArray(parsed.entries)) return { kind: 'unreadable' }
+    if (parsed.formatVersion !== HISTORY_FORMAT_VERSION) return { kind: 'unreadable', reason: 'uninterpretable' }
+    if (!Array.isArray(parsed.entries)) return { kind: 'unreadable', reason: 'uninterpretable' }
     return { kind: 'ok', entries: parsed.entries }
   }
   catch {
     // JSON corrupto: ilegible, NO ausente — ver el contrato de arriba.
-    return { kind: 'unreadable' }
+    return { kind: 'unreadable', reason: 'uninterpretable' }
   }
+}
+
+// CR-03/CR-01 (ronda 3): separa "leer el envoltorio en crudo" de "leer las
+// entradas válidas" (que sigue siendo trabajo de `loadHistory`, más abajo).
+// Ya no interpreta el blob por su cuenta (WR-02, quick 260923-3rm): delega
+// en `interpretHistoryRaw`, la única función con permiso para decidir qué
+// es ilegible y por qué. Esa variante ya aborta toda escritura en
+// `appendHistoryEntry`/`removeHistoryEntry` sin tocar `writeRaw` (T-09-01).
+function readEnvelope(): EnvelopeRead {
+  return interpretHistoryRaw(readRaw(HISTORY_KEY))
 }
 
 // CR-01 (ronda 5): resultado discriminado de LEER el progreso, distinto del
@@ -363,6 +378,19 @@ export type ProgressRead =
 export type HistoryRead =
   | { kind: 'ok', entries: GameHistoryEntry[] }
   | { kind: 'unreadable' }
+
+// HistoryState (WR-02, quick 260923-3rm): mismo criterio discriminado que
+// `HistoryRead`, pero SIN colapsar los dos motivos de ilegibilidad — es la
+// distinción que `/historico` necesita para ofrecer una salida (archivar)
+// solo cuando de verdad hay un blob que archivar (`'uninterpretable'`), y
+// para explicar por qué no hay salida cuando la lectura en sí ha fallado
+// (`'read-failed'`, p. ej. modo privado del navegador). `readHistory` (el
+// contrato existente de `useHistorySync.ts`) sigue colapsando los dos casos
+// en `'unreadable'` — este tipo es aditivo, no lo sustituye.
+export type HistoryState =
+  | { kind: 'ok', entries: GameHistoryEntry[] }
+  | { kind: 'read-failed' }
+  | { kind: 'uninterpretable' }
 
 export function usePersistedSession() {
   // CR-01 (ronda 5): única ruta de parseo del progreso — `load` (más abajo)
@@ -488,16 +516,79 @@ export function usePersistedSession() {
   // `useHistorySync.ts`, que antes de este cierre podaba `tga:history:synced`
   // hasta vaciarla del todo cuando `readEnvelope()` devolvía `'unreadable'`
   // justo en ese instante (WR-01).
-  function readHistory(): HistoryRead {
+  // readHistoryState (WR-02, quick 260923-3rm): envuelve `readEnvelope()`
+  // filtrando las entradas por `isGameHistoryEntry` (igual que `readHistory`
+  // hacía) pero SIN colapsar los dos motivos de ilegibilidad — es la
+  // autoridad que `/historico`/`/estadisticas` consultan para decidir qué
+  // explicar y si ofrecer la acción de archivado.
+  function readHistoryState(): HistoryState {
     const read = readEnvelope()
-    if (read.kind === 'unreadable') return { kind: 'unreadable' }
+    if (read.kind === 'unreadable') {
+      return read.reason === 'read-failed' ? { kind: 'read-failed' } : { kind: 'uninterpretable' }
+    }
     const entries = read.kind === 'ok' ? read.entries.filter(isGameHistoryEntry) : []
     return { kind: 'ok', entries }
+  }
+
+  // readHistory (contrato SIN CAMBIOS de `useHistorySync.ts`, `HistoryRead`):
+  // reescrito como envoltorio de `readHistoryState()` que colapsa
+  // `'read-failed'`/`'uninterpretable'` en `'unreadable'` — mismo resultado
+  // observable de siempre, una sola ruta de interpretación por debajo.
+  function readHistory(): HistoryRead {
+    const state = readHistoryState()
+    if (state.kind !== 'ok') return { kind: 'unreadable' }
+    return { kind: 'ok', entries: state.entries }
   }
 
   function loadHistory(): GameHistoryEntry[] {
     const read = readHistory()
     return read.kind === 'ok' ? read.entries : []
+  }
+
+  // archiveUnreadableHistory (WR-02, quick 260923-3rm): la salida explícita
+  // que faltaba para un `tga:history` `'uninterpretable'` permanente — sin
+  // ella, `appendHistoryEntry`/`loadHistory` quedaban bloqueados PARA
+  // SIEMPRE (CR-03 los hace conservadores a propósito) y no existía ninguna
+  // acción en la interfaz para salir del callejón.
+  //
+  // Solo actúa cuando `interpretHistoryRaw` dice `'uninterpretable'` sobre
+  // el blob EN CRUDO releído en este instante — nunca sobre `'read-failed'`
+  // (no hay ningún blob que copiar de verdad: `getItem` ni siquiera ha
+  // podido contestar) ni sobre un envoltorio legible o una clave ausente
+  // (nada que archivar). La copia se escribe en `tga:history:backup-<now>`
+  // y se RELEE para comparar BYTE A BYTE contra el original antes de retirar
+  // nada — CR-03: nunca destruir lo que no se ha sabido interpretar sin
+  // haber verificado antes que la copia es exacta. Solo entonces se llama a
+  // `removeRaw`, y solo se devuelve `'archived'` si una relectura FINAL
+  // confirma que la clave ha quedado ausente de verdad. Nunca escribe
+  // `tga:history` ni toca `tga:history:synced` (D-04 de `useHistorySync.ts`
+  // sigue intacto: la siguiente partida crea el envoltorio por la vía
+  // legítima `'empty'` de `appendHistoryEntry`, y D-03 hace inocuo cualquier
+  // reintento de subida futura de lo que ya se archivó).
+  function archiveUnreadableHistory(now: number): 'archived' | 'not-needed' | 'failed' {
+    const raw = readRaw(HISTORY_KEY)
+    if (raw.kind === 'unreadable') return 'failed'
+    if (raw.kind === 'absent') return 'not-needed'
+
+    const interpreted = interpretHistoryRaw(raw)
+    if (interpreted.kind !== 'unreadable' || interpreted.reason !== 'uninterpretable') return 'not-needed'
+
+    const backupKey = `${HISTORY_KEY}:backup-${now}`
+    if (!writeRaw(backupKey, raw.raw)) return 'failed'
+
+    // Verificación byte a byte de la copia ANTES de retirar nada (CR-03).
+    const verify = readRaw(backupKey)
+    if (verify.kind !== 'value' || verify.raw !== raw.raw) return 'failed'
+
+    removeRaw(HISTORY_KEY)
+
+    // Relectura FINAL: solo 'archived' si la clave ha quedado confirmada
+    // ausente — un `removeItem` que fallase en silencio dejaría el blob
+    // ilegible en su sitio pese a que la copia sí se escribió.
+    const confirmRemoved = readRaw(HISTORY_KEY)
+    if (confirmRemoved.kind !== 'absent') return 'failed'
+
+    return 'archived'
   }
 
   // No es `void`: el histórico es el único dato de la app que no se puede
@@ -614,5 +705,74 @@ export function usePersistedSession() {
     return writeRaw(HISTORY_KEY, JSON.stringify(envelope))
   }
 
-  return { load, readProgress, save, clear, loadVoicePreference, saveVoicePreference, loadHistory, readHistory, appendHistoryEntry, removeHistoryEntry, loadSyncedIds, saveSyncedIds }
+  // backupProgressBeforeOverwrite (WR-02 ronda 6, quick 260923-3rm): copia
+  // el crudo de `tga:progress:<gameId>` a `tga:progress:<gameId>:backup-<now>`
+  // ANTES de que el primer autoguardado de una partida nueva pueda
+  // sobrescribirlo. `true` cuando no hay nada que copiar (clave ausente —
+  // nada que perder) o cuando la copia se ha verificado byte a byte; `false`
+  // ante cualquier fallo (lectura caída, escritura del backup caída, o la
+  // relectura de verificación no coincide) — y en NINGÚN caso escribe la
+  // clave principal `tga:progress:<gameId>`, sea cual sea el resultado.
+  function backupProgressBeforeOverwrite(gameId: string, now: number): boolean {
+    const key = storageKey(gameId)
+    const raw = readRaw(key)
+    if (raw.kind === 'unreadable') return false
+    if (raw.kind === 'absent') return true
+
+    const backupKey = `${key}:backup-${now}`
+    if (!writeRaw(backupKey, raw.raw)) return false
+
+    const verify = readRaw(backupKey)
+    if (verify.kind !== 'value' || verify.raw !== raw.raw) return false
+
+    return true
+  }
+
+  // createOverwriteGuard (WR-02 ronda 6, quick 260923-3rm): el guardián de
+  // escritura que cierra el hueco de la ronda 6 — tras una lectura fallida
+  // del progreso al montar, el primer autoguardado de la partida nueva ya
+  // no sobrescribe sin más lo que no se pudo leer.
+  //
+  // El flag `armed` vive en un CIERRE dentro de esta función, nunca a
+  // columna 0 de módulo (el gate de invariantes de
+  // `invariantesDeMarcaDeEstado.test.ts` solo audita
+  // `useHistorySavedNotice.ts`/`useProgressMismatchMark.ts` para ese patrón
+  // — este composable no puede sumarse a esa lista).
+  //
+  // Sin armar, `save` delega directamente en el `save` de siempre — el
+  // guardián solo actúa cuando `arm()` lo ha activado explícitamente
+  // (`app/pages/[game]/index.vue` lo arma únicamente cuando
+  // `planProgressMount` devolvió un aviso de lectura no verificada).
+  //
+  // Armado, la PRIMERA `save` intenta `backupProgressBeforeOverwrite` con el
+  // `clock()` inyectado (real: `Date.now()`, determinista en test): si
+  // devuelve `false` (la clave sigue sin poder leerse, o el backup no se
+  // pudo escribir/verificar), `save` devuelve `false` SIN escribir la clave
+  // principal y SIGUE armado — el guardián no se rinde con un solo intento,
+  // vuelve a intentarlo en el siguiente autoguardado. Si devuelve `true`, el
+  // guardián se DESARMA y delega en el `save` de siempre — ya no hace falta
+  // proteger nada más: el guardián ya no depende del supuesto no verificado
+  // de que lectura y escritura fallan juntas (deferred-items.md) — si no se
+  // puede leer, no se escribe encima, punto.
+  function createOverwriteGuard(clock: () => number = () => Date.now()) {
+    let armed = false
+
+    function guardedSave(session: EngineSession): boolean {
+      if (!armed) return save(session)
+
+      const backedUp = backupProgressBeforeOverwrite(session.gameId, clock())
+      if (!backedUp) return false
+
+      armed = false
+      return save(session)
+    }
+
+    return {
+      arm: () => { armed = true },
+      isArmed: () => armed,
+      save: guardedSave,
+    }
+  }
+
+  return { load, readProgress, save, clear, loadVoicePreference, saveVoicePreference, loadHistory, readHistory, readHistoryState, archiveUnreadableHistory, appendHistoryEntry, removeHistoryEntry, loadSyncedIds, saveSyncedIds, backupProgressBeforeOverwrite, createOverwriteGuard }
 }

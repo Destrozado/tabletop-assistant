@@ -272,14 +272,16 @@ const AFIRMACIONES_AUDITADAS: Record<string, AfirmacionAuditada[]> = {
     },
     {
       raiz: 'guardar',
-      // Motivo reescrito (plan 09-39, Task 1, medición de WR-02): la
-      // redacción anterior no nombraba ningún identificador comprobable —
-      // «mini-setup» no es código— y la raíz 'guardar' no aparece en el
-      // contenido del respaldo citado, así que respaldoRespaldaA la ponía en
-      // ROJO. Se nombra planProgressMount, la función que de verdad produce
-      // este aviso (única cadena para stored === 'unknown').
-      motivo: '"al guardar la nueva podríais sustituirla" es parte de UNVERIFIED_PROGRESS_NOTICE, la única cadena que planProgressMount devuelve para stored === \'unknown\', fijada rama por rama contra los cuatro valores de StoredProgress.',
-      respaldo: 'app/composables/__tests__/useProgressMountPlan.test.ts',
+      // Motivo reescrito (quick 260923-3rm, WR-02 ronda 6): la redacción
+      // anterior citaba la frase vieja de UNVERIFIED_PROGRESS_NOTICE («al
+      // guardar la nueva podríais sustituirla»), retirada en este quick
+      // porque dejó de ser cierta en cuanto createOverwriteGuard empezó a
+      // proteger el primer autoguardado. La frase nueva («antes de guardar
+      // la nueva, la app aparta una copia») describe esa mitigación real,
+      // fijada en usePersistedSession.test.ts (clave ausente/blob presente/
+      // lectura y escritura fallidas), no en useProgressMountPlan.test.ts.
+      motivo: '"antes de guardar la nueva, la app aparta una copia de la que hubiera" describe createOverwriteGuard/backupProgressBeforeOverwrite (usePersistedSession.ts): arma la copia antes de escribir y solo desarma tras verificarla byte a byte, fijado rama por rama contra clave ausente, blob presente, lectura caída y escritura del backup caída.',
+      respaldo: 'app/composables/__tests__/usePersistedSession.test.ts',
     },
     {
       raiz: 'dispositivo',

@@ -220,6 +220,59 @@ export function buildHistoryCardView(entry: GameHistoryEntry): HistoryCardView {
 export const DELETE_FAILED_HEADING = '⚠ No se pudo borrar la partida'
 export const DELETE_FAILED_BODY = 'La app no ha conseguido leer o escribir el histórico en este navegador, así que no ha cambiado nada. Podéis volver a intentarlo más tarde.'
 
+// WR-02 (quick 260923-3rm): copy del estado «histórico ilegible» — vive como
+// dato comprobable fuera del componente, mismo criterio que
+// `DELETE_FAILED_HEADING`/`DELETE_FAILED_BODY` de arriba. Cada frase describe
+// SOLO lo que `readHistoryState()` ha comprobado de verdad para cada motivo
+// de ilegibilidad — nunca una causa (modo privado, cuota) que la app no
+// puede saber.
+export interface UnreadableHistoryView {
+  title: string
+  body: string
+  statisticsBody: string
+  canArchive: boolean
+}
+
+export const UNREADABLE_HISTORY_STATISTICS_BODY = 'Las estadísticas salen del histórico, y ahora mismo la app no puede leerlo. En «Histórico» se explica qué podéis hacer.'
+
+export const UNREADABLE_HISTORY_ARCHIVE_BUTTON_LABEL = 'Apartarlo y empezar uno nuevo'
+export const UNREADABLE_HISTORY_CONFIRM_TITLE = '¿Apartar el histórico que no se puede leer?'
+export const UNREADABLE_HISTORY_CONFIRM_BODY = 'La app hará una copia aparte y empezará un histórico vacío. Esa copia no se muestra en ninguna pantalla.'
+export const UNREADABLE_HISTORY_CONFIRM_LABEL = 'Sí, apartarlo'
+export const UNREADABLE_HISTORY_CANCEL_LABEL = 'Cancelar'
+
+export const ARCHIVE_RESULT_SUCCESS_MESSAGE = 'Histórico apartado: la lista empieza de nuevo vacía.'
+export const ARCHIVE_RESULT_FAILURE_MESSAGE = 'No se pudo apartar el histórico. Podéis intentarlo de nuevo más tarde.'
+
+// buildUnreadableHistoryView: función pura, calcada del patrón de
+// `buildStatisticsView` — decide la copy exacta según el ÚNICO motivo real
+// de ilegibilidad que el llamador ya ha comprobado (`readHistoryState()`).
+export function buildUnreadableHistoryView(state: 'read-failed' | 'uninterpretable'): UnreadableHistoryView {
+  if (state === 'uninterpretable') {
+    return {
+      title: 'No se puede leer el histórico',
+      body: 'Hay un histórico anterior que la app no sabe interpretar. Mientras siga ahí, no se muestra ninguna partida y no se pueden registrar partidas nuevas. Podéis apartarlo como copia y empezar un histórico nuevo: la copia se queda aparte, sin tocar.',
+      statisticsBody: UNREADABLE_HISTORY_STATISTICS_BODY,
+      canArchive: true,
+    }
+  }
+  return {
+    title: 'No se ha podido leer el histórico',
+    body: 'La app no ha conseguido leerlo en este momento, así que no puede saber qué partidas hay registradas. Puede deberse al modo privado del navegador. Volved a abrir esta pantalla más tarde.',
+    statisticsBody: UNREADABLE_HISTORY_STATISTICS_BODY,
+    canArchive: false,
+  }
+}
+
+// archiveResultMessage: traduce el resultado de `archiveUnreadableHistory`
+// (usePersistedSession.ts) a la única frase que la interfaz puede pintar —
+// `null` para `'not-needed'` porque no hubo ningún cambio que anunciar.
+export function archiveResultMessage(result: 'archived' | 'not-needed' | 'failed'): string | null {
+  if (result === 'archived') return ARCHIVE_RESULT_SUCCESS_MESSAGE
+  if (result === 'failed') return ARCHIVE_RESULT_FAILURE_MESSAGE
+  return null
+}
+
 // Fila ya formateada de la tabla de estadísticas — el componente no vuelve
 // a componer `{wins} de {played} · {pct} %` (D-25).
 export interface StatRowView {
@@ -231,7 +284,12 @@ export interface StatRowView {
 export interface StatisticsView {
   heroRows: StatRowView[]
   villainRows: StatRowView[]
-  sampleCaption: string | null
+  // WR-07 (09-REVIEW.md, cerrado en el quick 260923-3rm): `sampleCaption`
+  // (compartida por las dos tablas) se sustituye por una leyenda POR TABLA
+  // — cada una describe la muestra que su propia tabla agrega, nunca la del
+  // vecino.
+  heroSampleCaption: string | null
+  villainSampleCaption: string | null
   isEmpty: boolean
   // WR-01: `emptyTitle`/`emptyBody` son `null` exactamente cuando `isEmpty`
   // es `false` — la plantilla de `estadisticas.vue` deja de llevar copy
@@ -253,9 +311,18 @@ function toStatRowView(row: StatRow): StatRowView {
 // `aggregateStatistics` (D-24). `isEmpty` es lo que impide que la pantalla
 // pinte alguna vez una tabla con cero filas o un «0 %» (STAT-05).
 export function buildStatisticsView(summary: StatisticsSummary): StatisticsView {
-  const sampleCaption = summary.totalEntries === summary.entriesWithHeroes
+  const partidasLabel = summary.totalEntries === 1 ? 'partida registrada' : 'partidas registradas'
+
+  // WR-07: cada leyenda es `null` solo cuando su propia tabla cuenta TODAS
+  // las entradas — nunca cuando la del vecino lo hace. Copy de 09-UI-SPEC
+  // sin cambiar una coma.
+  const heroSampleCaption = summary.totalEntries === summary.entriesWithHeroes
     ? null
-    : `${summary.totalEntries} ${summary.totalEntries === 1 ? 'partida registrada' : 'partidas registradas'} · ${summary.entriesWithHeroes} con héroes anotados`
+    : `${summary.totalEntries} ${partidasLabel} · ${summary.entriesWithHeroes} con héroes anotados`
+
+  const villainSampleCaption = summary.totalEntries === summary.entriesWithVillain
+    ? null
+    : `${summary.totalEntries} ${partidasLabel} · ${summary.entriesWithVillain} con villano anotado`
 
   // WR-01: "no hay NADA que enseñar" — antes solo cubría el histórico
   // vacío (`totalEntries === 0`), dejando sin estado vacío el caso "hay
@@ -278,7 +345,8 @@ export function buildStatisticsView(summary: StatisticsSummary): StatisticsView 
   return {
     heroRows: summary.heroRows.map(toStatRowView),
     villainRows: summary.villainRows.map(toStatRowView),
-    sampleCaption,
+    heroSampleCaption,
+    villainSampleCaption,
     isEmpty,
     emptyTitle,
     emptyBody,
@@ -287,10 +355,17 @@ export function buildStatisticsView(summary: StatisticsSummary): StatisticsView 
 
 export function useGameHistory() {
   const { getCatalogue } = useCharacterCatalogue()
-  const { loadHistory, appendHistoryEntry, removeHistoryEntry } = usePersistedSession()
+  const { appendHistoryEntry, removeHistoryEntry, readHistoryState, archiveUnreadableHistory } = usePersistedSession()
   const { flush } = useHistorySync()
 
   const entries = ref<GameHistoryEntry[]>([])
+  // historyReadState (WR-02, quick 260923-3rm): el motivo real por el que
+  // `entries` está vacío ahora mismo — `'ok'` cuando de verdad no hay
+  // partidas o la lectura ha ido bien; `'read-failed'`/`'uninterpretable'`
+  // cuando `reload()` no ha podido leer el histórico de verdad. Sin este
+  // estado, `/historico` no podía distinguir «no hay nada» de «hay algo que
+  // no se sabe interpretar».
+  const historyReadState = ref<'ok' | 'read-failed' | 'uninterpretable'>('ok')
 
   // record: resuelve el catálogo, congela los nombres en esta capa (D-11) y
   // construye la entrada con el motor puro. El reloj real se lee AQUÍ y
@@ -317,8 +392,16 @@ export function useGameHistory() {
   // Reasignación completa del ref, nunca mutación in situ (misma disciplina
   // que el resto de composables de esta app). Se invoca desde `onMounted`
   // en las páginas — durante el prerender no hay `localStorage`.
+  //
+  // WR-02 (quick 260923-3rm): lee `readHistoryState()` en vez de
+  // `loadHistory()` para poder guardar el motivo real de un histórico vacío
+  // — `entries` sigue siendo `[]` en cualquier caso no-`'ok'` (mismo
+  // contrato observable que antes para quien solo mire `entries`), pero
+  // `historyReadState` ahora sabe distinguirlos.
   function reload(): void {
-    entries.value = sortEntriesByRecency(loadHistory())
+    const state = readHistoryState()
+    historyReadState.value = state.kind
+    entries.value = state.kind === 'ok' ? sortEntriesByRecency(state.entries) : []
   }
 
   // IN-11 (quick 260923-3rl): devuelve el booleano de `removeHistoryEntry`
@@ -345,6 +428,26 @@ export function useGameHistory() {
     return freezeEndInstant(session, Date.now())
   }
 
+  // unreadableView (WR-02, quick 260923-3rm): `null` exactamente cuando
+  // `historyReadState` es `'ok'` — las pantallas usan esto para decidir si
+  // pintan su contenido normal o el estado «histórico ilegible».
+  const unreadableView = computed<UnreadableHistoryView | null>(() => (
+    historyReadState.value === 'ok' ? null : buildUnreadableHistoryView(historyReadState.value)
+  ))
+
+  // archiveUnreadable (WR-02, quick 260923-3rm): delega en
+  // `archiveUnreadableHistory` (usePersistedSession.ts, el reloj real leído
+  // AQUÍ y solo aquí, mismo criterio que `record()`/`stampEndOfGame()`
+  // arriba) y siempre recarga después — con éxito, `unreadableView` pasa a
+  // `null` y `entries`/`isEmpty` reflejan el histórico vacío recién creado;
+  // con fallo, `historyReadState` sigue reflejando lo que de verdad hay en
+  // disco.
+  function archiveUnreadable(): 'archived' | 'not-needed' | 'failed' {
+    const result = archiveUnreadableHistory(Date.now())
+    reload()
+    return result
+  }
+
   const cardViews = computed(() => entries.value.map(buildHistoryCardView))
   const statisticsView = computed(() => buildStatisticsView(aggregateStatistics(entries.value)))
   const isEmpty = computed(() => entries.value.length === 0)
@@ -354,6 +457,8 @@ export function useGameHistory() {
     cardViews,
     statisticsView,
     isEmpty,
+    unreadableView,
+    archiveUnreadable,
     reload,
     remove,
     record,

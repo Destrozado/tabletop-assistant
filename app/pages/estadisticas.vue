@@ -6,7 +6,7 @@
 import { onMounted, ref } from 'vue'
 import { useGameHistory } from '~/composables/useGameHistory'
 
-const { statisticsView, reload } = useGameHistory()
+const { statisticsView, unreadableView, reload } = useGameHistory()
 
 // Mismo patrón que /historico: el prerender no tiene localStorage, así que
 // hasta resolver el montaje el cuerpo no pinta ni las tablas ni el estado
@@ -43,7 +43,21 @@ onMounted(() => {
 
     <main class="flex-1 overflow-y-auto bg-background px-2xl py-lg">
       <template v-if="cargado">
-        <div v-if="statisticsView.isEmpty" class="flex flex-col items-center justify-center text-center gap-md h-full">
+        <!--
+          WR-02 (quick 260923-3rm): un histórico ilegible tiene su propio
+          estado, distinto del estado vacío de estadísticas — la acción de
+          salida (archivar) vive solo en /historico, no aquí.
+        -->
+        <div v-if="unreadableView" class="flex flex-col items-center justify-center text-center gap-md h-full">
+          <h2 class="text-heading font-bold text-primary-text">
+            {{ unreadableView.title }}
+          </h2>
+          <p class="text-body font-normal text-secondary-text">
+            {{ unreadableView.statisticsBody }}
+          </p>
+        </div>
+
+        <div v-else-if="statisticsView.isEmpty" class="flex flex-col items-center justify-center text-center gap-md h-full">
           <h2 class="text-heading font-bold text-primary-text">
             {{ statisticsView.emptyTitle }}
           </h2>
@@ -52,12 +66,18 @@ onMounted(() => {
           </p>
         </div>
 
+        <!--
+          WR-07 (09-REVIEW.md, cerrado en el quick 260923-3rm): la leyenda
+          de muestra ya no es un único pie compartido por las dos tablas —
+          cada tabla pinta la SUYA, encima de su propio h2, porque una
+          partida puede tener villano y no héroes (o al revés) y la muestra
+          de una tabla no describe lo que la otra agrega.
+        -->
         <div v-else class="flex flex-col gap-lg">
-          <p v-if="statisticsView.sampleCaption" class="text-label font-bold text-secondary-text">
-            {{ statisticsView.sampleCaption }}
-          </p>
-
           <div v-if="statisticsView.heroRows.length > 0">
+            <p v-if="statisticsView.heroSampleCaption" class="text-label font-bold text-secondary-text">
+              {{ statisticsView.heroSampleCaption }}
+            </p>
             <h2 class="text-label font-bold uppercase text-secondary-text border-b border-background pb-xs">
               % DE VICTORIAS POR HÉROE
             </h2>
@@ -72,6 +92,9 @@ onMounted(() => {
           </div>
 
           <div v-if="statisticsView.villainRows.length > 0">
+            <p v-if="statisticsView.villainSampleCaption" class="text-label font-bold text-secondary-text">
+              {{ statisticsView.villainSampleCaption }}
+            </p>
             <h2 class="text-label font-bold uppercase text-secondary-text border-b border-background pb-xs">
               % DE VICTORIAS POR VILLANO
             </h2>

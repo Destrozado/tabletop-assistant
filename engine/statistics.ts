@@ -24,6 +24,16 @@ export interface StatisticsSummary {
   villainRows: StatRow[]
   totalEntries: number
   entriesWithHeroes: number
+  // entriesWithVillain (WR-07, 09-REVIEW.md, cerrado en el quick
+  // 260923-3rm): hermano de `entriesWithHeroes` con el MISMO criterio —
+  // cuántas entradas alimentan la tabla de villanos de verdad, con el mismo
+  // predicado que `extractVillainId` (villainId no nulo/no indefinido).
+  // Antes de este cierre, la pantalla solo declaraba la muestra de héroes
+  // encima de las dos tablas, así que una partida con villano y sin héroes
+  // alimentaba «% DE VICTORIAS POR VILLANO» mientras el pie decía «sin
+  // anotar» — la leyenda no describía la muestra de la tabla que tenía
+  // delante.
+  entriesWithVillain: number
 }
 
 interface RowAccumulator {
@@ -143,10 +153,19 @@ export function aggregateStatistics(entries: GameHistoryEntry[]): StatisticsSumm
     return players.some(p => p !== null && typeof p === 'object' && p.heroId !== null && p.heroId !== undefined)
   }).length
 
+  // WR-07: MISMO predicado que alimenta `extractVillainId` (línea ~123) —
+  // si algún día ese predicado cambiara, este debe cambiar con él, o la
+  // leyenda de la tabla de villanos volvería a describir una muestra
+  // distinta de la que la tabla agrega de verdad.
+  const entriesWithVillain = validEntries.filter(entry => (
+    entry.villainId !== null && entry.villainId !== undefined
+  )).length
+
   return {
     heroRows,
     villainRows,
     totalEntries: validEntries.length,
     entriesWithHeroes,
+    entriesWithVillain,
   }
 }

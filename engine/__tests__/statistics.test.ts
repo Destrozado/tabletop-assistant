@@ -305,3 +305,35 @@ describe('No-mutación', () => {
     expect(entries).toEqual(copy)
   })
 })
+
+// WR-07 (09-REVIEW.md, cerrado en el quick 260923-3rm): `sampleCaption`
+// declaraba la muestra de héroes e ignoraba la de villanos —
+// `entriesWithVillain` cuenta con el MISMO predicado que `extractVillainId`
+// (el que alimenta `villainRows`), hermano de `entriesWithHeroes`.
+describe('WR-07 (quick 260923-3rm): entriesWithVillain', () => {
+  it('una entrada con villano y sin héroes cuenta en entriesWithVillain y no en entriesWithHeroes', () => {
+    const entry = makeEntry({
+      villainId: 'rhino',
+      villainName: 'Rhino',
+      players: [makePlayer({ heroId: null, heroName: null })],
+    })
+    const summary = aggregateStatistics([entry])
+    expect(summary.entriesWithVillain).toBe(1)
+    expect(summary.entriesWithHeroes).toBe(0)
+  })
+
+  it('una entrada con héroes y sin villano cuenta en entriesWithHeroes y no en entriesWithVillain', () => {
+    const entry = makeEntry({
+      villainId: null,
+      villainName: null,
+      players: [makePlayer({ heroId: 'thor', heroName: 'Thor' })],
+    })
+    const summary = aggregateStatistics([entry])
+    expect(summary.entriesWithHeroes).toBe(1)
+    expect(summary.entriesWithVillain).toBe(0)
+  })
+
+  it('con entries vacío, entriesWithVillain es 0', () => {
+    expect(aggregateStatistics([]).entriesWithVillain).toBe(0)
+  })
+})

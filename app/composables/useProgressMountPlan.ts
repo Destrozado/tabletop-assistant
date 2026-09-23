@@ -44,8 +44,16 @@ export interface ProgressMountPlan {
 // acción que el grupo puede tomar desde aquí. La copy vive en este fichero y
 // no en la plantilla por la misma razón que `NOTICE_BODY`: una afirmación
 // sobre los datos del grupo tiene que ser comprobable por un test puro.
+//
+// WR-02 (ronda 6, quick 260923-3rm): la redacción anterior («al guardar la
+// nueva podríais sustituirla») dejó de ser cierta en cuanto
+// `createOverwriteGuard`/`backupProgressBeforeOverwrite`
+// (`usePersistedSession.ts`) empezaron a proteger el primer autoguardado —
+// ya no es una advertencia de un riesgo sin mitigar, es la descripción de la
+// mitigación real: mientras la clave siga sin poder leerse, el guardián no
+// escribe encima.
 export const UNVERIFIED_PROGRESS_NOTICE
-  = 'No hemos podido comprobar si este dispositivo tiene una partida guardada de este juego. Podéis empezar una nueva, pero si había alguna, al guardar la nueva podríais sustituirla.'
+  = 'No hemos podido comprobar si este dispositivo tiene una partida guardada de este juego. Podéis empezar una nueva: antes de guardar la nueva, la app aparta una copia de la que hubiera, y mientras no consiga leerla no guarda encima.'
 
 export function planProgressMount(stored: StoredProgress, outcome: ResumeOutcome): ProgressMountPlan {
   switch (stored) {

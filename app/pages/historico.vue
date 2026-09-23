@@ -3,10 +3,20 @@
 // tarjeta tonta de cada entrada y el diálogo de confirmación reutilizado
 // (D-20), sin calcular ni ordenar nada por su cuenta.
 import { onMounted, ref } from 'vue'
-import { DELETE_FAILED_BODY, DELETE_FAILED_HEADING, useGameHistory } from '~/composables/useGameHistory'
+import {
+  archiveResultMessage,
+  DELETE_FAILED_BODY,
+  DELETE_FAILED_HEADING,
+  UNREADABLE_HISTORY_ARCHIVE_BUTTON_LABEL,
+  UNREADABLE_HISTORY_CANCEL_LABEL,
+  UNREADABLE_HISTORY_CONFIRM_BODY,
+  UNREADABLE_HISTORY_CONFIRM_LABEL,
+  UNREADABLE_HISTORY_CONFIRM_TITLE,
+  useGameHistory,
+} from '~/composables/useGameHistory'
 import type { HistoryCardView } from '~/composables/useGameHistory'
 
-const { cardViews, isEmpty, reload, remove } = useGameHistory()
+const { cardViews, isEmpty, reload, remove, unreadableView, archiveUnreadable } = useGameHistory()
 
 // El prerender no tiene localStorage (Pitfall 7, mismo criterio que
 // resumeResolved en app/pages/[game]/index.vue): hasta que se resuelve el
@@ -47,6 +57,28 @@ function onConfirmarBorrado() {
   const borrada = remove(pendienteDeBorrar.value.id)
   borradoFallido.value = !borrada
   pendienteDeBorrar.value = null
+}
+
+// WR-02 (quick 260923-3rm): salida explícita para un histórico ilegible
+// permanente. `awaitingArchiveConfirm`/`archiveResultText` son estado local
+// del `<script setup>` de esta página (nunca estado de módulo, mismo
+// criterio que `borradoFallido` de arriba).
+const awaitingArchiveConfirm = ref(false)
+const archiveResultText = ref<string | null>(null)
+
+function onAbrirArchivado() {
+  archiveResultText.value = null
+  awaitingArchiveConfirm.value = true
+}
+
+function onCancelarArchivado() {
+  awaitingArchiveConfirm.value = false
+}
+
+function onConfirmarArchivado() {
+  const resultado = archiveUnreadable()
+  archiveResultText.value = archiveResultMessage(resultado)
+  awaitingArchiveConfirm.value = false
 }
 </script>
 
@@ -106,11 +138,56 @@ function onConfirmarBorrado() {
           ✕
         </button>
       </div>
+      <!--
+        WR-02 (quick 260923-3rm): banda PROPIA para el resultado de
+        archivar, independiente del estado `unreadableView` (que pasa a
+        `null` justo cuando el archivado tiene éxito) — si viviera dentro
+        del bloque `v-if="unreadableView"` de más abajo, el propio éxito la
+        haría desaparecer del DOM en el mismo instante en que aparece.
+      -->
+      <div
+        v-if="archiveResultText"
+        class="bg-surface border-b border-background px-2xl py-lg flex items-start justify-between gap-md"
+      >
+        <p class="text-body font-normal text-secondary-text">
+          {{ archiveResultText }}
+        </p>
+        <button
+          type="button"
+          class="w-12 h-12 flex items-center justify-center text-primary-text text-heading leading-none active:brightness-95"
+          aria-label="Cerrar aviso"
+          @click="archiveResultText = null"
+        >
+          ✕
+        </button>
+      </div>
     </div>
 
     <main class="flex-1 overflow-y-auto bg-background px-2xl py-lg">
       <template v-if="cargado">
-        <div v-if="!isEmpty" class="flex flex-col gap-md">
+        <!--
+          WR-02 (quick 260923-3rm): un histórico ilegible tiene su propio
+          estado, distinto del vacío — nunca dice «Todavía no hay partidas
+          registradas» sobre algo que sí hay pero no se sabe interpretar.
+        -->
+        <div v-if="unreadableView" class="flex flex-col items-center justify-center text-center gap-md h-full">
+          <h2 class="text-heading font-bold text-primary-text">
+            {{ unreadableView.title }}
+          </h2>
+          <p class="text-body font-normal text-secondary-text">
+            {{ unreadableView.body }}
+          </p>
+          <button
+            v-if="unreadableView.canArchive"
+            type="button"
+            class="min-h-12 px-lg bg-surface text-primary-text text-label font-bold active:brightness-95"
+            @click="onAbrirArchivado"
+          >
+            {{ UNREADABLE_HISTORY_ARCHIVE_BUTTON_LABEL }}
+          </button>
+        </div>
+
+        <div v-else-if="!isEmpty" class="flex flex-col gap-md">
           <HistoryEntryCard
             v-for="entry in cardViews"
             :key="entry.id"
@@ -146,6 +223,17 @@ function onConfirmarBorrado() {
       :destructive="true"
       @confirm="onConfirmarBorrado"
       @cancel="onCancelarBorrado"
+    />
+
+    <ConfirmDialog
+      v-if="awaitingArchiveConfirm"
+      :title="UNREADABLE_HISTORY_CONFIRM_TITLE"
+      :body="UNREADABLE_HISTORY_CONFIRM_BODY"
+      :confirm-label="UNREADABLE_HISTORY_CONFIRM_LABEL"
+      :cancel-label="UNREADABLE_HISTORY_CANCEL_LABEL"
+      :destructive="false"
+      @confirm="onConfirmarArchivado"
+      @cancel="onCancelarArchivado"
     />
   </div>
 </template>
