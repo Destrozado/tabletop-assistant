@@ -215,6 +215,8 @@ None yet.
 | 260923-3rl | Deuda INFO de la Fase 9 (IN-04/05/07/11/12/13) | 2026-09-23 | b33c6e3 | — | .planning/quick/260923-3rl-phase-9-info-debt-in-planning-phases-09-hist-rico-y-estad-st |
 | 260923-3rm | WARNINGs abiertos de la Fase 9: franja de avisos, trampa de foco, ilegibles, duración congelada, leyendas por tabla | 2026-09-23 | 0b4349b | — | .planning/quick/260923-3rm-phase-9-open-warnings-in-planning-phases-09-hist-rico-y-esta |
 | 260923-3rn | Gate de invariantes de la Fase 9: Pata 6 (retirada explícita) y huecos de parsing WR-01/WR-02 | 2026-09-23 | 9f4b893 | — | .planning/quick/260923-3rn-phase-9-gate-follow-ups-add-a-test-that-fails-if-onresumecon |
+| fast | Histórico: la tarjeta muestra solo la duración, sin «Hasta la ronda N» (la ronda anotada nunca era realista una vez dentro del bucle) | 2026-09-23 | 452925b | — | — |
+| fast | Banda de contadores en móvil vertical: cada vida pegada a su etiqueta (VILLANO/Jugador), el hueco sobrante separa las filas; apaisado sin cambios | 2026-09-23 | 2aa4ca2 | — | — |
 
 ## Deferred Items
 
