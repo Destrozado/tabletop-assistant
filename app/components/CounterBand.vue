@@ -104,6 +104,15 @@ const shellHeightClass = computed(() => rowGroups.value.length === 1 ? 'h-24' : 
           entry.globalIndex === 0 ? '' : 'border-l',
         ]"
       >
+        <!--
+          Por debajo de `sm:` (móvil en vertical) las filas se apilan, y con
+          el número anclado abajo el del villano quedaba a ~8px de la
+          etiqueta del primer jugador pero a ~30px de la suya propia. Ahí el
+          número sube justo bajo su etiqueta (`pt-7`: 4px de `pt-xs` + 18px
+          de etiqueta + holgura) y las flechas conservan el mismo borde
+          inferior que el número (`pt-10` = 28px + 40px − 28px); el hueco
+          sobrante queda al pie de la celda y separa una fila de la otra.
+        -->
         <div class="h-24 flex items-stretch">
           <!--
             D-17 (Fase 7): estas flechas se operan con el dedo, no con el
@@ -116,7 +125,7 @@ const shellHeightClass = computed(() => rowGroups.value.length === 1 ? 'h-24' : 
           <button
             type="button"
             tabindex="-1"
-            class="flex-1 min-w-0 h-24 flex items-end justify-center pb-xs text-heading font-bold leading-none text-accent transition-[transform,filter] duration-75"
+            class="flex-1 min-w-0 h-24 flex items-end justify-center pb-xs max-sm:items-start max-sm:pb-0 max-sm:pt-10 text-heading font-bold leading-none text-accent transition-[transform,filter] duration-75"
             :class="pressedKey === `${entry.cell.key}:down` ? 'brightness-95 scale-[0.98]' : ''"
             :aria-label="`Bajar vida de ${entry.cell.label}`"
             @mousedown="pressedKey = `${entry.cell.key}:down`"
@@ -131,14 +140,14 @@ const shellHeightClass = computed(() => rowGroups.value.length === 1 ? 'h-24' : 
             ▼
           </button>
 
-          <span class="min-w-12 sm:min-w-16 shrink-0 h-24 flex items-end justify-center pb-xs text-display font-bold leading-none text-primary-text tabular-nums">
+          <span class="min-w-12 sm:min-w-16 shrink-0 h-24 flex items-end justify-center pb-xs max-sm:items-start max-sm:pb-0 max-sm:pt-7 text-display font-bold leading-none text-primary-text tabular-nums">
             {{ entry.cell.displayValue }}
           </span>
 
           <button
             type="button"
             tabindex="-1"
-            class="flex-1 min-w-0 h-24 flex items-end justify-center pb-xs text-heading font-bold leading-none text-accent transition-[transform,filter] duration-75"
+            class="flex-1 min-w-0 h-24 flex items-end justify-center pb-xs max-sm:items-start max-sm:pb-0 max-sm:pt-10 text-heading font-bold leading-none text-accent transition-[transform,filter] duration-75"
             :class="pressedKey === `${entry.cell.key}:up` ? 'brightness-95 scale-[0.98]' : ''"
             :aria-label="`Subir vida de ${entry.cell.label}`"
             @mousedown="pressedKey = `${entry.cell.key}:up`"
