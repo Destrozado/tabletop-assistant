@@ -5,10 +5,10 @@ milestone_name: Elección de personajes, contadores en mesa e histórico de part
 current_phase: 10
 status: completed
 stopped_at: Phase 10 complete — all phases complete
-last_updated: "2026-09-23T00:30:33Z"
+last_updated: "2026-09-23T02:44:54.657Z"
 last_activity: 2026-09-23
 last_activity_desc: Phase 10 verified — UAT 17/17, verificación 12/12 re-sellada
-state_head: "0b3d3d347aa2c0376503601cd0f95638f0762412"
+state_head: 9f4b893f392c4b380628566c4ff3a4d9859ea75a
 progress:
   total_phases: 6
   completed_phases: 11
@@ -202,13 +202,19 @@ None yet.
 
 ## Quick Tasks Completed
 
-| Quick ID | Description | Date | Commit | Link |
-|----------|-------------|------|--------|------|
-| 260831-fkb | Regla de cartas de Estado: `optionsWarningDetail` de extremo a extremo, regla de Estados autorada en `ronda.jugadores.01`, aviso de `ronda.villano.02` coherente con su detalle | 2026-08-31 | 3b2db30 | [260831-fkb-regla-cartas-de-estado](./quick/260831-fkb-regla-cartas-de-estado/) |
-| 260831-g2s | Atajos de teclado: Espacio/Enter avanzan y flecha izquierda retrocede en la pantalla de juego (portátil), decisión extraída a funciones puras testeadas, cero cambios en la interfaz táctil | 2026-08-31 | 46b0003 | [260831-g2s-atajos-de-teclado](./quick/260831-g2s-atajos-de-teclado/) |
-| 260831-umh | Botón «Partida terminada» en el overlay del índice: confirma, borra el progreso guardado y vuelve al inicio — la pantalla de juego ya no era una trampa sin salida en PWA | 2026-08-31 | 795e6d0 | [260831-umh-boton-partida-terminada-para-volver-a-ho](./quick/260831-umh-boton-partida-terminada-para-volver-a-ho/) |
-| 260901-jg1 | Fusión de `setup.archienemigos.01`+`.02` en un solo paso «Localizad y apartad fuera de la partida vuestro conjunto de Archienemigo (Némesis)» con aviso conservado, contentVersion 12→13, clip de audio regenerado y huérfano retirado | 2026-09-01 | 5e8f03a | [260901-jg1-fusionar-pasos-de-apartar-el-conjunto-de](./quick/260901-jg1-fusionar-pasos-de-apartar-el-conjunto-de/) |
-| 260902-0oz | Renombradas las 5 referencias a «carta/mazo de escenario» como Plan Principal (RR Apéndice II pasos 8/10/12a/12b), «cara B»→«cara 1B», 5 clips de voz regenerados, contentVersion intacto (solo texto, ids sin cambios) — pendiente escucha humana de la pronunciación | 2026-09-02 | 8913673 | [260902-0oz-renombrar-las-referencias-a-la-carta-y-m](./quick/260902-0oz-renombrar-las-referencias-a-la-carta-y-m/) |
+| # | Description | Date | Commit | Status | Directory |
+| --- | ------------- | ------ | -------- | -------- | ----------- |
+| 1 | Quick ID: 260831-fkb · Regla de cartas de Estado: `optionsWarningDetail` de extremo a extremo, regla de Estados autorada en `ronda.jugadores.01`, aviso de `ronda.villano.02` coherente con su detalle · Link: [260831-fkb-regla-cartas-de-estado](./quick/260831-fkb-regla-cartas-de-estado/) | 2026-08-31 | 3b2db30 | — | — |
+| 2 | Quick ID: 260831-g2s · Atajos de teclado: Espacio/Enter avanzan y flecha izquierda retrocede en la pantalla de juego (portátil), decisión extraída a funciones puras testeadas, cero cambios en la interfaz táctil · Link: [260831-g2s-atajos-de-teclado](./quick/260831-g2s-atajos-de-teclado/) | 2026-08-31 | 46b0003 | — | — |
+| 3 | Quick ID: 260831-umh · Botón «Partida terminada» en el overlay del índice: confirma, borra el progreso guardado y vuelve al inicio — la pantalla de juego ya no era una trampa sin salida en PWA · Link: [260831-umh-boton-partida-terminada-para-volver-a-ho](./quick/260831-umh-boton-partida-terminada-para-volver-a-ho/) | 2026-08-31 | 795e6d0 | — | — |
+| 4 | Quick ID: 260901-jg1 · Fusión de `setup.archienemigos.01`+`.02` en un solo paso «Localizad y apartad fuera de la partida vuestro conjunto de Archienemigo (Némesis)» con aviso conservado, contentVersion 12→13, clip de audio regenerado y huérfano retirado · Link: [260901-jg1-fusionar-pasos-de-apartar-el-conjunto-de](./quick/260901-jg1-fusionar-pasos-de-apartar-el-conjunto-de/) | 2026-09-01 | 5e8f03a | — | — |
+| 5 | Quick ID: 260902-0oz · Renombradas las 5 referencias a «carta/mazo de escenario» como Plan Principal (RR Apéndice II pasos 8/10/12a/12b), «cara B»→«cara 1B», 5 clips de voz regenerados, contentVersion intacto (solo texto, ids sin cambios) — pendiente escucha humana de la pronunciación · Link: [260902-0oz-renombrar-las-referencias-a-la-carta-y-m](./quick/260902-0oz-renombrar-las-referencias-a-la-carta-y-m/) | 2026-09-02 | 8913673 | — | — |
+| 260923-3ri | CR-03: variante Experto de setup.escenario.04 cierta para Rhino, Ultron y Kang + clip regenerado (ffmpeg) | 2026-09-23 | 411cb73 | — | .planning/quick/260923-3ri-cr-03-planning-todos-pending-cr-03-experto-sustitucion-carta |
+| 260923-3rj | WR-02 fase 10: tope de tiempo en todas las llamadas de red del respaldo | 2026-09-23 | 3edb0a3 | — | .planning/quick/260923-3rj-wr-02-fase-10-planning-todos-pending-wr-02-sin-timeout-en-ll |
+| 260923-3rk | WR-03: el SDK de Firebase deja de precachearse en Workbox (715 KB menos) | 2026-09-23 | dc8ad79 | — | .planning/quick/260923-3rk-wr-03-planning-todos-pending-wr-03-workbox-precachea-el-sdk |
+| 260923-3rl | Deuda INFO de la Fase 9 (IN-04/05/07/11/12/13) | 2026-09-23 | b33c6e3 | — | .planning/quick/260923-3rl-phase-9-info-debt-in-planning-phases-09-hist-rico-y-estad-st |
+| 260923-3rm | WARNINGs abiertos de la Fase 9: franja de avisos, trampa de foco, ilegibles, duración congelada, leyendas por tabla | 2026-09-23 | 0b4349b | — | .planning/quick/260923-3rm-phase-9-open-warnings-in-planning-phases-09-hist-rico-y-esta |
+| 260923-3rn | Gate de invariantes de la Fase 9: Pata 6 (retirada explícita) y huecos de parsing WR-01/WR-02 | 2026-09-23 | 9f4b893 | — | .planning/quick/260923-3rn-phase-9-gate-follow-ups-add-a-test-that-fails-if-onresumecon |
 
 ## Deferred Items
 
