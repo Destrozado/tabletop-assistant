@@ -1,10 +1,10 @@
 ---
 phase: 10-respaldo-en-firestore
-verified: 2026-09-22T23:43:13Z
+verified: 2026-09-23T00:30:33Z
 status: passed
 score: 12/12 must-haves verified
 covered_files: [".env.example", ".firebaserc", ".planning/REQUIREMENTS.md", ".planning/phases/10-respaldo-en-firestore/10-01-PLAN.md", ".planning/phases/10-respaldo-en-firestore/10-01-SUMMARY.md", ".planning/phases/10-respaldo-en-firestore/10-02-PLAN.md", ".planning/phases/10-respaldo-en-firestore/10-02-SUMMARY.md", ".planning/phases/10-respaldo-en-firestore/10-03-PLAN.md", ".planning/phases/10-respaldo-en-firestore/10-03-SUMMARY.md", ".planning/phases/10-respaldo-en-firestore/10-04-PLAN.md", ".planning/phases/10-respaldo-en-firestore/10-04-SUMMARY.md", ".planning/phases/10-respaldo-en-firestore/10-CONTEXT.md", ".planning/phases/10-respaldo-en-firestore/10-REVIEW.md", "app/composables/__tests__/useHistorySync.test.ts", "app/composables/__tests__/usePersistedSession.test.ts", "app/composables/useGameHistory.ts", "app/composables/useHistorySync.ts", "app/composables/usePersistedSession.ts", "e2e/bundle-budget.spec.ts", "e2e/firestore-rules-contract.spec.ts", "e2e/offline-flow.spec.ts", "e2e/update-banner.spec.ts", "engine/__tests__/sync.test.ts", "engine/sync.ts", "firebase.json", "firestore.rules", "nuxt.config.ts", "package.json"]
-covered_digest: "v1:sha256:0316686d49114a91eae42962269302ecc699e145ec736acf35cc1cab55082f92"
+covered_digest: "v1:sha256:f35b365576809ef53fb36a6c158da5347cb36f69ba276a0e18f111efbb55d08d"
 behavior_unverified: 0
 overrides_applied: 0
 re_verification:
@@ -20,9 +20,29 @@ re_verification:
 
 **Phase Goal:** Cada partida registrada se respalda en Firestore de forma silenciosa y nunca bloqueante, con autenticación anónima y reglas de seguridad que solo permiten crear registros con forma válida — y si Firestore falla por cualquier motivo (cuota, reglas, red, proyecto caído), jugar, registrar el resultado localmente y ver las estadísticas siguen funcionando exactamente igual. Estrictamente la última fase del hito, aislada a propósito.
 
-**Verified:** 2026-09-22T23:43:13Z
+**Verified:** 2026-09-23T00:30:33Z (re-sellado del fingerprint — ver nota abajo; el veredicto 12/12 es el de la corrida de 2026-09-22T23:43:13Z)
 **Status:** passed
 **Re-verification:** Sí — la corrida anterior (`verified: 2026-09-23T01:35:00Z`, passed 12/12) quedó obsoleta porque el commit `0b3d3d3` (`fix(10): WR-01 - la poda de D-04 ya no vacía tga:history:synced ante lectura ilegible`) aterrizó después, tocando tres de los ficheros cubiertos (`app/composables/usePersistedSession.ts`, `app/composables/useHistorySync.ts`, `app/composables/__tests__/useHistorySync.test.ts`). No hay ningún otro cambio en el árbol desde esa corrida: HEAD es exactamente `0b3d3d3`, un commit por encima del que se verificó entonces.
+
+## Nota de re-sellado del fingerprint (2026-09-23, durante `/gsd-verify-work 10`)
+
+El informe quedó marcado como `stale` sin que hubiera ninguna deriva real de código. Causa
+comprobada: el digest de contenido guardado se calculó con HEAD en `0b3d3d3`, y de los 28
+ficheros de `covered_files` **solo uno** cambió después — `.planning/REQUIREMENTS.md`, cuyas
+diez filas `SYNC-01`…`SYNC-09` y `COMP-03` pasaron de `Pendiente` a `Satisfecho` en el commit
+de cierre de fase `1a1c2cd`, que por diseño corre DESPUÉS del verificador. Recalculado fichero
+a fichero, el digest del árbol en `0b3d3d3` coincide carácter a carácter con el que este
+informe tenía guardado (`v1:sha256:0316686d…`), y el único delta hasta el árbol actual es ese
+volteo contable: cero cambios en código, tests, reglas o configuración.
+
+Por tanto se re-sella el fingerprint (`covered_digest` → `v1:sha256:f35b3655…`, `verified` →
+la hora del re-sellado) sin re-ejecutar el verificador y sin tocar el veredicto: el análisis,
+la evidencia y el `score: 12/12` de abajo siguen siendo los de la corrida del 2026-09-22
+sobre `0b3d3d3`, que es exactamente el código que sigue en el árbol.
+
+Decisión tomada por el usuario en la sesión de UAT (17/17, 0 incidencias).
+
+---
 
 ## Qué cambió desde la corrida anterior y por qué se repite
 

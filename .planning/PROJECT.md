@@ -69,7 +69,7 @@ Esta deuda se acepta por decisión explícita del usuario: *"no vamos a tener el
 - Banda de contadores fija durante la partida: «Vida villano» y HP1…HP4, con flechas ▲▼ y sin teclado, precargados con el valor correcto según la selección y el nº de jugadores
 - Los pasos que citan un valor lo muestran entre paréntesis cuando se conoce («…al valor indicado (14)»), sin tocar el texto base ni los 37 clips de voz ya generados
 - Registro de resultado (ganado/perdido) al terminar la partida, con villano, héroes, nombres, fecha, dificultad, nº de jugadores, duración y nº de rondas
-- Histórico persistente: localStorage como fuente de verdad + Firebase Firestore gratis como respaldo duradero, aprovechando su cola offline
+- Histórico persistente: localStorage como fuente de verdad + Firebase Firestore gratis como respaldo duradero, con marca de subida propia en localStorage (`tga:history:synced`) y reintento al volver la red — **no** la cola offline integrada del SDK, descartada en el roadmap para no sumar un segundo almacén IndexedDB
 - Pantalla de estadísticas: % de victorias por héroe y por villano
 
 **Cambio de rumbo declarado:** este hito revierte deliberadamente cuatro exclusiones de v1 (contadores en vivo, cálculo de cifras, selección de héroes/escenario, sin base de datos) y relaja el constraint «Sin backend». Ver Key Decisions.
@@ -94,9 +94,11 @@ Validated in Phase 6 (selección de villano, héroes y jugadores): SEL-01, SEL-0
 
 Validated in Phase 8 (valores conocidos dentro del paso): VAL-01, VAL-02, VAL-03, VAL-04, VAL-05, VAL-06 — los 6 requisitos, verificados 5/5 verdades observables tras el cierre de hueco del plan 08-04 (`08-VERIFICATION.md`), incluida una comparación id-a-id que confirma que los 32 pasos del contenido autorado siguen byte-idénticos y que los 35 clips de audio y sus 35 entradas de manifiesto no se han tocado.
 
+Validated in Phase 10 (respaldo en Firestore): SYNC-01 … SYNC-09 y COMP-03 — los 10 requisitos, verificados 12/12 must-haves contra el código (`10-VERIFICATION.md`) y confirmados por 17/17 comprobaciones de UAT sin incidencias (`10-UAT.md`), de las cuales 16 están cubiertas por tests automáticos y una es la revisión humana bloqueante de las reglas de Firestore realmente desplegadas en la consola. Registro de seguridad aparte con 20 amenazas STRIDE y `threats_open: 0` (`10-SECURITY.md`).
+
 ### Active
 
-Hito v1.8 en curso — los requisitos activos con sus REQ-IDs viven en `.planning/REQUIREMENTS.md`. El bloque CAT (catálogo) ya está cerrado; siguen activos SEL, HP, COMP, VAL, HIST y FIRE.
+Hito v1.8 con sus 6 fases (5–10) ejecutadas y verificadas — los requisitos con sus REQ-IDs viven en `.planning/REQUIREMENTS.md`, donde los bloques CAT, HP, COMP, VAL, HIST, STAT y SYNC figuran ya como Satisfechos. Queda un desfase de contabilidad por barrer al cerrar el hito: las filas SEL-01…SEL-09 de la tabla de cobertura siguen escritas como «Pendiente» pese a que la Fase 6 las verificó (ver el apartado Validated arriba); ningún requisito está realmente abierto.
 
 ### Out of Scope
 
@@ -156,7 +158,7 @@ Hito v1.8 en curso — los requisitos activos con sus REQ-IDs viven en `.plannin
 | La superficie de detalle es reutilizable (Fase 2) | `warningDetail` (un aviso) y `options[]` (una lista de elecciones) comparten `WarningDetailModal.vue`, que distingue registro con `tone: 'warning' \| 'neutral'` — una opción no es una trampa. Un recordatorio sin consecuencia no lleva afordancia de toque | Completado (Fase 2) |
 
 | v1.8 — La app pasa a llevar estado de partida (vida de villano y héroes) | El usuario constató que sobra espacio en pantalla y que los diales físicos son el punto donde más se despista el grupo. Revierte la exclusión original de contadores en vivo | Nuevo en v1.8 |
-| v1.8 — Firebase Firestore como respaldo del histórico, localStorage como fuente de verdad | El histórico debe sobrevivir a que se borren los datos del navegador, pero la partida no puede depender de la red (constraint offline). Firestore es gratis, no se pausa por inactividad y su SDK ya trae la cola offline; escribirla a mano sobre Supabase era más trabajo | Nuevo en v1.8 |
+| v1.8 — Firebase Firestore como respaldo del histórico, localStorage como fuente de verdad | El histórico debe sobrevivir a que se borren los datos del navegador, pero la partida no puede depender de la red (constraint offline). Firestore es gratis y no se pausa por inactividad; Supabase habría exigido escribir la cola a mano | Completado (Fase 10). **Matiz sobre el porqué original:** la cola offline del SDK (`persistentLocalCache`) se descartó en el roadmap y no se usa — el caché queda en memoria y la cola es una marca propia en localStorage, para no sumar un segundo almacén IndexedDB. La subida es dispara-y-olvida: ningún fallo de Firestore (reglas, red, cuota, proyecto caído) llega nunca a `record()` ni bloquea la partida, y el SDK solo se carga por `import()` dinámico, fuera de los chunks de arranque |
 | v1.8 — MarvelCDB como fuente de las cifras de héroes y villanos | Los valores no están en el Rules Reference sino impresos en las cartas; MarvelCDB los tiene con las FAQ posteriores ya aplicadas. Se toman solo nombres y cifras, nunca texto de carta ni arte (constraint legal). El procedimiento de obtención se documenta en el repo | Nuevo en v1.8 |
 | v1.8 — Un valor de vida equivocado no es un fallo crítico | Decisión explícita del usuario: si un número sale mal se corrige con las flechas en la mesa. D-36 (revisión humana bloqueante) sigue aplicando al texto de reglas, no a esta tabla de cifras | Nuevo en v1.8 |
 | v1.8 — El número concreto se añade entre paréntesis, sin reescribir el texto del paso | Hay 37 clips de voz pregenerada que costaron dinero real; un número variable no se puede pregenerar. Mostrar «…al valor indicado (14)» gana precisión en pantalla sin invalidar ni un solo clip ni el gate de deriva de voz | Nuevo en v1.8 |
@@ -179,4 +181,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-09 — Fase 8 del hito v1.8 completa (valores conocidos dentro del paso), verificada 5/5 tras cierre de hueco*
+*Last updated: 2026-09-23 — Fase 10 del hito v1.8 completa (respaldo en Firestore), verificada 12/12 y con UAT 17/17 sin incidencias. Cierra las 6 fases del hito v1.8*

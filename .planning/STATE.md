@@ -5,9 +5,9 @@ milestone_name: Elección de personajes, contadores en mesa e histórico de part
 current_phase: 10
 status: completed
 stopped_at: Phase 10 complete — all phases complete
-last_updated: "2026-09-22T23:45:00.690Z"
+last_updated: "2026-09-23T00:30:33Z"
 last_activity: 2026-09-23
-last_activity_desc: Phase 10 complete
+last_activity_desc: Phase 10 verified — UAT 17/17, verificación 12/12 re-sellada
 state_head: "0b3d3d347aa2c0376503601cd0f95638f0762412"
 progress:
   total_phases: 6
@@ -21,17 +21,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-28)
+See: .planning/PROJECT.md (updated 2026-09-23)
 
 **Core value:** Que un grupo pueda jugar una partida completa de Marvel Champions de principio a fin sin abrir el reglamento y sin olvidarse de ningún paso.
-**Current focus:** Phase 10 — Respaldo en Firestore
+**Current focus:** Hito v1.8 completo (fases 5–10) — listo para cerrar el hito
 
 ## Current Position
 
 Phase: 10
 Plan: Not started
-Status: All phases complete
-Last activity: 2026-09-23 — Phase 10 complete
+Status: All phases complete — UAT y verificación de la Fase 10 cerradas
+Last activity: 2026-09-23 — Phase 10 verified (UAT 17/17, 0 incidencias)
 
 ## Performance Metrics
 
@@ -197,7 +197,8 @@ None yet.
 - 03.1-01: el checkpoint de estilo D-02 se escucho en el PORTATIL, no en la tablet. La asuncion A1 de RESEARCH.md (`<audio>.play()` dentro del gesto tactil) sigue SIN verificar en el dispositivo real, y el modelo/SO de la tablet sigue sin conocerse. Todo el riesgo recae ahora en la prueba humana del plan 03.1-06.
 - 260831-fkb: el Rules Reference v1.7 p. 39 dice explicitamente que un personaje puede intentar una accion bloqueada por un Estado (atacar, retirar amenaza) aunque no tenga objetivo valido, solo para descartar ese Estado — el detalle tactico mas util de la regla de Estados, no incluido en `optionsWarningDetail` por el limite de 320 caracteres. Sitio natural para retomarlo: un aviso propio (mismo patron `optionsWarning`/`optionsWarningDetail`) en el paso de atacar o de retirar amenaza.
 - 260831-g2s: `IndexOverlay` no escucha Escape, a diferencia de `WarningDetailModal`. Se dejo fuera de alcance del quick de atajos de teclado (D-Q4: "desactivado con overlay abierto" no implicaba anadir cierre por Escape a todos los overlays). Candidato a quick futura si se decide homogeneizar el cierre por teclado de los overlays.
-- 10-04: RESUELTO en 10-02 (commit `ac539d2`): el `.firebaserc` modificado en el árbol de trabajo era el propio usuario sustituyendo el marcador de posición por el id real del proyecto (`tabletop-assistant-f637e`) como parte de la revisión humana bloqueante de la Task 3 de 10-02 — no un cambio ajeno. Committeado tras la aprobación del checkpoint.
+
+- Cierre del hito v1.8: la tabla de cobertura de `.planning/REQUIREMENTS.md` sigue marcando SEL-01…SEL-09 como «Pendiente» pese a que la Fase 6 los verificó (PROJECT.md los lista como Validated). Es contabilidad desfasada, no trabajo abierto — barrer al ejecutar `/gsd-complete-milestone v1.8`. Ojo: ese fichero entra en el `covered_files` de `10-VERIFICATION.md`, así que editarlo vuelve a marcar la verificación como `stale` y exige re-sellar el fingerprint.
 
 ## Quick Tasks Completed
 
@@ -224,6 +225,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-22T23:16:55.741Z
-Stopped at: Phase 10 complete — all phases complete
+Last session: 2026-09-23T00:30:33Z
+Stopped at: Phase 10 verificada (UAT 17/17, 0 incidencias) — hito v1.8 listo para cerrarse
 Resume file: None
