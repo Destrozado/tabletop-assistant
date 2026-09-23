@@ -810,4 +810,201 @@ describe('useHistorySync — WR-02 (revisión de código, Fase 10): ninguna llam
       expect(JSON.parse(raw as string)).toEqual(['hung-setdoc'])
     })
   })
+
+  it('WR-02/2: espera de onAuthStateChanged colgada vence el plazo, se da de baja del listener y libera flushInFlight', async () => {
+    const entry = baseEntry({ id: 'hung-auth' })
+    seedHistory(fakeStorage, [entry])
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    // NUNCA invoca su callback: la espera de auth se queda colgada.
+    const unsubscribe = vi.fn()
+    const onAuthStateChanged = vi.fn(() => unsubscribe)
+    vi.doMock('firebase/auth', () => ({ getAuth: vi.fn(() => ({})), onAuthStateChanged, signInAnonymously: vi.fn() }))
+    vi.doMock('firebase/app', () => ({ initializeApp: vi.fn(() => ({})), getApps: vi.fn(() => []) }))
+
+    const { useHistorySync, SYNC_NETWORK_TIMEOUT_MS } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    const onlineHandler = windowAddEventListenerMock().mock.calls[0]![1] as () => void
+
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+
+    flush()
+
+    await vi.waitFor(() => expect(onAuthStateChanged).toHaveBeenCalledTimes(1))
+
+    await vi.advanceTimersByTimeAsync(SYNC_NETWORK_TIMEOUT_MS)
+
+    await vi.waitFor(() => expect(unsubscribe).toHaveBeenCalledTimes(1))
+    expect(setDoc).not.toHaveBeenCalled()
+
+    onlineHandler()
+
+    await vi.waitFor(() => expect(onAuthStateChanged).toHaveBeenCalledTimes(2))
+  })
+
+  it('WR-02/3: alta anónima (signInAnonymously) colgada vence el plazo, no llama a setDoc, y el online posterior reintenta el alta', async () => {
+    const entry = baseEntry({ id: 'hung-signin' })
+    seedHistory(fakeStorage, [entry])
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    const onAuthStateChanged = vi.fn((_auth: unknown, callback: (user: unknown) => void) => {
+      queueMicrotask(() => callback(null))
+      return vi.fn()
+    })
+    // signInAnonymously NUNCA resuelve.
+    const signInAnonymously = vi.fn(() => new Promise(() => {}))
+    vi.doMock('firebase/auth', () => ({ getAuth: vi.fn(() => ({})), onAuthStateChanged, signInAnonymously }))
+    vi.doMock('firebase/app', () => ({ initializeApp: vi.fn(() => ({})), getApps: vi.fn(() => []) }))
+
+    const { useHistorySync, SYNC_NETWORK_TIMEOUT_MS } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    const onlineHandler = windowAddEventListenerMock().mock.calls[0]![1] as () => void
+
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+
+    flush()
+
+    await vi.waitFor(() => expect(signInAnonymously).toHaveBeenCalledTimes(1))
+
+    await vi.advanceTimersByTimeAsync(SYNC_NETWORK_TIMEOUT_MS)
+
+    expect(setDoc).not.toHaveBeenCalled()
+
+    onlineHandler()
+
+    await vi.waitFor(() => expect(signInAnonymously).toHaveBeenCalledTimes(2))
+  })
+
+  it('WR-02/4: import() del SDK colgado arma un temporizador que se libera al vencer el plazo, y el online posterior arma uno nuevo', async () => {
+    const entry = baseEntry({ id: 'hung-import' })
+    seedHistory(fakeStorage, [entry])
+    stubRuntimeConfig('test-project')
+
+    // Fábrica que nunca se resuelve: cuelga el propio import() de
+    // 'firebase/app', sin romper el fichero de tests (verificado al
+    // planificar).
+    vi.doMock('firebase/app', () => new Promise(() => {}))
+    const getAuth = vi.fn()
+    vi.doMock('firebase/auth', () => ({ getAuth, onAuthStateChanged: vi.fn(), signInAnonymously: vi.fn() }))
+    vi.doMock('firebase/firestore', () => ({ getFirestore: vi.fn(), doc: vi.fn(), setDoc: vi.fn(), serverTimestamp: vi.fn() }))
+
+    const { useHistorySync, SYNC_NETWORK_TIMEOUT_MS } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    const onlineHandler = windowAddEventListenerMock().mock.calls[0]![1] as () => void
+
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+
+    flush()
+
+    expect(vi.getTimerCount()).toBe(1)
+
+    // El online ANTES de vencer el plazo no arma otro — la guarda (4) de
+    // flushInFlight sigue cortando.
+    onlineHandler()
+    expect(vi.getTimerCount()).toBe(1)
+
+    await vi.advanceTimersByTimeAsync(SYNC_NETWORK_TIMEOUT_MS)
+
+    await vi.waitFor(() => expect(vi.getTimerCount()).toBe(0))
+
+    onlineHandler()
+
+    await vi.waitFor(() => expect(vi.getTimerCount()).toBe(1))
+    expect(getAuth).not.toHaveBeenCalled()
+  })
+
+  it('WR-02/5: un setDoc colgado corta la vuelta — lo subido antes queda marcado, lo posterior no se intenta hasta el siguiente disparador', async () => {
+    const entries = [baseEntry({ id: 'a' }), baseEntry({ id: 'b' }), baseEntry({ id: 'c' })]
+    seedHistory(fakeStorage, entries)
+    stubRuntimeConfig('test-project')
+
+    let bCalls = 0
+    const setDoc = vi.fn((ref: { id: string }) => {
+      if (ref.id === 'b') {
+        bCalls += 1
+        if (bCalls === 1) return new Promise(() => {})
+      }
+      return Promise.resolve(undefined)
+    })
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    mockWorkingAuthAndApp()
+
+    const { useHistorySync, SYNC_NETWORK_TIMEOUT_MS } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+    const onlineHandler = windowAddEventListenerMock().mock.calls[0]![1] as () => void
+
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+
+    flush()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(2))
+
+    await vi.advanceTimersByTimeAsync(SYNC_NETWORK_TIMEOUT_MS)
+
+    await vi.waitFor(() => {
+      const raw = fakeStorage.getItem(SYNCED_KEY)
+      expect(raw).not.toBeNull()
+      expect(JSON.parse(raw as string).sort()).toEqual(['a'])
+    })
+    expect(setDoc).toHaveBeenCalledTimes(2)
+    const syncedWritesAfterTimeout = fakeStorage.setItem.mock.calls.filter(call => call[0] === SYNCED_KEY)
+    expect(syncedWritesAfterTimeout).toHaveLength(1)
+
+    onlineHandler()
+
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(4))
+    await vi.waitFor(() => {
+      const raw = fakeStorage.getItem(SYNCED_KEY)
+      expect(JSON.parse(raw as string).sort()).toEqual(['a', 'b', 'c'])
+    })
+  })
+
+  it('WR-02/6: un flush que termina con éxito no deja ningún temporizador armado', async () => {
+    const entry = baseEntry({ id: 'happy-path-no-timers' })
+    seedHistory(fakeStorage, [entry])
+    stubRuntimeConfig('test-project')
+
+    const setDoc = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('firebase/firestore', () => ({
+      getFirestore: vi.fn(() => ({})),
+      doc: vi.fn((_db: unknown, collection: string, id: string) => ({ collection, id })),
+      setDoc,
+      serverTimestamp: vi.fn(() => '__server_timestamp__'),
+    }))
+    mockWorkingAuthAndApp()
+
+    const { useHistorySync } = await import('../useHistorySync')
+    const { flush } = useHistorySync()
+
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+
+    flush()
+
+    await vi.waitFor(() => {
+      const raw = fakeStorage.getItem(SYNCED_KEY)
+      expect(raw).not.toBeNull()
+      expect(JSON.parse(raw as string)).toEqual(['happy-path-no-timers'])
+    })
+
+    expect(vi.getTimerCount()).toBe(0)
+  })
 })

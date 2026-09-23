@@ -5,6 +5,10 @@
 // (useGameHistory.ts) lo invoca dispara-y-olvida tras escribir en local, y
 // desde este plan (10-03) el propio evento `online` del navegador dispara
 // el mismo `flush()` — dos disparadores, un solo camino de subida (D-02).
+// WR-02 (revisión de código, Fase 10): las cuatro esperas de red (import()
+// del SDK, onAuthStateChanged, signInAnonymously, setDoc) tienen tope de
+// tiempo (`SYNC_NETWORK_TIMEOUT_MS`) — una promesa que nunca se resuelve ya
+// no deja el segundo disparador de D-02 inutilizado.
 //
 // TERCERA excepción documentada de estado de módulo en app/composables/ (la
 // primera es useHistorySavedNotice.ts, la segunda useProgressMismatchMark.ts
@@ -123,15 +127,31 @@ function readSyncConfig(): FirebaseSyncConfig | null {
 // forma síncrona justo tras `getAuth()` puede devolver `null` mientras la
 // restauración de sesión sigue en vuelo, y llamar a `signInAnonymously` en
 // ese instante crearía un uid nuevo en cada recarga sin que nada lo señale.
+//
+// WR-02: la espera se envuelve en `withTimeout`. `unsubscribe` se copia a una
+// variable exterior declarada ANTES de la promesa (asignada de forma
+// síncrona por el propio ejecutor) para que, si el plazo vence, el `catch`
+// pueda darla de baja — el `Unsubscribe` de Firebase es idempotente, así que
+// la doble baja (un callback tardío tras el timeout) es inocua. En la
+// práctica esta espera se resuelve desde la persistencia local sin red, y el
+// tope es defensivo por WR-02. `signInAnonymously` también queda envuelta.
 async function ensureAnonymousUser(authModule: FirebaseAuthModule, auth: FirebaseAuth): Promise<string> {
-  const user = await new Promise<FirebaseUser | null>((resolve) => {
-    const unsubscribe = authModule.onAuthStateChanged(auth, (candidate) => {
-      unsubscribe()
-      resolve(candidate)
-    })
-  })
+  let unsubscribe: (() => void) | undefined
+  let user: FirebaseUser | null
+  try {
+    user = await withTimeout(new Promise<FirebaseUser | null>((resolve) => {
+      unsubscribe = authModule.onAuthStateChanged(auth, (candidate) => {
+        unsubscribe?.()
+        resolve(candidate)
+      })
+    }), SYNC_NETWORK_TIMEOUT_MS)
+  }
+  catch (err) {
+    unsubscribe?.()
+    throw err
+  }
   if (user) return user.uid
-  const credential = await authModule.signInAnonymously(auth)
+  const credential = await withTimeout(authModule.signInAnonymously(auth), SYNC_NETWORK_TIMEOUT_MS)
   return credential.user.uid
 }
 
@@ -154,11 +174,17 @@ async function syncPending(
   loadSyncedIds: () => string[],
   saveSyncedIds: (ids: string[]) => void,
 ): Promise<void> {
-  const [appModule, authModule, firestoreModule] = await Promise.all([
+  // WR-02: en cuanto el hermano 260923-3rk excluya los chunks de `@firebase/`
+  // del precacheo de Workbox, este `import()` pasa a ser una descarga de red
+  // real en la primera subida, y una wifi «conectada pero sin salida» puede
+  // dejarla pendiente minutos. Los tres `import()` siguen dentro del cuerpo
+  // de la función (SYNC-05 intacto, ninguna declaración de importación
+  // nueva de nivel superior).
+  const [appModule, authModule, firestoreModule] = await withTimeout(Promise.all([
     import('firebase/app'),
     import('firebase/auth'),
     import('firebase/firestore'),
-  ])
+  ]), SYNC_NETWORK_TIMEOUT_MS)
 
   const existingApps = appModule.getApps()
   const app = existingApps.length > 0
@@ -188,7 +214,7 @@ async function syncPending(
       }), SYNC_NETWORK_TIMEOUT_MS)
       uploadedIds.push(payload.id)
     }
-    catch {
+    catch (err) {
       // D-03: un rechazo por reglas (`permission-denied`, un reintento de
       // algo que el servidor ya tenía), un fallo de red/servidor caído
       // (`unavailable`) y un timeout WR-02 (`SyncTimeoutError`, la promesa
@@ -202,6 +228,20 @@ async function syncPending(
       // contra un documento que el servidor ya tenía se rechaza y esa
       // entrada queda pendiente para siempre, reintentándose una vez por
       // partida futura — ruido acotado, invisible y sin coste.
+      //
+      // WR-02: un timeout SÍ corta el recorrido de esta vuelta (`break`,
+      // decisión distinta de un `permission-denied`/`unavailable`, que nunca
+      // interrumpen nada). Un timeout significa «ahora no hay red»: seguir
+      // intentando las demás entradas colgaría cada una otro plazo completo
+      // y, con el atraso de D-08 (decenas de partidas de golpe), mantendría
+      // `flushInFlight` bloqueado N×15 s justo cuando el `online` más
+      // importa, además de encolar en memoria del SDK N escrituras cuyas
+      // marcas se perderían igual. Las entradas no intentadas siguen
+      // pendientes para el siguiente disparador (D-02). La poda/merge de
+      // D-04 se ejecuta igual justo debajo, con una sola llamada a
+      // `saveSyncedIds` (WR-01 intacto): lo subido antes del timeout en esta
+      // misma vuelta queda marcado.
+      if (err instanceof SyncTimeoutError) break
     }
   }
 
@@ -282,7 +322,10 @@ export function useHistorySync(): { flush: () => void } {
       if (!config || !config.firebaseProjectId) return
 
       // (4) Ya hay un flush en vuelo (disparado por record() o por el
-      // listener online): no solapar el mismo trabajo.
+      // listener online): no solapar el mismo trabajo. WR-02: desde este
+      // plan la bandera en vuelo está acotada en el tiempo, porque cada
+      // espera de red de `syncPending` tiene tope `SYNC_NETWORK_TIMEOUT_MS`
+      // — nunca queda enclavada por una promesa que no se resuelve nunca.
       if (flushInFlight) return
 
       flushInFlight = true
