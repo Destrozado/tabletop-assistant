@@ -8,6 +8,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   buildHistoryCardView,
   buildStatisticsView,
+  DELETE_FAILED_BODY,
+  DELETE_FAILED_HEADING,
   resolveFrozenNames,
   useGameHistory,
 } from '../useGameHistory'
@@ -494,6 +496,13 @@ describe('resolveFrozenNames', () => {
   })
 })
 
+describe('useGameHistory — copy del aviso de borrado fallido (IN-11)', () => {
+  it('DELETE_FAILED_HEADING y DELETE_FAILED_BODY son las cadenas exactas', () => {
+    expect(DELETE_FAILED_HEADING).toBe('⚠ No se pudo borrar la partida')
+    expect(DELETE_FAILED_BODY).toBe('La app no ha conseguido leer o escribir el histórico en este navegador, así que no ha cambiado nada. Podéis volver a intentarlo más tarde.')
+  })
+})
+
 describe('useGameHistory — ciclo record/reload/remove con localStorage falso', () => {
   let fakeStorage: ReturnType<typeof createFakeLocalStorage>
 
@@ -511,7 +520,7 @@ describe('useGameHistory — ciclo record/reload/remove con localStorage falso',
     vi.restoreAllMocks()
   })
 
-  it('record() devuelve true, reload() deja una entrada, un segundo record() la coloca primero, remove(id) la quita y isEmpty vuelve a true', () => {
+  it('record() devuelve true, reload() deja una entrada, un segundo record() la coloca primero, remove(id) devuelve true y la quita, e isEmpty vuelve a true', () => {
     const { record, reload, remove, entries, isEmpty } = useGameHistory()
 
     const session1 = makeSession({
@@ -533,13 +542,34 @@ describe('useGameHistory — ciclo record/reload/remove con localStorage falso',
     expect(entries.value[0]!.id).not.toBe(firstId)
     const secondId = entries.value[0]!.id
 
-    remove(secondId)
+    expect(remove(secondId)).toBe(true)
     expect(entries.value).toHaveLength(1)
     expect(entries.value[0]!.id).toBe(firstId)
 
-    remove(firstId)
+    expect(remove(firstId)).toBe(true)
     expect(entries.value).toHaveLength(0)
     expect(isEmpty.value).toBe(true)
+  })
+
+  it('IN-11: con el setItem del localStorage falso lanzando justo antes de remove(id), remove() devuelve false y entries.value sigue conteniendo esa id tras la recarga interna', () => {
+    const { record, reload, remove, entries } = useGameHistory()
+
+    const session = makeSession({
+      selection: { villainId: 'rhino', heroes: [{ heroId: 'spider-man', playerName: 'Ana' }] },
+    })
+    expect(record(session, 'won')).toBe(true)
+
+    reload()
+    expect(entries.value).toHaveLength(1)
+    const id = entries.value[0]!.id
+
+    fakeStorage.setItem.mockImplementation(() => {
+      throw new Error('QuotaExceededError')
+    })
+
+    expect(remove(id)).toBe(false)
+    expect(entries.value).toHaveLength(1)
+    expect(entries.value[0]!.id).toBe(id)
   })
 
   it('CR-01 (ronda 2): una entrada construida desde context: {} sobrevive a un ciclo record() → loadHistory()', () => {

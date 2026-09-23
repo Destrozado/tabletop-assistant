@@ -207,6 +207,18 @@ export function buildHistoryCardView(entry: GameHistoryEntry): HistoryCardView {
   }
 }
 
+// IN-11 (09-REVIEW.md, cerrado en la quick 260923-3rl): copy del aviso en
+// línea que `/historico` pinta cuando `remove(id)` devuelve `false` — mismo
+// precedente que `emptyTitle`/`emptyBody` de `buildStatisticsView` (más
+// abajo): la copy vive como dato comprobable fuera del componente. Solo
+// afirma lo que `removeHistoryEntry` garantiza cuando devuelve `false`: con
+// un envoltorio ilegible no se intentó escribir, y con `setItem` lanzando el
+// almacenamiento no cambió — en los dos casos es cierto que «no ha cambiado
+// nada». No nombra ninguna causa (modo privado, cuota) que la app no ha
+// comprobado.
+export const DELETE_FAILED_HEADING = '⚠ No se pudo borrar la partida'
+export const DELETE_FAILED_BODY = 'La app no ha conseguido leer o escribir el histórico en este navegador, así que no ha cambiado nada. Podéis volver a intentarlo más tarde.'
+
 // Fila ya formateada de la tabla de estadísticas — el componente no vuelve
 // a componer `{wins} de {played} · {pct} %` (D-25).
 export interface StatRowView {
@@ -308,9 +320,16 @@ export function useGameHistory() {
     entries.value = sortEntriesByRecency(loadHistory())
   }
 
-  function remove(id: string): void {
-    removeHistoryEntry(id)
+  // IN-11 (quick 260923-3rl): devuelve el booleano de `removeHistoryEntry`
+  // en vez de descartarlo — `/historico` lo usa para decidir si pinta el
+  // aviso de borrado fallido. `reload()` se ejecuta siempre, haya fallado o
+  // no el borrado: si falló, `entries` sigue reflejando lo que de verdad
+  // hay en disco (la tarjeta sigue ahí), y si funcionó, refleja la lista sin
+  // esa entrada.
+  function remove(id: string): boolean {
+    const removed = removeHistoryEntry(id)
     reload()
+    return removed
   }
 
   const cardViews = computed(() => entries.value.map(buildHistoryCardView))

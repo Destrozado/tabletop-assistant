@@ -310,25 +310,68 @@ describe('tga:history — clave independiente de la partida (D-13/HIST-09)', () 
     expect(appendHistoryEntry(makeEntry())).toBe(true)
   })
 
-  it('removeHistoryEntry(id) deja las demás entradas intactas', () => {
+  it('removeHistoryEntry(id) deja las demás entradas intactas y devuelve true (IN-11: hubo coincidencia y writeRaw funcionó)', () => {
     const { appendHistoryEntry, removeHistoryEntry, loadHistory } = usePersistedSession()
     appendHistoryEntry(makeEntry({ id: 'keep-1' }))
     appendHistoryEntry(makeEntry({ id: 'remove-me' }))
     appendHistoryEntry(makeEntry({ id: 'keep-2' }))
 
-    removeHistoryEntry('remove-me')
+    expect(removeHistoryEntry('remove-me')).toBe(true)
 
     const result = loadHistory()
     expect(result.map(e => e.id).sort()).toEqual(['keep-1', 'keep-2'])
   })
 
-  it('removeHistoryEntry con un id inexistente no cambia nada ni lanza', () => {
+  it('removeHistoryEntry con un id inexistente no cambia nada ni lanza, y devuelve true (IN-11: no había nada que borrar, nada ha fallado)', () => {
     const { appendHistoryEntry, removeHistoryEntry, loadHistory } = usePersistedSession()
     appendHistoryEntry(makeEntry({ id: 'a' }))
     appendHistoryEntry(makeEntry({ id: 'b' }))
+    fakeStorage.setItem.mockClear()
 
-    expect(() => removeHistoryEntry('no-existe')).not.toThrow()
+    let result: boolean = false
+    expect(() => {
+      result = removeHistoryEntry('no-existe')
+    }).not.toThrow()
+    expect(result).toBe(true)
     expect(loadHistory().map(e => e.id).sort()).toEqual(['a', 'b'])
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
+  })
+
+  it('IN-11: con tga:history ausente, removeHistoryEntry devuelve true y no llama a setItem para tga:history', () => {
+    const { removeHistoryEntry } = usePersistedSession()
+    fakeStorage.setItem.mockClear()
+
+    expect(removeHistoryEntry('cualquier-id')).toBe(true)
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
+  })
+
+  it('IN-11: con un envoltorio legible y setItem lanzando al reescribir, removeHistoryEntry devuelve false, no lanza, y la cadena de tga:history sigue idéntica byte a byte', () => {
+    const { appendHistoryEntry, removeHistoryEntry } = usePersistedSession()
+    appendHistoryEntry(makeEntry({ id: 'a' }))
+    appendHistoryEntry(makeEntry({ id: 'b' }))
+    const seeded = fakeStorage.getItem('tga:history')
+
+    fakeStorage.setItem.mockImplementation(() => {
+      throw new Error('QuotaExceededError')
+    })
+
+    let result: boolean = true
+    expect(() => {
+      result = removeHistoryEntry('a')
+    }).not.toThrow()
+    expect(result).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
+  })
+
+  it('IN-11: con un envoltorio de JSON corrupto, removeHistoryEntry devuelve false y no llama a setItem para tga:history', () => {
+    const seeded = 'esto no es JSON válido {{{'
+    fakeStorage.setItem('tga:history', seeded)
+    fakeStorage.setItem.mockClear()
+
+    const { removeHistoryEntry } = usePersistedSession()
+    expect(removeHistoryEntry('cualquier-id')).toBe(false)
+    expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
+    expect(fakeStorage.getItem('tga:history')).toBe(seeded)
   })
 
   it('CR-03: con formatVersion: 2 guardado, appendHistoryEntry devuelve false y el blob v2 sigue intacto', () => {
@@ -353,26 +396,26 @@ describe('tga:history — clave independiente de la partida (D-13/HIST-09)', () 
     expect(fakeStorage.getItem('tga:history')).toBe(seeded)
   })
 
-  it('CR-03: con formatVersion: 2 guardado, removeHistoryEntry no escribe nada', () => {
+  it('CR-03: con formatVersion: 2 guardado, removeHistoryEntry no escribe nada y devuelve false (IN-11)', () => {
     const seeded = JSON.stringify({ formatVersion: 2, entries: [makeEntry({ id: 'v2-a' }), makeEntry({ id: 'v2-b' })] })
     fakeStorage.setItem('tga:history', seeded)
     fakeStorage.setItem.mockClear()
 
     const { removeHistoryEntry } = usePersistedSession()
-    removeHistoryEntry('v2-a')
+    expect(removeHistoryEntry('v2-a')).toBe(false)
 
     expect(fakeStorage.setItem).not.toHaveBeenCalledWith('tga:history', expect.anything())
     expect(fakeStorage.getItem('tga:history')).toBe(seeded)
   })
 
-  it('CR-03: una entrada ilegible sobrevive en disco a un removeHistoryEntry de otra entrada', () => {
+  it('CR-03: una entrada ilegible sobrevive en disco a un removeHistoryEntry de otra entrada, que devuelve true', () => {
     const keep = makeEntry({ id: 'keep' })
     const broken = { id: 'rota' } // no pasa isGameHistoryEntry (forma incompleta)
     const borrar = makeEntry({ id: 'borrar' })
     fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [keep, broken, borrar] }))
 
     const { removeHistoryEntry, loadHistory } = usePersistedSession()
-    removeHistoryEntry('borrar')
+    expect(removeHistoryEntry('borrar')).toBe(true)
 
     const persisted = JSON.parse(fakeStorage.getItem('tga:history')!)
     expect(persisted.entries).toHaveLength(2)
@@ -418,13 +461,13 @@ describe('tga:history — clave independiente de la partida (D-13/HIST-09)', () 
     expect(loadHistory().map(e => e.id)).toEqual(['buena'])
   })
 
-  it('WR-08: removeHistoryEntry elimina como máximo una entrada aunque dos compartan id', () => {
+  it('WR-08: removeHistoryEntry elimina como máximo una entrada aunque dos compartan id, y devuelve true', () => {
     const dup1 = makeEntry({ id: 'dup' })
     const dup2 = makeEntry({ id: 'dup' })
     fakeStorage.setItem('tga:history', JSON.stringify({ formatVersion: 1, entries: [dup1, dup2] }))
 
     const { removeHistoryEntry } = usePersistedSession()
-    removeHistoryEntry('dup')
+    expect(removeHistoryEntry('dup')).toBe(true)
 
     const persisted = JSON.parse(fakeStorage.getItem('tga:history')!)
     expect(persisted.entries).toHaveLength(1)
@@ -544,7 +587,7 @@ describe('CR-01 (ronda 3): un fallo TRANSITORIO de lectura de localStorage nunca
     expect(fakeStorage.setItem.mock.calls.filter(call => call[0] === 'tga:history')).toHaveLength(0)
   })
 
-  it('CR-01 (ronda 3): removeHistoryEntry con la lectura caída no escribe nada y el blob sigue intacto', () => {
+  it('CR-01 (ronda 3): removeHistoryEntry con la lectura caída no escribe nada, el blob sigue intacto y devuelve false (IN-11)', () => {
     const seeded = JSON.stringify({ formatVersion: 1, entries: [makeEntry({ id: 'a' }), makeEntry({ id: 'b' })] })
     fakeStorage.setItem('tga:history', seeded)
     fakeStorage.setItem.mockClear()
@@ -554,7 +597,11 @@ describe('CR-01 (ronda 3): un fallo TRANSITORIO de lectura de localStorage nunca
     })
 
     const { removeHistoryEntry } = usePersistedSession()
-    expect(() => removeHistoryEntry('a')).not.toThrow()
+    let result: boolean = true
+    expect(() => {
+      result = removeHistoryEntry('a')
+    }).not.toThrow()
+    expect(result).toBe(false)
 
     expect(fakeStorage.setItem.mock.calls.some(call => call[0] === 'tga:history')).toBe(false)
     expect(fakeStorage.getItem('tga:history')).toBe(seeded)
@@ -586,7 +633,11 @@ describe('CR-01 (ronda 3): un fallo TRANSITORIO de lectura de localStorage nunca
 
     expect(loadHistory()).toEqual([])
     expect(appendHistoryEntry(makeEntry())).toBe(false)
-    expect(() => removeHistoryEntry('x')).not.toThrow()
+    let result: boolean = true
+    expect(() => {
+      result = removeHistoryEntry('x')
+    }).not.toThrow()
+    expect(result).toBe(false)
   })
 
   it('CR-01 (ronda 3): el endurecimiento no se propaga a los datos reconstruibles — load()/loadVoicePreference() siguen degradando en silencio', () => {

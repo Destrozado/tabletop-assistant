@@ -207,7 +207,7 @@ function readRaw(key: string): RawRead {
 // contenido escrito coincidiera con el anterior, y obliga a una lectura y
 // un parseo de más).
 //
-// Quién MIRA el resultado — ahora son DOS, no uno:
+// Quién MIRA el resultado — ahora son TRES, no dos:
 // - `appendHistoryEntry` — el histórico es el único dato de la app que no se
 //   puede reconstruir, así que el grupo tiene que enterarse si el
 //   dispositivo no dejó escribir.
@@ -217,6 +217,11 @@ function readRaw(key: string): RawRead {
 //   al usuario (`HistorySavedNotice.vue`). Un dato del que la app hace una
 //   promesa no puede escribirse con un fallo silencioso (CR-01 ronda 4,
 //   `09-VERIFICATION.md`).
+// - `removeHistoryEntry` (IN-11, quick 260923-3rl): antes de este cierre, un
+//   borrado que no llegaba a escribirse dejaba la tarjeta visible en
+//   `/historico` tras el `reload()` sin que nada se lo explicara al grupo —
+//   parecía que el botón de borrar no funcionaba. Ahora `/historico` mira el
+//   resultado y pinta un aviso en línea cuando es `false`.
 //
 // Quién sigue IGNORÁNDOLO, y que eso es deliberado: `saveVoicePreference`
 // sigue con firma `void`, y los dos llamadores del autoguardado de la
@@ -505,22 +510,33 @@ export function usePersistedSession() {
   }
 
   // Reasignación completa del array (nunca `splice` in situ, disciplina de
-  // todo el motor). Devuelve `void`: un borrado que no llega a escribirse
-  // deja la entrada visible, un estado observable y recuperable — al
-  // contrario que una partida no registrada, que es lo que D-03 protege.
+  // todo el motor). IN-11 (09-REVIEW.md, cerrado en la quick 260923-3rl):
+  // devuelve `boolean` — antes devolvía `void`, y un borrado que no llegaba
+  // a escribirse dejaba la tarjeta visible tras `reload()` sin que nada se
+  // lo explicara al grupo, que creía que el botón de borrar no funcionaba.
+  // `true` significa «no queda nada pendiente de borrar: o se borró de
+  // verdad, o no había nada que borrar y nada ha fallado». `false` significa
+  // «había algo que mirar y no se ha podido actuar sobre ello» — un
+  // envoltorio ilegible (CR-03) o un `setItem` que lanza.
   //
   // CR-03/WR-08: mismo patrón de `readEnvelope()` que `appendHistoryEntry`.
   // Ante 'unreadable' no se escribe nada — nunca se machaca un blob
-  // ilegible. Ante 'empty' tampoco — no hay nada que borrar, y crear un
-  // envoltorio vacío no aporta. Para 'ok', se opera sobre `read.entries` EN
-  // CRUDO eliminando COMO MÁXIMO UN elemento: el primero que sea un objeto
-  // no nulo cuya propiedad `id` coincida con el argumento — así una
-  // colisión de `id` (WR-08) nunca se lleva dos partidas por delante. El
-  // resto de elementos, incluidos los que no pasan `isGameHistoryEntry`,
-  // sobreviven en disco tal cual.
-  function removeHistoryEntry(id: string): void {
+  // ilegible — y se devuelve `false`. Ante 'empty' tampoco se escribe — no
+  // hay nada que borrar, y crear un envoltorio vacío no aporta — pero se
+  // devuelve `true`: no hay ningún fallo que reportar. Para 'ok', se opera
+  // sobre `read.entries` EN CRUDO eliminando COMO MÁXIMO UN elemento: el
+  // primero que sea un objeto no nulo cuya propiedad `id` coincida con el
+  // argumento — así una colisión de `id` (WR-08) nunca se lleva dos
+  // partidas por delante. El resto de elementos, incluidos los que no pasan
+  // `isGameHistoryEntry`, sobreviven en disco tal cual — IN-12 solo
+  // endurece `appendHistoryEntry` (más abajo), nunca este camino: un
+  // borrado sigue siendo conservador con lo que no reconoce. Sin
+  // coincidencia, devuelve `true` sin escribir. Con coincidencia, devuelve
+  // lo que devuelva `writeRaw`.
+  function removeHistoryEntry(id: string): boolean {
     const read = readEnvelope()
-    if (read.kind !== 'ok') return
+    if (read.kind === 'unreadable') return false
+    if (read.kind === 'empty') return true
 
     let removed = false
     const entries = read.entries.filter((candidate) => {
@@ -531,11 +547,13 @@ export function usePersistedSession() {
       return false
     })
 
+    if (!removed) return true
+
     const envelope = {
       formatVersion: HISTORY_FORMAT_VERSION,
       entries,
     }
-    writeRaw(HISTORY_KEY, JSON.stringify(envelope))
+    return writeRaw(HISTORY_KEY, JSON.stringify(envelope))
   }
 
   return { load, readProgress, save, clear, loadVoicePreference, saveVoicePreference, loadHistory, readHistory, appendHistoryEntry, removeHistoryEntry, loadSyncedIds, saveSyncedIds }
