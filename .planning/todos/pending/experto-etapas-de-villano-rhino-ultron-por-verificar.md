@@ -24,6 +24,22 @@ tarea rápida (`/gsd-quick`) que corrija catálogo, `computeInitialVillainHealth
 comentarios y el texto de `setup.escenario.04`. Relacionado:
 `2026-09-25-selector-de-modulos-de-encuentro.md`.
 
+## Actualización 2026-09-25 (bis): los datos SÍ están en MarvelCDB, en la cara 1A del plan principal
+
+La cara 1A del plan principal de cada escenario (la «hoja de escenario») viene en la API de
+MarvelCDB (`/api/public/card/<código>a`, `type_code: main_scheme`), en inglés, y su `text` trae:
+- Las etapas de Experto: «Rhino (I) and Rhino (II). (Rhino (II) and Rhino (III) instead for expert
+  mode.)», con el mismo patrón en Klaw (01116a) y Ultron (01137a).
+- El módulo recomendado: «One modular encounter set (recommended: Bomb Scare)». Klaw → Masters of
+  Evil, Ultron → Under Attack. Kang (11007a) trae el módulo fijo «(Temporal)» y no tiene línea de
+  Experto, porque va con su propio set `exp_kang`.
+- Rhino 01097a, Klaw 01116a, Ultron 01137a, Kang 11007a.
+Con esto, `scripts/catalogue/fetch-marvelcdb.mjs` puede sacar la etapa inicial en Experto y el
+módulo recomendado de esa carta, en vez de mantenerlos a mano. Hay dos opciones: parsear el texto,
+o anotarlo a mano y que el script compruebe que coincide con la carta. Mejor la segunda, porque
+el texto libre es frágil. La dificultad numérica de los módulos (Kang: Temporal 4, etc.) NO
+aparece en estas cartas; sigue siendo dato a mano.
+
 ## Pregunta (por verificar, no un hecho confirmado)
 
 El Rules Reference v1.7, p. 28 (Modes of Play — Expert Mode), dice que en modo Experto se sigue
