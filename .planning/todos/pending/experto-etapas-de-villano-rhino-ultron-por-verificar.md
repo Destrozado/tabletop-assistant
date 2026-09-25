@@ -12,6 +12,18 @@ audit_acknowledged:
 
 # Por verificar: ¿Rhino y Ultron cambian de combinación de etapas en Experto?
 
+## Actualización 2026-09-25: CONFIRMADO por el usuario (con las cartas físicas)
+
+En Experto se empieza en la etapa II. Cifras de la etapa II que ha dado el usuario:
+Rhino **15**/jug, Ultron **22**/jug y Klaw **18**/jug (Klaw aún no está en el catálogo). Las de
+Rhino y Ultron coinciden con la etapa II de `content/marvel-characters.json`, y la API de
+MarvelCDB (`/api/public/card/01095`) confirma Rhino II = 15 por héroe. MarvelCDB NO dice qué
+etapas son de Experto: hay que anotarlo a mano en `scripts/catalogue/fetch-marvelcdb.mjs` (p. ej.
+`expertStartStage: 2`) y en el catálogo. La pregunta de abajo queda resuelta; siguiente paso: una
+tarea rápida (`/gsd-quick`) que corrija catálogo, `computeInitialVillainHealth`, tests,
+comentarios y el texto de `setup.escenario.04`. Relacionado:
+`2026-09-25-selector-de-modulos-de-encuentro.md`.
+
 ## Pregunta (por verificar, no un hecho confirmado)
 
 El Rules Reference v1.7, p. 28 (Modes of Play — Expert Mode), dice que en modo Experto se sigue

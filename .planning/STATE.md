@@ -180,7 +180,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+5 pendientes en `.planning/todos/pending/`, entre ellos: el bug de la vida inicial en Experto (etapa II confirmada por el usuario) y la idea del selector de módulos de encuentro (2026-09-25).
 
 ### Blockers/Concerns
 
