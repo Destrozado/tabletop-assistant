@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 Phase: Milestone v1.8 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-09-23 — Milestone v1.8 completed and archived
+Last activity: 2026-09-25 — Completed quick task 260925-m2k: vida inicial del villano en Experto
 
 ## Performance Metrics
 
@@ -180,7 +180,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-5 pendientes en `.planning/todos/pending/`, entre ellos: el bug de la vida inicial en Experto (etapa II confirmada por el usuario) y la idea del selector de módulos de encuentro (2026-09-25).
+4 pendientes en `.planning/todos/pending/`, entre ellos la idea del selector de módulos de encuentro (2026-09-25). El bug de la vida inicial en Experto quedó resuelto en la quick 260925-m2k.
 
 ### Blockers/Concerns
 
@@ -218,6 +218,7 @@ Recent decisions affecting current work:
 | fast | Histórico: la tarjeta muestra solo la duración, sin «Hasta la ronda N» (la ronda anotada nunca era realista una vez dentro del bucle) | 2026-09-23 | 452925b | — | — |
 | fast | Banda de contadores en móvil vertical: cada vida pegada a su etiqueta (VILLANO/Jugador), el hueco sobrante separa las filas; apaisado sin cambios | 2026-09-23 | 2aa4ca2 | — | — |
 | fast | Selector de juego: con el aviso «Nueva versión disponible» visible el título ya no se pinta encima del botón Actualizar (centrado sin desbordar + scroll) | 2026-09-23 | 699dd3b | — | — |
+| 260925-m2k | Vida inicial del villano en Experto: sale de la etapa con la que empieza Experto (Rhino y Ultron: II, contrastado con la carta 1A del plan principal en MarvelCDB; Kang sin cambios) | 2026-09-25 | f3ef014 | — | .planning/quick/260925-m2k-vida-inicial-del-villano-en-experto-desd |
 
 ## Deferred Items
 
@@ -236,7 +237,7 @@ Items acknowledged and carried forward from previous milestone close:
 | uat_gaps | 02/02-HUMAN-UAT.md — 1 escenario pendiente (arrastre de v1.7) | partial | 2026-09-23 (v1.8) |
 | quick_tasks | 260831-umh-boton-partida-terminada-para-volver-a-ho | pending-human-verification | 2026-09-23 (v1.8) |
 | seeds | SEED-001 caché local de MarvelCDB | dormant | 2026-09-23 (v1.8) |
-| todos | experto-etapas-de-villano-rhino-ultron-por-verificar (duda de reglas, sin PDF del RR para contrastar) | pending | 2026-09-23 (v1.8) |
+| todos | experto-etapas-de-villano-rhino-ultron-por-verificar (duda de reglas, sin PDF del RR para contrastar) | resuelto 2026-09-25 (quick 260925-m2k) | 2026-09-23 (v1.8) |
 | todos | comprobacion-tablet-superficies-nuevas-fase-9 | pending | 2026-09-23 (v1.8) |
 | todos | escuchar-clip-experto-regenerado | pending | 2026-09-23 (v1.8) |
 | todos | gate-invariantes-evasiones-adyacentes | pending | 2026-09-23 (v1.8) |

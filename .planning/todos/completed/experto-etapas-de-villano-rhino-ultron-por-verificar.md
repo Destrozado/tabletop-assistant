@@ -4,7 +4,9 @@ created: 2026-09-23
 source: quick 260923-3ri (análisis de CR-03)
 severity: high
 area: fidelidad de reglas
-status: pending
+status: completed
+completed: 2026-09-25
+resolved_by: quick 260925-m2k
 audit_acknowledged:
   milestone: v1.8
   at: 2026-09-23
