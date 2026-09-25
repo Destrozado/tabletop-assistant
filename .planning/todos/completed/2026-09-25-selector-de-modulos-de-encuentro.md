@@ -4,7 +4,8 @@ created: 2026-09-25
 source: conversación con el usuario (idea de producto)
 severity: feature
 area: preparación de partida
-status: pending
+status: completed
+resolved_by: quick 260925-mpj
 files:
   - app/components/MiniSetupScreen.vue
   - app/pages/[game]/index.vue

@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 Phase: Milestone v1.8 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-09-25 — Completed quick task 260925-m2k: vida inicial del villano en Experto
+Last activity: 2026-09-25 — Completed quick task 260925-mpj: selector de módulos de encuentro
 
 ## Performance Metrics
 
@@ -180,7 +180,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-4 pendientes en `.planning/todos/pending/`, entre ellos la idea del selector de módulos de encuentro (2026-09-25). El bug de la vida inicial en Experto quedó resuelto en la quick 260925-m2k.
+3 pendientes en `.planning/todos/pending/`. El selector de módulos se implementó en la quick 260925-mpj (pendiente de prueba en tablet). El bug de la vida inicial en Experto quedó resuelto en la quick 260925-m2k.
 
 ### Blockers/Concerns
 
@@ -219,6 +219,7 @@ Recent decisions affecting current work:
 | fast | Banda de contadores en móvil vertical: cada vida pegada a su etiqueta (VILLANO/Jugador), el hueco sobrante separa las filas; apaisado sin cambios | 2026-09-23 | 2aa4ca2 | — | — |
 | fast | Selector de juego: con el aviso «Nueva versión disponible» visible el título ya no se pinta encima del botón Actualizar (centrado sin desbordar + scroll) | 2026-09-23 | 699dd3b | — | — |
 | 260925-m2k | Vida inicial del villano en Experto: sale de la etapa con la que empieza Experto (Rhino y Ultron: II, contrastado con la carta 1A del plan principal en MarvelCDB; Kang sin cambios) | 2026-09-25 | f3ef014 | — | .planning/quick/260925-m2k-vida-inicial-del-villano-en-experto-desd |
+| 260925-mpj | Selector de módulos de encuentro: fila «Módulos» en la rejilla, recomendado del villano (comprobado contra la carta 1A), dificultad solo si se conoce, conjuntos elegidos en pantalla en setup.encuentros.01; Klaw añadido al catálogo | 2026-09-25 | 841f786 | Needs Review | .planning/quick/260925-mpj-selector-de-modulos |
 
 ## Deferred Items
 
