@@ -210,7 +210,36 @@
           "healthPerGroup": false
         }
       ],
-      "expertStartStage": 2
+      "expertStartStage": 2,
+      "encounterSetName": "Rino",
+      "recommendedModuleId": "bomb-scare"
+    },
+    {
+      "id": "klaw",
+      "name": "Klaw",
+      "stages": [
+        {
+          "stage": 1,
+          "health": 12,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 2,
+          "health": 18,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 3,
+          "health": 22,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        }
+      ],
+      "expertStartStage": 2,
+      "encounterSetName": "Klaw",
+      "recommendedModuleId": "masters-of-evil"
     },
     {
       "id": "kang",
@@ -250,7 +279,9 @@
           }
         }
       ],
-      "expertStartStage": 1
+      "expertStartStage": 1,
+      "encounterSetName": "Kang",
+      "recommendedModuleId": "temporal"
     },
     {
       "id": "ultron",
@@ -275,7 +306,50 @@
           "healthPerGroup": false
         }
       ],
-      "expertStartStage": 2
+      "expertStartStage": 2,
+      "encounterSetName": "Ultrón",
+      "recommendedModuleId": "under-attack"
+    }
+  ],
+  "baseSets": {
+    "standard": "Normal",
+    "expert": "Experto"
+  },
+  "modules": [
+    {
+      "id": "bomb-scare",
+      "name": "Amenaza de bomba"
+    },
+    {
+      "id": "masters-of-evil",
+      "name": "Señores del Mal"
+    },
+    {
+      "id": "under-attack",
+      "name": "Civiles en peligro"
+    },
+    {
+      "id": "legions-of-hydra",
+      "name": "Legiones de Hydra"
+    },
+    {
+      "id": "the-doomsday-chair",
+      "name": "La silla del Juicio Final"
+    },
+    {
+      "id": "temporal",
+      "name": "Temporal",
+      "difficulty": 4
+    },
+    {
+      "id": "mot",
+      "name": "Amo del tiempo",
+      "difficulty": 6
+    },
+    {
+      "id": "anachronauts",
+      "name": "Anacronautas",
+      "difficulty": 8
     }
   ]
 }

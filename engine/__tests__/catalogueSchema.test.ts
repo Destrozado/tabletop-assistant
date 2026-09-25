@@ -19,7 +19,13 @@ function baseCatalogue() {
           { stage: 2, health: 15, healthPerHero: true, healthPerGroup: false },
           { stage: 3, health: 16, healthPerHero: true, healthPerGroup: false },
         ],
+        encounterSetName: 'Rino',
+        recommendedModuleId: 'bomb-scare',
       },
+    ],
+    baseSets: { standard: 'Normal', expert: 'Experto' },
+    modules: [
+      { id: 'bomb-scare', name: 'Amenaza de bomba' },
     ],
   }
 }
@@ -278,6 +284,62 @@ describe('CharacterCatalogueSchema', () => {
     it('lanza ZodError con expertStartStage: 4 en un villano de 3 etapas (fuera de rango)', () => {
       const catalogue = baseCatalogue()
       ;(catalogue.villains[0] as any).expertStartStage = 4
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+  })
+
+  // Quick 260925-mpj (D-01/D-03/D-04/D-07): módulos de encuentro, sets base
+  // informativos y el módulo recomendado por villano.
+  describe('baseSets/modules/encounterSetName/recommendedModuleId (quick 260925-mpj)', () => {
+    it('acepta un catálogo con baseSets, modules y los dos campos nuevos del villano', () => {
+      expect(() => CharacterCatalogueSchema.parse(baseCatalogue())).not.toThrow()
+    })
+
+    it('acepta un módulo con difficulty entera positiva', () => {
+      const catalogue = baseCatalogue()
+      catalogue.modules[0] = { ...catalogue.modules[0], difficulty: 4 }
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).not.toThrow()
+    })
+
+    it.each([0, -1, 1.5])('lanza ZodError con un módulo con difficulty %s', (difficulty) => {
+      const catalogue = baseCatalogue()
+      catalogue.modules[0] = { ...catalogue.modules[0], difficulty } as any
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con una clave desconocida ("text") dentro de un módulo', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.modules[0] as any).text = 'Texto de carta con copyright.'
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con ids de módulo duplicados', () => {
+      const catalogue = baseCatalogue()
+      catalogue.modules.push({ ...catalogue.modules[0] })
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError si el recommendedModuleId de un villano no está en modules', () => {
+      const catalogue = baseCatalogue()
+      catalogue.villains[0].recommendedModuleId = 'no-existe'
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con un villano sin encounterSetName', () => {
+      const catalogue = baseCatalogue()
+      delete (catalogue.villains[0] as any).encounterSetName
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con un villano sin recommendedModuleId', () => {
+      const catalogue = baseCatalogue()
+      delete (catalogue.villains[0] as any).recommendedModuleId
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con una clave desconocida ("text") en baseSets', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.baseSets as any).text = 'Texto de carta con copyright.'
       expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
     })
   })

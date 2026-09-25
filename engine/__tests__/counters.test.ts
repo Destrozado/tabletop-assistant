@@ -33,6 +33,7 @@ const catalogue: CharacterCatalogue = JSON.parse(readFileSync(catalogueContentPa
 const rhino = catalogue.villains.find(v => v.id === 'rhino')!
 const kang = catalogue.villains.find(v => v.id === 'kang')!
 const ultron = catalogue.villains.find(v => v.id === 'ultron')!
+const klaw = catalogue.villains.find(v => v.id === 'klaw')!
 const thor = catalogue.heroes.find(h => h.id === 'thor')!
 const ironMan = catalogue.heroes.find(h => h.id === 'iron-man')!
 const sheHulk = catalogue.heroes.find(h => h.id === 'she-hulk')!
@@ -69,6 +70,15 @@ describe('precarga (D-09/D-11/HP-05)', () => {
   it('computeInitialVillainHealth: Ultron 2 jugadores experto = 44, normal = 34 (sin cambios)', () => {
     expect(computeInitialVillainHealth(ultron, 2, 'expert')).toBe(44)
     expect(computeInitialVillainHealth(ultron, 2, 'normal')).toBe(34)
+  })
+
+  // Quick 260925-mpj: Klaw entra al catálogo (D-02) con la misma forma que
+  // Rhino/Ultron — arranca en su propia etapa II en Experto, sin cifras
+  // Expertas propias. Cifras confirmadas contra la carta 1A (01116a) y las
+  // etapas 01113/01114/01115: 12/18/22 por jugador.
+  it('computeInitialVillainHealth: Klaw 2 jugadores normal = 24 (etapa I, 12/jug), experto = 36 (etapa II, 18/jug)', () => {
+    expect(computeInitialVillainHealth(klaw, 2, 'normal')).toBe(24)
+    expect(computeInitialVillainHealth(klaw, 2, 'expert')).toBe(36)
   })
 
   // Defensivo: expertStartStage ausente, fuera de rango o no numérico nunca
@@ -452,8 +462,12 @@ describe('catálogo sin cifra de vida utilizable (WR-07)', () => {
           id: 'broken-no-health',
           name: 'Broken (sin health)',
           stages: [{ stage: 1, healthPerHero: true, healthPerGroup: false }] as unknown as CatalogueVillain['stages'],
+          encounterSetName: 'Broken',
+          recommendedModuleId: 'broken-module',
         },
       ],
+      baseSets: { standard: 'Normal', expert: 'Experto' },
+      modules: [{ id: 'broken-module', name: 'Broken Module' }],
     }
     const session = setVillain(baseSession(), 'broken-no-health')
     const result = resolveCounterValues(session.context, brokenCatalogue)

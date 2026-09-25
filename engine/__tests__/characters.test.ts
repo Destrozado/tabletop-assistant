@@ -303,4 +303,70 @@ describe('content/marvel-characters.json', () => {
     expect(catalogue.heroes.length).toBeGreaterThan(0)
     expect(catalogue.villains.length).toBeGreaterThan(0)
   })
+
+  // Quick 260925-mpj (D-01/D-02/D-03/D-04/D-07): Klaw, módulos de encuentro
+  // de las cajas del grupo (core + toafk) y el módulo recomendado por
+  // villano. Sin aserciones de longitud fija de arrays (CAT-07 arriba).
+  describe('quick 260925-mpj: Klaw, baseSets, modules y recomendado por villano', () => {
+    it('Klaw existe con stages 12/18/22 per-hero y expertStartStage 2', () => {
+      const catalogue = loadValidatedCatalogue()
+      const klaw = catalogue.villains.find(v => v.id === 'klaw')
+      expect(klaw, 'no se encontró el villano klaw en el catálogo').toBeDefined()
+      expect(klaw!.stages.map(s => s.health)).toEqual([12, 18, 22])
+      for (const stage of klaw!.stages) {
+        expect(stage.healthPerHero).toBe(true)
+        expect(stage.healthPerGroup).toBe(false)
+      }
+      expect(klaw!.expertStartStage).toBe(2)
+    })
+
+    it('recommendedModuleId de rhino/klaw/ultron/kang es bomb-scare/masters-of-evil/under-attack/temporal', () => {
+      const catalogue = loadValidatedCatalogue()
+      const expected: Record<string, string> = {
+        rhino: 'bomb-scare',
+        klaw: 'masters-of-evil',
+        ultron: 'under-attack',
+        kang: 'temporal',
+      }
+      for (const [id, recommendedModuleId] of Object.entries(expected)) {
+        const villain = catalogue.villains.find(v => v.id === id)
+        expect(villain, `no se encontró el villano ${id}`).toBeDefined()
+        expect(villain!.recommendedModuleId, `villano ${id}`).toBe(recommendedModuleId)
+      }
+    })
+
+    it('encounterSetName de rhino es «Rino»', () => {
+      const catalogue = loadValidatedCatalogue()
+      const rhino = catalogue.villains.find(v => v.id === 'rhino')
+      expect(rhino, 'no se encontró el villano rhino').toBeDefined()
+      expect(rhino!.encounterSetName).toBe('Rino')
+    })
+
+    it('baseSets es {standard: "Normal", expert: "Experto"}', () => {
+      const catalogue = loadValidatedCatalogue()
+      expect(catalogue.baseSets).toEqual({ standard: 'Normal', expert: 'Experto' })
+    })
+
+    it('ningún módulo tiene id exp-kang (D-01: excluido a propósito)', () => {
+      const catalogue = loadValidatedCatalogue()
+      const moduleIds = catalogue.modules.map(m => m.id)
+      expect(moduleIds).not.toContain('exp-kang')
+    })
+
+    it('difficulty de temporal/mot/anachronauts es 4/6/8, y los módulos de core no llevan la clave difficulty', () => {
+      const catalogue = loadValidatedCatalogue()
+      const expectedDifficulty: Record<string, number> = { temporal: 4, mot: 6, anachronauts: 8 }
+      for (const [id, difficulty] of Object.entries(expectedDifficulty)) {
+        const module = catalogue.modules.find(m => m.id === id)
+        expect(module, `no se encontró el módulo ${id}`).toBeDefined()
+        expect(module!.difficulty, `módulo ${id}`).toBe(difficulty)
+      }
+      const coreModuleIds = ['bomb-scare', 'masters-of-evil', 'under-attack', 'legions-of-hydra', 'the-doomsday-chair']
+      for (const id of coreModuleIds) {
+        const module = catalogue.modules.find(m => m.id === id)
+        expect(module, `no se encontró el módulo ${id}`).toBeDefined()
+        expect('difficulty' in module!, `módulo ${id} no debería llevar difficulty`).toBe(false)
+      }
+    })
+  })
 })

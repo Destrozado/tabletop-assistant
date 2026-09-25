@@ -335,19 +335,62 @@ export interface CatalogueHero {
 // `expertStartStage` (opcional): etapa (1..n) con la que empieza la
 // partida en modo Experto, según la cara 1A del plan principal ("listed
 // expert mode villain stages", RR v1.7 p.28). Ausente = 1 (arranca en la
-// etapa I, igual que en Normal). Rhino y Ultron: 2 (etapa II). Kang: no
+// etapa I, igual que en Normal). Rhino, Ultron y Klaw: 2 (etapa II). Kang: no
 // hace falta declararlo porque su Experto no cambia de etapa, va con sus
 // propias cifras `expert` en la etapa I — aun así el script lo anota
 // explícitamente en 1 (dato explícito, no implícito).
+//
+// `encounterSetName` (quick 260925-mpj, D-07): nombre ESPAÑOL del set de
+// villano de este escenario tal cual lo da `card_set_name` de
+// es.marvelcdb.com (p. ej. Rhino → «Rino») — es el nombre impreso en las
+// cartas españolas de la caja, distinto de `name` (siempre el inglés de
+// MarvelCDB, D-02 anterior sin cambios). Lo usa `setup.encuentros.01` para
+// nombrar en pantalla qué conjunto de encuentro sacar de la caja.
+//
+// `recommendedModuleId` (D-03): id (kebab-case, ver `CatalogueModule.id`)
+// del módulo de encuentro recomendado por la cara 1A del plan principal de
+// este escenario. Dato A MANO en `scripts/catalogue/fetch-marvelcdb.mjs`,
+// comprobado por el script contra el texto de esa misma carta antes de
+// escribir (aborta sin escribir si no coincide) — nunca se deriva
+// automáticamente del texto de la carta, por la misma razón que
+// `expertStartStage` es dato a mano comprobado, no derivado.
 export interface CatalogueVillain {
   id: string
   name: string
   stages: VillainStage[]
   expertStartStage?: number
+  encounterSetName: string
+  recommendedModuleId: string
+}
+
+// Módulo de encuentro adicional (quick 260925-mpj, D-01/D-04): una de las
+// cajas del grupo (Core Set + «Antiguo y futuro Kang» por ahora). `name` es
+// el nombre español de `card_set_name` (es.marvelcdb.com). `difficulty`
+// (opcional): el número «Dificultad N» que el escenario de Kang imprime en
+// sus tres módulos adicionales (4/6/8, dato a mano tomado del reglamento del
+// grupo); ausente cuando la dificultad del módulo no se conoce (los cinco
+// módulos del Core Set) — su ausencia NO significa "dificultad 0", significa
+// "dato no disponible", así que la interfaz nunca debe pintar "Dificultad" en
+// ese caso.
+export interface CatalogueModule {
+  id: string
+  name: string
+  difficulty?: number
+}
+
+// Nombres españoles de los dos sets base informativos (D-04): «Normal»
+// siempre presente en la mesa, «Experto» solo cuando la partida es Experto.
+// Ninguno es pulsable en el modal — son informativos, no parte de la
+// selección de módulos adicionales.
+export interface CatalogueBaseSets {
+  standard: string
+  expert: string
 }
 
 export interface CharacterCatalogue {
   gameId: string
   heroes: CatalogueHero[]
   villains: CatalogueVillain[]
+  baseSets: CatalogueBaseSets
+  modules: CatalogueModule[]
 }

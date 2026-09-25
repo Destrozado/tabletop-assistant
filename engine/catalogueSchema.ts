@@ -56,6 +56,20 @@ const VillainStageSchema = z.strictObject({
   expert: ExpertVillainStageSchema.optional(),
 })
 
+// Módulo de encuentro adicional (quick 260925-mpj, D-01/D-04). `difficulty`
+// opcional: entero positivo cuando se conoce (Kang: 4/6/8), ausente cuando
+// no (los cinco módulos del Core Set) — nunca 0 ni negativo.
+const ModuleSchema = z.strictObject({
+  id: z.string().regex(characterIdPattern),
+  name: z.string().min(1),
+  difficulty: z.number().int().positive().optional(),
+})
+
+const BaseSetsSchema = z.strictObject({
+  standard: z.string().min(1),
+  expert: z.string().min(1),
+})
+
 const HeroSchema = z.strictObject({
   id: z.string().regex(characterIdPattern),
   name: z.string().min(1),
@@ -80,12 +94,21 @@ const VillainSchema = z.strictObject({
   // valida en el superRefine de más abajo, no aquí (necesita ver las dos
   // claves del villano a la vez).
   expertStartStage: z.number().int().positive().optional(),
+  // encounterSetName/recommendedModuleId (quick 260925-mpj, D-07/D-03):
+  // ambos obligatorios — todo villano del catálogo trae ya su nombre de set
+  // en español y su módulo recomendado, comprobados por el script antes de
+  // escribir. `recommendedModuleId` se valida contra `modules` en el
+  // superRefine de más abajo (necesita ver la raíz del catálogo entera).
+  encounterSetName: z.string().min(1),
+  recommendedModuleId: z.string().regex(characterIdPattern),
 })
 
 export const CharacterCatalogueSchema = z.strictObject({
   gameId: z.string().regex(characterIdPattern),
   heroes: z.array(HeroSchema),
   villains: z.array(VillainSchema),
+  baseSets: BaseSetsSchema,
+  modules: z.array(ModuleSchema),
 }).superRefine((catalogue, ctx) => {
   const heroIds = catalogue.heroes.map(h => h.id)
   const dupeHeroIds = heroIds.filter((id, i) => heroIds.indexOf(id) !== i)
@@ -146,6 +169,27 @@ export const CharacterCatalogueSchema = z.strictObject({
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `Villain "${villain.name}" has expertStartStage ${villain.expertStartStage} but only ${villain.stages.length} stage(s)`,
+      })
+    }
+  }
+
+  // T-mpj-01/D-03: ids de módulo únicos, y el recomendado de cada villano
+  // debe existir de verdad en `modules` — un id que no exista sería un
+  // dato a mano desfasado que ninguna otra puerta atraparía.
+  const moduleIds = catalogue.modules.map(m => m.id)
+  const dupeModuleIds = moduleIds.filter((id, i) => moduleIds.indexOf(id) !== i)
+  if (dupeModuleIds.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Duplicate module ids: ${[...new Set(dupeModuleIds)].join(', ')}`,
+    })
+  }
+
+  for (const villain of catalogue.villains) {
+    if (!moduleIds.includes(villain.recommendedModuleId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Villain "${villain.name}" has recommendedModuleId "${villain.recommendedModuleId}", which is not in modules`,
       })
     }
   }
