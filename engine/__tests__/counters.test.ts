@@ -53,9 +53,43 @@ describe('precarga (D-09/D-11/HP-05)', () => {
     expect(computeInitialVillainHealth(kang, 3, 'expert')).toBe(45)
   })
 
-  it('computeInitialVillainHealth: Ultron normal con 3 jugadores es 51, y experto también 51 (sin cifras propias de experto)', () => {
+  it('computeInitialVillainHealth: Ultron normal con 3 jugadores es 51, experto arranca en etapa II (66)', () => {
     expect(computeInitialVillainHealth(ultron, 3, 'normal')).toBe(51)
-    expect(computeInitialVillainHealth(ultron, 3, 'expert')).toBe(51)
+    expect(computeInitialVillainHealth(ultron, 3, 'expert')).toBe(66)
+  })
+
+  // Cifras confirmadas por el usuario con las cartas físicas (quick 260925-m2k):
+  // Rhino 2 jugadores experto = 30 (etapa II, 15/jug); normal = 28 (etapa I, sin cambios).
+  // Ultron 2 jugadores experto = 44 (etapa II, 22/jug); normal = 34 (etapa I, sin cambios).
+  it('computeInitialVillainHealth: Rhino 2 jugadores experto = 30, normal = 28 (sin cambios)', () => {
+    expect(computeInitialVillainHealth(rhino, 2, 'expert')).toBe(30)
+    expect(computeInitialVillainHealth(rhino, 2, 'normal')).toBe(28)
+  })
+
+  it('computeInitialVillainHealth: Ultron 2 jugadores experto = 44, normal = 34 (sin cambios)', () => {
+    expect(computeInitialVillainHealth(ultron, 2, 'expert')).toBe(44)
+    expect(computeInitialVillainHealth(ultron, 2, 'normal')).toBe(34)
+  })
+
+  // Defensivo: expertStartStage ausente, fuera de rango o no numérico nunca
+  // debe lanzar ni adivinar una etapa. En Normal, expertStartStage se
+  // ignora aunque sea inválido (siempre etapa 1).
+  describe('expertStartStage defensivo (villanos fabricados, sin tocar el catálogo real)', () => {
+    it('expertStartStage ausente en Experto usa la etapa 1 (comportamiento anterior)', () => {
+      const { expertStartStage, ...withoutField } = rhino as CatalogueVillain & { expertStartStage?: number }
+      const villain = withoutField as CatalogueVillain
+      expect(computeInitialVillainHealth(villain, 2, 'expert')).toBe(28)
+    })
+
+    it.each([5, 0, 1.5, 'dos', Number.NaN])('expertStartStage %s (fuera de rango o no numérico) en Experto devuelve null', (bad) => {
+      const villain = { ...rhino, expertStartStage: bad } as unknown as CatalogueVillain
+      expect(computeInitialVillainHealth(villain, 2, 'expert')).toBeNull()
+    })
+
+    it.each([5, 0, 1.5, 'dos', Number.NaN])('expertStartStage %s se ignora en Normal (sigue saliendo la etapa 1)', (bad) => {
+      const villain = { ...rhino, expertStartStage: bad } as unknown as CatalogueVillain
+      expect(computeInitialVillainHealth(villain, 2, 'normal')).toBe(28)
+    })
   })
 
   it('D-11: Kang con 3 jugadores NUNCA usa la etapa II plana (18 ni 54)', () => {

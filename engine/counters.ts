@@ -17,21 +17,31 @@
 import { resolvePlayerSlots, resolveVillainId } from './selection'
 import type { CatalogueHero, CatalogueVillain, CharacterCatalogue, CounterState, Difficulty, EngineSession, SessionContext } from './types'
 
-// D-11: la precarga es SIEMPRE la etapa I del villano y nada más — la banda
-// no sabe de etapas II/III. Si no hay etapa I, no hay precarga posible.
-// Un `playerCount` que no sea entero positivo devuelve null en vez de
-// propagar un NaN. Nunca lanza.
+// D-11 (quick 260925-m2k): la precarga es la etapa con la que EMPIEZA la
+// partida — la I en Normal, y la que marca `expertStartStage` en Experto
+// (Rhino/Ultron: II, según la cara 1A del plan principal — "Rhino (II) and
+// Rhino (III) instead for expert mode." — y RR v1.7 p.28, "listed expert
+// mode villain stages"; Kang: I, con las cifras propias `expert` de
+// exp_kang). La banda sigue sin saber de cambios de etapa DURANTE la
+// partida — eso no cambia. Una etapa inexistente o un `expertStartStage`
+// inválido (ausente se sanea a 1, no es inválido) devuelve null en vez de
+// adivinar. Un `playerCount` que no sea entero positivo también devuelve
+// null en vez de propagar un NaN. Nunca lanza.
 export function computeInitialVillainHealth(
   villain: CatalogueVillain | null,
   playerCount: number,
   difficulty: Difficulty,
 ): number | null {
   if (villain === null) return null
-  const stage1 = villain.stages[0]
-  if (!stage1) return null
   if (!Number.isInteger(playerCount) || playerCount <= 0) return null
 
-  const figures = difficulty === 'expert' && stage1.expert ? stage1.expert : stage1
+  const startStage = difficulty === 'expert' ? (villain.expertStartStage ?? 1) : 1
+  if (!Number.isInteger(startStage) || startStage <= 0) return null
+
+  const stage = villain.stages.find(s => s.stage === startStage)
+  if (!stage) return null
+
+  const figures = difficulty === 'expert' && stage.expert ? stage.expert : stage
   // WR-07: el catálogo lo genera `scripts/catalogue/fetch-marvelcdb.mjs` a
   // partir de una API de terceros (T-07-09-02); una regeneración sin `health`
   // utilizable no puede propagar NaN hasta la banda. `healthPerGroup` no

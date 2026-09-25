@@ -46,6 +46,15 @@ describe('D-04/VAL-01 — resolveStepValue reutiliza computeInitialVillainHealth
     expect(resolveStepValue('villainHealth', ctx, catalogue)).toBe(45)
     expect(resolveStepValue('villainHealth', ctx, catalogue)).not.toBe(36)
   })
+
+  // Quick 260925-m2k: Ultron en Experto arranca en su propia etapa II
+  // (expertStartStage: 2), sin cifras Expertas propias — a diferencia de
+  // Kang, que sí las tiene.
+  it('Ultron en experto arranca en la etapa II (66 con 3 jugadores), no en la etapa I (51)', () => {
+    const ctx = contextWith(3, 'ultron', [null, null, null], { difficulty: 'expert' })
+    expect(resolveStepValue('villainHealth', ctx, catalogue)).toBe(66)
+    expect(resolveStepValue('villainHealth', ctx, catalogue)).not.toBe(51)
+  })
 })
 
 describe('D-13 (regla dura) — nunca el contador congelado, siempre la cifra impresa', () => {
