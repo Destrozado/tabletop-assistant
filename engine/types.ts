@@ -5,17 +5,22 @@
 
 export type Difficulty = 'normal' | 'expert'
 
-// D-01/D-02/D-07/D-05 (Fase 8): los tres únicos valores conocidos que un paso
-// puede declarar que trae consigo. Enum plano de tres miembros (no un objeto
-// `{ kind, scope }`) porque el propio tipo ya fija cuántos hay y cuáles son —
-// un segundo campo de «alcance» solo podría contradecir a este sin que nada
-// lo impidiera. Se exporta como alias único para que `StepDefinition.value` y
-// `StepSchema` (engine/schema.ts) citen el mismo enum sin teclearlo dos
-// veces. `handSizeAlterEgo` (no `handSizeHero` ni `startingHandSize`) porque
-// el setup arranca con la cara de Alter-Ego boca arriba (Rules Reference
-// v1.7, Apéndice II, paso 1); `handSizeHero` daría la cifra equivocada en los
-// 23 héroes durante el setup.
-export type StepValueKind = 'villainHealth' | 'heroHealth' | 'handSizeAlterEgo'
+// D-01/D-02/D-07/D-05 (Fase 8); ampliado en el quick 260925-mpj con
+// 'encounterSets' (D-07 de ese quick): los valores conocidos que un paso
+// puede declarar que trae consigo. Ya no son solo tres — 'encounterSets' no
+// produce un número (paréntesis) ni una lista de filas por jugador, sino
+// una LÍNEA DE TEXTO (los conjuntos de encuentro a reunir); ese tercer tipo
+// de forma de salida vive en `resolveStepValueText` (engine/stepValues.ts),
+// hermana de `resolveStepValue`/`resolveStepValueRows`. El propio tipo sigue
+// fijando cuántos miembros hay y cuáles son — un segundo campo de «alcance»
+// solo podría contradecir a este sin que nada lo impidiera. Se exporta como
+// alias único para que `StepDefinition.value` y `StepSchema`
+// (engine/schema.ts) citen el mismo enum sin teclearlo dos veces.
+// `handSizeAlterEgo` (no `handSizeHero` ni `startingHandSize`) porque el
+// setup arranca con la cara de Alter-Ego boca arriba (Rules Reference v1.7,
+// Apéndice II, paso 1); `handSizeHero` daría la cifra equivocada en los 23
+// héroes durante el setup.
+export type StepValueKind = 'villainHealth' | 'heroHealth' | 'handSizeAlterEgo' | 'encounterSets'
 
 export interface Citation {
   source: 'rules-reference' | 'learn-to-play'
@@ -100,9 +105,19 @@ export interface FrozenEndInstant {
 // `playerName` vacío significa «sin nombre puesto» y se muestra como
 // «Jugador N» en la interfaz (D-15) — el motor nunca guarda el valor por
 // defecto, solo la interfaz lo resuelve.
+// `moduleIds` (quick 260925-mpj, D-06): campo ADITIVO — no bumpea
+// `formatVersion` ni `contentVersion`. `undefined` = «el grupo no ha
+// personalizado la selección de módulos para este villano» → el motor
+// resuelve el recomendado del villano (`resolveModuleIds`,
+// engine/encounterSets.ts). `[]` explícito = «el grupo desmarcó todo a
+// propósito» y se respeta tal cual, sin caer al recomendado. La validación
+// defensiva de lo persistido (ids desconocidos descartados, forma
+// inesperada → valor por defecto) vive en `resolveModuleIds`, no aquí — este
+// tipo solo fija la forma, igual que `HeroSelection` con `resolvePlayerSlots`.
 export interface HeroSelection {
   villainId: string | null
   heroes: { heroId: string | null, playerName: string }[]
+  moduleIds?: string[]
 }
 
 // D-09/D-12 (Fase 7): estado de los contadores en mesa. `.planning/research/

@@ -271,6 +271,37 @@ describe('resolveVillainId', () => {
   })
 })
 
+// Quick 260925-mpj (D-05): regla de moduleIds al cambiar de villano. Estas
+// pruebas construyen `moduleIds` a mano sobre la `selection` (sin pasar por
+// `engine/encounterSets.ts`, cubierto aparte en encounterSets.test.ts) para
+// verificar el contrato de `setVillain` en aislamiento.
+describe('setVillain: moduleIds (quick 260925-mpj, D-05)', () => {
+  it('cambiar de villano (rhino a klaw) descarta moduleIds de la selección anterior', () => {
+    const withRhino = setVillain(baseSession(), 'rhino')
+    const withModules = {
+      ...withRhino,
+      context: { ...withRhino.context, selection: { ...withRhino.context.selection!, moduleIds: ['legions-of-hydra'] } },
+    }
+    const result = setVillain(withModules, 'klaw')
+    expect(result.context.selection!.moduleIds).toBeUndefined()
+  })
+
+  it('tocar el mismo villano (rhino a rhino) conserva moduleIds', () => {
+    const withRhino = setVillain(baseSession(), 'rhino')
+    const withModules = {
+      ...withRhino,
+      context: { ...withRhino.context, selection: { ...withRhino.context.selection!, moduleIds: ['legions-of-hydra'] } },
+    }
+    const result = setVillain(withModules, 'rhino')
+    expect(result.context.selection!.moduleIds).toEqual(['legions-of-hydra'])
+  })
+
+  it('sin selection previa, elegir un villano por primera vez no declara moduleIds', () => {
+    const result = setVillain(baseSession(), 'rhino')
+    expect(result.context.selection!.moduleIds).toBeUndefined()
+  })
+})
+
 describe('emptySelection', () => {
   it('construye tantos huecos vacíos como playerCount', () => {
     expect(emptySelection(3)).toEqual({

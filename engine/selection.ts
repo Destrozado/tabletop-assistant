@@ -82,13 +82,32 @@ export function resolveVillainId(context: SessionContext): string | null {
 // `emptySelection(playerCount)`. Conserva `heroes` normalizado a la
 // longitud de `playerCount` (vía `resolvePlayerSlots`), de modo que un
 // array persistido corrupto se sanee al primer cambio.
+//
+// D-05 (quick 260925-mpj): regla de `moduleIds` al cambiar de villano — si
+// el `villainId` nuevo es DISTINTO del actual (`resolveVillainId`),
+// `moduleIds` NO se copia a la selección nueva, así que
+// `resolveModuleIds` (engine/encounterSets.ts) volverá a resolver el
+// recomendado del villano nuevo la próxima vez que se lea. Si es el MISMO
+// villano (incluida la idempotencia de tocar el ya elegido), `moduleIds` se
+// conserva tal cual estuviera (personalizado o ausente) — cambiar de
+// villano y volver al mismo no debe perder la personalización. No se
+// importa `engine/encounterSets.ts` desde aquí para evitar un ciclo:
+// `encounterSets.ts` importa de este módulo, no al revés.
 export function setVillain(session: EngineSession, villainId: string | null): EngineSession {
   const heroes = resolvePlayerSlots(session.context)
+  const current = session.context.selection
+  const isSameVillain = resolveVillainId(session.context) === villainId
+  const moduleIds = isSameVillain && current !== null && typeof current === 'object' && Array.isArray(current.moduleIds)
+    ? current.moduleIds
+    : undefined
+  const selection: HeroSelection = moduleIds !== undefined
+    ? { villainId, heroes, moduleIds }
+    : { villainId, heroes }
   return {
     ...session,
     context: {
       ...session.context,
-      selection: { villainId, heroes },
+      selection,
     },
   }
 }

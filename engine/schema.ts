@@ -77,11 +77,12 @@ const StepSchema = TextBlockSchema.extend({
   // diferencia de `warningDetail`/`optionsWarningDetail`, es un flag
   // solitario sin campo dependiente que pueda quedar huérfano.
   selection: z.enum(['characters']).optional(),
-  // D-01/D-02 (Fase 8): mismo enum que `StepValueKind` en engine/types.ts,
+  // D-01/D-02 (Fase 8), ampliado en el quick 260925-mpj con
+  // 'encounterSets': mismo enum que `StepValueKind` en engine/types.ts,
   // literal por literal. Flag solitario sin campo dependiente que pueda
   // quedar huérfano, igual que `selection` — no necesita regla en
   // `superRefine`.
-  value: z.enum(['villainHealth', 'heroHealth', 'handSizeAlterEgo']).optional(),
+  value: z.enum(['villainHealth', 'heroHealth', 'handSizeAlterEgo', 'encounterSets']).optional(),
   variants: z.strictObject({
     difficulty: z.strictObject({
       normal: TextBlockSchema.partial().optional(),

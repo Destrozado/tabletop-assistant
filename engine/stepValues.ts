@@ -1,7 +1,11 @@
 // engine/stepValues.ts
-// Resuelve, para un paso que declara `value` (Fase 8), la cifra conocida a
-// pintar en pantalla: un único número de mesa para `villainHealth`, o una
-// fila por jugador para `heroHealth`/`handSizeAlterEgo`. Módulo puro,
+// Resuelve, para un paso que declara `value` (Fase 8, ampliado en el quick
+// 260925-mpj), el dato conocido a pintar en pantalla: un único número de
+// mesa para `villainHealth`, una fila por jugador para
+// `heroHealth`/`handSizeAlterEgo`, o una LÍNEA DE TEXTO para
+// `encounterSets` (`resolveStepValueText`, quick 260925-mpj D-07) — tercera
+// forma de salida, hermana de las dos anteriores, que delega en
+// `resolveEncounterSetNames` (engine/encounterSets.ts). Módulo puro,
 // hermano estructural de engine/selection.ts y engine/counters.ts: cero
 // imports de Vue/Nuxt/DOM.
 //
@@ -26,6 +30,7 @@
 // Alter-Ego boca arriba, así que la cifra correcta durante el setup es la
 // de esa cara. Spider-Man muestra 6 (Alter-Ego), no 5 (Héroe).
 import { computeInitialHeroHealth, computeInitialVillainHealth } from './counters'
+import { resolveEncounterSetNames } from './encounterSets'
 import { resolvePlayerSlots, resolveVillainId } from './selection'
 import type { CharacterCatalogue, SessionContext } from './types'
 
@@ -118,4 +123,24 @@ export function resolveStepValueRows(
   })
 
   return rows
+}
+
+// Línea de texto (D-07, quick 260925-mpj): forma de salida distinta de las
+// dos de arriba — ni un número de mesa ni una fila por jugador, una frase
+// ya unida con « · ». Solo `encounterSets` produce algo aquí; comparación de
+// igualdad estricta contra el literal, mismo razonamiento que
+// `resolveStepValue` (`kind` llega como JSON crudo, sin pasar por el
+// validador de esquema en ejecución). Sin ningún nombre que unir (D-07: sin
+// villano y sin módulos), `null` — no una cadena vacía — para que
+// StepScreen.vue no renderice el bloque en absoluto (mismo criterio que
+// `stepValueRows` con `null`).
+export function resolveStepValueText(
+  kind: string | null | undefined,
+  context: SessionContext,
+  catalogue: CharacterCatalogue | null,
+): string | null {
+  if (kind !== 'encounterSets') return null
+
+  const names = resolveEncounterSetNames(context, catalogue)
+  return names.length ? names.join(' · ') : null
 }

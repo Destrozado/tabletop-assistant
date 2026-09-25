@@ -85,6 +85,7 @@
               "id": "setup.encuentros.01",
               "title": "Reunir conjuntos de encuentro",
               "kind": "step",
+              "value": "encounterSets",
               "text": "Reunid los conjuntos de encuentro indicados en el Plan Principal, cara 1A.",
               "speech": "Reunid los conjuntos de encuentro que indique el Plan Principal, cara 1A.",
               "citation": {

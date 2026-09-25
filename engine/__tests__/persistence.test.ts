@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { resolveCounters, resolveCounterValues } from '../counters'
+import { resolveModuleIds } from '../encounterSets'
 import { expand } from '../expand'
 import { next } from '../navigator'
 import { resume, toPersistedPosition } from '../persistence'
@@ -289,6 +290,43 @@ describe('D-21: resume() de una sesión persistida con forma de v1.7 (sin select
     counters.heroHealth.forEach((entry) => {
       expect(entry === null || (Number.isInteger(entry) && !Number.isNaN(entry) && entry >= 0)).toBe(true)
     })
+  })
+})
+
+// Quick 260925-mpj (D-06): moduleIds sobrevive a resume() igual que
+// villainId/heroes (D-20) — es el mismo `context.selection` que ya viaja
+// entero dentro de `toPersistedPosition`/`resume()`, sin fontanería nueva.
+describe('quick 260925-mpj: resume() y moduleIds', () => {
+  const fresh = expand(marvelChampions, { playerCount: 2, difficulty: 'expert' })
+
+  it('una posición guardada sin moduleIds (villano ultron): outcome "resumed" y resolveModuleIds da el recomendado ["under-attack"]', () => {
+    const persisted: PersistedPosition = {
+      formatVersion: 1,
+      gameId: 'marvel-champions',
+      contentVersion: marvelChampions.contentVersion,
+      runtimeId: fresh.sequence[0].runtimeId,
+      round: 1,
+      context: { playerCount: 2, difficulty: 'expert', selection: { villainId: 'ultron', heroes: [] } },
+      updatedAt: '2026-09-25T00:00:00.000Z',
+    }
+    const { session, outcome } = resume(persisted, fresh)
+    expect(outcome).toBe('resumed')
+    expect(resolveModuleIds(session.context, catalogue)).toEqual(['under-attack'])
+  })
+
+  it('con moduleIds ["legions-of-hydra"] persistido: se conserva tras resume()', () => {
+    const persisted: PersistedPosition = {
+      formatVersion: 1,
+      gameId: 'marvel-champions',
+      contentVersion: marvelChampions.contentVersion,
+      runtimeId: fresh.sequence[0].runtimeId,
+      round: 1,
+      context: { playerCount: 2, difficulty: 'expert', selection: { villainId: 'ultron', heroes: [], moduleIds: ['legions-of-hydra'] } },
+      updatedAt: '2026-09-25T00:00:00.000Z',
+    }
+    const { session, outcome } = resume(persisted, fresh)
+    expect(outcome).toBe('resumed')
+    expect(resolveModuleIds(session.context, catalogue)).toEqual(['legions-of-hydra'])
   })
 })
 

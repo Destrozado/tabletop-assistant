@@ -216,6 +216,17 @@ describe('content/marvel-champions.json', () => {
     }
   })
 
+  // Quick 260925-mpj (D-07): setup.encuentros.01 gana `value: 'encounterSets'`
+  // sin tocar ningún `speech` ni `text` — el gate voice-drift del threat
+  // model de este quick depende de que este test siga verde.
+  it('quick 260925-mpj: setup.encuentros.01 declara value "encounterSets"; text y speech intactos; contentVersion sigue en 14', () => {
+    const step = findStep(marvelChampions, 'setup.encuentros.01')
+    expect(step.value).toBe('encounterSets')
+    expect(step.text).toBe('Reunid los conjuntos de encuentro indicados en el Plan Principal, cara 1A.')
+    expect(step.speech).toBe('Reunid los conjuntos de encuentro que indique el Plan Principal, cara 1A.')
+    expect(marvelChampions.contentVersion).toBe(14)
+  })
+
   it('exactamente 2 pasos declaran variants.difficulty, ambos con normal y expert (ADAPT-01)', () => {
     const steps = allSteps(marvelChampions)
     const varied = steps.filter(s => s.variants?.difficulty)

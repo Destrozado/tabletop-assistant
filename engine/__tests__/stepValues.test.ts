@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { resolveStepValue, resolveStepValueRows } from '../stepValues'
+import { resolveStepValue, resolveStepValueRows, resolveStepValueText } from '../stepValues'
 import type { CharacterCatalogue, SessionContext } from '../types'
 
 const catalogueContentPath = fileURLToPath(new URL('../../content/marvel-characters.json', import.meta.url))
@@ -192,6 +192,35 @@ describe('Batería defensiva (calcada de resolveCounters/resolvePlayerSlots)', (
     expect(() => resolveStepValueRows('heroHealth', ctx, null)).not.toThrow()
     expect(resolveStepValue('villainHealth', ctx, null)).toBeNull()
     expect(resolveStepValueRows('heroHealth', ctx, null)).toEqual([])
+  })
+})
+
+// Quick 260925-mpj (D-07): resolveStepValueText produce la línea de
+// conjuntos a reunir para el kind 'encounterSets' — cobertura mínima aquí
+// (resolveEncounterSetNames ya tiene su propia suite en
+// engine/__tests__/encounterSets.test.ts).
+describe("resolveStepValueText (D-07) — 'encounterSets' produce una línea, cualquier otro kind da null", () => {
+  it("rhino en Experto sin personalizar: 'Rino · Normal · Experto · Amenaza de bomba'", () => {
+    const ctx = contextWith(2, 'rhino', [null, null], { difficulty: 'expert' })
+    expect(resolveStepValueText('encounterSets', ctx, catalogue)).toBe('Rino · Normal · Experto · Amenaza de bomba')
+  })
+
+  it('sin nombres que unir: null', () => {
+    const ctx: SessionContext = { playerCount: 2, difficulty: 'normal' }
+    expect(resolveStepValueText('encounterSets', ctx, catalogue)).toBeNull()
+  })
+
+  it('cualquier otro kind (incluidos villainHealth/heroHealth/handSizeAlterEgo/undefined/null) da null', () => {
+    const ctx = contextWith(3, 'rhino', ['thor', 'she-hulk', 'spider-man'])
+    for (const kind of ['villainHealth', 'heroHealth', 'handSizeAlterEgo', undefined, null] as const) {
+      expect(resolveStepValueText(kind, ctx, catalogue)).toBeNull()
+    }
+  })
+
+  it('resolveStepValue y resolveStepValueRows con "encounterSets" devuelven null y []', () => {
+    const ctx = contextWith(2, 'rhino', [null, null], { difficulty: 'expert' })
+    expect(resolveStepValue('encounterSets', ctx, catalogue)).toBeNull()
+    expect(resolveStepValueRows('encounterSets', ctx, catalogue)).toEqual([])
   })
 })
 
