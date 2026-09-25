@@ -26,7 +26,7 @@ import { useCharacterCatalogue } from '~/composables/useCharacterCatalogue'
 import { useGameContent } from '~/composables/useGameContent'
 import { buildDiscardBody, buildEndGameBody } from '~/composables/useGameEndCopy'
 import { useGameHistory } from '~/composables/useGameHistory'
-import { useGameSession } from '~/composables/useGameSession'
+import { buildModulesValueLabel, useGameSession } from '~/composables/useGameSession'
 import {
   buildDuplicateWarningText,
   buildHeroOptions,
@@ -86,6 +86,11 @@ const {
   setVillain,
   setHero,
   setPlayerName,
+  moduleOptions,
+  selectedModuleIds,
+  baseSetLabels,
+  toggleModule,
+  stepValueLine,
   showsCounterBand,
   counterCells,
   stepValueSuffix,
@@ -375,7 +380,7 @@ function onDismissDetail() {
 // estado imposible «los dos abiertos», exactamente el mismo razonamiento
 // que el comentario de `activeDetail` de arriba ya documenta para sus dos
 // disparadores.
-const activeSelectionModal = ref<{ kind: 'villain' } | { kind: 'player', slot: number } | null>(null)
+const activeSelectionModal = ref<{ kind: 'villain' } | { kind: 'modules' } | { kind: 'player', slot: number } | null>(null)
 const selectionTriggerEl = ref<HTMLElement | null>(null)
 
 // D-45: abrir un modal de selección ni locuta ni corta la locución en
@@ -388,6 +393,11 @@ function onSelectRow(key: string) {
   selectionTriggerEl.value = document.activeElement as HTMLElement | null
   if (key === 'villain') {
     activeSelectionModal.value = { kind: 'villain' }
+    return
+  }
+  // Quick 260925-mpj (D-04): fila «Módulos», justo después de «Villano».
+  if (key === 'modules') {
+    activeSelectionModal.value = { kind: 'modules' }
     return
   }
   const match = /^player-(\d+)$/.exec(key)
@@ -456,6 +466,13 @@ const selectionRows = computed(() => {
   if (!showsSelectionGrid.value) return null
 
   const villainOption = findVillainOption(villainOptions, selectedVillainId.value)
+  // Quick 260925-mpj (D-04): fila «Módulos» justo después de «Villano» —
+  // los nombres son los de `moduleOptions` (ya en orden de
+  // orderModulesForVillain) filtrados por los ids elegidos, en ese mismo
+  // orden.
+  const selectedModuleNames = moduleOptions.value
+    .filter(option => selectedModuleIds.value.includes(option.id))
+    .map(option => option.name)
   const rows = [
     {
       key: 'villain',
@@ -463,6 +480,13 @@ const selectionRows = computed(() => {
       valueLabel: villainOption?.name ?? '—',
       hasValue: villainOption !== null,
       ariaLabel: 'Elegir villano',
+    },
+    {
+      key: 'modules',
+      label: 'Módulos',
+      valueLabel: buildModulesValueLabel(selectedModuleNames),
+      hasValue: selectedModuleIds.value.length > 0,
+      ariaLabel: 'Elegir módulos',
     },
   ]
 
@@ -999,6 +1023,7 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         :duplicate-warning-text="duplicateWarningText"
         :step-value-suffix="stepValueSuffix"
         :step-value-rows="stepValueRows"
+        :step-value-line="stepValueLine"
         @open-warning-detail="onOpenWarningDetail"
         @open-option-detail="onOpenOptionDetail"
         @open-options-warning-detail="onOpenOptionsWarningDetail"
@@ -1044,6 +1069,14 @@ useStepShortcuts(atajosActivos, { onNext, onBack })
         :villains="villainOptions"
         :selected-id="selectedVillainId"
         @select="onSelectVillain"
+        @dismiss="onDismissSelectionModal"
+      />
+      <ModulePickerModal
+        v-if="activeSelectionModal?.kind === 'modules'"
+        :base-sets="baseSetLabels"
+        :modules="moduleOptions"
+        :selected-ids="selectedModuleIds"
+        @toggle="toggleModule"
         @dismiss="onDismissSelectionModal"
       />
       <PlayerModal

@@ -50,11 +50,17 @@ withDefaults(defineProps<{
   // paso no declara `value` o no hay ninguna fila conocida (VAL-03/D-15):
   // el bloque entero no existe en el DOM, no es que exista vacío.
   stepValueRows?: { key: string, label: string, value: number }[] | null
+  // D-07 (quick 260925-mpj): línea ya resuelta por el llamante (join ' · ')
+  // para el kind 'encounterSets' — no pulsable (D-32: sin afordancia, es
+  // información, no una acción). `null` cuando el paso no declara `value`
+  // 'encounterSets' o no hay nada que reunir (sin villano ni módulos).
+  stepValueLine?: string | null
 }>(), {
   selectionRows: null,
   duplicateWarningText: null,
   stepValueSuffix: null,
   stepValueRows: null,
+  stepValueLine: null,
 })
 
 const emit = defineEmits<{
@@ -75,6 +81,11 @@ const emit = defineEmits<{
            `?? ''` deja el texto renderizado idéntico, carácter por
            carácter, al de antes de esta fase. -->
       <p class="text-display font-bold text-primary-text">{{ actionText }}{{ stepValueSuffix ?? '' }}</p>
+
+      <!-- D-07 (quick 260925-mpj): línea de conjuntos de encuentro a
+           reunir, justo debajo de la frase grande — no pulsable (D-32),
+           interpolación de texto, nunca HTML crudo (T-01-01). -->
+      <p v-if="stepValueLine" class="text-heading font-bold text-primary-text">{{ stepValueLine }}</p>
 
       <!-- D-01/D-02 (Fase 6): rejilla de selección de villano/héroes. Fila
            tonta reutilizada literalmente del bloque `options` de abajo

@@ -139,8 +139,11 @@ describe('buildHeroOptions', () => {
 describe('buildVillainOptions', () => {
   const villainOptions = buildVillainOptions(marvelCharacters.villains)
 
-  it('devuelve 3 opciones ordenadas por name', () => {
-    expect(villainOptions.length).toBe(3)
+  // Quick 260925-mpj: Klaw entra al catálogo (D-02), así que el recuento ya
+  // no es fijo — se deriva del propio fichero real (CAT-07), nunca tecleado
+  // a mano, para que comprar una caja nueva no obligue a tocar este test.
+  it('devuelve tantas opciones como villanos en el catálogo, ordenadas por name', () => {
+    expect(villainOptions.length).toBe(marvelCharacters.villains.length)
     const sortedCopy = [...villainOptions].sort((a, b) => a.name.localeCompare(b.name, 'es'))
     expect(villainOptions.map(v => v.id)).toEqual(sortedCopy.map(v => v.id))
   })

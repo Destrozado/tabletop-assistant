@@ -6,9 +6,16 @@
 // vitest.config.ts), con los alias `~`/`~~` resueltos a mano igual que en
 // useHeroSearch.test.ts.
 import { describe, expect, it } from 'vitest'
-import { buildCounterCells, buildStepValueCells, buildStepValueSuffix, withStartedAt } from '../useGameSession'
+import {
+  buildBaseSetLabels,
+  buildCounterCells,
+  buildModulesValueLabel,
+  buildStepValueCells,
+  buildStepValueSuffix,
+  withStartedAt,
+} from '../useGameSession'
 import type { CounterCell } from '../useGameSession'
-import type { CounterState, SessionContext } from '~~/engine/types'
+import type { CatalogueBaseSets, CounterState, SessionContext } from '~~/engine/types'
 import type { StepValueRow } from '~~/engine/stepValues'
 
 function slots(...playerNames: string[]): { heroId: string | null, playerName: string }[] {
@@ -183,6 +190,41 @@ describe('buildStepValueCells (D-09/D-14)', () => {
       expect(cell.label).not.toContain('—')
       expect(String(cell.value)).not.toContain('—')
     }
+  })
+})
+
+// Quick 260925-mpj (D-04): funciones puras de la fila «Módulos» y del modal
+// «Módulos» — el cableado reactivo (moduleOptions/selectedModuleIds/
+// baseSetLabels/toggleModule) queda fuera del test a propósito, mismo
+// criterio que el resto del fichero.
+describe('buildModulesValueLabel (D-04)', () => {
+  it('sin ningún módulo elegido: «—» (em dash)', () => {
+    expect(buildModulesValueLabel([])).toBe('—')
+  })
+
+  it('un módulo elegido: su nombre tal cual', () => {
+    expect(buildModulesValueLabel(['Amenaza de bomba'])).toBe('Amenaza de bomba')
+  })
+
+  it('dos o más módulos: unidos por ", "', () => {
+    expect(buildModulesValueLabel(['Amenaza de bomba', 'Legiones de Hydra'])).toBe('Amenaza de bomba, Legiones de Hydra')
+  })
+})
+
+describe('buildBaseSetLabels (D-04)', () => {
+  const baseSets: CatalogueBaseSets = { standard: 'Normal', expert: 'Experto' }
+
+  it('dificultad normal: solo «Normal»', () => {
+    expect(buildBaseSetLabels(baseSets, 'normal')).toEqual(['Normal'])
+  })
+
+  it('dificultad expert: «Normal» y «Experto»', () => {
+    expect(buildBaseSetLabels(baseSets, 'expert')).toEqual(['Normal', 'Experto'])
+  })
+
+  it('baseSets null: []', () => {
+    expect(buildBaseSetLabels(null, 'normal')).toEqual([])
+    expect(buildBaseSetLabels(null, 'expert')).toEqual([])
   })
 })
 

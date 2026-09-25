@@ -13,6 +13,12 @@ import {
   incrementVillain as engineIncrementVillain,
   resolveCounterValues,
 } from '~~/engine/counters'
+import {
+  orderModulesForVillain,
+  resolveModuleIds,
+  toggleModule as engineToggleModule,
+  type ModuleOption,
+} from '~~/engine/encounterSets'
 import { expand } from '~~/engine/expand'
 import { describeHeader } from '~~/engine/header'
 import { jumpTo as engineJumpTo, next as engineNext, prev as enginePrev } from '~~/engine/navigator'
@@ -24,8 +30,8 @@ import {
   setPlayerName as engineSetPlayerName,
   setVillain as engineSetVillain,
 } from '~~/engine/selection'
-import { resolveStepValue, resolveStepValueRows, type StepValueRow } from '~~/engine/stepValues'
-import type { CounterState, EngineSession, RuntimeStepNode, SessionContext, TextBlock } from '~~/engine/types'
+import { resolveStepValue, resolveStepValueRows, resolveStepValueText, type StepValueRow } from '~~/engine/stepValues'
+import type { CatalogueBaseSets, CounterState, EngineSession, RuntimeStepNode, SessionContext, TextBlock } from '~~/engine/types'
 import { useCharacterCatalogue } from './useCharacterCatalogue'
 import { useGameContent } from './useGameContent'
 import { resolvePlayerLabel } from './useHeroSearch'
@@ -120,6 +126,23 @@ export function buildStepValueCells(rows: StepValueRow[]): StepValueCell[] {
     label: `${resolvePlayerLabel(row.slot, row.playerName)} · ${row.heroName}`,
     value: row.value,
   }))
+}
+
+// buildModulesValueLabel (quick 260925-mpj, D-04): valor de la fila
+// «Módulos» de la rejilla de selección — nombres ya unidos por ', ', o «—»
+// (em dash, mismo carácter que el resto de la rejilla) sin ninguno elegido.
+// Función PURA, sin Vue, mismo estilo que `buildCounterCells`/
+// `buildStepValueCells` de arriba.
+export function buildModulesValueLabel(names: string[]): string {
+  return names.length ? names.join(', ') : '—'
+}
+
+// buildBaseSetLabels (quick 260925-mpj, D-04): etiquetas informativas de
+// los sets base para el modal «Módulos» — «Normal» siempre, «Experto» solo
+// en dificultad Experta. `baseSets` `null` (catálogo ausente) → `[]`.
+export function buildBaseSetLabels(baseSets: CatalogueBaseSets | null, difficulty: SessionContext['difficulty']): string[] {
+  if (baseSets === null) return []
+  return difficulty === 'expert' ? [baseSets.standard, baseSets.expert] : [baseSets.standard]
 }
 
 // withStartedAt (D-07, Fase 9): función PURA a nivel de módulo, igual estilo
@@ -260,6 +283,47 @@ export function useGameSession() {
 
   const selectedVillainId = computed(() => (session.value ? resolveVillainId(session.value.context) : null))
 
+  // moduleOptions/selectedModuleIds/baseSetLabels (quick 260925-mpj,
+  // D-04/D-07): costura reactiva de engine/encounterSets.ts, mismo patrón
+  // que playerSlots/selectedVillainId de arriba — ninguna decide nada por
+  // su cuenta, solo leen el motor con el catálogo y el villano/dificultad
+  // actuales.
+  const moduleOptions = computed<ModuleOption[]>(() => {
+    if (!session.value) return []
+    const catalogue = getCatalogue(session.value.gameId)
+    return orderModulesForVillain(catalogue, resolveVillainId(session.value.context))
+  })
+
+  const selectedModuleIds = computed<string[]>(() => {
+    if (!session.value) return []
+    const catalogue = getCatalogue(session.value.gameId)
+    return resolveModuleIds(session.value.context, catalogue)
+  })
+
+  const baseSetLabels = computed<string[]>(() => {
+    if (!session.value) return []
+    const catalogue = getCatalogue(session.value.gameId)
+    return buildBaseSetLabels(catalogue?.baseSets ?? null, session.value.context.difficulty)
+  })
+
+  // toggleModule (D-06): guarda + UNA reasignación de `session.value`, mismo
+  // contrato que setVillain/setHero/setPlayerName de arriba.
+  function toggleModule(moduleId: string) {
+    if (!session.value) return
+    const catalogue = getCatalogue(session.value.gameId)
+    session.value = engineToggleModule(session.value, moduleId, catalogue)
+  }
+
+  // stepValueLine (D-07): línea de texto de la costura de
+  // `engine/stepValues.ts` para el kind 'encounterSets' — hermana de
+  // stepValueSuffix/stepValueRows de más abajo, misma disciplina de leer
+  // `currentNode.value?.step.value` sin comparar contra ningún id de paso.
+  const stepValueLine = computed<string | null>(() => {
+    if (!session.value) return null
+    const catalogue = getCatalogue(session.value.gameId)
+    return resolveStepValueText(currentNode.value?.step.value, session.value.context, catalogue)
+  })
+
   // showsCounterBand (D-07/TECH-04): se deriva del flag `sectionRepeats`
   // del motor —igualdad estricta a propósito, mismo motivo que
   // `showsSelectionGrid`— y NUNCA compara contra el id de contenido del
@@ -357,6 +421,11 @@ export function useGameSession() {
     setVillain,
     setHero,
     setPlayerName,
+    moduleOptions,
+    selectedModuleIds,
+    baseSetLabels,
+    toggleModule,
+    stepValueLine,
     showsCounterBand,
     counterCells,
     stepValueSuffix,
