@@ -271,11 +271,16 @@ export interface EngineSession {
 // Los cuatro campos planos (`stage`, `health`, `healthPerHero`,
 // `healthPerGroup`) son las cifras del set de villano ESTÁNDAR del
 // escenario. `expert` —quinto campo, opcional y al final— lleva las cifras
-// del set de villano de MODO EXPERTO cuando el escenario trae uno (Kang:
-// `card_set_code` `exp_kang`, 15/22/25 frente a 12/18/20 estándar). Su
-// ausencia es un hecho del dominio, no un dato pendiente: significa que el
-// modo Experto de ese escenario no sustituye las cartas de villano
-// numeradas (caso de Rhino y Ultron, villanos del Core Set).
+// del set de villano de MODO EXPERTO cuando el escenario trae uno propio,
+// con cifras distintas de las etapas normales (Kang: `card_set_code`
+// `exp_kang`, 15/22/25 frente a 12/18/20 estándar). Su ausencia significa
+// que ese escenario no trae un set de villano Experto con cifras propias —
+// NO que el modo Experto no cambie nada: Rhino y Ultron (Core Set) sí
+// cambian de etapa en Experto (cara 1A del plan principal: "Rhino (II) and
+// Rhino (III) instead for expert mode."; RR v1.7 p.28, "listed expert mode
+// villain stages"), pero lo hacen reutilizando sus propias etapas II y
+// III, sin cifras Expertas nuevas. Ese caso se modela con
+// `expertStartStage` en `CatalogueVillain`, no con `expert` en la etapa.
 //
 // `expert` vive en la ETAPA y no en el villano porque las banderas difieren
 // por etapa dentro del mismo villano en los dos sets (Kang I true / II
@@ -326,10 +331,19 @@ export interface CatalogueHero {
 // `name` lo declara el script, no se lee de la carta de etapa — la etapa II
 // de Kang tiene cuatro alternativas narrativas con nombres distintos y
 // cifras idénticas.
+//
+// `expertStartStage` (opcional): etapa (1..n) con la que empieza la
+// partida en modo Experto, según la cara 1A del plan principal ("listed
+// expert mode villain stages", RR v1.7 p.28). Ausente = 1 (arranca en la
+// etapa I, igual que en Normal). Rhino y Ultron: 2 (etapa II). Kang: no
+// hace falta declararlo porque su Experto no cambia de etapa, va con sus
+// propias cifras `expert` en la etapa I — aun así el script lo anota
+// explícitamente en 1 (dato explícito, no implícito).
 export interface CatalogueVillain {
   id: string
   name: string
   stages: VillainStage[]
+  expertStartStage?: number
 }
 
 export interface CharacterCatalogue {

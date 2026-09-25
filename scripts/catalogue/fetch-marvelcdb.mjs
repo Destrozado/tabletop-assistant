@@ -39,13 +39,19 @@
 //    correspondientes a `VILLAIN_STAGE_CARDS` (para un villano), con su
 //    `code` y su `expectedName` (o `villainName`/`stage`/`expectedSetCode`
 //    para una etapa de villano). Si el escenario del villano nuevo trae un
-//    set de villano de modo Experto (`card_set_code` alternativo con salud
-//    más alta), la misma fila de etapa gana además `expertCode` (el `code`
-//    de la carta Experto de esa etapa) y `expectedExpertSetCode` (su
-//    `card_set_code`) — los dos juntos o ninguno. Si el escenario no trae
-//    modo Experto, se dejan fuera y la etapa sale del catálogo sin clave
-//    `expert` (caso de Rhino y Ultron: villanos del Core Set sin set
-//    alternativo).
+//    set de villano de modo Experto con cifras propias (`card_set_code`
+//    alternativo con salud más alta), la misma fila de etapa gana además
+//    `expertCode` (el `code` de la carta Experto de esa etapa) y
+//    `expectedExpertSetCode` (su `card_set_code`) — los dos juntos o
+//    ninguno. Si el escenario no trae ese set alternativo con cifras
+//    propias, se dejan fuera y la etapa sale del catálogo sin clave
+//    `expert` (caso de Rhino y Ultron: no tienen cifras Expertas propias,
+//    aunque sí cambian de etapa en Experto — ver VILLAIN_SCENARIOS).
+// 1b. Para un villano nuevo, añadir también una fila a `VILLAIN_SCENARIOS`
+//    con `expertStartStage` (la etapa con la que empieza la partida en
+//    Experto, comprobada contra la carta 1A del plan principal por
+//    `checkExpertStartStage`). Si el escenario no dice nada especial para
+//    Experto, `expertStartStage: 1`.
 // 2. Ejecutar `npm run catalogue:generate`.
 // 3. Revisar el diff de `content/marvel-characters.json` — debe añadir
 //    exactamente la fila nueva, sin tocar nada más (D-10).
@@ -131,10 +137,11 @@ const HERO_CARDS = [
 // Rama-Tut, 11038 Scarlet Centurion) con 22/false/false idénticos; se declara
 // 11035 como representante, igual que 11002 en el set estándar, sin impacto
 // numérico. Un villano SIN `expertCode` sale del catálogo sin ninguna clave
-// `expert` — eso significa "el modo Experto de este escenario no sustituye
-// sus cartas numeradas" (Rhino, Ultron), no "dato pendiente". Esta es la
-// decisión explícita que 05-RESEARCH.md dejaba abierta al calificar
-// `exp_kang` de fuera de alcance salvo decisión futura explícita.
+// `expert` en esa etapa — eso significa "esta etapa no tiene cifras propias
+// de un set de villano Experto" (Rhino, Ultron: sus etapas nunca la
+// tienen), no "dato pendiente". Esta es la decisión explícita que
+// 05-RESEARCH.md dejaba abierta al calificar `exp_kang` de fuera de
+// alcance salvo decisión futura explícita.
 const VILLAIN_STAGE_CARDS = [
   { villainName: 'Rhino', code: '01094', stage: 1, expectedSetCode: 'rhino' },
   { villainName: 'Rhino', code: '01095', stage: 2, expectedSetCode: 'rhino' },
@@ -150,6 +157,34 @@ const VILLAIN_STAGE_CARDS = [
   { villainName: 'Ultron', code: '01134', stage: 1, expectedSetCode: 'ultron' },
   { villainName: 'Ultron', code: '01135', stage: 2, expectedSetCode: 'ultron' },
   { villainName: 'Ultron', code: '01136', stage: 3, expectedSetCode: 'ultron' },
+]
+
+// VILLAIN_SCENARIOS — una fila por villano (mismo orden que VILLAIN_STAGE_CARDS:
+// rhino, kang, ultron), dato a mano de la etapa con la que empieza la
+// partida en modo Experto (`expertStartStage`). Es dato A MANO, no
+// derivado, porque el texto libre de la carta ("Rhino (II) and Rhino (III)
+// instead for expert mode.") es frágil para parsear con confianza — la
+// carta se usa solo como COMPROBACIÓN CRUZADA (`checkExpertStartStage`) del
+// valor ya anotado aquí, nunca como fuente. Si la comprobación no coincide,
+// `main()` aborta sin escribir nada (D-05).
+//
+// `mainSchemeCode`/`expectedMainSchemeName`/`expectedSetCode` identifican la
+// cara 1A del plan principal de ese escenario (`type_code: main_scheme`),
+// distinta de las cartas de etapa de villano de VILLAIN_STAGE_CARDS.
+//
+// Rhino y Ultron (Core Set): `expertStartStage: 2` — la partida empieza en
+// la etapa II en Experto, reutilizando sus propias cifras de esa etapa (sin
+// set de villano Experto con cifras propias, por eso sus etapas nunca
+// llevan `expert`).
+// Kang: `expertStartStage: 1` — su Experto no cambia de etapa, va con las
+// cifras propias del set `exp_kang` en la etapa I (ya modelado con
+// `expert` por etapa); se anota explícitamente en 1 para que el dato sea
+// un hecho declarado, no un valor implícito por omisión.
+// Klaw sigue fuera del catálogo (D-02, exclusión deliberada del usuario).
+const VILLAIN_SCENARIOS = [
+  { villainName: 'Rhino', mainSchemeCode: '01097a', expectedMainSchemeName: 'The Break-In!', expectedSetCode: 'rhino', expertStartStage: 2 },
+  { villainName: 'Kang', mainSchemeCode: '11007a', expectedMainSchemeName: "Kang's Arrival", expectedSetCode: 'kang', expertStartStage: 1 },
+  { villainName: 'Ultron', mainSchemeCode: '01137a', expectedMainSchemeName: 'The Crimson Cowl', expectedSetCode: 'ultron', expertStartStage: 2 },
 ]
 
 // ── Funciones ────────────────────────────────────────────────────────────────
@@ -311,6 +346,60 @@ async function extractVillainStage({ villainName, code, stage, expectedSetCode, 
   return result
 }
 
+// Comprobación cruzada (T-m2k-01): el dato a mano de VILLAIN_SCENARIOS
+// manda; esta función solo confirma que sigue coincidiendo con el texto de
+// la cara 1A del plan principal en MarvelCDB. Nunca copia texto de carta al
+// catálogo (CAT-04) — el `text` de la carta solo se usa para comparar en
+// memoria dentro de esta función, y nada de él sale de aquí.
+async function checkExpertStartStage(row) {
+  const { villainName, mainSchemeCode, expectedMainSchemeName, expectedSetCode, expertStartStage } = row
+  const card = await fetchCard(mainSchemeCode)
+  if (card.type_code !== 'main_scheme') {
+    throw new Error(`Código ${mainSchemeCode} (${villainName}, plan principal): se esperaba type_code "main_scheme" pero la API devolvió "${card.type_code}"`)
+  }
+  if (card.name !== expectedMainSchemeName) {
+    throw new Error(`Código ${mainSchemeCode} (${villainName}, plan principal): se esperaba name "${expectedMainSchemeName}" pero la API devolvió "${card.name}"`)
+  }
+  if (card.card_set_code !== expectedSetCode) {
+    throw new Error(`Código ${mainSchemeCode} (${villainName}, plan principal): se esperaba card_set_code "${expectedSetCode}" pero la API devolvió "${card.card_set_code}"`)
+  }
+
+  // Quita etiquetas HTML (Ultron trae el fragmento envuelto en <i>...</i>)
+  // antes de buscar el patrón — ninguna etiqueta ni el texto en sí entra al
+  // catálogo, solo se usan aquí para comparar.
+  const text = (card.text ?? '').replace(/<[^>]+>/g, '')
+  // La retro-referencia \1 exige el MISMO nombre de villano en las dos
+  // etapas del paréntesis ("Rhino (II) and Rhino (III) instead for expert
+  // mode."), para no confundirse con el nombre de otro villano.
+  const expertModeRegex = /\(\s*(.+?) \((I{1,3})\) and \1 \((I{1,3})\) instead for expert mode\.?\s*\)/
+  const match = text.match(expertModeRegex)
+
+  if (expertStartStage === 1) {
+    // Sin sustitución de etapa en Experto (caso Kang, va con su propio set
+    // exp_kang): la carta NO debe traer la línea "instead for expert mode".
+    // Si la trae, el dato a mano quedó desfasado.
+    if (match) {
+      throw new Error(`Fila ${villainName}: expertStartStage a mano es 1 (sin cambio de etapa) pero la carta ${mainSchemeCode} SÍ trae una línea "instead for expert mode" ("${match[0]}") — el dato a mano está desfasado`)
+    }
+    return
+  }
+
+  if (!match) {
+    throw new Error(`Fila ${villainName}: expertStartStage a mano es ${expertStartStage} pero la carta ${mainSchemeCode} no trae ninguna línea "instead for expert mode" que lo respalde`)
+  }
+  const [fragment, matchedName, expertStageRoman] = match
+  if (matchedName !== villainName) {
+    throw new Error(`Fila ${villainName}: la línea de Experto de la carta ${mainSchemeCode} nombra a "${matchedName}", no a "${villainName}" ("${fragment}")`)
+  }
+  const mappedStage = STAGE_MAP[expertStageRoman]
+  if (mappedStage === undefined) {
+    throw new Error(`Fila ${villainName}: la carta ${mainSchemeCode} trae un valor de etapa Experta no mapeable ("${expertStageRoman}", fragmento "${fragment}")`)
+  }
+  if (mappedStage !== expertStartStage) {
+    throw new Error(`Fila ${villainName}: expertStartStage a mano es ${expertStartStage} pero la carta ${mainSchemeCode} dice etapa ${mappedStage} ("${fragment}")`)
+  }
+}
+
 function writeCatalogue(heroes, villains) {
   const catalogue = { gameId: GAME_ID, heroes, villains }
   // Sin ordenación alfabética (el orden es el declarado en HERO_CARDS /
@@ -319,14 +408,38 @@ function writeCatalogue(heroes, villains) {
 }
 
 async function main() {
-  // D-05/D-09: los 35 códigos (23 héroes + 9 etapas estándar + 3 etapas
-  // Experto de Kang) se resuelven EN MEMORIA COMPLETA antes de escribir
-  // nada. Solo si los 35 tuvieron éxito se llama a writeCatalogue. Ninguna
-  // escritura parcial de content/marvel-characters.json puede ocurrir jamás
-  // — diferencia deliberada respecto a scripts/voice/generate.mjs, que
-  // escribe incrementalmente (ese script es reanudable por diseño; este es
-  // todo o nada). Con el pacing de REQUEST_DELAY_MS (1500 ms) esto tarda
-  // ~53 s.
+  // D-05/D-09: los 38 códigos (23 héroes + 9 etapas estándar + 3 etapas
+  // Experto de Kang + 3 cartas de plan principal para checkExpertStartStage)
+  // se resuelven EN MEMORIA COMPLETA antes de escribir nada. Solo si los 38
+  // tuvieron éxito se llama a writeCatalogue. Ninguna escritura parcial de
+  // content/marvel-characters.json puede ocurrir jamás — diferencia
+  // deliberada respecto a scripts/voice/generate.mjs, que escribe
+  // incrementalmente (ese script es reanudable por diseño; este es todo o
+  // nada). Con el pacing de REQUEST_DELAY_MS (1500 ms) esto tarda ~57 s.
+
+  // Guarda previa a cualquier petición de red (D-05: fallar alto antes que
+  // gastar peticiones): el conjunto de villainName de VILLAIN_SCENARIOS y de
+  // VILLAIN_STAGE_CARDS debe coincidir exactamente, y expertStartStage debe
+  // ser un entero entre 1 y el número de etapas que ese villano declara.
+  const villainNamesFromStages = new Set(VILLAIN_STAGE_CARDS.map(row => row.villainName))
+  const villainNamesFromScenarios = new Set(VILLAIN_SCENARIOS.map(row => row.villainName))
+  for (const name of villainNamesFromStages) {
+    if (!villainNamesFromScenarios.has(name)) {
+      throw new Error(`VILLAIN_SCENARIOS no tiene ninguna fila para "${name}" (sí presente en VILLAIN_STAGE_CARDS)`)
+    }
+  }
+  for (const name of villainNamesFromScenarios) {
+    if (!villainNamesFromStages.has(name)) {
+      throw new Error(`VILLAIN_SCENARIOS tiene una fila para "${name}" que no existe en VILLAIN_STAGE_CARDS`)
+    }
+  }
+  for (const row of VILLAIN_SCENARIOS) {
+    const stageCount = VILLAIN_STAGE_CARDS.filter(s => s.villainName === row.villainName).length
+    if (!Number.isInteger(row.expertStartStage) || row.expertStartStage < 1 || row.expertStartStage > stageCount) {
+      throw new Error(`VILLAIN_SCENARIOS: "${row.villainName}" tiene expertStartStage ${row.expertStartStage}, fuera de rango 1..${stageCount}`)
+    }
+  }
+
   const heroes = []
   for (const row of HERO_CARDS) {
     heroes.push(await extractHero(row))
@@ -343,7 +456,23 @@ async function main() {
     }
     villainStagesById.get(id).stages.push(stage)
   }
-  const villains = villainOrder.map(id => villainStagesById.get(id))
+
+  // checkExpertStartStage compara el dato a mano contra la carta 1A del
+  // plan principal DESPUÉS de tener las etapas ya resueltas (para que un
+  // fallo de red temprano no oculte un dato a mano desfasado, y viceversa:
+  // los dos tipos de fallo abortan igual, sin escribir nada).
+  for (const row of VILLAIN_SCENARIOS) {
+    await checkExpertStartStage(row)
+  }
+
+  // expertStartStage se añade DESPUÉS de stages (orden de claves
+  // determinista, D-10), para TODOS los villanos — también Kang en 1, para
+  // que el dato quede explícito en vez de implícito por omisión.
+  const villains = villainOrder.map((id) => {
+    const villain = villainStagesById.get(id)
+    const scenario = VILLAIN_SCENARIOS.find(row => slugify(row.villainName) === id)
+    return { ...villain, expertStartStage: scenario.expertStartStage }
+  })
 
   writeCatalogue(heroes, villains)
   console.log(`Escritos ${heroes.length} héroes y ${villains.length} villanos en ${CATALOGUE_PATH}`)

@@ -245,12 +245,19 @@ describe('content/marvel-characters.json', () => {
       })
     })
 
-    // Rhino y Ultron son villanos del Core Set cuyo escenario no trae set
-    // de villano de modo Experto: la ausencia de expert es un hecho del
-    // dominio, no un dato pendiente. Esta lista de dos ids no rompe CAT-07:
-    // lo que este test prohíbe es fabricar cifras de Experto para estos
-    // dos, no que un villano futuro que sí traiga set Experto la tenga.
-    it('Rhino y Ultron: ninguna etapa lleva la clave expert', () => {
+    // Rhino y Ultron son villanos del Core Set cuyo escenario no trae un
+    // set de villano de modo Experto con cifras propias: la ausencia de
+    // `expert` en sus etapas es un hecho del dominio, no un dato
+    // pendiente. Esta lista de dos ids no rompe CAT-07: lo que este test
+    // prohíbe es fabricar cifras de Experto para estos dos, no que un
+    // villano futuro que sí traiga set Experto la tenga.
+    //
+    // Su modo Experto SÍ cambia de etapa (cara 1A del plan principal:
+    // "Rhino (II) and Rhino (III) instead for expert mode."; RR v1.7
+    // p.28) — eso se modela con `expertStartStage: 2` en el villano
+    // (reutiliza sus propias etapas II y III, sin cifras Expertas
+    // nuevas), no con la clave `expert` en la etapa.
+    it('Rhino y Ultron: ninguna etapa lleva la clave expert, y expertStartStage es 2', () => {
       const catalogue = loadValidatedCatalogue()
       for (const id of ['rhino', 'ultron']) {
         const villain = catalogue.villains.find(v => v.id === id)
@@ -258,7 +265,15 @@ describe('content/marvel-characters.json', () => {
         for (const s of villain!.stages) {
           expect('expert' in s, `villano ${id} etapa ${s.stage} lleva la clave expert y no debería`).toBe(false)
         }
+        expect(villain!.expertStartStage, `villano ${id} expertStartStage esperado 2`).toBe(2)
       }
+    })
+
+    it('Kang: expertStartStage es 1 (su Experto no cambia de etapa, va con las cifras propias de exp_kang)', () => {
+      const catalogue = loadValidatedCatalogue()
+      const kang = catalogue.villains.find(v => v.id === 'kang')
+      expect(kang, 'no se encontró el villano kang en el catálogo').toBeDefined()
+      expect(kang!.expertStartStage).toBe(1)
     })
 
     it('invariante de forma general: todo expert presente tiene health entero > 0 y banderas booleanas', () => {

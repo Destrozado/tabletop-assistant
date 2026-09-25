@@ -209,7 +209,8 @@
           "healthPerHero": true,
           "healthPerGroup": false
         }
-      ]
+      ],
+      "expertStartStage": 2
     },
     {
       "id": "kang",
@@ -248,7 +249,8 @@
             "healthPerGroup": false
           }
         }
-      ]
+      ],
+      "expertStartStage": 1
     },
     {
       "id": "ultron",
@@ -272,7 +274,8 @@
           "healthPerHero": true,
           "healthPerGroup": false
         }
-      ]
+      ],
+      "expertStartStage": 2
     }
   ]
 }

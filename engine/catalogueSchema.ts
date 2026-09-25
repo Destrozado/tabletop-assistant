@@ -71,6 +71,15 @@ const VillainSchema = z.strictObject({
   id: z.string().regex(characterIdPattern),
   name: z.string().min(1),
   stages: z.array(VillainStageSchema).min(1),
+  // expertStartStage: etapa (1..n) con la que arranca la partida en modo
+  // Experto, según la cara 1A del plan principal (RR v1.7 p.28, "listed
+  // expert mode villain stages"). Campo del VILLANO, no de la etapa —
+  // distinto de `expert` (cifras propias de un set de villano Experto por
+  // etapa, caso Kang). Su ausencia significa "arranca en la etapa 1"
+  // (comportamiento previo a este campo). El rango <= stages.length se
+  // valida en el superRefine de más abajo, no aquí (necesita ver las dos
+  // claves del villano a la vez).
+  expertStartStage: z.number().int().positive().optional(),
 })
 
 export const CharacterCatalogueSchema = z.strictObject({
@@ -127,6 +136,16 @@ export const CharacterCatalogueSchema = z.strictObject({
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `Villain "${villain.name}" has non-consecutive stages: ${villain.stages.map(s => s.stage).join(', ')}`,
+      })
+    }
+  }
+
+  // expertStartStage no puede señalar una etapa que el villano no tiene.
+  for (const villain of catalogue.villains) {
+    if (villain.expertStartStage !== undefined && villain.expertStartStage > villain.stages.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Villain "${villain.name}" has expertStartStage ${villain.expertStartStage} but only ${villain.stages.length} stage(s)`,
       })
     }
   }

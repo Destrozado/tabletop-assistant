@@ -240,6 +240,48 @@ describe('CharacterCatalogueSchema', () => {
     })
   })
 
+  // expertStartStage: etapa (1..n) con la que arranca la partida en modo
+  // Experto según la cara 1A del plan principal (RR v1.7 p.28, "listed
+  // expert mode villain stages"). Campo del VILLANO, no de la etapa —
+  // distinto de `expert` (cifras propias de un set Experto por etapa,
+  // caso Kang). Opcional: su ausencia significa "arranca en la etapa 1",
+  // igual que el comportamiento previo a este campo.
+  describe('expertStartStage', () => {
+    it('acepta un villano con expertStartStage: 2 y 3 etapas', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.villains[0] as any).expertStartStage = 2
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).not.toThrow()
+    })
+
+    it('acepta un villano SIN expertStartStage (baseCatalogue actual sigue válido)', () => {
+      expect(() => CharacterCatalogueSchema.parse(baseCatalogue())).not.toThrow()
+    })
+
+    it('lanza ZodError con expertStartStage: 0', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.villains[0] as any).expertStartStage = 0
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con expertStartStage: 1.5', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.villains[0] as any).expertStartStage = 1.5
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con expertStartStage: "2" (string, no número)', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.villains[0] as any).expertStartStage = '2'
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con expertStartStage: 4 en un villano de 3 etapas (fuera de rango)', () => {
+      const catalogue = baseCatalogue()
+      ;(catalogue.villains[0] as any).expertStartStage = 4
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+  })
+
   describe('unicidad de ids', () => {
     it('lanza ZodError si dos héroes comparten id', () => {
       const catalogue = baseCatalogue()
