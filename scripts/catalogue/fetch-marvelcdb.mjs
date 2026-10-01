@@ -131,8 +131,8 @@ const EXCLUDED_MODULAR_CODES = ['exp_kang']
 // inválido/inexistente", que es información sobre la que hay que abortar
 // (D-05/D-06), no ruido transitorio que merezca un reintento con espera.
 
-// HERO_CARDS — 23 filas, en este orden exacto (05-CONTEXT.md D-03: los 5 del
-// Core Set primero, luego 18 de packs sueltos). El sufijo del `code` es
+// HERO_CARDS — 24 filas, en este orden exacto (05-CONTEXT.md D-03: los 5 del
+// Core Set primero, luego 19 de packs sueltos). El sufijo del `code` es
 // siempre `a` (lado héroe, con `linked_card` embebido); nunca `c`.
 const HERO_CARDS = [
   { code: '01001a', expectedName: 'Spider-Man' },
@@ -162,6 +162,7 @@ const HERO_CARDS = [
   { code: '44001a', expectedName: 'Deadpool' },
   { code: '46001a', expectedName: 'Iceman' },
   { code: '47001a', expectedName: 'Jubilee' },
+  { code: '48001a', expectedName: 'Nightcrawler' },
 ]
 
 // VILLAIN_STAGE_CARDS — 12 filas, en este orden exacto (quick 260925-mpj,
@@ -518,7 +519,7 @@ function writeCatalogue(heroes, villains, baseSets, modules) {
 }
 
 async function main() {
-  // D-05/D-09: los ~46 códigos (23 héroes + 12 etapas estándar + 3 etapas
+  // D-05/D-09: los ~47 códigos (24 héroes + 12 etapas estándar + 3 etapas
   // Experto de Kang + 4 cartas de plan principal para checkMainScheme + 4
   // descargas de pack para los módulos de encuentro) se resuelven EN
   // MEMORIA COMPLETA antes de escribir nada. Solo si todos tuvieron éxito se

@@ -184,6 +184,14 @@
       "health": 9,
       "handSizeHero": 5,
       "handSizeAlterEgo": 6
+    },
+    {
+      "id": "nightcrawler",
+      "name": "Nightcrawler",
+      "alterEgo": "Kurt Wagner",
+      "health": 9,
+      "handSizeHero": 5,
+      "handSizeAlterEgo": 6
     }
   ],
   "villains": [
