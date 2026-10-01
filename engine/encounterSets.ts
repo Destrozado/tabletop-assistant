@@ -23,8 +23,22 @@ export interface ModuleOption {
   recommended: boolean
 }
 
-// D-04: el recomendado del villano actual va primero (si existe en
-// `catalogue.modules`); el resto conserva el orden del catálogo. Sin
+// Ids recomendados del villano, en el orden de la carta: [recommendedModuleId,
+// ...additionalRecommendedModuleIds] filtrados a los que existen en
+// `catalogue.modules` (quick 261002-2am). Sin villano o sin
+// `recommendedModuleId` → [].
+function recommendedIdsFor(
+  villain: CharacterCatalogue['villains'][number] | null,
+  catalogue: CharacterCatalogue,
+): string[] {
+  if (villain === null || villain.recommendedModuleId === undefined) return []
+  return [villain.recommendedModuleId, ...(villain.additionalRecommendedModuleIds ?? [])]
+    .filter(id => catalogue.modules.some(m => m.id === id))
+}
+
+// D-04: los recomendados del villano actual (uno o varios, quick
+// 261002-2am) van primero, en el orden de la carta, si existen en
+// `catalogue.modules`; el resto conserva el orden del catálogo. Sin
 // villano, con un villano desconocido, o con un recomendado que ya no
 // existe en `modules` (catálogo regenerado sin ese módulo): orden de
 // catálogo tal cual, ninguno marcado `recommended`. Villano sin
@@ -36,18 +50,15 @@ export function orderModulesForVillain(
   if (catalogue === null) return []
 
   const villain = villainId !== null ? catalogue.villains.find(v => v.id === villainId) ?? null : null
-  const recommendedId = villain?.recommendedModuleId ?? null
-  const recommendedExists = recommendedId !== null && catalogue.modules.some(m => m.id === recommendedId)
+  const recommendedIds = recommendedIdsFor(villain, catalogue)
 
-  const ordered = recommendedExists
-    ? [
-        catalogue.modules.find(m => m.id === recommendedId)!,
-        ...catalogue.modules.filter(m => m.id !== recommendedId),
-      ]
-    : catalogue.modules
+  const ordered = [
+    ...recommendedIds.map(id => catalogue.modules.find(m => m.id === id)!),
+    ...catalogue.modules.filter(m => !recommendedIds.includes(m.id)),
+  ]
 
   return ordered.map((module) => {
-    const option: ModuleOption = { id: module.id, name: module.name, recommended: module.id === recommendedId }
+    const option: ModuleOption = { id: module.id, name: module.name, recommended: recommendedIds.includes(module.id) }
     if (module.difficulty !== undefined) option.difficulty = module.difficulty
     return option
   })
@@ -60,8 +71,9 @@ export function orderModulesForVillain(
 //   catálogo) — así la lista que ve el modal y la que resuelve este
 //   siempre coinciden en orden.
 // - `moduleIds` ausente o de forma inesperada (no-array: `undefined`,
-//   `null`, un string suelto, un número…): cae al RECOMENDADO del villano
-//   actual, si ese villano y ese módulo existen en el catálogo; si no, `[]`.
+//   `null`, un string suelto, un número…): cae a los RECOMENDADOS del villano
+//   actual (uno o varios, quick 261002-2am), los que existan en el
+//   catálogo; si no, `[]`.
 // - `catalogue` `null` → `[]`. Nunca lanza.
 export function resolveModuleIds(
   context: SessionContext,
@@ -84,16 +96,12 @@ export function resolveModuleIds(
       .filter(id => validIds.has(id))
   }
 
-  // Sin moduleIds utilizable: recomendado del villano actual, si existe.
+  // Sin moduleIds utilizable: recomendados del villano actual, si existen.
   const villainId = resolveVillainId(context)
   const villain = villainId !== null ? catalogue.villains.find(v => v.id === villainId) ?? null : null
   if (villain === null) return []
   // Villano sin recomendado → [].
-  const recommendedId = villain.recommendedModuleId
-  if (recommendedId === undefined) return []
-  return catalogue.modules.some(m => m.id === recommendedId)
-    ? [recommendedId]
-    : []
+  return recommendedIdsFor(villain, catalogue)
 }
 
 // Fija `context.selection.moduleIds`. Mismo contrato que `setHero`/
@@ -141,10 +149,14 @@ export function toggleModule(
 }
 
 // D-07: la línea de conjuntos a reunir — [nombre español del set del
-// villano (si hay villano en el catálogo), «Normal», «Experto» SOLO en
+// villano (si hay villano en el catálogo), sus `fixedEncounterSetNames`
+// (quick 261002-2am), «Normal», «Experto» SOLO en
 // dificultad Experta, ...nombres de los módulos de `resolveModuleIds`, en
 // ese orden]. Sin villano Y sin ningún módulo: `[]` (nada que reunir, D-07
 // del quick: la línea del paso no debe pintar nada). Catálogo `null` → `[]`.
+// Un nombre nunca se repite: un módulo elegido que coincide con un conjunto
+// fijo (Taskmaster + Patrulla de Hydra) sale una sola vez, en la posición
+// del fijo.
 // La línea "Kang Experto" (`exp_kang`) NUNCA aparece aquí — queda fuera de
 // `catalogue.modules` (D-01) porque la sustitución de cartas de villano en
 // Experto ya la cubre el paso `setup.escenario.04`.
@@ -161,12 +173,15 @@ export function resolveEncounterSetNames(
   if (villain === null && moduleIds.length === 0) return []
 
   const names: string[] = []
-  if (villain !== null) names.push(villain.encounterSetName)
+  if (villain !== null) {
+    names.push(villain.encounterSetName)
+    names.push(...(villain.fixedEncounterSetNames ?? []))
+  }
   names.push(catalogue.baseSets.standard)
   if (context.difficulty === 'expert') names.push(catalogue.baseSets.expert)
   for (const moduleId of moduleIds) {
     const module = catalogue.modules.find(m => m.id === moduleId)
-    if (module) names.push(module.name)
+    if (module && !names.includes(module.name)) names.push(module.name)
   }
   return names
 }

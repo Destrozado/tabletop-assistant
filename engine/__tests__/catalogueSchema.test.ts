@@ -400,3 +400,63 @@ describe('CharacterCatalogueSchema', () => {
     expect(() => CharacterCatalogueSchema.parse(catalogue)).not.toThrow()
   })
 })
+
+describe('varios recomendados y conjuntos fijos (quick 261002-2am)', () => {
+  function withExtra() {
+    const catalogue = baseCatalogue()
+    catalogue.modules.push({ id: 'under-attack', name: 'Bajo ataque' })
+    return catalogue
+  }
+  const setAdditional = (c: ReturnType<typeof withExtra>, v: unknown) => {
+    ;(c.villains[0] as any).additionalRecommendedModuleIds = v
+  }
+
+  it('acepta additionalRecommendedModuleIds válido', () => {
+    const c = withExtra()
+    setAdditional(c, ['under-attack'])
+    expect(() => CharacterCatalogueSchema.parse(c)).not.toThrow()
+  })
+
+  it('lanza ZodError con un id que no está en modules', () => {
+    const c = withExtra()
+    setAdditional(c, ['no-existe'])
+    expect(() => CharacterCatalogueSchema.parse(c)).toThrow()
+  })
+
+  it('lanza ZodError con un array vacío', () => {
+    const c = withExtra()
+    setAdditional(c, [])
+    expect(() => CharacterCatalogueSchema.parse(c)).toThrow()
+  })
+
+  it('lanza ZodError con un id repetido', () => {
+    const c = withExtra()
+    setAdditional(c, ['under-attack', 'under-attack'])
+    expect(() => CharacterCatalogueSchema.parse(c)).toThrow()
+  })
+
+  it('lanza ZodError con un id igual a recommendedModuleId', () => {
+    const c = withExtra()
+    setAdditional(c, ['bomb-scare'])
+    expect(() => CharacterCatalogueSchema.parse(c)).toThrow()
+  })
+
+  it('lanza ZodError sin recommendedModuleId', () => {
+    const c = withExtra()
+    delete (c.villains[0] as any).recommendedModuleId
+    setAdditional(c, ['under-attack'])
+    expect(() => CharacterCatalogueSchema.parse(c)).toThrow()
+  })
+
+  it('acepta fixedEncounterSetNames y rechaza vacío o con cadena vacía', () => {
+    const ok = baseCatalogue()
+    ;(ok.villains[0] as any).fixedEncounterSetNames = ['Armas Experimentales']
+    expect(() => CharacterCatalogueSchema.parse(ok)).not.toThrow()
+    const empty = baseCatalogue()
+    ;(empty.villains[0] as any).fixedEncounterSetNames = []
+    expect(() => CharacterCatalogueSchema.parse(empty)).toThrow()
+    const blank = baseCatalogue()
+    ;(blank.villains[0] as any).fixedEncounterSetNames = ['']
+    expect(() => CharacterCatalogueSchema.parse(blank)).toThrow()
+  })
+})

@@ -370,6 +370,20 @@ export interface CatalogueHero {
 // automáticamente del texto de la carta, por la misma razón que
 // `expertStartStage` es dato a mano comprobado, no derivado.
 // Opcional: ausente = ningún módulo recomendado (Brigada de Demolición).
+//
+// `additionalRecommendedModuleIds` (quick 261002-2am): más módulos
+// recomendados por la misma cara 1A, en el orden de la carta. Por ejemplo
+// Crossbones: «Three modular sets», con `recommendedModuleId` hydra-assault y
+// aquí weap-master y legions-of-hydra. Solo existe si hay `recommendedModuleId`.
+//
+// `fixedEncounterSetNames` (quick 261002-2am): nombres ESPAÑOLES
+// (card_set_name de es.marvelcdb.com) de los conjuntos de encuentro que el
+// escenario exige además del suyo y del Normal. Por ejemplo Crossbones →
+// Armas Experimentales y Taskmaster → Patrulla de Hydra. No son módulos
+// elegibles. Es el equivalente en datos de lo que exp_kang resuelve con el
+// paso setup.escenario.04, para escenarios cuyo conjunto fijo no tiene paso
+// propio en content/marvel-champions.json.
+// Ausente en los dos casos significa «ninguno».
 export interface CatalogueVillain {
   id: string
   name: string
@@ -377,6 +391,8 @@ export interface CatalogueVillain {
   expertStartStage?: number
   encounterSetName: string
   recommendedModuleId?: string
+  additionalRecommendedModuleIds?: string[]
+  fixedEncounterSetNames?: string[]
 }
 
 // Módulo de encuentro adicional (quick 260925-mpj, D-01/D-04): una de las

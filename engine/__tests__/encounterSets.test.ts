@@ -278,3 +278,47 @@ describe('Trickster Takeover (quick 261001-obf)', () => {
     expect(resolveEncounterSetNames(loki.context, catalogue)).toEqual(['Dios de las mentiras', 'Normal', 'Magia embaucadora'])
   })
 })
+
+describe('varios recomendados y conjuntos fijos (quick 261002-2am)', () => {
+  function synthetic(patch: Record<string, unknown>): CharacterCatalogue {
+    const c = structuredClone(catalogue)
+    const v = c.villains.find(x => x.id === 'klaw')!
+    Object.assign(v, patch)
+    return c
+  }
+  const klawSession = () => setVillain(baseSession(), 'klaw')
+
+  it('orderModulesForVillain: todos los recomendados primero, en orden', () => {
+    const c = synthetic({ additionalRecommendedModuleIds: ['legions-of-hydra', 'bomb-scare'] })
+    const options = orderModulesForVillain(c, 'klaw')
+    expect(options.slice(0, 3).map(o => o.id)).toEqual(['masters-of-evil', 'legions-of-hydra', 'bomb-scare'])
+    expect(options.slice(0, 3).every(o => o.recommended)).toBe(true)
+    expect(options.slice(3).every(o => !o.recommended)).toBe(true)
+    expect(options.slice(3).map(o => o.id)).toEqual(
+      c.modules.map(m => m.id).filter(id => !['masters-of-evil', 'legions-of-hydra', 'bomb-scare'].includes(id)),
+    )
+  })
+
+  it('resolveModuleIds sin moduleIds devuelve todos los recomendados', () => {
+    const c = synthetic({ additionalRecommendedModuleIds: ['legions-of-hydra', 'bomb-scare'] })
+    expect(resolveModuleIds(klawSession().context, c)).toEqual(['masters-of-evil', 'legions-of-hydra', 'bomb-scare'])
+  })
+
+  it('resolveEncounterSetNames inserta el conjunto fijo tras el del villano', () => {
+    const c = synthetic({ fixedEncounterSetNames: ['Conjunto fijo'] })
+    const s = klawSession()
+    const v = c.villains.find(x => x.id === 'klaw')!
+    const moduleName = c.modules.find(m => m.id === 'masters-of-evil')!.name
+    expect(resolveEncounterSetNames(s.context, c)).toEqual([v.encounterSetName, 'Conjunto fijo', 'Normal', moduleName])
+    const expert = { ...s.context, difficulty: 'expert' as const }
+    expect(resolveEncounterSetNames(expert, c)).toEqual([v.encounterSetName, 'Conjunto fijo', 'Normal', 'Experto', moduleName])
+  })
+
+  it('no repite un nombre ya presente como conjunto fijo', () => {
+    const c = synthetic({ fixedEncounterSetNames: ['Amenaza de bomba'] })
+    const s = toggleModule(klawSession(), 'bomb-scare', c)
+    const names = resolveEncounterSetNames(s.context, c)
+    expect(names.filter(n => n === 'Amenaza de bomba')).toHaveLength(1)
+    expect(names.indexOf('Amenaza de bomba')).toBe(1)
+  })
+})

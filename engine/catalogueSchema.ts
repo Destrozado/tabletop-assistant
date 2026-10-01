@@ -109,6 +109,11 @@ const VillainSchema = z.strictObject({
   // valida contra `modules` en el superRefine de más abajo.
   encounterSetName: z.string().min(1),
   recommendedModuleId: z.string().regex(characterIdPattern).optional(),
+  // quick 261002-2am: más recomendados de la misma carta (en orden) y
+  // conjuntos de encuentro fijos del escenario (nombres ES). Opcionales y
+  // aditivos; la coherencia con `modules` se valida en el superRefine.
+  additionalRecommendedModuleIds: z.array(z.string().regex(characterIdPattern)).min(1).optional(),
+  fixedEncounterSetNames: z.array(z.string().min(1)).min(1).optional(),
 })
 
 export const CharacterCatalogueSchema = z.strictObject({
@@ -199,6 +204,37 @@ export const CharacterCatalogueSchema = z.strictObject({
         code: z.ZodIssueCode.custom,
         message: `Villain "${villain.name}" has recommendedModuleId "${villain.recommendedModuleId}", which is not in modules`,
       })
+    }
+
+    if (villain.additionalRecommendedModuleIds !== undefined) {
+      if (villain.recommendedModuleId === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Villain "${villain.name}" has additionalRecommendedModuleIds but no recommendedModuleId`,
+        })
+      }
+      const seen = new Set<string>()
+      for (const id of villain.additionalRecommendedModuleIds) {
+        if (!moduleIds.includes(id)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Villain "${villain.name}" has additionalRecommendedModuleIds entry "${id}", which is not in modules`,
+          })
+        }
+        if (seen.has(id)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Villain "${villain.name}" has duplicate additionalRecommendedModuleIds entry "${id}"`,
+          })
+        }
+        seen.add(id)
+        if (id === villain.recommendedModuleId) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Villain "${villain.name}" repeats recommendedModuleId "${id}" in additionalRecommendedModuleIds`,
+          })
+        }
+      }
     }
   }
 })
