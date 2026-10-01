@@ -33,6 +33,8 @@
 // repo público — sólo los seis campos de héroe y los cuatro de etapa de
 // villano (más el sub-objeto opcional `expert`, de esos mismos tres campos
 // base) que las funciones de extracción de abajo devuelven explícitamente.
+// La única excepción es la etapa placeholder de PLACEHOLDER_VILLAINS, que es
+// un literal del script y no sale de ninguna carta.
 //
 // ── CÓMO AÑADIR UN HÉROE O VILLANO NUEVO (CAT-07) ───────────────────────────
 // 1. Añadir una fila a `HERO_CARDS` (para un héroe) o las 1..n filas de etapa
@@ -58,6 +60,10 @@
 //    todavía, añadir su código de pack a `ENCOUNTER_PACKS` y sus módulos de
 //    encuentro (dato a mano, `card_set_code`/pack/dificultad si se conoce)
 //    a `ENCOUNTER_MODULES` (quick 260925-mpj, D-01).
+// 1d. Para un escenario que el grupo quiere poder elegir SIN modelar sus
+//    cifras (villano placeholder, vida 0), añadir una fila a
+//    `PLACEHOLDER_VILLAINS` (quick 261001-o3p). No lleva filas en
+//    VILLAIN_STAGE_CARDS ni VILLAIN_SCENARIOS.
 // 2. Ejecutar `npm run catalogue:generate`.
 // 3. Revisar el diff de `content/marvel-characters.json` — debe añadir
 //    exactamente la fila nueva, sin tocar nada más (D-10).
@@ -94,7 +100,11 @@ const REQUEST_DELAY_MS = 1500
 // ENCOUNTER_PACKS (D-01): solo las cajas del grupo — Core Set y «Antiguo y
 // futuro Kang» (toafk). Añadir un pack nuevo aquí cuando el grupo compre una
 // caja nueva (CAT-07/paso 1c de arriba).
-const ENCOUNTER_PACKS = ['core', 'toafk']
+// `twc`: «La Brigada de Demolición» (The Wrecking Crew), comprada el
+// 2026-10-01; solo trae sets de tipo villain, ningún modular (comprobado
+// contra la API el día de este quick), así que ENCOUNTER_MODULES y
+// EXCLUDED_MODULAR_CODES no cambian.
+const ENCOUNTER_PACKS = ['core', 'toafk', 'twc']
 
 // ENCOUNTER_MODULES (D-01): lista blanca a mano de los módulos de encuentro
 // adicionales de esas cajas — nunca derivada automáticamente de la API,
@@ -246,14 +256,40 @@ const VILLAIN_SCENARIOS = [
   { villainName: 'Ultron', mainSchemeCode: '01137a', expectedMainSchemeName: 'The Crimson Cowl', expectedSetCode: 'ultron', expertStartStage: 2, recommendedModuleCode: 'under_attack' },
 ]
 
+// PLACEHOLDER_VILLAINS (quick 261001-o3p) — escenario como villano placeholder.
+// Decisión del usuario (2026-10-01, U-01..U-04): «Mételo en la selección de
+// Villano, simplemente para las estadísticas y para el ciclo de cada
+// jugador/villano y ya está, no hace falta poner la mecánica concreta de este
+// escenario [...] ponle una vida inicial de 00 por poner algo y ya está».
+// - Sus villanos reales (p. ej. 07002 Wrecker A, 07017, 07032, 07046 y sus B)
+//   NO se descargan ni se modelan.
+// - Su única etapa es SIEMPRE `PLACEHOLDER_STAGE`: literal fijo del script,
+//   no viene de ninguna carta; el grupo ajusta la banda de contadores a mano.
+// - `expertStartStage` vale 1 y no hay `recommendedModuleId`, porque la hoja
+//   del escenario prohíbe otros conjuntos de encuentro.
+// - El plan principal solo se usa como comprobación cruzada de identidad
+//   (tipo, nombre y set) en `checkMainSchemeIdentity`. No se buscan las
+//   líneas «instead for expert mode» ni «One modular encounter set», porque
+//   la carta no las trae.
+// - Ningún texto de carta entra al catálogo (CAT-04): el `encounterSetName`
+//   sale del `card_set_name` español del set, ya en la lista blanca.
+// Para añadir otro (p. ej. un segundo escenario placeholder) basta otra fila.
+const PLACEHOLDER_STAGE = Object.freeze({ stage: 1, health: 0, healthPerHero: false, healthPerGroup: false })
+const PLACEHOLDER_VILLAINS = [
+  { villainName: 'Brigada de Demolición', mainSchemeCode: '07001a', expectedMainSchemeName: 'Breakout', expectedSetCode: 'wrecking_crew' },
+]
+
 // ── Funciones ────────────────────────────────────────────────────────────────
 
 // Copia exacta de `slugifyCharacterName()` en engine/catalogueSchema.ts. Si
 // las dos funciones divergen, el esquema de esa fase rechaza el `id` que
 // produce este script y CI falla — eso es a propósito (DC-02 del plan
-// 05-01): las dos deben coincidir carácter a carácter.
+// 05-01): las dos deben coincidir carácter a carácter. Ejemplo:
+// "Brigada de Demolición" produce "brigada-de-demolicion" (plegado NFD).
 function slugify(name) {
   return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
@@ -442,8 +478,7 @@ async function extractVillainStage({ villainName, code, stage, expectedSetCode, 
 // de TODOS los packs, ya descargado por `fetchPackEncounterSets` antes de
 // llamar aquí — permite resolver el nombre inglés de
 // `row.recommendedModuleCode` sin una petición de red adicional.
-async function checkMainScheme(row, englishSets) {
-  const { villainName, mainSchemeCode, expectedMainSchemeName, expectedSetCode, expertStartStage, recommendedModuleCode } = row
+async function checkMainSchemeIdentity({ villainName, mainSchemeCode, expectedMainSchemeName, expectedSetCode }) {
   const card = await fetchCard(mainSchemeCode)
   if (card.type_code !== 'main_scheme') {
     throw new Error(`Código ${mainSchemeCode} (${villainName}, plan principal): se esperaba type_code "main_scheme" pero la API devolvió "${card.type_code}"`)
@@ -454,6 +489,12 @@ async function checkMainScheme(row, englishSets) {
   if (card.card_set_code !== expectedSetCode) {
     throw new Error(`Código ${mainSchemeCode} (${villainName}, plan principal): se esperaba card_set_code "${expectedSetCode}" pero la API devolvió "${card.card_set_code}"`)
   }
+  return card
+}
+
+async function checkMainScheme(row, englishSets) {
+  const { villainName, mainSchemeCode, expertStartStage, recommendedModuleCode } = row
+  const card = await checkMainSchemeIdentity(row)
 
   // Quita etiquetas HTML (Ultron trae el fragmento envuelto en <i>...</i>)
   // antes de buscar el patrón — ninguna etiqueta ni el texto en sí entra al
@@ -520,14 +561,15 @@ function writeCatalogue(heroes, villains, baseSets, modules) {
 
 async function main() {
   // D-05/D-09: los ~47 códigos (24 héroes + 12 etapas estándar + 3 etapas
-  // Experto de Kang + 4 cartas de plan principal para checkMainScheme + 4
-  // descargas de pack para los módulos de encuentro) se resuelven EN
+  // Experto de Kang + 5 cartas de plan principal para checkMainScheme y
+  // checkMainSchemeIdentity + 6 descargas de pack: core, toafk y twc EN/ES) se resuelven EN
   // MEMORIA COMPLETA antes de escribir nada. Solo si todos tuvieron éxito se
   // llama a writeCatalogue. Ninguna escritura parcial de
   // content/marvel-characters.json puede ocurrir jamás — diferencia
   // deliberada respecto a scripts/voice/generate.mjs, que escribe
   // incrementalmente (ese script es reanudable por diseño; este es todo o
-  // nada). Con el pacing de REQUEST_DELAY_MS (1500 ms) esto tarda ~70 s.
+  // nada). Con el pacing de REQUEST_DELAY_MS (1500 ms) esto tarda ~75 s
+  // (unas 50 peticiones).
 
   // Guarda previa a cualquier petición de red (D-05: fallar alto antes que
   // gastar peticiones): el conjunto de villainName de VILLAIN_SCENARIOS y de
@@ -549,6 +591,28 @@ async function main() {
     const stageCount = VILLAIN_STAGE_CARDS.filter(s => s.villainName === row.villainName).length
     if (!Number.isInteger(row.expertStartStage) || row.expertStartStage < 1 || row.expertStartStage > stageCount) {
       throw new Error(`VILLAIN_SCENARIOS: "${row.villainName}" tiene expertStartStage ${row.expertStartStage}, fuera de rango 1..${stageCount}`)
+    }
+  }
+
+  // Guardas de PLACEHOLDER_VILLAINS (quick 261001-o3p), antes de la red.
+  {
+    const realSlugs = new Set([
+      ...VILLAIN_STAGE_CARDS.map(row => slugify(row.villainName)),
+      ...VILLAIN_SCENARIOS.map(row => slugify(row.villainName)),
+    ])
+    const seen = new Set()
+    for (const row of PLACEHOLDER_VILLAINS) {
+      const slug = slugify(row.villainName)
+      if (slug === '') {
+        throw new Error(`PLACEHOLDER_VILLAINS: "${row.villainName}" produce un slug vacío`)
+      }
+      if (realSlugs.has(slug)) {
+        throw new Error(`PLACEHOLDER_VILLAINS: "${row.villainName}" (slug "${slug}") coincide con un villano real de VILLAIN_STAGE_CARDS/VILLAIN_SCENARIOS`)
+      }
+      if (seen.has(slug)) {
+        throw new Error(`PLACEHOLDER_VILLAINS: slug "${slug}" repetido entre placeholders`)
+      }
+      seen.add(slug)
     }
   }
 
@@ -647,6 +711,19 @@ async function main() {
     encounterSetNameByVillainName.set(row.villainName, info.name)
   }
 
+  // Cada placeholder: su set existe en ES con type 'villain' y su nombre
+  // impreso coincide (sin distinguir mayúsculas) con el rótulo a mano.
+  for (const row of PLACEHOLDER_VILLAINS) {
+    const info = findInAnyPack(spanishSetsByPack, row.expectedSetCode)
+    if (!info || info.type !== 'villain') {
+      throw new Error(`Placeholder "${row.villainName}": no se encontró el set "${row.expectedSetCode}" con type villain en ES (encontrado: ${JSON.stringify(info)})`)
+    }
+    if (info.name.toLocaleLowerCase('es') !== row.villainName.toLocaleLowerCase('es')) {
+      throw new Error(`Placeholder "${row.villainName}": el card_set_name español del set "${row.expectedSetCode}" es "${info.name}", no coincide con el rótulo a mano`)
+    }
+    encounterSetNameByVillainName.set(row.villainName, info.name)
+  }
+
   // ES 'standard' y 'expert' existen y valen exactamente «Normal»/«Experto»
   // — copia que el usuario fijó; si MarvelCDB cambia, abortar en vez de
   // escribir un nombre distinto en silencio.
@@ -676,6 +753,10 @@ async function main() {
     await checkMainScheme(row, combinedEnglishSets)
   }
 
+  for (const row of PLACEHOLDER_VILLAINS) {
+    await checkMainSchemeIdentity(row)
+  }
+
   // expertStartStage/encounterSetName/recommendedModuleId se añaden DESPUÉS
   // de stages (orden de claves determinista, D-10), para TODOS los
   // villanos — también Kang en expertStartStage 1, para que el dato quede
@@ -690,6 +771,16 @@ async function main() {
       recommendedModuleId: scenario.recommendedModuleCode.replace(/_/g, '-'),
     }
   })
+  // Placeholders al final, sin clave recommendedModuleId (ni como undefined).
+  for (const row of PLACEHOLDER_VILLAINS) {
+    villains.push({
+      id: slugify(row.villainName),
+      name: row.villainName,
+      stages: [{ ...PLACEHOLDER_STAGE }],
+      expertStartStage: 1,
+      encounterSetName: encounterSetNameByVillainName.get(row.villainName),
+    })
+  }
 
   const baseSets = { standard: standardInfo.name, expert: expertBaseInfo.name }
   const modules = ENCOUNTER_MODULES.map((module) => {

@@ -317,6 +317,20 @@
       "expertStartStage": 2,
       "encounterSetName": "Ultrón",
       "recommendedModuleId": "under-attack"
+    },
+    {
+      "id": "brigada-de-demolicion",
+      "name": "Brigada de Demolición",
+      "stages": [
+        {
+          "stage": 1,
+          "health": 0,
+          "healthPerHero": false,
+          "healthPerGroup": false
+        }
+      ],
+      "expertStartStage": 1,
+      "encounterSetName": "Brigada de demolición"
     }
   ],
   "baseSets": {
