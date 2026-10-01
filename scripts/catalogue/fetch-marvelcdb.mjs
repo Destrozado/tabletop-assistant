@@ -47,7 +47,7 @@
 //    `expectedExpertSetCode` (su `card_set_code`) — los dos juntos o
 //    ninguno. Si el escenario no trae ese set alternativo con cifras
 //    propias, se dejan fuera y la etapa sale del catálogo sin clave
-//    `expert` (caso de Rhino y Ultron: no tienen cifras Expertas propias,
+//    `expert` (caso de Rhino, Ultron y Enchantress: no tienen cifras Expertas propias,
 //    aunque sí cambian de etapa en Experto — ver VILLAIN_SCENARIOS).
 // 1b. Para un villano nuevo, añadir también una fila a `VILLAIN_SCENARIOS`
 //    con `expertStartStage` (la etapa con la que empieza la partida en
@@ -92,7 +92,11 @@ const API_BASE = 'https://marvelcdb.com/api/public'
 const API_BASE_ES = 'https://es.marvelcdb.com/api/public'
 const CATALOGUE_PATH = 'content/marvel-characters.json'
 const GAME_ID = 'marvel-champions'
-const STAGE_MAP = { I: 1, II: 2, III: 3 }
+// Loki, God of Lies (55027a) imprime su única etapa en cifra arábiga «1», no
+// «I». expertModeRegex solo captura romanos, así que esto no afecta a esa
+// comprobación. La puerta mappedStage === stage de extractStageFields sigue
+// en pie.
+const STAGE_MAP = { I: 1, II: 2, III: 3, 1: 1 }
 // Pausa fija entre peticiones HTTP sucesivas (ver comentario junto a
 // fetchCard más abajo) — pacing, no reintento ante fallo.
 const REQUEST_DELAY_MS = 1500
@@ -104,7 +108,10 @@ const REQUEST_DELAY_MS = 1500
 // 2026-10-01; solo trae sets de tipo villain, ningún modular (comprobado
 // contra la API el día de este quick), así que ENCOUNTER_MODULES y
 // EXCLUDED_MODULAR_CODES no cambian.
-const ENCOUNTER_PACKS = ['core', 'toafk', 'twc']
+// `tt`: «Trickster Takeover», comprado el 2026-10-01. Trae dos sets de
+// villano (enchantress_villain, god_of_lies) y un solo modular
+// (trickster_magic), comprobado contra la API ese día.
+const ENCOUNTER_PACKS = ['core', 'toafk', 'twc', 'tt']
 
 // ENCOUNTER_MODULES (D-01): lista blanca a mano de los módulos de encuentro
 // adicionales de esas cajas — nunca derivada automáticamente de la API,
@@ -124,6 +131,9 @@ const ENCOUNTER_MODULES = [
   { code: 'temporal', pack: 'toafk', difficulty: 4 },
   { code: 'mot', pack: 'toafk', difficulty: 6 },
   { code: 'anachronauts', pack: 'toafk', difficulty: 8 },
+  // Sin `difficulty`: no hay fuente fiable de su dificultad y nunca se
+  // inventa un número (mismo criterio que los cinco del Core Set).
+  { code: 'trickster_magic', pack: 'tt' },
 ]
 
 // EXCLUDED_MODULAR_CODES (D-01): `card_set_code`s que MarvelCDB marca
@@ -175,7 +185,7 @@ const HERO_CARDS = [
   { code: '48001a', expectedName: 'Nightcrawler' },
 ]
 
-// VILLAIN_STAGE_CARDS — 12 filas, en este orden exacto (quick 260925-mpj,
+// VILLAIN_STAGE_CARDS — 16 filas, en este orden exacto (quick 260925-mpj,
 // D-02: Klaw entra al catálogo — la exclusión deliberada del usuario que
 // documentaba antes este comentario queda revertida por decisión explícita
 // del usuario en ese quick).
@@ -220,10 +230,21 @@ const VILLAIN_STAGE_CARDS = [
   { villainName: 'Ultron', code: '01134', stage: 1, expectedSetCode: 'ultron' },
   { villainName: 'Ultron', code: '01135', stage: 2, expectedSetCode: 'ultron' },
   { villainName: 'Ultron', code: '01136', stage: 3, expectedSetCode: 'ultron' },
+  // Enchantress (quick 261001-obf): el pack no trae set de villano Experto;
+  // su Experto cambia de etapa, como Rhino.
+  { villainName: 'Enchantress', code: '55001', stage: 1, expectedSetCode: 'enchantress_villain' },
+  { villainName: 'Enchantress', code: '55002', stage: 2, expectedSetCode: 'enchantress_villain' },
+  { villainName: 'Enchantress', code: '55003', stage: 3, expectedSetCode: 'enchantress_villain' },
+  // Loki (decisión del usuario 2026-10-01): seleccionable SIN la mecánica del
+  // escenario (mismo espíritu que Brigada en 261001-o3p). Las cuatro formas
+  // «Avatar of Loki» (55029a–55032a) no se declaran. La vida 20 por héroe
+  // sale de la carta real a través de extractStageFields, no de un literal;
+  // por eso Loki NO va en PLACEHOLDER_VILLAINS.
+  { villainName: 'Loki', code: '55027a', stage: 1, expectedSetCode: 'god_of_lies' },
 ]
 
 // VILLAIN_SCENARIOS — una fila por villano (mismo orden que VILLAIN_STAGE_CARDS:
-// rhino, klaw, kang, ultron), dato a mano de la etapa con la que empieza la
+// rhino, klaw, kang, ultron, enchantress, loki), dato a mano de la etapa con la que empieza la
 // partida en modo Experto (`expertStartStage`). Es dato A MANO, no
 // derivado, porque el texto libre de la carta ("Rhino (II) and Rhino (III)
 // instead for expert mode.") es frágil para parsear con confianza — la
@@ -254,6 +275,13 @@ const VILLAIN_SCENARIOS = [
   { villainName: 'Klaw', mainSchemeCode: '01116a', expectedMainSchemeName: 'Underground Distribution', expectedSetCode: 'klaw', expertStartStage: 2, recommendedModuleCode: 'masters_of_evil' },
   { villainName: 'Kang', mainSchemeCode: '11007a', expectedMainSchemeName: "Kang's Arrival", expectedSetCode: 'kang', expertStartStage: 1, recommendedModuleCode: 'temporal' },
   { villainName: 'Ultron', mainSchemeCode: '01137a', expectedMainSchemeName: 'The Crimson Cowl', expectedSetCode: 'ultron', expertStartStage: 2, recommendedModuleCode: 'under_attack' },
+  { villainName: 'Enchantress', mainSchemeCode: '55004a', expectedMainSchemeName: 'Prime Real Estate', expectedSetCode: 'enchantress_villain', expertStartStage: 2, recommendedModuleCode: 'trickster_magic' },
+  // Loki: se usa la cara «A» (Worlds Collide) y no la 1A (Mischief and
+  // Mayhem), porque en este escenario la línea Contents con el módulo vive en
+  // la cara A. La 1A no trae Contents ni módulo; su único ajuste de Experto
+  // es un apego (mecánica fuera de alcance), sin cambio de etapa. De ahí
+  // expertStartStage 1.
+  { villainName: 'Loki', mainSchemeCode: '55028a', expectedMainSchemeName: 'Worlds Collide', expectedSetCode: 'god_of_lies', expertStartStage: 1, recommendedModuleCode: 'trickster_magic' },
 ]
 
 // PLACEHOLDER_VILLAINS (quick 261001-o3p) — escenario como villano placeholder.
@@ -532,14 +560,15 @@ async function checkMainScheme(row, englishSets) {
   }
 
   // Puerta del módulo recomendado (quick 260925-mpj, D-03/T-mpj-03): busca
-  // "One modular encounter set (...)" con o sin el prefijo "recommended:" —
+  // "One modular (encounter) set (...)" — 55004a dice «One modular set (...)»,
+  // sin «encounter». Con o sin el prefijo "recommended:" —
   // Kang no lo lleva porque su único modular es fijo, no una recomendación
   // entre varios. El fragmento capturado, recortado y sin punto final, debe
   // coincidir EXACTAMENTE con el nombre inglés del módulo a mano.
-  const recommendedRegex = /One modular encounter set \((?:recommended:\s*)?([^)]+?)\.?\s*\)/
+  const recommendedRegex = /One modular (?:encounter )?set \((?:recommended:\s*)?([^)]+?)\.?\s*\)/
   const recommendedMatch = text.match(recommendedRegex)
   if (!recommendedMatch) {
-    throw new Error(`Fila ${villainName}: no se encontró la línea "One modular encounter set (...)" en la carta ${mainSchemeCode} para comprobar el módulo recomendado`)
+    throw new Error(`Fila ${villainName}: no se encontró la línea "One modular [encounter] set (...)" en la carta ${mainSchemeCode} para comprobar el módulo recomendado`)
   }
   const recommendedFragment = recommendedMatch[1].trim()
   const expectedModuleName = englishSets.get(recommendedModuleCode)?.name
@@ -568,8 +597,9 @@ async function main() {
   // content/marvel-characters.json puede ocurrir jamás — diferencia
   // deliberada respecto a scripts/voice/generate.mjs, que escribe
   // incrementalmente (ese script es reanudable por diseño; este es todo o
-  // nada). Con el pacing de REQUEST_DELAY_MS (1500 ms) esto tarda ~75 s
-  // (unas 50 peticiones).
+  // nada). Con el pacing de REQUEST_DELAY_MS (1500 ms) esto tarda ~90 s
+  // (unas 58 peticiones: 24 héroes + 16 etapas estándar + 3 Experto de Kang
+  // + 7 planes principales + 8 descargas de pack core/toafk/twc/tt en EN/ES).
 
   // Guarda previa a cualquier petición de red (D-05: fallar alto antes que
   // gastar peticiones): el conjunto de villainName de VILLAIN_SCENARIOS y de

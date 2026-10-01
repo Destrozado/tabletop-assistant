@@ -319,6 +319,48 @@
       "recommendedModuleId": "under-attack"
     },
     {
+      "id": "enchantress",
+      "name": "Enchantress",
+      "stages": [
+        {
+          "stage": 1,
+          "health": 15,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 2,
+          "health": 16,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 3,
+          "health": 18,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        }
+      ],
+      "expertStartStage": 2,
+      "encounterSetName": "Encantadora",
+      "recommendedModuleId": "trickster-magic"
+    },
+    {
+      "id": "loki",
+      "name": "Loki",
+      "stages": [
+        {
+          "stage": 1,
+          "health": 20,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        }
+      ],
+      "expertStartStage": 1,
+      "encounterSetName": "Dios de las mentiras",
+      "recommendedModuleId": "trickster-magic"
+    },
+    {
       "id": "brigada-de-demolicion",
       "name": "Brigada de Demolición",
       "stages": [
@@ -372,6 +414,10 @@
       "id": "anachronauts",
       "name": "Anacronautas",
       "difficulty": 8
+    },
+    {
+      "id": "trickster-magic",
+      "name": "Magia embaucadora"
     }
   ]
 }
