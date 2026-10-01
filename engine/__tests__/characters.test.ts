@@ -340,6 +340,41 @@ describe('content/marvel-characters.json', () => {
     })
   })
 
+  describe('Trickster Takeover (quick 261001-obf)', () => {
+    it('enchantress: etapas 15/16/18 por héroe, sin expert, Experto desde la etapa II', () => {
+      const catalogue = loadValidatedCatalogue()
+      const v = catalogue.villains.find(x => x.id === 'enchantress')
+      expect(v, 'no se encontró enchantress').toBeDefined()
+      expect(v!.name).toBe('Enchantress')
+      expect(v!.stages.map(s => s.health)).toEqual([15, 16, 18])
+      for (const s of v!.stages) {
+        expect(s.healthPerHero).toBe(true)
+        expect(s.healthPerGroup).toBe(false)
+        expect('expert' in s).toBe(false)
+      }
+      expect(v!.expertStartStage).toBe(2)
+      expect(v!.encounterSetName).toBe('Encantadora')
+    })
+
+    it('loki: una etapa de 20 por héroe, Experto desde la etapa 1', () => {
+      const catalogue = loadValidatedCatalogue()
+      const v = catalogue.villains.find(x => x.id === 'loki')
+      expect(v, 'no se encontró loki').toBeDefined()
+      expect(v!.name).toBe('Loki')
+      expect(v!.stages).toEqual([{ stage: 1, health: 20, healthPerHero: true, healthPerGroup: false }])
+      expect(v!.expertStartStage).toBe(1)
+      expect(v!.encounterSetName).toBe('Dios de las mentiras')
+    })
+
+    it('módulo trickster-magic «Magia embaucadora» sin difficulty', () => {
+      const catalogue = loadValidatedCatalogue()
+      const m = catalogue.modules.find(x => x.id === 'trickster-magic')
+      expect(m, 'no se encontró trickster-magic').toBeDefined()
+      expect(m!.name).toBe('Magia embaucadora')
+      expect('difficulty' in m!).toBe(false)
+    })
+  })
+
   describe('quick 260925-mpj: Klaw, baseSets, modules y recomendado por villano', () => {
     it('Klaw existe con stages 12/18/22 per-hero y expertStartStage 2', () => {
       const catalogue = loadValidatedCatalogue()
@@ -353,13 +388,15 @@ describe('content/marvel-characters.json', () => {
       expect(klaw!.expertStartStage).toBe(2)
     })
 
-    it('recommendedModuleId de rhino/klaw/ultron/kang es bomb-scare/masters-of-evil/under-attack/temporal', () => {
+    it('recommendedModuleId de rhino/klaw/ultron/kang/enchantress/loki es bomb-scare/masters-of-evil/under-attack/temporal/trickster-magic', () => {
       const catalogue = loadValidatedCatalogue()
       const expected: Record<string, string> = {
         rhino: 'bomb-scare',
         klaw: 'masters-of-evil',
         ultron: 'under-attack',
         kang: 'temporal',
+        enchantress: 'trickster-magic',
+        loki: 'trickster-magic',
       }
       for (const [id, recommendedModuleId] of Object.entries(expected)) {
         const villain = catalogue.villains.find(v => v.id === id)

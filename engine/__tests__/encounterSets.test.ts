@@ -43,6 +43,7 @@ describe('orderModulesForVillain', () => {
       'temporal',
       'mot',
       'anachronauts',
+      'trickster-magic',
     ])
   })
 
@@ -252,5 +253,28 @@ describe('resolveEncounterSetNames', () => {
   it('catálogo null: []', () => {
     const session = setVillain(baseSession(), 'rhino')
     expect(resolveEncounterSetNames(session.context, null)).toEqual([])
+  })
+})
+
+describe('Trickster Takeover (quick 261001-obf)', () => {
+  it.each(['loki', 'enchantress'])('%s: trickster-magic primero y recomendado, sin difficulty', (id) => {
+    const options = orderModulesForVillain(catalogue, id)
+    expect(options[0]).toMatchObject({ id: 'trickster-magic', recommended: true })
+    expect(options.slice(1).every(o => o.recommended === false)).toBe(true)
+    expect('difficulty' in options[0]!).toBe(false)
+  })
+
+  it('setVillain enchantress sin moduleIds: resolveModuleIds da [trickster-magic]', () => {
+    const session = setVillain(baseSession(), 'enchantress')
+    expect(resolveModuleIds(session.context, catalogue)).toEqual(['trickster-magic'])
+  })
+
+  it('resolveEncounterSetNames de enchantress y loki', () => {
+    const ench = setVillain(baseSession(), 'enchantress')
+    expect(resolveEncounterSetNames(ench.context, catalogue)).toEqual(['Encantadora', 'Normal', 'Magia embaucadora'])
+    const expert: SessionContext = { ...ench.context, difficulty: 'expert' }
+    expect(resolveEncounterSetNames(expert, catalogue)).toEqual(['Encantadora', 'Normal', 'Experto', 'Magia embaucadora'])
+    const loki = setVillain(baseSession(), 'loki')
+    expect(resolveEncounterSetNames(loki.context, catalogue)).toEqual(['Dios de las mentiras', 'Normal', 'Magia embaucadora'])
   })
 })

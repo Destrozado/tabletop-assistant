@@ -34,6 +34,8 @@ const rhino = catalogue.villains.find(v => v.id === 'rhino')!
 const kang = catalogue.villains.find(v => v.id === 'kang')!
 const ultron = catalogue.villains.find(v => v.id === 'ultron')!
 const klaw = catalogue.villains.find(v => v.id === 'klaw')!
+const enchantress = catalogue.villains.find(v => v.id === 'enchantress')!
+const loki = catalogue.villains.find(v => v.id === 'loki')!
 const brigada = catalogue.villains.find(v => v.id === 'brigada-de-demolicion')!
 const thor = catalogue.heroes.find(h => h.id === 'thor')!
 const ironMan = catalogue.heroes.find(h => h.id === 'iron-man')!
@@ -498,5 +500,22 @@ describe('catálogo sin cifra de vida utilizable (WR-07)', () => {
 
     expect(result.villainHealth).toBeNull()
     expect(Number.isNaN(result.villainHealth as any)).toBe(false)
+  })
+})
+
+describe('Trickster Takeover (quick 261001-obf)', () => {
+  it('Enchantress con 3 jugadores: normal 45, experto arranca en etapa II (48)', () => {
+    expect(computeInitialVillainHealth(enchantress, 3, 'normal')).toBe(45)
+    expect(computeInitialVillainHealth(enchantress, 3, 'expert')).toBe(48)
+  })
+
+  it.each([1, 2, 3, 4])('Loki con %i jugadores vale 20 por jugador en normal y experto', (n) => {
+    expect(computeInitialVillainHealth(loki, n, 'normal')).toBe(20 * n)
+    expect(computeInitialVillainHealth(loki, n, 'expert')).toBe(20 * n)
+  })
+
+  it('setVillain loki precarga villainHealth 60 con 3 jugadores', () => {
+    const session = setVillain(baseSession(), 'loki')
+    expect(resolveCounterValues(session.context, catalogue).villainHealth).toBe(60)
   })
 })
