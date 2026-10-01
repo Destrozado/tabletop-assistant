@@ -174,7 +174,7 @@ function onNameFocus(event: FocusEvent) {
              «No hay catálogo» no es «no coincide nada»: con la lista vacía y sin
              texto escrito, un único mensaje diría «Ningún héroe coincide con «»»,
              que suena a búsqueda fallida en vez de a juego sin catálogo. Hoy no
-             es alcanzable —Marvel Champions siempre trae sus 23 héroes— pero lo
+             es alcanzable —Marvel Champions siempre trae sus 24 héroes— pero lo
              será en cuanto exista un segundo juego (Warhammer 40.000), donde
              `index.vue` ya pasa `heroOptions = []` de forma defensiva. -->
         <p

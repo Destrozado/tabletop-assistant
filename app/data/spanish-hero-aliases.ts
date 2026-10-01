@@ -19,7 +19,10 @@
 // referimos» — se eligió «Hulka» por ser lo que se lee en la mesa, que es
 // justo para lo que existe este mapa (D-06: el nombre español es el rótulo
 // dominante de cada fila del modal). Las otras 22 quedaron tal cual se
-// propusieron. Ya no hay nada pendiente de confirmar en este fichero.
+// propusieron. Esas 23 quedaron sin nada pendiente de confirmar.
+// La fila `nightcrawler` → «Rondador Nocturno» se añadió después (quick
+// 261001-luc, 2026-10-01) con el nombre oficial en español y está PENDIENTE
+// de que el usuario la contraste con la carta física del grupo.
 export const spanishHeroAliases: Record<string, string> = {
   'spider-man': 'Spider-Man',
   'captain-marvel': 'Capitana Marvel',
@@ -44,4 +47,5 @@ export const spanishHeroAliases: Record<string, string> = {
   'deadpool': 'Masacre',
   'iceman': 'Hombre de Hielo',
   'jubilee': 'Jubilee',
+  'nightcrawler': 'Rondador Nocturno',
 }

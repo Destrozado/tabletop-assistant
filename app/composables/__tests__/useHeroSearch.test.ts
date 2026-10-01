@@ -99,9 +99,9 @@ describe('el mapa de alias contra el catálogo real', () => {
   // Recordatorio, no bloqueo de comportamiento (D-05): si algún día un héroe
   // nuevo entra sin alias, la app sigue funcionando (resolveHeroSpanishName
   // cae al nombre inglés del catálogo) — este test solo documenta el estado
-  // actual de los 23 héroes conocidos.
-  it('los 23 héroes conocidos tienen entrada en el mapa', () => {
-    expect(heroIds.length).toBe(23)
+  // actual de los 24 héroes conocidos.
+  it('los 24 héroes conocidos tienen entrada en el mapa', () => {
+    expect(heroIds.length).toBe(24)
     for (const id of heroIds) {
       expect(Object.prototype.hasOwnProperty.call(spanishHeroAliases, id), `falta alias para "${id}"`).toBe(true)
     }
@@ -111,8 +111,8 @@ describe('el mapa de alias contra el catálogo real', () => {
 describe('buildHeroOptions', () => {
   const heroOptions = buildHeroOptions(marvelCharacters.heroes)
 
-  it('devuelve 23 opciones', () => {
-    expect(heroOptions.length).toBe(23)
+  it('devuelve 24 opciones', () => {
+    expect(heroOptions.length).toBe(24)
   })
 
   it('ordena por spanishName según localeCompare(\'es\')', () => {
