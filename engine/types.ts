@@ -369,13 +369,14 @@ export interface CatalogueHero {
 // escribir (aborta sin escribir si no coincide) — nunca se deriva
 // automáticamente del texto de la carta, por la misma razón que
 // `expertStartStage` es dato a mano comprobado, no derivado.
+// Opcional: ausente = ningún módulo recomendado (Brigada de Demolición).
 export interface CatalogueVillain {
   id: string
   name: string
   stages: VillainStage[]
   expertStartStage?: number
   encounterSetName: string
-  recommendedModuleId: string
+  recommendedModuleId?: string
 }
 
 // Módulo de encuentro adicional (quick 260925-mpj, D-01/D-04): una de las

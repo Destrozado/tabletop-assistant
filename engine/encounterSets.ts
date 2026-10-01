@@ -27,7 +27,8 @@ export interface ModuleOption {
 // `catalogue.modules`); el resto conserva el orden del catálogo. Sin
 // villano, con un villano desconocido, o con un recomendado que ya no
 // existe en `modules` (catálogo regenerado sin ese módulo): orden de
-// catálogo tal cual, ninguno marcado `recommended`. Catálogo `null` → `[]`.
+// catálogo tal cual, ninguno marcado `recommended`. Villano sin
+// `recommendedModuleId` → ninguno marcado. Catálogo `null` → `[]`.
 export function orderModulesForVillain(
   catalogue: CharacterCatalogue | null,
   villainId: string | null,
@@ -87,8 +88,11 @@ export function resolveModuleIds(
   const villainId = resolveVillainId(context)
   const villain = villainId !== null ? catalogue.villains.find(v => v.id === villainId) ?? null : null
   if (villain === null) return []
-  return catalogue.modules.some(m => m.id === villain.recommendedModuleId)
-    ? [villain.recommendedModuleId]
+  // Villano sin recomendado → [].
+  const recommendedId = villain.recommendedModuleId
+  if (recommendedId === undefined) return []
+  return catalogue.modules.some(m => m.id === recommendedId)
+    ? [recommendedId]
     : []
 }
 

@@ -24,9 +24,13 @@ const characterIdPattern = /^[a-z0-9]+(-[a-z0-9]+)*$/
 // DC-02: esta función está duplicada a propósito en
 // scripts/catalogue/fetch-marvelcdb.mjs; si las dos derivan, este esquema
 // hace fallar CI, que es el comportamiento buscado. Ejemplo: "Ms. Marvel"
-// produce "ms-marvel".
+// produce "ms-marvel"; "Brigada de Demolición" produce
+// "brigada-de-demolicion" (plegado NFD de acentos, mismo cambio carácter a
+// carácter que `slugify` del script).
 function slugifyCharacterName(name: string): string {
   return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
@@ -50,7 +54,11 @@ const ExpertVillainStageSchema = z.strictObject({
 
 const VillainStageSchema = z.strictObject({
   stage: z.number().int().positive(),
-  health: z.number().int().positive(),
+  // La unica vida 0 legitima es la fila placeholder «Brigada de Demolicion»
+  // (quick 261001-o3p, decision del usuario U-02). El script nunca deja
+  // entrar 0 desde una carta real: extractStageFields sigue exigiendo > 0.
+  // `ExpertVillainStageSchema.health` se queda en positive.
+  health: z.number().int().nonnegative(),
   healthPerHero: z.boolean(),
   healthPerGroup: z.boolean(),
   expert: ExpertVillainStageSchema.optional(),
@@ -95,12 +103,12 @@ const VillainSchema = z.strictObject({
   // claves del villano a la vez).
   expertStartStage: z.number().int().positive().optional(),
   // encounterSetName/recommendedModuleId (quick 260925-mpj, D-07/D-03):
-  // ambos obligatorios — todo villano del catálogo trae ya su nombre de set
-  // en español y su módulo recomendado, comprobados por el script antes de
-  // escribir. `recommendedModuleId` se valida contra `modules` en el
-  // superRefine de más abajo (necesita ver la raíz del catálogo entera).
+  // `encounterSetName` obligatorio. `recommendedModuleId` opcional: ausente
+  // significa que el escenario no recomienda módulo (Brigada de Demolición,
+  // cuyas reglas prohíben otros conjuntos de encuentro). Cuando está, se
+  // valida contra `modules` en el superRefine de más abajo.
   encounterSetName: z.string().min(1),
-  recommendedModuleId: z.string().regex(characterIdPattern),
+  recommendedModuleId: z.string().regex(characterIdPattern).optional(),
 })
 
 export const CharacterCatalogueSchema = z.strictObject({
@@ -186,7 +194,7 @@ export const CharacterCatalogueSchema = z.strictObject({
   }
 
   for (const villain of catalogue.villains) {
-    if (!moduleIds.includes(villain.recommendedModuleId)) {
+    if (villain.recommendedModuleId !== undefined && !moduleIds.includes(villain.recommendedModuleId)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `Villain "${villain.name}" has recommendedModuleId "${villain.recommendedModuleId}", which is not in modules`,

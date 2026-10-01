@@ -125,6 +125,40 @@ describe('CharacterCatalogueSchema', () => {
     })
   })
 
+  describe('slug con acentos plegados (quick 261001-o3p)', () => {
+    it('acepta name "Brigada de Demolición" con id "brigada-de-demolicion"', () => {
+      const catalogue = baseCatalogue()
+      catalogue.villains[0] = { ...catalogue.villains[0], id: 'brigada-de-demolicion', name: 'Brigada de Demolición' }
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).not.toThrow()
+    })
+
+    it('lanza ZodError con id "brigada-de-demolici-n" para ese name', () => {
+      const catalogue = baseCatalogue()
+      catalogue.villains[0] = { ...catalogue.villains[0], id: 'brigada-de-demolici-n', name: 'Brigada de Demolición' }
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+  })
+
+  describe('health de etapa estándar (quick 261001-o3p)', () => {
+    it('acepta health 0 en la etapa estándar', () => {
+      const catalogue = baseCatalogue()
+      catalogue.villains[0].stages = [{ stage: 1, health: 0, healthPerHero: false, healthPerGroup: false }]
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).not.toThrow()
+    })
+
+    it('lanza ZodError con health -1', () => {
+      const catalogue = baseCatalogue()
+      catalogue.villains[0].stages[0].health = -1
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+
+    it('lanza ZodError con health 1.5', () => {
+      const catalogue = baseCatalogue()
+      catalogue.villains[0].stages[0].health = 1.5
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+    })
+  })
+
   describe('DC-01: etapas de villano', () => {
     it('lanza ZodError si las etapas tienen un hueco (1, 3)', () => {
       const catalogue = baseCatalogue()
@@ -331,10 +365,10 @@ describe('CharacterCatalogueSchema', () => {
       expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
     })
 
-    it('lanza ZodError con un villano sin recommendedModuleId', () => {
+    it('acepta un villano sin recommendedModuleId (ningún módulo recomendado)', () => {
       const catalogue = baseCatalogue()
       delete (catalogue.villains[0] as any).recommendedModuleId
-      expect(() => CharacterCatalogueSchema.parse(catalogue)).toThrow()
+      expect(() => CharacterCatalogueSchema.parse(catalogue)).not.toThrow()
     })
 
     it('lanza ZodError con una clave desconocida ("text") en baseSets', () => {
