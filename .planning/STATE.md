@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 Phase: Milestone v1.8 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-01 — Completed quick task 261001-luc: Nightcrawler en los héroes seleccionables
+Last activity: 2026-10-01 — Completed quick task 261001-o3p: Brigada de Demolición en el selector de villano
 
 ## Performance Metrics
 
@@ -221,6 +221,7 @@ Recent decisions affecting current work:
 | 260925-m2k | Vida inicial del villano en Experto: sale de la etapa con la que empieza Experto (Rhino y Ultron: II, contrastado con la carta 1A del plan principal en MarvelCDB; Kang sin cambios) | 2026-09-25 | f3ef014 | — | .planning/quick/260925-m2k-vida-inicial-del-villano-en-experto-desd |
 | 260925-mpj | Selector de módulos de encuentro: fila «Módulos» en la rejilla, recomendado del villano (comprobado contra la carta 1A), dificultad solo si se conoce, conjuntos elegidos en pantalla en setup.encuentros.01; Klaw añadido al catálogo | 2026-09-25 | 841f786 | Verified (usuario, 2026-09-25) | .planning/quick/260925-mpj-selector-de-modulos |
 | 261001-luc | Nightcrawler (48001a) seleccionable como «Rondador Nocturno»: fila en HERO_CARDS, catálogo regenerado desde MarvelCDB (vida 9, mano 5/6, Kurt Wagner), alias español y recuentos 23→24 — alias pendiente de contrastar con la carta física | 2026-10-01 | 8fe701c | — | .planning/quick/261001-luc-nightcrawler |
+| 261001-o3p | Brigada de Demolición (twc) seleccionable como villano con vida inicial 0 (marcador; el grupo ajusta a mano), sin mecánica propia del escenario por decisión del usuario; esquema admite vida 0 y módulo recomendado opcional | 2026-10-01 | a9f8e71 | — | .planning/quick/261001-o3p-brigada-de-demolicion |
 
 ## Deferred Items
 
