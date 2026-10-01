@@ -361,6 +361,154 @@
       "recommendedModuleId": "trickster-magic"
     },
     {
+      "id": "crossbones",
+      "name": "Crossbones",
+      "stages": [
+        {
+          "stage": 1,
+          "health": 12,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 2,
+          "health": 14,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 3,
+          "health": 16,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        }
+      ],
+      "expertStartStage": 2,
+      "encounterSetName": "Calavera",
+      "recommendedModuleId": "hydra-assault",
+      "additionalRecommendedModuleIds": [
+        "weap-master",
+        "legions-of-hydra"
+      ],
+      "fixedEncounterSetNames": [
+        "Armas Experimentales"
+      ]
+    },
+    {
+      "id": "absorbing-man",
+      "name": "Absorbing Man",
+      "stages": [
+        {
+          "stage": 1,
+          "health": 14,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 2,
+          "health": 15,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 3,
+          "health": 16,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        }
+      ],
+      "expertStartStage": 2,
+      "encounterSetName": "Hombre absorbente",
+      "recommendedModuleId": "hydra-patrol"
+    },
+    {
+      "id": "taskmaster",
+      "name": "Taskmaster",
+      "stages": [
+        {
+          "stage": 1,
+          "health": 13,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 2,
+          "health": 16,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 3,
+          "health": 17,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        }
+      ],
+      "expertStartStage": 2,
+      "encounterSetName": "Supervisor",
+      "recommendedModuleId": "weap-master",
+      "fixedEncounterSetNames": [
+        "Patrulla de Hydra"
+      ]
+    },
+    {
+      "id": "zola",
+      "name": "Zola",
+      "stages": [
+        {
+          "stage": 1,
+          "health": 12,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 2,
+          "health": 14,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 3,
+          "health": 16,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        }
+      ],
+      "expertStartStage": 2,
+      "encounterSetName": "Zola",
+      "recommendedModuleId": "under-attack"
+    },
+    {
+      "id": "red-skull",
+      "name": "Red Skull",
+      "stages": [
+        {
+          "stage": 1,
+          "health": 12,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 2,
+          "health": 16,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        },
+        {
+          "stage": 3,
+          "health": 20,
+          "healthPerHero": true,
+          "healthPerGroup": false
+        }
+      ],
+      "expertStartStage": 2,
+      "encounterSetName": "Cráneo Rojo",
+      "recommendedModuleId": "hydra-assault",
+      "additionalRecommendedModuleIds": [
+        "hydra-patrol"
+      ]
+    },
+    {
       "id": "brigada-de-demolicion",
       "name": "Brigada de Demolición",
       "stages": [
@@ -418,6 +566,34 @@
     {
       "id": "trickster-magic",
       "name": "Magia embaucadora"
+    },
+    {
+      "id": "hydra-assault",
+      "name": "Asalto de Hydra"
+    },
+    {
+      "id": "weap-master",
+      "name": "Maestro de armas"
+    },
+    {
+      "id": "hydra-patrol",
+      "name": "Patrulla de Hydra"
+    },
+    {
+      "id": "arcade",
+      "name": "Arcade"
+    },
+    {
+      "id": "crazy-gang",
+      "name": "La banda loca"
+    },
+    {
+      "id": "shadow-king",
+      "name": "El Rey Sombra"
+    },
+    {
+      "id": "armadillo",
+      "name": "Armadillo"
     }
   ]
 }

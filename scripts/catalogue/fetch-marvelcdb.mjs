@@ -56,6 +56,10 @@
 //    módulo recomendado por esa misma carta, también comprobado por
 //    `checkMainScheme` contra su texto — aborta si no coincide). Si el
 //    escenario no dice nada especial para Experto, `expertStartStage: 1`.
+//    Claves opcionales de fila (quick 261002-2am): `expertStartStageSource:
+//    'rulebook'` (Experto respaldado por el libro de la caja, no por la
+//    carta), `additionalRecommendedModuleCodes` (más recomendados, en orden)
+//    y `fixedSetCodes` (conjuntos fijos del escenario).
 // 1c. Si el escenario nuevo viene de una caja que el grupo no tenía
 //    todavía, añadir su código de pack a `ENCOUNTER_PACKS` y sus módulos de
 //    encuentro (dato a mano, `card_set_code`/pack/dificultad si se conoce)
@@ -111,7 +115,12 @@ const REQUEST_DELAY_MS = 1500
 // `tt`: «Trickster Takeover», comprado el 2026-10-01. Trae dos sets de
 // villano (enchantress_villain, god_of_lies) y un solo modular
 // (trickster_magic), comprobado contra la API ese día.
-const ENCOUNTER_PACKS = ['core', 'toafk', 'twc', 'tt']
+// `trors`: «The Rise of Red Skull» (quick 261002-2am): cinco villanos y seis
+// modulares (tres elegibles, tres excluidos, ver EXCLUDED_MODULAR_CODES).
+// `jubilee`/`ncrawler`/`storm`/`nova`: packs de héroe que el grupo tiene
+// (decisión del usuario, 2026-10-02) y que solo aportan un modular cada uno;
+// sus sets hero/nemesis/hero_special no son modular y la puerta los ignora.
+const ENCOUNTER_PACKS = ['core', 'toafk', 'twc', 'tt', 'trors', 'jubilee', 'ncrawler', 'storm', 'nova']
 
 // ENCOUNTER_MODULES (D-01): lista blanca a mano de los módulos de encuentro
 // adicionales de esas cajas — nunca derivada automáticamente de la API,
@@ -134,6 +143,15 @@ const ENCOUNTER_MODULES = [
   // Sin `difficulty`: no hay fuente fiable de su dificultad y nunca se
   // inventa un número (mismo criterio que los cinco del Core Set).
   { code: 'trickster_magic', pack: 'tt' },
+  // quick 261002-2am. Sin `difficulty`: no hay fuente fiable de su
+  // dificultad, así que no se inventa ningún número (criterio del Core Set).
+  { code: 'hydra_assault', pack: 'trors' },
+  { code: 'weap_master', pack: 'trors' },
+  { code: 'hydra_patrol', pack: 'trors' },
+  { code: 'arcade', pack: 'jubilee' },
+  { code: 'crazy_gang', pack: 'ncrawler' },
+  { code: 'shadow_king', pack: 'storm' },
+  { code: 'armadillo', pack: 'nova' },
 ]
 
 // EXCLUDED_MODULAR_CODES (D-01): `card_set_code`s que MarvelCDB marca
@@ -143,7 +161,12 @@ const ENCOUNTER_MODULES = [
 // instruye sustituir esas cartas en la variante `expert` de
 // `setup.escenario.04`; añadirlo como módulo adicional aquí duplicaría esa
 // instrucción y confundiría al grupo (D-08: fuera de alcance de este quick).
-const EXCLUDED_MODULAR_CODES = ['exp_kang']
+// quick 261002-2am: `exper_weapon` (Armas Experimentales) es el conjunto FIJO
+// del escenario de Crossbones (su 1A lo pide aparte, como mazo propio), no un
+// módulo intercambiable; va a la línea de conjuntos vía fixedSetCodes (ver
+// VILLAIN_SCENARIOS). `hydra_camp` y `expcamp` son solo de modo campaña, que
+// está fuera de alcance (decisión del usuario).
+const EXCLUDED_MODULAR_CODES = ['exp_kang', 'exper_weapon', 'hydra_camp', 'expcamp']
 
 // Nota deliberada: no existe ninguna constante de espera/reintento aquí, a
 // diferencia de scripts/voice/generate.mjs. MarvelCDB no tiene cuota ni 429
@@ -185,7 +208,7 @@ const HERO_CARDS = [
   { code: '48001a', expectedName: 'Nightcrawler' },
 ]
 
-// VILLAIN_STAGE_CARDS — 16 filas, en este orden exacto (quick 260925-mpj,
+// VILLAIN_STAGE_CARDS — 31 filas, en este orden exacto (quick 260925-mpj,
 // D-02: Klaw entra al catálogo — la exclusión deliberada del usuario que
 // documentaba antes este comentario queda revertida por decisión explícita
 // del usuario en ese quick).
@@ -241,10 +264,28 @@ const VILLAIN_STAGE_CARDS = [
   // sale de la carta real a través de extractStageFields, no de un literal;
   // por eso Loki NO va en PLACEHOLDER_VILLAINS.
   { villainName: 'Loki', code: '55027a', stage: 1, expectedSetCode: 'god_of_lies' },
+  // The Rise of Red Skull (quick 261002-2am): `trors` no trae set de villano
+  // Experto con cifras propias, así que ninguna etapa lleva expertCode.
+  { villainName: 'Crossbones', code: '04058', stage: 1, expectedSetCode: 'crossbones' },
+  { villainName: 'Crossbones', code: '04059', stage: 2, expectedSetCode: 'crossbones' },
+  { villainName: 'Crossbones', code: '04060', stage: 3, expectedSetCode: 'crossbones' },
+  { villainName: 'Absorbing Man', code: '04076', stage: 1, expectedSetCode: 'absorbing_man' },
+  { villainName: 'Absorbing Man', code: '04077', stage: 2, expectedSetCode: 'absorbing_man' },
+  { villainName: 'Absorbing Man', code: '04078', stage: 3, expectedSetCode: 'absorbing_man' },
+  { villainName: 'Taskmaster', code: '04093', stage: 1, expectedSetCode: 'taskmaster' },
+  { villainName: 'Taskmaster', code: '04094', stage: 2, expectedSetCode: 'taskmaster' },
+  { villainName: 'Taskmaster', code: '04095', stage: 3, expectedSetCode: 'taskmaster' },
+  { villainName: 'Zola', code: '04109', stage: 1, expectedSetCode: 'zola' },
+  { villainName: 'Zola', code: '04110', stage: 2, expectedSetCode: 'zola' },
+  { villainName: 'Zola', code: '04111', stage: 3, expectedSetCode: 'zola' },
+  { villainName: 'Red Skull', code: '04125', stage: 1, expectedSetCode: 'red_skull' },
+  { villainName: 'Red Skull', code: '04126', stage: 2, expectedSetCode: 'red_skull' },
+  { villainName: 'Red Skull', code: '04127', stage: 3, expectedSetCode: 'red_skull' },
 ]
 
 // VILLAIN_SCENARIOS — una fila por villano (mismo orden que VILLAIN_STAGE_CARDS:
-// rhino, klaw, kang, ultron, enchantress, loki), dato a mano de la etapa con la que empieza la
+// rhino, klaw, kang, ultron, enchantress, loki, crossbones,
+// absorbing-man, taskmaster, zola, red-skull), dato a mano de la etapa con la que empieza la
 // partida en modo Experto (`expertStartStage`). Es dato A MANO, no
 // derivado, porque el texto libre de la carta ("Rhino (II) and Rhino (III)
 // instead for expert mode.") es frágil para parsear con confianza — la
@@ -261,6 +302,19 @@ const VILLAIN_STAGE_CARDS = [
 // mano, también comprobado por `checkMainScheme` contra el texto de la
 // carta ("One modular encounter set (recommended: ...)"), también aborta
 // sin escribir si no coincide.
+//
+// Claves opcionales de fila (quick 261002-2am):
+// - `expertStartStageSource: 'rulebook'`: la cara 1A no lista las etapas de
+//   Experto pero el libro de reglas de la caja sí; el dato a mano se apoya
+//   en el libro (cita de página en cada fila). checkMainScheme exige
+//   entonces que la carta NO traiga la línea «instead for expert mode» y
+//   que diga «X (I) and X (II)»; solo admite expertStartStage 2 («Remove
+//   X (I) and add X (III)» equivale a arrancar en la II).
+// - `additionalRecommendedModuleCodes`: card_set_code de los recomendados
+//   2.º, 3.º… en el orden de la carta.
+// - `fixedSetCodes`: card_set_code de los conjuntos fijos del escenario,
+//   aparte del propio y del Standard (puede ser []). Si se declara,
+//   checkMainScheme comprueba la línea de sets de la carta.
 //
 // Rhino, Ultron y Klaw (Core Set): `expertStartStage: 2` — la partida
 // empieza en la etapa II en Experto, reutilizando sus propias cifras de esa
@@ -282,6 +336,22 @@ const VILLAIN_SCENARIOS = [
   // es un apego (mecánica fuera de alcance), sin cambio de etapa. De ahí
   // expertStartStage 1.
   { villainName: 'Loki', mainSchemeCode: '55028a', expectedMainSchemeName: 'Worlds Collide', expectedSetCode: 'god_of_lies', expertStartStage: 1, recommendedModuleCode: 'trickster_magic' },
+  // The Rise of Red Skull (quick 261002-2am). Las cinco 1A no listan Experto;
+  // el libro de reglas de la caja (MC10en) dice «Remove X (I) and add X (III)
+  // for expert mode» → expertStartStage 2.
+  // Crossbones: libro, pág. 5. Errata RR v1.7 #61A («Hydra Patrol» →
+  // «Hydra Assault»): MarvelCDB ya trae el texto corregido y, si volviera a
+  // «Hydra Patrol», la comprobación aborta.
+  { villainName: 'Crossbones', mainSchemeCode: '04061a', expectedMainSchemeName: 'Attack on Mount Athena', expectedSetCode: 'crossbones', expertStartStage: 2, expertStartStageSource: 'rulebook', recommendedModuleCode: 'hydra_assault', additionalRecommendedModuleCodes: ['weap_master', 'legions_of_hydra'], fixedSetCodes: ['exper_weapon'] },
+  // Absorbing Man: libro, pág. 7.
+  { villainName: 'Absorbing Man', mainSchemeCode: '04079a', expectedMainSchemeName: 'None Shall Pass', expectedSetCode: 'absorbing_man', expertStartStage: 2, expertStartStageSource: 'rulebook', recommendedModuleCode: 'hydra_patrol', fixedSetCodes: [] },
+  // Taskmaster: libro, pág. 10; la Patrulla de Hydra es obligatoria aquí.
+  { villainName: 'Taskmaster', mainSchemeCode: '04096a', expectedMainSchemeName: 'Hunting Down Heroes', expectedSetCode: 'taskmaster', expertStartStage: 2, expertStartStageSource: 'rulebook', recommendedModuleCode: 'weap_master', fixedSetCodes: ['hydra_patrol'] },
+  // Zola: libro, pág. 12.
+  { villainName: 'Zola', mainSchemeCode: '04112a', expectedMainSchemeName: 'The Island of Dr. Zola', expectedSetCode: 'zola', expertStartStage: 2, expertStartStageSource: 'rulebook', recommendedModuleCode: 'under_attack', fixedSetCodes: [] },
+  // Red Skull: libro, pág. 15. Se usa 04128a, no la cara 1 04128, cuyo
+  // nombre lleva «the».
+  { villainName: 'Red Skull', mainSchemeCode: '04128a', expectedMainSchemeName: 'The Rise of Red Skull', expectedSetCode: 'red_skull', expertStartStage: 2, expertStartStageSource: 'rulebook', recommendedModuleCode: 'hydra_assault', additionalRecommendedModuleCodes: ['hydra_patrol'], fixedSetCodes: [] },
 ]
 
 // PLACEHOLDER_VILLAINS (quick 261001-o3p) — escenario como villano placeholder.
@@ -520,6 +590,15 @@ async function checkMainSchemeIdentity({ villainName, mainSchemeCode, expectedMa
   return card
 }
 
+// Parte una lista de nombres de carta («A, B, and C», «A and B», «A») en
+// trozos recortados (quick 261002-2am).
+function splitCardList(fragment) {
+  return fragment
+    .split(/,\s*and\s+|,\s*|\s+and\s+/)
+    .map(part => part.trim())
+    .filter(part => part !== '')
+}
+
 async function checkMainScheme(row, englishSets) {
   const { villainName, mainSchemeCode, expertStartStage, recommendedModuleCode } = row
   const card = await checkMainSchemeIdentity(row)
@@ -534,7 +613,18 @@ async function checkMainScheme(row, englishSets) {
   const expertModeRegex = /\(\s*(.+?) \((I{1,3})\) and \1 \((I{1,3})\) instead for expert mode\.?\s*\)/
   const match = text.match(expertModeRegex)
 
-  if (expertStartStage === 1) {
+  if (row.expertStartStageSource === 'rulebook') {
+    // La carta no lista Experto; el dato a mano sale del libro de reglas de
+    // la caja. Si la carta ya lo lista, hay que usarla como fuente.
+    if (match) {
+      throw new Error(`Fila ${villainName}: expertStartStageSource es 'rulebook' pero la carta ${mainSchemeCode} YA lista el modo Experto ("${match[0]}") — usa la carta como fuente`)
+    }
+    const contentsMatch = text.match(/Contents:\s*(.+?) \(I\) and \1 \(II\)/)
+    if (!contentsMatch || contentsMatch[1] !== villainName) {
+      throw new Error(`Fila ${villainName}: la carta ${mainSchemeCode} no trae «Contents: ${villainName} (I) and ${villainName} (II)» (encontrado: ${contentsMatch ? contentsMatch[1] : 'nada'})`)
+    }
+  }
+  else if (expertStartStage === 1) {
     // Sin sustitución de etapa en Experto (caso Kang, va con su propio set
     // exp_kang): la carta NO debe traer la línea "instead for expert mode".
     // Si la trae, el dato a mano quedó desfasado.
@@ -559,24 +649,56 @@ async function checkMainScheme(row, englishSets) {
     }
   }
 
-  // Puerta del módulo recomendado (quick 260925-mpj, D-03/T-mpj-03): busca
-  // "One modular (encounter) set (...)" — 55004a dice «One modular set (...)»,
-  // sin «encounter». Con o sin el prefijo "recommended:" —
-  // Kang no lo lleva porque su único modular es fijo, no una recomendación
-  // entre varios. El fragmento capturado, recortado y sin punto final, debe
-  // coincidir EXACTAMENTE con el nombre inglés del módulo a mano.
-  const recommendedRegex = /One modular (?:encounter )?set \((?:recommended:\s*)?([^)]+?)\.?\s*\)/
+  // Puerta del módulo recomendado (quick 260925-mpj, D-03/T-mpj-03; ampliada
+  // en 261002-2am a varios): busca "One|Two|Three modular (encounter) set(s)
+  // (...)" — 55004a dice «One modular set (...)», sin «encounter». Con o sin
+  // el prefijo "recommended:" — Kang no lo lleva porque su único modular es
+  // fijo. La lista capturada, partida y recortada, debe coincidir EXACTAMENTE
+  // y en orden con los nombres ingleses de los módulos a mano, y su recuento
+  // con la palabra One/Two/Three.
+  const recommendedRegex = /(One|Two|Three) modular (?:encounter )?sets? \((?:recommended:\s*)?([^)]+?)\.?\s*\)/
   const recommendedMatch = text.match(recommendedRegex)
   if (!recommendedMatch) {
-    throw new Error(`Fila ${villainName}: no se encontró la línea "One modular [encounter] set (...)" en la carta ${mainSchemeCode} para comprobar el módulo recomendado`)
+    throw new Error(`Fila ${villainName}: no se encontró la línea "One|Two|Three modular [encounter] set(s) (...)" en la carta ${mainSchemeCode} para comprobar el módulo recomendado`)
   }
-  const recommendedFragment = recommendedMatch[1].trim()
-  const expectedModuleName = englishSets.get(recommendedModuleCode)?.name
-  if (expectedModuleName === undefined) {
-    throw new Error(`Fila ${villainName}: recommendedModuleCode "${recommendedModuleCode}" no se encontró entre los módulos descargados de MarvelCDB`)
+  const countWords = { One: 1, Two: 2, Three: 3 }
+  const cardList = splitCardList(recommendedMatch[2])
+  if (cardList.length !== countWords[recommendedMatch[1]]) {
+    throw new Error(`Fila ${villainName}: la carta ${mainSchemeCode} dice "${recommendedMatch[1]}" módulos pero la lista trae ${cardList.length} ("${recommendedMatch[2]}")`)
   }
-  if (recommendedFragment !== expectedModuleName) {
-    throw new Error(`Fila ${villainName}: el módulo recomendado a mano es "${recommendedModuleCode}" ("${expectedModuleName}") pero la carta ${mainSchemeCode} dice "${recommendedFragment}" — el dato a mano está desfasado`)
+  const expectedCodes = [recommendedModuleCode, ...(row.additionalRecommendedModuleCodes ?? [])]
+  const expectedNames = expectedCodes.map((code) => {
+    const name = englishSets.get(code)?.name
+    if (name === undefined) {
+      throw new Error(`Fila ${villainName}: el módulo "${code}" no se encontró entre los módulos descargados de MarvelCDB`)
+    }
+    return name
+  })
+  if (JSON.stringify(cardList) !== JSON.stringify(expectedNames)) {
+    throw new Error(`Fila ${villainName}: los módulos recomendados a mano son [${expectedNames.join(', ')}] pero la carta ${mainSchemeCode} dice [${cardList.join(', ')}] — el dato a mano está desfasado`)
+  }
+
+  // Conjuntos fijos (quick 261002-2am): si la fila los declara (aunque sea
+  // []), la línea de sets de la carta debe ser, en orden, el set del villano,
+  // los fijos y «Standard». Crossbones escribe «Encounter» con mayúscula.
+  if (row.fixedSetCodes !== undefined) {
+    const setsMatch = text.match(/\(II\)\.\s*(.+?) [Ee]ncounter sets\./)
+    if (!setsMatch) {
+      throw new Error(`Fila ${villainName}: no se encontró la línea "... (II). X, Y, and Standard encounter sets." (patrón /\\(II\\)\\.\\s*(.+?) [Ee]ncounter sets\\./) en la carta ${mainSchemeCode}`)
+    }
+    const setList = splitCardList(setsMatch[1])
+    const expectedSetCodes = [row.expectedSetCode, ...row.fixedSetCodes]
+    const expectedSetNames = expectedSetCodes.map((code) => {
+      const name = englishSets.get(code)?.name
+      if (name === undefined) {
+        throw new Error(`Fila ${villainName}: el set "${code}" no se encontró entre los sets descargados de MarvelCDB`)
+      }
+      return name
+    })
+    expectedSetNames.push('Standard')
+    if (JSON.stringify(setList) !== JSON.stringify(expectedSetNames)) {
+      throw new Error(`Fila ${villainName}: los conjuntos a mano son [${expectedSetNames.join(', ')}] pero la carta ${mainSchemeCode} dice [${setList.join(', ')}] — el dato a mano está desfasado`)
+    }
   }
 }
 
@@ -589,17 +711,17 @@ function writeCatalogue(heroes, villains, baseSets, modules) {
 }
 
 async function main() {
-  // D-05/D-09: los ~47 códigos (24 héroes + 12 etapas estándar + 3 etapas
-  // Experto de Kang + 5 cartas de plan principal para checkMainScheme y
-  // checkMainSchemeIdentity + 6 descargas de pack: core, toafk y twc EN/ES) se resuelven EN
+  // D-05/D-09: los ~88 códigos (24 héroes + 31 etapas estándar + 3 etapas
+  // Experto de Kang + 12 cartas de plan principal para checkMainScheme y
+  // checkMainSchemeIdentity + 18 descargas de pack: 9 packs EN/ES) se resuelven EN
   // MEMORIA COMPLETA antes de escribir nada. Solo si todos tuvieron éxito se
   // llama a writeCatalogue. Ninguna escritura parcial de
   // content/marvel-characters.json puede ocurrir jamás — diferencia
   // deliberada respecto a scripts/voice/generate.mjs, que escribe
   // incrementalmente (ese script es reanudable por diseño; este es todo o
-  // nada). Con el pacing de REQUEST_DELAY_MS (1500 ms) esto tarda ~90 s
-  // (unas 58 peticiones: 24 héroes + 16 etapas estándar + 3 Experto de Kang
-  // + 7 planes principales + 8 descargas de pack core/toafk/twc/tt en EN/ES).
+  // nada). Con el pacing de REQUEST_DELAY_MS (1500 ms) esto tarda ~140 s
+  // (unas 88 peticiones: 24 héroes + 31 etapas estándar + 3 Experto de Kang
+  // + 12 planes principales + 18 descargas de pack en EN/ES).
 
   // Guarda previa a cualquier petición de red (D-05: fallar alto antes que
   // gastar peticiones): el conjunto de villainName de VILLAIN_SCENARIOS y de
@@ -661,6 +783,36 @@ async function main() {
   for (const row of VILLAIN_SCENARIOS) {
     if (!moduleCodes.includes(row.recommendedModuleCode)) {
       throw new Error(`VILLAIN_SCENARIOS: "${row.villainName}" declara recommendedModuleCode "${row.recommendedModuleCode}", que no está en ENCOUNTER_MODULES`)
+    }
+  }
+  for (const row of VILLAIN_SCENARIOS) {
+    if (row.expertStartStageSource !== undefined && row.expertStartStageSource !== 'rulebook') {
+      throw new Error(`VILLAIN_SCENARIOS: "${row.villainName}" tiene expertStartStageSource "${row.expertStartStageSource}"; solo se admite 'rulebook'`)
+    }
+    if (row.expertStartStageSource === 'rulebook' && row.expertStartStage !== 2) {
+      throw new Error(`VILLAIN_SCENARIOS: "${row.villainName}" usa 'rulebook' con expertStartStage ${row.expertStartStage}; debe ser 2`)
+    }
+    const additional = row.additionalRecommendedModuleCodes ?? []
+    if (new Set(additional).size !== additional.length) {
+      throw new Error(`VILLAIN_SCENARIOS: "${row.villainName}" repite códigos en additionalRecommendedModuleCodes`)
+    }
+    for (const code of additional) {
+      if (!moduleCodes.includes(code)) {
+        throw new Error(`VILLAIN_SCENARIOS: "${row.villainName}" declara additionalRecommendedModuleCodes "${code}", que no está en ENCOUNTER_MODULES`)
+      }
+      if (code === row.recommendedModuleCode) {
+        throw new Error(`VILLAIN_SCENARIOS: "${row.villainName}" repite recommendedModuleCode "${code}" en additionalRecommendedModuleCodes`)
+      }
+    }
+    if (row.fixedSetCodes !== undefined) {
+      if (!Array.isArray(row.fixedSetCodes) || new Set(row.fixedSetCodes).size !== row.fixedSetCodes.length) {
+        throw new Error(`VILLAIN_SCENARIOS: "${row.villainName}" tiene fixedSetCodes que no es un array sin duplicados`)
+      }
+      for (const code of row.fixedSetCodes) {
+        if (code === row.expectedSetCode || code === 'standard' || code === row.recommendedModuleCode || additional.includes(code)) {
+          throw new Error(`VILLAIN_SCENARIOS: "${row.villainName}" tiene fixedSetCodes "${code}", que coincide con su propio set, con 'standard' o con un recomendado`)
+        }
+      }
     }
   }
   for (const code of moduleCodes) {
@@ -794,12 +946,28 @@ async function main() {
   const villains = villainOrder.map((id) => {
     const villain = villainStagesById.get(id)
     const scenario = VILLAIN_SCENARIOS.find(row => slugify(row.villainName) === id)
-    return {
+    const output = {
       ...villain,
       expertStartStage: scenario.expertStartStage,
       encounterSetName: encounterSetNameByVillainName.get(scenario.villainName),
       recommendedModuleId: scenario.recommendedModuleCode.replace(/_/g, '-'),
     }
+    // Asignación condicional, nunca una clave a `undefined` (D-10).
+    const additional = scenario.additionalRecommendedModuleCodes ?? []
+    if (additional.length > 0) {
+      output.additionalRecommendedModuleIds = additional.map(code => code.replace(/_/g, '-'))
+    }
+    const fixed = scenario.fixedSetCodes ?? []
+    if (fixed.length > 0) {
+      output.fixedEncounterSetNames = fixed.map((code) => {
+        const info = findInAnyPack(spanishSetsByPack, code)
+        if (!info) {
+          throw new Error(`Villano "${scenario.villainName}": el conjunto fijo "${code}" no se encontró en ES`)
+        }
+        return info.name
+      })
+    }
+    return output
   })
   // Placeholders al final, sin clave recommendedModuleId (ni como undefined).
   for (const row of PLACEHOLDER_VILLAINS) {
