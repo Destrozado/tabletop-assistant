@@ -34,6 +34,7 @@ const rhino = catalogue.villains.find(v => v.id === 'rhino')!
 const kang = catalogue.villains.find(v => v.id === 'kang')!
 const ultron = catalogue.villains.find(v => v.id === 'ultron')!
 const klaw = catalogue.villains.find(v => v.id === 'klaw')!
+const brigada = catalogue.villains.find(v => v.id === 'brigada-de-demolicion')!
 const thor = catalogue.heroes.find(h => h.id === 'thor')!
 const ironMan = catalogue.heroes.find(h => h.id === 'iron-man')!
 const sheHulk = catalogue.heroes.find(h => h.id === 'she-hulk')!
@@ -120,6 +121,29 @@ describe('precarga (D-09/D-11/HP-05)', () => {
   it('villano/héroe null devuelven null, sin lanzar', () => {
     expect(computeInitialVillainHealth(null, 3, 'normal')).toBeNull()
     expect(computeInitialHeroHealth(null)).toBeNull()
+  })
+})
+
+describe('Brigada de Demolición: villano placeholder con vida 0 (quick 261001-o3p)', () => {
+  it.each([1, 2, 3, 4])('computeInitialVillainHealth con %s jugadores vale 0 en Normal y en Experto', (n) => {
+    expect(computeInitialVillainHealth(brigada, n, 'normal')).toBe(0)
+    expect(computeInitialVillainHealth(brigada, n, 'expert')).toBe(0)
+  })
+
+  it('setVillain precarga villainHealth 0', () => {
+    const session = setVillain(baseSession(), 'brigada-de-demolicion')
+    expect(resolveCounterValues(session.context, catalogue).villainHealth).toBe(0)
+  })
+
+  it('decrementVillain con base 0 devuelve la misma referencia', () => {
+    const session = setVillain(baseSession(), 'brigada-de-demolicion')
+    expect(decrementVillain(session, catalogue)).toBe(session)
+  })
+
+  it('incrementVillain sube a 1', () => {
+    const session = setVillain(baseSession(), 'brigada-de-demolicion')
+    const result = incrementVillain(session, catalogue)
+    expect(resolveCounterValues(result.context, catalogue).villainHealth).toBe(1)
   })
 })
 

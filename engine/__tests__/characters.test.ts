@@ -170,15 +170,34 @@ describe('content/marvel-characters.json', () => {
       }
     })
 
-    it('toda etapa tiene health entero mayor que 0 y healthPerHero/healthPerGroup booleanos', () => {
+    it('toda etapa tiene health entero >= 0 y healthPerHero/healthPerGroup booleanos', () => {
       const catalogue = loadValidatedCatalogue()
       for (const villain of catalogue.villains) {
         for (const s of villain.stages) {
           expect(Number.isInteger(s.health), `villano ${villain.id} etapa ${s.stage} health no es entero`).toBe(true)
-          expect(s.health, `villano ${villain.id} etapa ${s.stage} health no es positivo`).toBeGreaterThan(0)
+          expect(s.health, `villano ${villain.id} etapa ${s.stage} health es negativo`).toBeGreaterThanOrEqual(0)
           expect(typeof s.healthPerHero, `villano ${villain.id} etapa ${s.stage} healthPerHero no es booleano`).toBe('boolean')
           expect(typeof s.healthPerGroup, `villano ${villain.id} etapa ${s.stage} healthPerGroup no es booleano`).toBe('boolean')
         }
+      }
+    })
+
+    it('toda etapa con health 0 pertenece a un villano sin recommendedModuleId', () => {
+      const catalogue = loadValidatedCatalogue()
+      for (const villain of catalogue.villains) {
+        for (const s of villain.stages) {
+          if (s.health === 0) {
+            expect(villain.recommendedModuleId, `villano ${villain.id} etapa ${s.stage} tiene health 0 pero sí recommendedModuleId`).toBeUndefined()
+          }
+        }
+      }
+    })
+
+    it('todo villano salvo brigada-de-demolicion tiene recommendedModuleId', () => {
+      const catalogue = loadValidatedCatalogue()
+      for (const villain of catalogue.villains) {
+        if (villain.id === 'brigada-de-demolicion') continue
+        expect(villain.recommendedModuleId, `villano ${villain.id} no tiene recommendedModuleId`).toBeDefined()
       }
     })
 
@@ -307,6 +326,20 @@ describe('content/marvel-characters.json', () => {
   // Quick 260925-mpj (D-01/D-02/D-03/D-04/D-07): Klaw, módulos de encuentro
   // de las cajas del grupo (core + toafk) y el módulo recomendado por
   // villano. Sin aserciones de longitud fija de arrays (CAT-07 arriba).
+  describe('Brigada de Demolición (quick 261001-o3p)', () => {
+    it('existe como villano placeholder: vida 0, sin expert, sin recomendado', () => {
+      const catalogue = loadValidatedCatalogue()
+      const brigada = catalogue.villains.find(v => v.id === 'brigada-de-demolicion')
+      expect(brigada, 'no se encontró brigada-de-demolicion').toBeDefined()
+      expect(brigada!.name).toBe('Brigada de Demolición')
+      expect(brigada!.stages).toEqual([{ stage: 1, health: 0, healthPerHero: false, healthPerGroup: false }])
+      expect('expert' in brigada!.stages[0]).toBe(false)
+      expect(brigada!.expertStartStage).toBe(1)
+      expect(brigada!.encounterSetName).toBe('Brigada de demolición')
+      expect('recommendedModuleId' in brigada!).toBe(false)
+    })
+  })
+
   describe('quick 260925-mpj: Klaw, baseSets, modules y recomendado por villano', () => {
     it('Klaw existe con stages 12/18/22 per-hero y expertStartStage 2', () => {
       const catalogue = loadValidatedCatalogue()

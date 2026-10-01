@@ -71,6 +71,32 @@ describe('orderModulesForVillain', () => {
   })
 })
 
+describe('Brigada de Demolición: villano sin recommendedModuleId (quick 261001-o3p)', () => {
+  it('orderModulesForVillain: orden de catálogo, ninguno recommended', () => {
+    const options = orderModulesForVillain(catalogue, 'brigada-de-demolicion')
+    expect(options.map(o => o.id)).toEqual(catalogue.modules.map(m => m.id))
+    expect(options.every(o => o.recommended === false)).toBe(true)
+  })
+
+  it('resolveModuleIds sin moduleIds devuelve []', () => {
+    const session = setVillain(baseSession(), 'brigada-de-demolicion')
+    expect(resolveModuleIds(session.context, catalogue)).toEqual([])
+  })
+
+  it('resolveEncounterSetNames: Normal y Experto sin módulos (el rótulo Normal/Experto se acepta, U-03)', () => {
+    const session = setVillain(baseSession(), 'brigada-de-demolicion')
+    expect(resolveEncounterSetNames(session.context, catalogue)).toEqual(['Brigada de demolición', 'Normal'])
+    const expert: SessionContext = { ...session.context, difficulty: 'expert' }
+    expect(resolveEncounterSetNames(expert, catalogue)).toEqual(['Brigada de demolición', 'Normal', 'Experto'])
+  })
+
+  it('toggleModule legions-of-hydra desde ese estado da [legions-of-hydra]', () => {
+    const session = setVillain(baseSession(), 'brigada-de-demolicion')
+    const result = toggleModule(session, 'legions-of-hydra', catalogue)
+    expect(resolveModuleIds(result.context, catalogue)).toEqual(['legions-of-hydra'])
+  })
+})
+
 describe('resolveModuleIds (T-mpj-01)', () => {
   it('selección sin moduleIds + villano rhino: recomendado (bomb-scare)', () => {
     const session = setVillain(baseSession(), 'rhino')
