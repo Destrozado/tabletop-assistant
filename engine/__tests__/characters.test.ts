@@ -375,6 +375,76 @@ describe('content/marvel-characters.json', () => {
     })
   })
 
+  describe('The Rise of Red Skull (quick 261002-2am)', () => {
+    const expected = [
+      { id: 'crossbones', name: 'Crossbones', health: [12, 14, 16], set: 'Calavera' },
+      { id: 'absorbing-man', name: 'Absorbing Man', health: [14, 15, 16], set: 'Hombre absorbente' },
+      { id: 'taskmaster', name: 'Taskmaster', health: [13, 16, 17], set: 'Supervisor' },
+      { id: 'zola', name: 'Zola', health: [12, 14, 16], set: 'Zola' },
+      { id: 'red-skull', name: 'Red Skull', health: [12, 16, 20], set: 'Cráneo Rojo' },
+    ]
+
+    it.each(expected)('$id: nombre, etapas por héroe sin expert, Experto desde la II y set ES', ({ id, name, health, set }) => {
+      const catalogue = loadValidatedCatalogue()
+      const v = catalogue.villains.find(x => x.id === id)
+      expect(v, `no se encontró ${id}`).toBeDefined()
+      expect(v!.name).toBe(name)
+      expect(v!.stages.map(s => s.health)).toEqual(health)
+      for (const s of v!.stages) {
+        expect(s.healthPerHero).toBe(true)
+        expect(s.healthPerGroup).toBe(false)
+        expect('expert' in s).toBe(false)
+      }
+      expect(v!.expertStartStage).toBe(2)
+      expect(v!.encounterSetName).toBe(set)
+    })
+
+    it('claves de recomendados múltiples y conjuntos fijos', () => {
+      const catalogue = loadValidatedCatalogue()
+      const get = (id: string) => catalogue.villains.find(x => x.id === id)!
+      expect(get('crossbones').additionalRecommendedModuleIds).toEqual(['weap-master', 'legions-of-hydra'])
+      expect(get('crossbones').fixedEncounterSetNames).toEqual(['Armas Experimentales'])
+      expect(get('taskmaster').fixedEncounterSetNames).toEqual(['Patrulla de Hydra'])
+      expect('additionalRecommendedModuleIds' in get('taskmaster')).toBe(false)
+      expect(get('red-skull').additionalRecommendedModuleIds).toEqual(['hydra-patrol'])
+      expect('fixedEncounterSetNames' in get('red-skull')).toBe(false)
+      for (const id of ['zola', 'absorbing-man']) {
+        expect('additionalRecommendedModuleIds' in get(id)).toBe(false)
+        expect('fixedEncounterSetNames' in get(id)).toBe(false)
+      }
+    })
+
+    it('los siete módulos nuevos existen con su nombre ES y sin difficulty', () => {
+      const catalogue = loadValidatedCatalogue()
+      const names: Record<string, string> = {
+        'hydra-assault': 'Asalto de Hydra',
+        'weap-master': 'Maestro de armas',
+        'hydra-patrol': 'Patrulla de Hydra',
+        arcade: 'Arcade',
+        'crazy-gang': 'La banda loca',
+        'shadow-king': 'El Rey Sombra',
+        armadillo: 'Armadillo',
+      }
+      for (const [id, name] of Object.entries(names)) {
+        const m = catalogue.modules.find(x => x.id === id)
+        expect(m, `no se encontró el módulo ${id}`).toBeDefined()
+        expect(m!.name).toBe(name)
+        expect('difficulty' in m!).toBe(false)
+      }
+    })
+
+    it('invariante: ningún fixedEncounterSetNames coincide con el set del villano ni con su módulo recomendado', () => {
+      const catalogue = loadValidatedCatalogue()
+      for (const v of catalogue.villains) {
+        const recommendedName = catalogue.modules.find(m => m.id === v.recommendedModuleId)?.name
+        for (const fixed of v.fixedEncounterSetNames ?? []) {
+          expect(fixed, `villano ${v.id}`).not.toBe(v.encounterSetName)
+          expect(fixed, `villano ${v.id}`).not.toBe(recommendedName)
+        }
+      }
+    })
+  })
+
   describe('quick 260925-mpj: Klaw, baseSets, modules y recomendado por villano', () => {
     it('Klaw existe con stages 12/18/22 per-hero y expertStartStage 2', () => {
       const catalogue = loadValidatedCatalogue()
@@ -388,7 +458,7 @@ describe('content/marvel-characters.json', () => {
       expect(klaw!.expertStartStage).toBe(2)
     })
 
-    it('recommendedModuleId de rhino/klaw/ultron/kang/enchantress/loki es bomb-scare/masters-of-evil/under-attack/temporal/trickster-magic', () => {
+    it('recommendedModuleId de rhino/klaw/ultron/kang/enchantress/loki y los cinco de Red Skull es el de su carta 1A', () => {
       const catalogue = loadValidatedCatalogue()
       const expected: Record<string, string> = {
         rhino: 'bomb-scare',
@@ -397,6 +467,11 @@ describe('content/marvel-characters.json', () => {
         kang: 'temporal',
         enchantress: 'trickster-magic',
         loki: 'trickster-magic',
+        crossbones: 'hydra-assault',
+        'absorbing-man': 'hydra-patrol',
+        taskmaster: 'weap-master',
+        zola: 'under-attack',
+        'red-skull': 'hydra-assault',
       }
       for (const [id, recommendedModuleId] of Object.entries(expected)) {
         const villain = catalogue.villains.find(v => v.id === id)

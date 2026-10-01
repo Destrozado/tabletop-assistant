@@ -44,6 +44,13 @@ describe('orderModulesForVillain', () => {
       'mot',
       'anachronauts',
       'trickster-magic',
+      'hydra-assault',
+      'weap-master',
+      'hydra-patrol',
+      'arcade',
+      'crazy-gang',
+      'shadow-king',
+      'armadillo',
     ])
   })
 
@@ -320,5 +327,70 @@ describe('varios recomendados y conjuntos fijos (quick 261002-2am)', () => {
     const names = resolveEncounterSetNames(s.context, c)
     expect(names.filter(n => n === 'Amenaza de bomba')).toHaveLength(1)
     expect(names.indexOf('Amenaza de bomba')).toBe(1)
+  })
+})
+
+describe('The Rise of Red Skull (quick 261002-2am)', () => {
+  const sess = (id: string, difficulty: 'normal' | 'expert' = 'normal') => {
+    const s = setVillain(baseSession(), id)
+    return difficulty === 'expert' ? { ...s, context: { ...s.context, difficulty } } : s
+  }
+
+  it('orderModulesForVillain: crossbones y red-skull ponen sus recomendados primero', () => {
+    const cb = orderModulesForVillain(catalogue, 'crossbones')
+    expect(cb.slice(0, 3).map(o => o.id)).toEqual(['hydra-assault', 'weap-master', 'legions-of-hydra'])
+    expect(cb.slice(0, 3).every(o => o.recommended)).toBe(true)
+    expect(cb.slice(3).every(o => !o.recommended)).toBe(true)
+    const rs = orderModulesForVillain(catalogue, 'red-skull')
+    expect(rs.slice(0, 2).map(o => o.id)).toEqual(['hydra-assault', 'hydra-patrol'])
+    expect(rs.slice(0, 2).every(o => o.recommended)).toBe(true)
+    expect(rs.slice(2).every(o => !o.recommended)).toBe(true)
+  })
+
+  it.each([
+    ['crossbones', ['hydra-assault', 'weap-master', 'legions-of-hydra']],
+    ['red-skull', ['hydra-assault', 'hydra-patrol']],
+    ['taskmaster', ['weap-master']],
+    ['zola', ['under-attack']],
+    ['absorbing-man', ['hydra-patrol']],
+  ])('resolveModuleIds por defecto de %s', (id, expected) => {
+    expect(resolveModuleIds(sess(id).context, catalogue)).toEqual(expected)
+  })
+
+  it.each([
+    ['crossbones', ['Calavera', 'Armas Experimentales', 'Normal', 'Asalto de Hydra', 'Maestro de armas', 'Legiones de Hydra']],
+    ['taskmaster', ['Supervisor', 'Patrulla de Hydra', 'Normal', 'Maestro de armas']],
+    ['red-skull', ['Cráneo Rojo', 'Normal', 'Asalto de Hydra', 'Patrulla de Hydra']],
+    ['zola', ['Zola', 'Normal', 'Civiles en peligro']],
+    ['absorbing-man', ['Hombre absorbente', 'Normal', 'Patrulla de Hydra']],
+  ])('línea de conjuntos en Normal de %s', (id, expected) => {
+    expect(resolveEncounterSetNames(sess(id).context, catalogue)).toEqual(expected)
+  })
+
+  it('crossbones en expert inserta Experto tras Normal', () => {
+    const names = resolveEncounterSetNames(sess('crossbones', 'expert').context, catalogue)
+    expect(names.indexOf('Experto')).toBe(names.indexOf('Normal') + 1)
+  })
+
+  it('taskmaster con Patrulla de Hydra marcada no la repite', () => {
+    const s = toggleModule(sess('taskmaster'), 'hydra-patrol', catalogue)
+    expect(resolveModuleIds(s.context, catalogue)).toContain('hydra-patrol')
+    const names = resolveEncounterSetNames(s.context, catalogue)
+    expect(names.filter(n => n === 'Patrulla de Hydra')).toHaveLength(1)
+  })
+
+  it('ningún módulo de packs de héroe es recomendado para ningún villano', () => {
+    const heroModules = ['arcade', 'crazy-gang', 'shadow-king', 'armadillo']
+    for (const v of catalogue.villains) {
+      const ids = [v.recommendedModuleId, ...(v.additionalRecommendedModuleIds ?? [])]
+      for (const m of heroModules) expect(ids, `villano ${v.id}`).not.toContain(m)
+    }
+  })
+
+  it('el selector nunca ofrece Armas Experimentales ni los de campaña', () => {
+    const names = orderModulesForVillain(catalogue, 'crossbones').map(o => o.name)
+    for (const banned of ['Armas Experimentales', 'Campaña de Hydra', 'Campaña en Experto']) {
+      expect(names).not.toContain(banned)
+    }
   })
 })

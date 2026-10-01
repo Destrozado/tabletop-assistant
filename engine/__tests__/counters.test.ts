@@ -36,6 +36,11 @@ const ultron = catalogue.villains.find(v => v.id === 'ultron')!
 const klaw = catalogue.villains.find(v => v.id === 'klaw')!
 const enchantress = catalogue.villains.find(v => v.id === 'enchantress')!
 const loki = catalogue.villains.find(v => v.id === 'loki')!
+const crossbones = catalogue.villains.find(v => v.id === 'crossbones')!
+const absorbingMan = catalogue.villains.find(v => v.id === 'absorbing-man')!
+const taskmaster = catalogue.villains.find(v => v.id === 'taskmaster')!
+const zola = catalogue.villains.find(v => v.id === 'zola')!
+const redSkull = catalogue.villains.find(v => v.id === 'red-skull')!
 const brigada = catalogue.villains.find(v => v.id === 'brigada-de-demolicion')!
 const thor = catalogue.heroes.find(h => h.id === 'thor')!
 const ironMan = catalogue.heroes.find(h => h.id === 'iron-man')!
@@ -517,5 +522,25 @@ describe('Trickster Takeover (quick 261001-obf)', () => {
   it('setVillain loki precarga villainHealth 60 con 3 jugadores', () => {
     const session = setVillain(baseSession(), 'loki')
     expect(resolveCounterValues(session.context, catalogue).villainHealth).toBe(60)
+  })
+})
+
+describe('The Rise of Red Skull: vida inicial por etapa (quick 261002-2am)', () => {
+  it.each([
+    ['crossbones', crossbones, 12, 14],
+    ['absorbing-man', absorbingMan, 14, 15],
+    ['taskmaster', taskmaster, 13, 16],
+    ['zola', zola, 12, 14],
+    ['red-skull', redSkull, 12, 16],
+  ] as const)('%s: etapa I × jugadores en Normal y etapa II × jugadores en Experto', (_id, villain, stageI, stageII) => {
+    for (const n of [1, 2, 3, 4]) {
+      expect(computeInitialVillainHealth(villain, n, 'normal')).toBe(stageI * n)
+      expect(computeInitialVillainHealth(villain, n, 'expert')).toBe(stageII * n)
+    }
+  })
+
+  it('setVillain red-skull precarga villainHealth 36 con 3 jugadores', () => {
+    const session = setVillain(baseSession(), 'red-skull')
+    expect(resolveCounterValues(session.context, catalogue).villainHealth).toBe(36)
   })
 })
