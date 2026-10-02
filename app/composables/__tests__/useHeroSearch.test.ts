@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest'
 import marvelCharacters from '~~/content/marvel-characters.json'
 import { spanishHeroAliases } from '~/data/spanish-hero-aliases'
+import { spanishVillainAliases } from '~/data/spanish-villain-aliases'
 import {
   buildDuplicateWarningText,
   buildHeroOptions,
@@ -18,6 +19,8 @@ import {
   normalizeForSearch,
   resolveHeroSpanishName,
   resolvePlayerLabel,
+  resolveVillainEnglishName,
+  resolveVillainSpanishName,
 } from '../useHeroSearch'
 import type { HeroOption, SelectionSlot } from '../useHeroSearch'
 
@@ -142,9 +145,9 @@ describe('buildVillainOptions', () => {
   // Quick 260925-mpj: Klaw entra al catálogo (D-02), así que el recuento ya
   // no es fijo — se deriva del propio fichero real (CAT-07), nunca tecleado
   // a mano, para que comprar una caja nueva no obligue a tocar este test.
-  it('devuelve tantas opciones como villanos en el catálogo, ordenadas por name', () => {
+  it('devuelve tantas opciones como villanos en el catálogo, ordenadas por spanishName', () => {
     expect(villainOptions.length).toBe(marvelCharacters.villains.length)
-    const sortedCopy = [...villainOptions].sort((a, b) => a.name.localeCompare(b.name, 'es'))
+    const sortedCopy = [...villainOptions].sort((a, b) => a.spanishName.localeCompare(b.spanishName, 'es'))
     expect(villainOptions.map(v => v.id)).toEqual(sortedCopy.map(v => v.id))
   })
 
@@ -157,6 +160,55 @@ describe('buildVillainOptions', () => {
 
   it('array vacío devuelve []', () => {
     expect(buildVillainOptions([])).toEqual([])
+    expect(buildVillainOptions(null)).toEqual([])
+  })
+
+  it('rhino lleva español dominante e inglés secundario', () => {
+    expect(villainOptions.find(v => v.id === 'rhino')).toEqual({
+      id: 'rhino',
+      spanishName: 'Rino',
+      catalogueName: 'Rhino',
+      secondaryName: 'Rhino',
+    })
+  })
+
+  it('klaw, kang, loki y zola no repiten el nombre en la línea secundaria', () => {
+    for (const id of ['klaw', 'kang', 'loki', 'zola']) {
+      expect(villainOptions.find(v => v.id === id)?.secondaryName).toBeNull()
+    }
+  })
+
+  it('la Brigada de Demolición enseña The Wrecking Crew', () => {
+    expect(villainOptions.find(v => v.id === 'brigada-de-demolicion')?.secondaryName).toBe('The Wrecking Crew')
+  })
+})
+
+describe('spanishVillainAliases', () => {
+  it('cubre todos los villanos del catálogo y no tiene claves sobrantes', () => {
+    const catalogueIds = marvelCharacters.villains.map(v => v.id).sort()
+    expect(Object.keys(spanishVillainAliases).sort()).toEqual(catalogueIds)
+    for (const alias of Object.values(spanishVillainAliases)) {
+      expect(alias.trim()).not.toBe('')
+    }
+  })
+})
+
+describe('resolveVillainSpanishName / resolveVillainEnglishName', () => {
+  it('resuelve los nombres españoles', () => {
+    expect(resolveVillainSpanishName('rhino', 'Rhino')).toBe('Rino')
+    expect(resolveVillainSpanishName('red-skull', 'Red Skull')).toBe('Cráneo Rojo')
+    expect(resolveVillainSpanishName('absorbing-man', 'Absorbing Man')).toBe('Hombre Absorbente')
+  })
+
+  it('id ausente o de prototipo cae al nombre recibido sin lanzar', () => {
+    expect(resolveVillainSpanishName('no-existe', 'X')).toBe('X')
+    expect(resolveVillainSpanishName('constructor', 'X')).toBe('X')
+    expect(resolveVillainEnglishName('constructor', 'X')).toBe('X')
+  })
+
+  it('el rótulo inglés sale del catálogo salvo en la Brigada', () => {
+    expect(resolveVillainEnglishName('brigada-de-demolicion', 'Brigada de Demolición')).toBe('The Wrecking Crew')
+    expect(resolveVillainEnglishName('rhino', 'Rhino')).toBe('Rhino')
   })
 })
 
@@ -432,7 +484,10 @@ describe('BF-05/BF-06 (09-17): los mapas indexados por heroId no resuelven por O
 
 describe('findHeroOption / findVillainOption', () => {
   const heroOptions = [heroOption({ id: 'thor', spanishName: 'Thor' }), heroOption({ id: 'hulk', spanishName: 'Hulk' })]
-  const villainOptions = [{ id: 'kang', name: 'Kang' }, { id: 'rhino', name: 'Rhino' }]
+  const villainOptions = [
+    { id: 'kang', spanishName: 'Kang', catalogueName: 'Kang', secondaryName: null },
+    { id: 'rhino', spanishName: 'Rino', catalogueName: 'Rhino', secondaryName: 'Rhino' },
+  ]
 
   it('encuentra por id', () => {
     expect(findHeroOption(heroOptions, 'thor')?.id).toBe('thor')

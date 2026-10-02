@@ -25,6 +25,7 @@
 // que la mitad pura de `useStepShortcuts.ts`).
 import type { CatalogueHero, CatalogueVillain } from '~~/engine/types'
 import { spanishHeroAliases } from '~/data/spanish-hero-aliases'
+import { englishVillainNameOverrides, spanishVillainAliases } from '~/data/spanish-villain-aliases'
 
 export interface HeroOption {
   id: string
@@ -35,7 +36,9 @@ export interface HeroOption {
 
 export interface VillainOption {
   id: string
-  name: string
+  spanishName: string
+  catalogueName: string
+  secondaryName: string | null
 }
 
 export interface SelectionSlot {
@@ -92,13 +95,38 @@ export function buildHeroOptions(heroes: CatalogueHero[] | null | undefined): He
     .sort((a, b) => a.spanishName.localeCompare(b.spanishName, 'es'))
 }
 
-// Los villanos no llevan capa de alias (06-UI-SPEC.md §Layout 3): se
-// ordenan por su `name` de catálogo tal cual.
+// Quick 261002-34v: los villanos también llevan nombre español (rótulo
+// dominante) y el inglés como rótulo secundario. Mismas guardas que
+// `resolveHeroSpanishName` (BF-04): `Object.hasOwn` + `typeof` + no vacío, y
+// nunca lanza; sin entrada cae al nombre recibido.
+export function resolveVillainSpanishName(villainId: string, catalogueName: string): string {
+  if (!Object.hasOwn(spanishVillainAliases, villainId)) return catalogueName
+  const alias = spanishVillainAliases[villainId]
+  return typeof alias === 'string' && alias.trim() !== '' ? alias : catalogueName
+}
+
+export function resolveVillainEnglishName(villainId: string, catalogueName: string): string {
+  if (!Object.hasOwn(englishVillainNameOverrides, villainId)) return catalogueName
+  const override = englishVillainNameOverrides[villainId]
+  return typeof override === 'string' && override.trim() !== '' ? override : catalogueName
+}
+
+// `secondaryName` es `null` cuando el inglés coincide con el español (Klaw,
+// Kang, Loki, Zola): así nunca se pinta «Klaw / Klaw».
 export function buildVillainOptions(villains: CatalogueVillain[] | null | undefined): VillainOption[] {
   if (!villains || villains.length === 0) return []
   return villains
-    .map((villain): VillainOption => ({ id: villain.id, name: villain.name }))
-    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+    .map((villain): VillainOption => {
+      const spanishName = resolveVillainSpanishName(villain.id, villain.name)
+      const english = resolveVillainEnglishName(villain.id, villain.name)
+      return {
+        id: villain.id,
+        spanishName,
+        catalogueName: villain.name,
+        secondaryName: normalizeForSearch(english) === normalizeForSearch(spanishName) ? null : english,
+      }
+    })
+    .sort((a, b) => a.spanishName.localeCompare(b.spanishName, 'es'))
 }
 
 // D-08/SEL-05: busca simultáneamente por nombre español, nombre inglés y
