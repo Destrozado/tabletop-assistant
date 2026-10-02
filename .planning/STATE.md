@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 Phase: Milestone v1.8 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-02 — Completed quick task 261002-2am: villanos de Red Skull y módulos sueltos
+Last activity: 2026-10-02 — Completed quick task 261002-34v: nombres de villanos en español
 
 ## Performance Metrics
 
@@ -224,6 +224,7 @@ Recent decisions affecting current work:
 | 261001-o3p | Brigada de Demolición (twc) seleccionable como villano con vida inicial 0 (marcador; el grupo ajusta a mano), sin mecánica propia del escenario por decisión del usuario; esquema admite vida 0 y módulo recomendado opcional | 2026-10-01 | a9f8e71 | — | .planning/quick/261001-o3p-brigada-de-demolicion |
 | 261001-obf | Trickster Takeover (tt): Enchantress (15/16/18 por jugador, Experto desde II) y Loki (20 por jugador, sin mecánica propia del escenario) seleccionables, ambos con Magia embaucadora como módulo recomendado comprobado contra MarvelCDB | 2026-10-01 | 0f01067 | — | .planning/quick/261001-obf-trickster-takeover |
 | 261002-2am | The Rise of Red Skull (trors): Crossbones, Absorbing Man, Taskmaster, Zola y Red Skull seleccionables (Experto desde II según el reglamento de la caja), varios módulos recomendados y conjuntos fijos por villano, y 7 módulos nuevos (Asalto/Patrulla de Hydra, Maestro de armas, Arcade, La banda loca, El Rey Sombra, Armadillo) | 2026-10-02 | c6ce70e | — | .planning/quick/261002-2am-craneo-rojo-y-modulos |
+| 261002-34v | Nombres españoles de villano (mapa de interfaz como el de héroes): selector con español dominante e inglés secundario, español también en histórico y estadísticas — pendiente contrastar con las cartas físicas | 2026-10-02 | 5de7938 | — | .planning/quick/261002-34v-nombres-de-villanos-en-espanol |
 
 ## Deferred Items
 
