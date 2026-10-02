@@ -5,15 +5,17 @@
 // para esto, igual que la Fase 2 no retrofitó ConfirmDialog para
 // WarningDetailModal (06-UI-SPEC.md §Component Inventory).
 //
-// Sin filtro a propósito (D-10): son solo 3 entradas de catálogo, así que un
-// buscador sería fricción sin beneficio. Tocar cualquier fila guarda y cierra
+// Sin filtro a propósito (D-10): ahora son 12 villanos y siguen sin buscador,
+// porque las 12 filas caben con scroll corto y cada una enseña el nombre
+// español y el inglés, así que quien conozca cualquiera de los dos encuentra
+// al villano (petición del usuario, quick 261002-34v). Tocar cualquier fila guarda y cierra
 // (D-13) — las tres vías de cierre (✕, tocar el velo, la tecla de escape)
 // son equivalentes porque no hay nada que confirmar ni que descartar; tocar
 // la fila ya elegida es idempotente, no hace falta un caso especial.
 import { onMounted, onUnmounted, ref } from 'vue'
 
 defineProps<{
-  villains: { id: string, name: string }[]
+  villains: { id: string, spanishName: string, secondaryName: string | null }[]
   selectedId: string | null
 }>()
 
@@ -50,7 +52,7 @@ onUnmounted(() => {
   >
     <!--
       El tope de altura de este panel es nuevo respecto a
-      WarningDetailModal.vue: ese panel no desplaza nada, este sí (hasta 3
+      WarningDetailModal.vue: ese panel no desplaza nada, este sí (hasta 12
       filas de villano más la fila para vaciar la elección), así que
       necesita su propio límite vertical y flex-col para poder ceder la zona
       de scroll al cuerpo.
@@ -91,12 +93,15 @@ onUnmounted(() => {
           v-for="villain in villains"
           :key="villain.id"
           type="button"
-          class="w-full min-h-12 px-md py-sm flex items-center justify-between text-left text-body font-normal text-primary-text transition-transform duration-75 active:brightness-95"
-          :aria-label="villain.id === selectedId ? `${villain.name}, elegido actualmente` : villain.name"
+          class="w-full min-h-12 px-md py-sm flex flex-col items-start text-left text-body font-normal text-primary-text transition-transform duration-75 active:brightness-95"
+          :aria-label="`${villain.secondaryName ? `${villain.spanishName} (${villain.secondaryName})` : villain.spanishName}${villain.id === selectedId ? ', elegido actualmente' : ''}`"
           @click="emit('select', villain.id)"
         >
-          <span>{{ villain.name }}</span>
-          <span v-if="villain.id === selectedId" class="text-accent">✓</span>
+          <span class="w-full flex items-baseline justify-between gap-sm">
+            <span class="min-w-0 truncate text-body font-normal text-primary-text">{{ villain.spanishName }}</span>
+            <span v-if="villain.id === selectedId" class="text-accent">✓</span>
+          </span>
+          <span v-if="villain.secondaryName" class="min-w-0 truncate text-body font-normal text-secondary-text">{{ villain.secondaryName }}</span>
         </button>
       </div>
     </div>

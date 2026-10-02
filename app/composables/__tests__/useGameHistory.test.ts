@@ -105,7 +105,7 @@ describe('buildHistoryCardView', () => {
 
     expect(view.resultLabel).toBe('PERDIDA')
     expect(view.causeLabel).toBe('Se completó el Plan Principal')
-    expect(view.contextLine).toBe('Rhino · Experto · 2 jug')
+    expect(view.contextLine).toBe('Rino · Experto · 2 jug')
   })
 
   it('con durationMs null (D-10): la línea de duración es «—»', () => {
@@ -441,6 +441,23 @@ describe('buildStatisticsView', () => {
     )
   })
 
+  it('quick 261002-34v: las filas de villano salen con el nombre español; un id huérfano conserva el congelado', () => {
+    const summary: StatisticsSummary = {
+      heroRows: [{ id: 'thor', name: 'Thor', wins: 1, played: 1, pct: 100 }],
+      villainRows: [
+        { id: 'red-skull', name: 'Red Skull', wins: 1, played: 2, pct: 50 },
+        { id: 'villano-fantasma', name: 'Fantasma', wins: 0, played: 1, pct: 0 },
+      ],
+      totalEntries: 3,
+      entriesWithHeroes: 3,
+      entriesWithVillain: 3,
+    }
+
+    const view = buildStatisticsView(summary)
+    expect(view.villainRows.map(r => r.name)).toEqual(['Cráneo Rojo', 'Fantasma'])
+    expect(view.heroRows[0]!.name).toBe('Thor')
+  })
+
   it('WR-01: con al menos una fila, isEmpty es false y emptyTitle/emptyBody son null', () => {
     const summary: StatisticsSummary = {
       heroRows: [{ id: 'thor', name: 'Thor', wins: 1, played: 1, pct: 100 }],
@@ -484,6 +501,16 @@ describe('resolveFrozenNames', () => {
     const names = resolveFrozenNames(context, catalogue)
 
     expect(names.heroNames['heroe-fantasma']).toBeUndefined()
+  })
+
+  it('quick 261002-34v: lo guardado sigue siendo el nombre de catálogo (Rhino), no el español', () => {
+    const context: SessionContext = {
+      playerCount: 1,
+      difficulty: 'normal',
+      selection: { villainId: 'rhino', heroes: [{ heroId: null, playerName: '' }] },
+    }
+
+    expect(resolveFrozenNames(context, catalogue).villainName).toBe('Rhino')
   })
 
   it('devuelve villainName: null sin villano elegido', () => {

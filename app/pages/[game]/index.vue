@@ -477,7 +477,7 @@ const selectionRows = computed(() => {
     {
       key: 'villain',
       label: 'Villano',
-      valueLabel: villainOption?.name ?? '—',
+      valueLabel: villainOption?.spanishName ?? '—',
       hasValue: villainOption !== null,
       ariaLabel: 'Elegir villano',
     },
@@ -565,7 +565,7 @@ const endGameBody = computed(() => buildEndGameBody(savedSummary.value))
 const outcomeContextLine = computed(() => {
   const villainOption = findVillainOption(villainOptions, selectedVillainId.value)
   const parts = [
-    villainOption?.name,
+    villainOption?.spanishName,
     sessionContextLabel.value,
     session.value ? `ronda ${session.value.round}` : null,
   ]

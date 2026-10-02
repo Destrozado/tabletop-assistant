@@ -35,7 +35,7 @@ import type {
   SessionContext,
 } from '~~/engine/types'
 import { useCharacterCatalogue } from './useCharacterCatalogue'
-import { resolveHeroSpanishName, resolvePlayerLabel } from './useHeroSearch'
+import { resolveHeroSpanishName, resolvePlayerLabel, resolveVillainSpanishName } from './useHeroSearch'
 import { useHistorySync } from './useHistorySync'
 import { usePersistedSession } from './usePersistedSession'
 
@@ -45,9 +45,10 @@ import { usePersistedSession } from './usePersistedSession'
 //
 // - `villainName`: busca `resolveVillainId(context)` en `catalogue.villains`
 //   por `id`. `null` si no hay villano elegido o si el id ya no existe en
-//   el catálogo. Los villanos no llevan alias español (`buildVillainOptions`
-//   ya usa `villain.name` tal cual) — el nombre del catálogo ES el que se
-//   vio en pantalla.
+//   el catálogo. Lo guardado sigue siendo el nombre de CATÁLOGO por
+//   compatibilidad de datos y de sincronización; el nombre español se aplica
+//   al pintar, en `buildHistoryCardView`/`buildStatisticsView` (quick
+//   261002-34v), lo que también cubre las partidas antiguas.
 // - `heroNames`: por cada hueco con `heroId` no nulo, busca el héroe en
 //   `catalogue.heroes` y resuelve su alias con `resolveHeroSpanishName`. Un
 //   `heroId` que ya no exista en el catálogo (regenerado desde una API de
@@ -120,8 +121,13 @@ export function buildHistoryCardView(entry: GameHistoryEntry): HistoryCardView {
   // puede depender de que la frontera de almacenamiento la haya llamado
   // bien (mismo razonamiento que la normalización de `players` de abajo).
   const hasVillain = typeof entry.villainId === 'string'
+  // Quick 261002-34v: el nombre español se aplica al pintar; un id huérfano
+  // conserva el nombre congelado (o el propio id).
   const villainDisplayName = hasVillain
-    ? (typeof entry.villainName === 'string' ? entry.villainName : entry.villainId)
+    ? resolveVillainSpanishName(
+        entry.villainId as string,
+        typeof entry.villainName === 'string' ? entry.villainName : (entry.villainId as string),
+      )
     : null
 
   // CR-01: `entry` viene en última instancia de `localStorage` — el tipo
@@ -344,7 +350,8 @@ export function buildStatisticsView(summary: StatisticsSummary): StatisticsView 
 
   return {
     heroRows: summary.heroRows.map(toStatRowView),
-    villainRows: summary.villainRows.map(toStatRowView),
+    villainRows: summary.villainRows.map(row =>
+      toStatRowView({ ...row, name: resolveVillainSpanishName(row.id, row.name) })),
     heroSampleCaption,
     villainSampleCaption,
     isEmpty,
